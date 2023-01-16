@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"github.com/permitio/permit-golang/openapi"
 	permit "github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
@@ -12,10 +13,15 @@ type PermitBaseApi struct {
 	logger *zap.Logger
 }
 
+type IPermitBaseApi interface {
+	List(ctx context.Context) []interface{}
+}
+
 type PermitApiClient struct {
+	ctx                context.Context
 	config             *permit.PermitConfig
 	logger             *zap.Logger
-	client             *openapi.APIClient
+	Client             *openapi.APIClient
 	tenants            *Tenants
 	environments       *Environments
 	projects           *Projects
@@ -27,12 +33,20 @@ type PermitApiClient struct {
 	Elements           *Elements
 }
 
-func NewPermitApiClient(config *permit.PermitConfig) *PermitApiClient {
+func (p *PermitApiClient) SetContext(project string, environment string) {
+	permitContext, err := permit.PermitContextFactory(p.ctx, p.logger, p.Client, project, environment, true)
+	if err != nil {
+		p.logger.Error("", zap.Error(err))
+	}
+	p.config.Context = permitContext
+}
+
+func NewPermitApiClient(ctx context.Context, config *permit.PermitConfig) *PermitApiClient {
 	client := openapi.NewAPIClient(openapi.NewConfiguration())
 	return &PermitApiClient{
 		config:             config,
-		logger:             config.logger,
-		client:             client,
+		ctx:                ctx,
+		logger:             config.Logger,
 		tenants:            NewTenantsApi(client, config),
 		environments:       NewEnvironmentsApi(client, config),
 		projects:           NewProjectsApi(client, config),

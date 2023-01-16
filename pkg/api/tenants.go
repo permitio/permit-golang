@@ -2,8 +2,10 @@ package api
 
 import (
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
+	"golang.org/x/net/context"
 )
 
 type Tenants struct {
@@ -20,8 +22,9 @@ func NewTenantsApi(client *openapi.APIClient, config *permit.PermitConfig) *Tena
 	}
 }
 
-func (t *Tenants) List() []openapi.TenantRead {
-	tenants, _, err := t.client.TenantsApi.ListTenants(ctx, t.config.context)
+func (t *Tenants) List(ctx context.Context) []openapi.TenantRead {
+	tenants, httpRes, err := t.client.TenantsApi.ListTenants(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId).Execute()
+	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		t.logger.Error("error listing tenants", zap.Error(err))
 	}

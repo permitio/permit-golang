@@ -8,17 +8,18 @@ import (
 )
 
 type Permit struct {
+	ctx      context.Context
 	config   PermitConfig
 	logger   *zap.Logger
-	api      api.PermitBaseApi
+	api      *api.PermitApiClient
 	elements api.Elements
 }
 
-func NewPermit(apiUrl string, token string, pdpUrl string, permitContext PermitContext, debugMode bool) *Permit {
+func NewPermit(apiUrl string, token string, pdpUrl string, permitContext *PermitContext, debugMode bool) *Permit {
 	logger := zap.New()
 	ctx := context.Background()
 	config := NewPermitConfig(apiUrl, token, pdpUrl, debugMode, permitContext, logger)
-	apiClient := api.NewPermitApiClient()
+	apiClient := api.NewPermitApiClient(ctx, config)
 	return &Permit{
 		config:   *config,
 		logger:   logger,
@@ -33,6 +34,3 @@ type PermitInterface interface {
 	SyncUser() openapi.UserRead
 	SyncResources() []openapi.ResourceRead
 }
-
-def my_func(lst):
-	return sum(lst) / len(lst)

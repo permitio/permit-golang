@@ -5,6 +5,7 @@ type ErrorCode string
 const (
 	UnexpectedError          ErrorCode = "UnexpectedError"
 	NotFound                 ErrorCode = "NotFound"
+	PaginationError          ErrorCode = "PaginationError"
 	TeapotError              ErrorCode = "TeapotError"
 	ContextError             ErrorCode = "ContextError"
 	DuplicateEntity          ErrorCode = "DuplicateEntity"
@@ -35,6 +36,7 @@ type ErrorMessage string
 const (
 	EmptyErrorMessage        ErrorMessage = ""
 	SeperatorErrorMessage    ErrorMessage = " - "
+	PaginationMessage        ErrorMessage = "The pagination page and size per page are invalid"
 	ForbiddenMessage         ErrorMessage = "The access for this object is forbidden using the provided API key"
 	ContextMessage           ErrorMessage = "The context is missing or invalid"
 	ContextUnexpectedMessage ErrorMessage = "The context is missing or invalid"

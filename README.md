@@ -116,12 +116,12 @@ Class | Method | HTTP request | Description
 *ElementsConfigsApi* | [**ListElementsConfigs**](docs/ElementsConfigsApi.md#listelementsconfigs) | **Get** /v2/elements/{proj_id}/{env_id}/config | List Elements Configs
 *ElementsConfigsApi* | [**UpdateElementsConfig**](docs/ElementsConfigsApi.md#updateelementsconfig) | **Patch** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id} | Update Elements Config
 *ElementsConfigsApi* | [**UpdateElementsEnv**](docs/ElementsConfigsApi.md#updateelementsenv) | **Patch** /v2/elements/{proj_id}/{env_id} | Update Elements Env
-*ElementsDataApi* | [**ElementsAssignRoleToUser**](docs/ElementsDataApi.md#elementsassignroletouser) | **Post** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles | Assign role to user
-*ElementsDataApi* | [**ElementsCreateUser**](docs/ElementsDataApi.md#elementscreateuser) | **Post** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users | Create user
-*ElementsDataApi* | [**ElementsDeleteUser**](docs/ElementsDataApi.md#elementsdeleteuser) | **Delete** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id} | Delete user
+*ElementsDataApi* | [**ElementsAssignRoleToUser**](docs/ElementsDataApi.md#elementsassignroletouser) | **Post** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles | Assign role to userCreate
+*ElementsDataApi* | [**ElementsCreateUser**](docs/ElementsDataApi.md#elementscreateuser) | **Post** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users | Create userCreate
+*ElementsDataApi* | [**ElementsDeleteUser**](docs/ElementsDataApi.md#elementsdeleteuser) | **Delete** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id} | Delete userCreate
 *ElementsDataApi* | [**ElementsListRoles**](docs/ElementsDataApi.md#elementslistroles) | **Get** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/roles | List roles
 *ElementsDataApi* | [**ElementsListUsers**](docs/ElementsDataApi.md#elementslistusers) | **Get** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users | List users
-*ElementsDataApi* | [**ElementsUnassignRoleFromUser**](docs/ElementsDataApi.md#elementsunassignrolefromuser) | **Delete** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles | Unassign role from user
+*ElementsDataApi* | [**ElementsUnassignRoleFromUser**](docs/ElementsDataApi.md#elementsunassignrolefromuser) | **Delete** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles | Unassign role from userCreate
 *ElementsDataApi* | [**SetConfigActive**](docs/ElementsDataApi.md#setconfigactive) | **Post** /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/active | Set Config Active
 *EnvironmentsApi* | [**CreateEnvironment**](docs/EnvironmentsApi.md#createenvironment) | **Post** /v2/projects/{proj_id}/envs | Create Environment
 *EnvironmentsApi* | [**DeleteEnvironment**](docs/EnvironmentsApi.md#deleteenvironment) | **Delete** /v2/projects/{proj_id}/envs/{env_id} | Delete Environment

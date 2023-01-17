@@ -18,14 +18,26 @@ type PermitContextInterface interface {
 	GetProjectId() string
 	GetEnvironmentId() string
 	SetContext(project string, environment string)
+	GetContext() *PermitContext
 }
 
-func (p *PermitContext) GetProjectId() string {
-	return p.ProjectId
+func (p *PermitContext) SetContext(project string, environment string, apiKeyLevel APIKeyLevel) {
+	p.ProjectId = project
+	p.EnvironmentId = environment
+	p.APIKeyLevel = apiKeyLevel
+
 }
 
-func (p *PermitContext) GetEnvironmentId() string {
+func (p *PermitContext) GetContext() *PermitContext {
+	return p
+}
+
+func (p *PermitContext) GetEnvironment() string {
 	return p.EnvironmentId
+}
+
+func (p *PermitContext) GetProject() string {
+	return p.ProjectId
 }
 
 func PermitContextFactory(ctx context.Context, logger *zap.Logger, client *openapi.APIClient, project string, environment string, isUserInput bool) (*PermitContext, error) {

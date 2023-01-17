@@ -12,7 +12,7 @@ type Permit struct {
 	config   PermitConfig
 	logger   *zap.Logger
 	api      *api.PermitApiClient
-	elements api.Elements
+	elements *api.Elements
 }
 
 func NewPermit(apiUrl string, token string, pdpUrl string, permitContext *PermitContext, debugMode bool) *Permit {

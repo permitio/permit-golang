@@ -40,6 +40,10 @@ type PermitContextError struct {
 	PermitError
 }
 
+type PermitPaginationError struct {
+	PermitError
+}
+
 func NewPermitUnexpectedError(err error) *PermitUnexpectedError {
 	return &PermitUnexpectedError{NewPermitError(ErrorMessage(err.Error()), UnexpectedError, GENERAL_ERROR)}
 }
@@ -51,6 +55,12 @@ func NewPermitError(errorMessage ErrorMessage, errorCode ErrorCode, errorType Er
 func NewPermitNotFoundError(err error) *PermitNotFoundError {
 	return &PermitNotFoundError{
 		NewPermitError(ErrorMessage(err.Error()), NotFound, GENERAL_ERROR),
+	}
+}
+
+func NewPermitPaginationError() *PermitPaginationError {
+	return &PermitPaginationError{
+		NewPermitError(PaginationMessage, PaginationError, GENERAL_ERROR),
 	}
 }
 

@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -28,15 +29,15 @@ type ApiCreateResourceAttributeRequest struct {
 	projId                  string
 	envId                   string
 	resourceId              string
-	resourceAttributeCreate *ResourceAttributeCreate
+	resourceAttributeCreate *models.ResourceAttributeCreate
 }
 
-func (r ApiCreateResourceAttributeRequest) ResourceAttributeCreate(resourceAttributeCreate ResourceAttributeCreate) ApiCreateResourceAttributeRequest {
+func (r ApiCreateResourceAttributeRequest) ResourceAttributeCreate(resourceAttributeCreate models.ResourceAttributeCreate) ApiCreateResourceAttributeRequest {
 	r.resourceAttributeCreate = &resourceAttributeCreate
 	return r
 }
 
-func (r ApiCreateResourceAttributeRequest) Execute() (*ResourceAttributeRead, *http.Response, error) {
+func (r ApiCreateResourceAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
 	return r.ApiService.CreateResourceAttributeExecute(r)
 }
 
@@ -63,12 +64,12 @@ func (a *ResourceAttributesApiService) CreateResourceAttribute(ctx context.Conte
 
 // Execute executes the request
 //  @return ResourceAttributeRead
-func (a *ResourceAttributesApiService) CreateResourceAttributeExecute(r ApiCreateResourceAttributeRequest) (*ResourceAttributeRead, *http.Response, error) {
+func (a *ResourceAttributesApiService) CreateResourceAttributeExecute(r ApiCreateResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceAttributeRead
+		localVarReturnValue *models.ResourceAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.CreateResourceAttribute")
@@ -130,7 +131,7 @@ func (a *ResourceAttributesApiService) CreateResourceAttributeExecute(r ApiCreat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -276,7 +277,7 @@ func (a *ResourceAttributesApiService) DeleteResourceAttributeExecute(r ApiDelet
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -300,7 +301,7 @@ type ApiGetResourceAttributeRequest struct {
 	attributeId string
 }
 
-func (r ApiGetResourceAttributeRequest) Execute() (*ResourceAttributeRead, *http.Response, error) {
+func (r ApiGetResourceAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
 	return r.ApiService.GetResourceAttributeExecute(r)
 }
 
@@ -329,12 +330,12 @@ func (a *ResourceAttributesApiService) GetResourceAttribute(ctx context.Context,
 
 // Execute executes the request
 //  @return ResourceAttributeRead
-func (a *ResourceAttributesApiService) GetResourceAttributeExecute(r ApiGetResourceAttributeRequest) (*ResourceAttributeRead, *http.Response, error) {
+func (a *ResourceAttributesApiService) GetResourceAttributeExecute(r ApiGetResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceAttributeRead
+		localVarReturnValue *models.ResourceAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.GetResourceAttribute")
@@ -392,7 +393,7 @@ func (a *ResourceAttributesApiService) GetResourceAttributeExecute(r ApiGetResou
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -438,7 +439,7 @@ func (r ApiListResourceAttributesRequest) PerPage(perPage int32) ApiListResource
 	return r
 }
 
-func (r ApiListResourceAttributesRequest) Execute() ([]ResourceAttributeRead, *http.Response, error) {
+func (r ApiListResourceAttributesRequest) Execute() ([]models.ResourceAttributeRead, *http.Response, error) {
 	return r.ApiService.ListResourceAttributesExecute(r)
 }
 
@@ -465,12 +466,12 @@ func (a *ResourceAttributesApiService) ListResourceAttributes(ctx context.Contex
 
 // Execute executes the request
 //  @return []ResourceAttributeRead
-func (a *ResourceAttributesApiService) ListResourceAttributesExecute(r ApiListResourceAttributesRequest) ([]ResourceAttributeRead, *http.Response, error) {
+func (a *ResourceAttributesApiService) ListResourceAttributesExecute(r ApiListResourceAttributesRequest) ([]models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []ResourceAttributeRead
+		localVarReturnValue []models.ResourceAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.ListResourceAttributes")
@@ -533,7 +534,7 @@ func (a *ResourceAttributesApiService) ListResourceAttributesExecute(r ApiListRe
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -564,15 +565,15 @@ type ApiUpdateResourceAttributeRequest struct {
 	envId                   string
 	resourceId              string
 	attributeId             string
-	resourceAttributeUpdate *ResourceAttributeUpdate
+	resourceAttributeUpdate *models.ResourceAttributeUpdate
 }
 
-func (r ApiUpdateResourceAttributeRequest) ResourceAttributeUpdate(resourceAttributeUpdate ResourceAttributeUpdate) ApiUpdateResourceAttributeRequest {
+func (r ApiUpdateResourceAttributeRequest) ResourceAttributeUpdate(resourceAttributeUpdate models.ResourceAttributeUpdate) ApiUpdateResourceAttributeRequest {
 	r.resourceAttributeUpdate = &resourceAttributeUpdate
 	return r
 }
 
-func (r ApiUpdateResourceAttributeRequest) Execute() (*ResourceAttributeRead, *http.Response, error) {
+func (r ApiUpdateResourceAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
 	return r.ApiService.UpdateResourceAttributeExecute(r)
 }
 
@@ -602,12 +603,12 @@ func (a *ResourceAttributesApiService) UpdateResourceAttribute(ctx context.Conte
 
 // Execute executes the request
 //  @return ResourceAttributeRead
-func (a *ResourceAttributesApiService) UpdateResourceAttributeExecute(r ApiUpdateResourceAttributeRequest) (*ResourceAttributeRead, *http.Response, error) {
+func (a *ResourceAttributesApiService) UpdateResourceAttributeExecute(r ApiUpdateResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceAttributeRead
+		localVarReturnValue *models.ResourceAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.UpdateResourceAttribute")
@@ -670,7 +671,7 @@ func (a *ResourceAttributesApiService) UpdateResourceAttributeExecute(r ApiUpdat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

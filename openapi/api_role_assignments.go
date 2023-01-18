@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -27,15 +28,15 @@ type ApiAssignRoleRequest struct {
 	ApiService           *RoleAssignmentsApiService
 	projId               string
 	envId                string
-	roleAssignmentCreate *RoleAssignmentCreate
+	roleAssignmentCreate *models.RoleAssignmentCreate
 }
 
-func (r ApiAssignRoleRequest) RoleAssignmentCreate(roleAssignmentCreate RoleAssignmentCreate) ApiAssignRoleRequest {
+func (r ApiAssignRoleRequest) RoleAssignmentCreate(roleAssignmentCreate models.RoleAssignmentCreate) ApiAssignRoleRequest {
 	r.roleAssignmentCreate = &roleAssignmentCreate
 	return r
 }
 
-func (r ApiAssignRoleRequest) Execute() (*RoleAssignmentRead, *http.Response, error) {
+func (r ApiAssignRoleRequest) Execute() (*models.RoleAssignmentRead, *http.Response, error) {
 	return r.ApiService.AssignRoleExecute(r)
 }
 
@@ -62,12 +63,12 @@ func (a *RoleAssignmentsApiService) AssignRole(ctx context.Context, projId strin
 
 // Execute executes the request
 //  @return RoleAssignmentRead
-func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*RoleAssignmentRead, *http.Response, error) {
+func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*models.RoleAssignmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *RoleAssignmentRead
+		localVarReturnValue *models.RoleAssignmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.AssignRole")
@@ -128,7 +129,7 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -194,7 +195,7 @@ func (r ApiListRoleAssignmentsRequest) PerPage(perPage int32) ApiListRoleAssignm
 	return r
 }
 
-func (r ApiListRoleAssignmentsRequest) Execute() ([]RoleAssignmentRead, *http.Response, error) {
+func (r ApiListRoleAssignmentsRequest) Execute() ([]models.RoleAssignmentRead, *http.Response, error) {
 	return r.ApiService.ListRoleAssignmentsExecute(r)
 }
 
@@ -223,12 +224,12 @@ func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, pro
 
 // Execute executes the request
 //  @return []RoleAssignmentRead
-func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) ([]RoleAssignmentRead, *http.Response, error) {
+func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) ([]models.RoleAssignmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []RoleAssignmentRead
+		localVarReturnValue []models.RoleAssignmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.ListRoleAssignments")
@@ -299,7 +300,7 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -328,10 +329,10 @@ type ApiUnassignRoleRequest struct {
 	ApiService           *RoleAssignmentsApiService
 	projId               string
 	envId                string
-	roleAssignmentRemove *RoleAssignmentRemove
+	roleAssignmentRemove *models.RoleAssignmentRemove
 }
 
-func (r ApiUnassignRoleRequest) RoleAssignmentRemove(roleAssignmentRemove RoleAssignmentRemove) ApiUnassignRoleRequest {
+func (r ApiUnassignRoleRequest) RoleAssignmentRemove(roleAssignmentRemove models.RoleAssignmentRemove) ApiUnassignRoleRequest {
 	r.roleAssignmentRemove = &roleAssignmentRemove
 	return r
 }
@@ -429,7 +430,7 @@ func (a *RoleAssignmentsApiService) UnassignRoleExecute(r ApiUnassignRoleRequest
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

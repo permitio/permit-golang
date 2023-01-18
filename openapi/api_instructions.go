@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -29,7 +30,7 @@ type ApiListLanguageInstructionsRequest struct {
 	envId      string
 }
 
-func (r ApiListLanguageInstructionsRequest) Execute() ([]LanguageInstructions, *http.Response, error) {
+func (r ApiListLanguageInstructionsRequest) Execute() ([]models.LanguageInstructions, *http.Response, error) {
 	return r.ApiService.ListLanguageInstructionsExecute(r)
 }
 
@@ -54,12 +55,12 @@ func (a *InstructionsApiService) ListLanguageInstructions(ctx context.Context, p
 
 // Execute executes the request
 //  @return []LanguageInstructions
-func (a *InstructionsApiService) ListLanguageInstructionsExecute(r ApiListLanguageInstructionsRequest) ([]LanguageInstructions, *http.Response, error) {
+func (a *InstructionsApiService) ListLanguageInstructionsExecute(r ApiListLanguageInstructionsRequest) ([]models.LanguageInstructions, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []LanguageInstructions
+		localVarReturnValue []models.LanguageInstructions
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "InstructionsApiService.ListLanguageInstructions")
@@ -115,7 +116,7 @@ func (a *InstructionsApiService) ListLanguageInstructionsExecute(r ApiListLangua
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

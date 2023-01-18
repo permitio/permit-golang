@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -29,15 +30,15 @@ type ApiElementsAssignRoleToUserRequest struct {
 	envId                  string
 	elementsConfigId       string
 	userId                 string
-	elementsUserRoleCreate *ElementsUserRoleCreate
+	elementsUserRoleCreate *models.ElementsUserRoleCreate
 }
 
-func (r ApiElementsAssignRoleToUserRequest) ElementsUserRoleCreate(elementsUserRoleCreate ElementsUserRoleCreate) ApiElementsAssignRoleToUserRequest {
+func (r ApiElementsAssignRoleToUserRequest) ElementsUserRoleCreate(elementsUserRoleCreate models.ElementsUserRoleCreate) ApiElementsAssignRoleToUserRequest {
 	r.elementsUserRoleCreate = &elementsUserRoleCreate
 	return r
 }
 
-func (r ApiElementsAssignRoleToUserRequest) Execute() (*RoleAssignmentRead, *http.Response, error) {
+func (r ApiElementsAssignRoleToUserRequest) Execute() (*models.RoleAssignmentRead, *http.Response, error) {
 	return r.ApiService.ElementsAssignRoleToUserExecute(r)
 }
 
@@ -68,12 +69,12 @@ func (a *ElementsDataApiService) ElementsAssignRoleToUser(ctx context.Context, p
 
 // Execute executes the request
 //  @return RoleAssignmentRead
-func (a *ElementsDataApiService) ElementsAssignRoleToUserExecute(r ApiElementsAssignRoleToUserRequest) (*RoleAssignmentRead, *http.Response, error) {
+func (a *ElementsDataApiService) ElementsAssignRoleToUserExecute(r ApiElementsAssignRoleToUserRequest) (*models.RoleAssignmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *RoleAssignmentRead
+		localVarReturnValue *models.RoleAssignmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsAssignRoleToUser")
@@ -136,7 +137,7 @@ func (a *ElementsDataApiService) ElementsAssignRoleToUserExecute(r ApiElementsAs
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -166,15 +167,15 @@ type ApiElementsCreateUserRequest struct {
 	projId             string
 	envId              string
 	elementsConfigId   string
-	elementsUserCreate *ElementsUserCreate
+	elementsUserCreate *models.ElementsUserCreate
 }
 
-func (r ApiElementsCreateUserRequest) ElementsUserCreate(elementsUserCreate ElementsUserCreate) ApiElementsCreateUserRequest {
+func (r ApiElementsCreateUserRequest) ElementsUserCreate(elementsUserCreate models.ElementsUserCreate) ApiElementsCreateUserRequest {
 	r.elementsUserCreate = &elementsUserCreate
 	return r
 }
 
-func (r ApiElementsCreateUserRequest) Execute() (*UserRead, *http.Response, error) {
+func (r ApiElementsCreateUserRequest) Execute() (*models.UserRead, *http.Response, error) {
 	return r.ApiService.ElementsCreateUserExecute(r)
 }
 
@@ -205,12 +206,12 @@ func (a *ElementsDataApiService) ElementsCreateUser(ctx context.Context, projId 
 
 // Execute executes the request
 //  @return UserRead
-func (a *ElementsDataApiService) ElementsCreateUserExecute(r ApiElementsCreateUserRequest) (*UserRead, *http.Response, error) {
+func (a *ElementsDataApiService) ElementsCreateUserExecute(r ApiElementsCreateUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *UserRead
+		localVarReturnValue *models.UserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsCreateUser")
@@ -272,7 +273,7 @@ func (a *ElementsDataApiService) ElementsCreateUserExecute(r ApiElementsCreateUs
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -393,7 +394,7 @@ func (a *ElementsDataApiService) ElementsDeleteUserExecute(r ApiElementsDeleteUs
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -437,7 +438,7 @@ func (r ApiElementsListRolesRequest) PerPage(perPage int32) ApiElementsListRoles
 	return r
 }
 
-func (r ApiElementsListRolesRequest) Execute() ([]ElementsRoleRead, *http.Response, error) {
+func (r ApiElementsListRolesRequest) Execute() ([]models.ElementsRoleRead, *http.Response, error) {
 	return r.ApiService.ElementsListRolesExecute(r)
 }
 
@@ -464,12 +465,12 @@ func (a *ElementsDataApiService) ElementsListRoles(ctx context.Context, projId s
 
 // Execute executes the request
 //  @return []ElementsRoleRead
-func (a *ElementsDataApiService) ElementsListRolesExecute(r ApiElementsListRolesRequest) ([]ElementsRoleRead, *http.Response, error) {
+func (a *ElementsDataApiService) ElementsListRolesExecute(r ApiElementsListRolesRequest) ([]models.ElementsRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []ElementsRoleRead
+		localVarReturnValue []models.ElementsRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsListRoles")
@@ -535,7 +536,7 @@ func (a *ElementsDataApiService) ElementsListRolesExecute(r ApiElementsListRoles
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -588,7 +589,7 @@ func (r ApiElementsListUsersRequest) PerPage(perPage int32) ApiElementsListUsers
 	return r
 }
 
-func (r ApiElementsListUsersRequest) Execute() (*PaginatedResultUserRead, *http.Response, error) {
+func (r ApiElementsListUsersRequest) Execute() (*models.PaginatedResultUserRead, *http.Response, error) {
 	return r.ApiService.ElementsListUsersExecute(r)
 }
 
@@ -615,12 +616,12 @@ func (a *ElementsDataApiService) ElementsListUsers(ctx context.Context, projId s
 
 // Execute executes the request
 //  @return PaginatedResultUserRead
-func (a *ElementsDataApiService) ElementsListUsersExecute(r ApiElementsListUsersRequest) (*PaginatedResultUserRead, *http.Response, error) {
+func (a *ElementsDataApiService) ElementsListUsersExecute(r ApiElementsListUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PaginatedResultUserRead
+		localVarReturnValue *models.PaginatedResultUserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsListUsers")
@@ -686,7 +687,7 @@ func (a *ElementsDataApiService) ElementsListUsersExecute(r ApiElementsListUsers
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -717,10 +718,10 @@ type ApiElementsUnassignRoleFromUserRequest struct {
 	envId                  string
 	elementsConfigId       string
 	userId                 string
-	elementsUserRoleRemove *ElementsUserRoleRemove
+	elementsUserRoleRemove *models.ElementsUserRoleRemove
 }
 
-func (r ApiElementsUnassignRoleFromUserRequest) ElementsUserRoleRemove(elementsUserRoleRemove ElementsUserRoleRemove) ApiElementsUnassignRoleFromUserRequest {
+func (r ApiElementsUnassignRoleFromUserRequest) ElementsUserRoleRemove(elementsUserRoleRemove models.ElementsUserRoleRemove) ApiElementsUnassignRoleFromUserRequest {
 	r.elementsUserRoleRemove = &elementsUserRoleRemove
 	return r
 }
@@ -824,7 +825,7 @@ func (a *ElementsDataApiService) ElementsUnassignRoleFromUserExecute(r ApiElemen
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -934,7 +935,7 @@ func (a *ElementsDataApiService) SetConfigActiveExecute(r ApiSetConfigActiveRequ
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

@@ -1,6 +1,8 @@
 package permit
 
-import "github.com/permitio/permit-golang/openapi"
+import (
+	"github.com/permitio/permit-golang/models"
+)
 
 type APIKeyLevel int
 
@@ -11,7 +13,7 @@ const (
 	EnvironmentAPIKeyLevel
 )
 
-func GetApiKeyLevel(scope *openapi.APIKeyScopeRead) APIKeyLevel {
+func GetApiKeyLevel(scope *models.APIKeyScopeRead) APIKeyLevel {
 	if *scope.EnvironmentId != "" {
 		return EnvironmentAPIKeyLevel
 	}

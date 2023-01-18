@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -27,15 +28,15 @@ type ApiAssignSetPermissionsRequest struct {
 	ApiService             *ConditionSetRulesApiService
 	projId                 string
 	envId                  string
-	conditionSetRuleCreate *ConditionSetRuleCreate
+	conditionSetRuleCreate *models.ConditionSetRuleCreate
 }
 
-func (r ApiAssignSetPermissionsRequest) ConditionSetRuleCreate(conditionSetRuleCreate ConditionSetRuleCreate) ApiAssignSetPermissionsRequest {
+func (r ApiAssignSetPermissionsRequest) ConditionSetRuleCreate(conditionSetRuleCreate models.ConditionSetRuleCreate) ApiAssignSetPermissionsRequest {
 	r.conditionSetRuleCreate = &conditionSetRuleCreate
 	return r
 }
 
-func (r ApiAssignSetPermissionsRequest) Execute() ([]ConditionSetRuleRead, *http.Response, error) {
+func (r ApiAssignSetPermissionsRequest) Execute() ([]models.ConditionSetRuleRead, *http.Response, error) {
 	return r.ApiService.AssignSetPermissionsExecute(r)
 }
 
@@ -62,12 +63,12 @@ func (a *ConditionSetRulesApiService) AssignSetPermissions(ctx context.Context, 
 
 // Execute executes the request
 //  @return []ConditionSetRuleRead
-func (a *ConditionSetRulesApiService) AssignSetPermissionsExecute(r ApiAssignSetPermissionsRequest) ([]ConditionSetRuleRead, *http.Response, error) {
+func (a *ConditionSetRulesApiService) AssignSetPermissionsExecute(r ApiAssignSetPermissionsRequest) ([]models.ConditionSetRuleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []ConditionSetRuleRead
+		localVarReturnValue []models.ConditionSetRuleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetRulesApiService.AssignSetPermissions")
@@ -128,7 +129,7 @@ func (a *ConditionSetRulesApiService) AssignSetPermissionsExecute(r ApiAssignSet
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -194,7 +195,7 @@ func (r ApiListSetPermissionsRequest) PerPage(perPage int32) ApiListSetPermissio
 	return r
 }
 
-func (r ApiListSetPermissionsRequest) Execute() ([]ConditionSetRuleRead, *http.Response, error) {
+func (r ApiListSetPermissionsRequest) Execute() ([]models.ConditionSetRuleRead, *http.Response, error) {
 	return r.ApiService.ListSetPermissionsExecute(r)
 }
 
@@ -222,12 +223,12 @@ func (a *ConditionSetRulesApiService) ListSetPermissions(ctx context.Context, pr
 
 // Execute executes the request
 //  @return []ConditionSetRuleRead
-func (a *ConditionSetRulesApiService) ListSetPermissionsExecute(r ApiListSetPermissionsRequest) ([]ConditionSetRuleRead, *http.Response, error) {
+func (a *ConditionSetRulesApiService) ListSetPermissionsExecute(r ApiListSetPermissionsRequest) ([]models.ConditionSetRuleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []ConditionSetRuleRead
+		localVarReturnValue []models.ConditionSetRuleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetRulesApiService.ListSetPermissions")
@@ -298,7 +299,7 @@ func (a *ConditionSetRulesApiService) ListSetPermissionsExecute(r ApiListSetPerm
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -327,10 +328,10 @@ type ApiUnassignSetPermissionsRequest struct {
 	ApiService             *ConditionSetRulesApiService
 	projId                 string
 	envId                  string
-	conditionSetRuleRemove *ConditionSetRuleRemove
+	conditionSetRuleRemove *models.ConditionSetRuleRemove
 }
 
-func (r ApiUnassignSetPermissionsRequest) ConditionSetRuleRemove(conditionSetRuleRemove ConditionSetRuleRemove) ApiUnassignSetPermissionsRequest {
+func (r ApiUnassignSetPermissionsRequest) ConditionSetRuleRemove(conditionSetRuleRemove models.ConditionSetRuleRemove) ApiUnassignSetPermissionsRequest {
 	r.conditionSetRuleRemove = &conditionSetRuleRemove
 	return r
 }
@@ -426,7 +427,7 @@ func (a *ConditionSetRulesApiService) UnassignSetPermissionsExecute(r ApiUnassig
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

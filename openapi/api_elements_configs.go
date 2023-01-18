@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -27,15 +28,15 @@ type ApiCreateElementsConfigRequest struct {
 	ApiService           *ElementsConfigsApiService
 	projId               string
 	envId                string
-	elementsConfigCreate *ElementsConfigCreate
+	elementsConfigCreate *models.ElementsConfigCreate
 }
 
-func (r ApiCreateElementsConfigRequest) ElementsConfigCreate(elementsConfigCreate ElementsConfigCreate) ApiCreateElementsConfigRequest {
+func (r ApiCreateElementsConfigRequest) ElementsConfigCreate(elementsConfigCreate models.ElementsConfigCreate) ApiCreateElementsConfigRequest {
 	r.elementsConfigCreate = &elementsConfigCreate
 	return r
 }
 
-func (r ApiCreateElementsConfigRequest) Execute() (*ElementsConfigRead, *http.Response, error) {
+func (r ApiCreateElementsConfigRequest) Execute() (*models.ElementsConfigRead, *http.Response, error) {
 	return r.ApiService.CreateElementsConfigExecute(r)
 }
 
@@ -60,12 +61,12 @@ func (a *ElementsConfigsApiService) CreateElementsConfig(ctx context.Context, pr
 
 // Execute executes the request
 //  @return ElementsConfigRead
-func (a *ElementsConfigsApiService) CreateElementsConfigExecute(r ApiCreateElementsConfigRequest) (*ElementsConfigRead, *http.Response, error) {
+func (a *ElementsConfigsApiService) CreateElementsConfigExecute(r ApiCreateElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ElementsConfigRead
+		localVarReturnValue *models.ElementsConfigRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.CreateElementsConfig")
@@ -126,7 +127,7 @@ func (a *ElementsConfigsApiService) CreateElementsConfigExecute(r ApiCreateEleme
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -245,7 +246,7 @@ func (a *ElementsConfigsApiService) DeleteElementsConfigExecute(r ApiDeleteEleme
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -268,7 +269,7 @@ type ApiGetElementsConfigRequest struct {
 	elementsConfigId string
 }
 
-func (r ApiGetElementsConfigRequest) Execute() (*ElementsConfigRead, *http.Response, error) {
+func (r ApiGetElementsConfigRequest) Execute() (*models.ElementsConfigRead, *http.Response, error) {
 	return r.ApiService.GetElementsConfigExecute(r)
 }
 
@@ -295,12 +296,12 @@ func (a *ElementsConfigsApiService) GetElementsConfig(ctx context.Context, projI
 
 // Execute executes the request
 //  @return ElementsConfigRead
-func (a *ElementsConfigsApiService) GetElementsConfigExecute(r ApiGetElementsConfigRequest) (*ElementsConfigRead, *http.Response, error) {
+func (a *ElementsConfigsApiService) GetElementsConfigExecute(r ApiGetElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ElementsConfigRead
+		localVarReturnValue *models.ElementsConfigRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.GetElementsConfig")
@@ -357,7 +358,7 @@ func (a *ElementsConfigsApiService) GetElementsConfigExecute(r ApiGetElementsCon
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -388,7 +389,7 @@ type ApiGetEnvConfigRequest struct {
 	envId      string
 }
 
-func (r ApiGetEnvConfigRequest) Execute() (*ElementsEnvRead, *http.Response, error) {
+func (r ApiGetEnvConfigRequest) Execute() (*models.ElementsEnvRead, *http.Response, error) {
 	return r.ApiService.GetEnvConfigExecute(r)
 }
 
@@ -411,12 +412,12 @@ func (a *ElementsConfigsApiService) GetEnvConfig(ctx context.Context, projId str
 
 // Execute executes the request
 //  @return ElementsEnvRead
-func (a *ElementsConfigsApiService) GetEnvConfigExecute(r ApiGetEnvConfigRequest) (*ElementsEnvRead, *http.Response, error) {
+func (a *ElementsConfigsApiService) GetEnvConfigExecute(r ApiGetEnvConfigRequest) (*models.ElementsEnvRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ElementsEnvRead
+		localVarReturnValue *models.ElementsEnvRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.GetEnvConfig")
@@ -472,7 +473,7 @@ func (a *ElementsConfigsApiService) GetEnvConfigExecute(r ApiGetEnvConfigRequest
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -517,7 +518,7 @@ func (r ApiListElementsConfigsRequest) PerPage(perPage int32) ApiListElementsCon
 	return r
 }
 
-func (r ApiListElementsConfigsRequest) Execute() (*PaginatedResultElementsConfigRead, *http.Response, error) {
+func (r ApiListElementsConfigsRequest) Execute() (*models.PaginatedResultElementsConfigRead, *http.Response, error) {
 	return r.ApiService.ListElementsConfigsExecute(r)
 }
 
@@ -542,12 +543,12 @@ func (a *ElementsConfigsApiService) ListElementsConfigs(ctx context.Context, pro
 
 // Execute executes the request
 //  @return PaginatedResultElementsConfigRead
-func (a *ElementsConfigsApiService) ListElementsConfigsExecute(r ApiListElementsConfigsRequest) (*PaginatedResultElementsConfigRead, *http.Response, error) {
+func (a *ElementsConfigsApiService) ListElementsConfigsExecute(r ApiListElementsConfigsRequest) (*models.PaginatedResultElementsConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PaginatedResultElementsConfigRead
+		localVarReturnValue *models.PaginatedResultElementsConfigRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.ListElementsConfigs")
@@ -609,7 +610,7 @@ func (a *ElementsConfigsApiService) ListElementsConfigsExecute(r ApiListElements
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -639,15 +640,15 @@ type ApiUpdateElementsConfigRequest struct {
 	elementsConfigId     string
 	projId               string
 	envId                string
-	elementsConfigUpdate *ElementsConfigUpdate
+	elementsConfigUpdate *models.ElementsConfigUpdate
 }
 
-func (r ApiUpdateElementsConfigRequest) ElementsConfigUpdate(elementsConfigUpdate ElementsConfigUpdate) ApiUpdateElementsConfigRequest {
+func (r ApiUpdateElementsConfigRequest) ElementsConfigUpdate(elementsConfigUpdate models.ElementsConfigUpdate) ApiUpdateElementsConfigRequest {
 	r.elementsConfigUpdate = &elementsConfigUpdate
 	return r
 }
 
-func (r ApiUpdateElementsConfigRequest) Execute() (*ElementsConfigRead, *http.Response, error) {
+func (r ApiUpdateElementsConfigRequest) Execute() (*models.ElementsConfigRead, *http.Response, error) {
 	return r.ApiService.UpdateElementsConfigExecute(r)
 }
 
@@ -674,12 +675,12 @@ func (a *ElementsConfigsApiService) UpdateElementsConfig(ctx context.Context, el
 
 // Execute executes the request
 //  @return ElementsConfigRead
-func (a *ElementsConfigsApiService) UpdateElementsConfigExecute(r ApiUpdateElementsConfigRequest) (*ElementsConfigRead, *http.Response, error) {
+func (a *ElementsConfigsApiService) UpdateElementsConfigExecute(r ApiUpdateElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ElementsConfigRead
+		localVarReturnValue *models.ElementsConfigRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.UpdateElementsConfig")
@@ -741,7 +742,7 @@ func (a *ElementsConfigsApiService) UpdateElementsConfigExecute(r ApiUpdateEleme
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -770,15 +771,15 @@ type ApiUpdateElementsEnvRequest struct {
 	ApiService        *ElementsConfigsApiService
 	projId            string
 	envId             string
-	elementsEnvUpdate *ElementsEnvUpdate
+	elementsEnvUpdate *models.ElementsEnvUpdate
 }
 
-func (r ApiUpdateElementsEnvRequest) ElementsEnvUpdate(elementsEnvUpdate ElementsEnvUpdate) ApiUpdateElementsEnvRequest {
+func (r ApiUpdateElementsEnvRequest) ElementsEnvUpdate(elementsEnvUpdate models.ElementsEnvUpdate) ApiUpdateElementsEnvRequest {
 	r.elementsEnvUpdate = &elementsEnvUpdate
 	return r
 }
 
-func (r ApiUpdateElementsEnvRequest) Execute() (*ElementsEnvRead, *http.Response, error) {
+func (r ApiUpdateElementsEnvRequest) Execute() (*models.ElementsEnvRead, *http.Response, error) {
 	return r.ApiService.UpdateElementsEnvExecute(r)
 }
 
@@ -801,12 +802,12 @@ func (a *ElementsConfigsApiService) UpdateElementsEnv(ctx context.Context, projI
 
 // Execute executes the request
 //  @return ElementsEnvRead
-func (a *ElementsConfigsApiService) UpdateElementsEnvExecute(r ApiUpdateElementsEnvRequest) (*ElementsEnvRead, *http.Response, error) {
+func (a *ElementsConfigsApiService) UpdateElementsEnvExecute(r ApiUpdateElementsEnvRequest) (*models.ElementsEnvRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ElementsEnvRead
+		localVarReturnValue *models.ElementsEnvRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.UpdateElementsEnv")
@@ -867,7 +868,7 @@ func (a *ElementsConfigsApiService) UpdateElementsEnvExecute(r ApiUpdateElements
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -27,15 +28,15 @@ type ApiCreateConditionSetRequest struct {
 	ApiService         *ConditionSetsApiService
 	projId             string
 	envId              string
-	conditionSetCreate *ConditionSetCreate
+	conditionSetCreate *models.ConditionSetCreate
 }
 
-func (r ApiCreateConditionSetRequest) ConditionSetCreate(conditionSetCreate ConditionSetCreate) ApiCreateConditionSetRequest {
+func (r ApiCreateConditionSetRequest) ConditionSetCreate(conditionSetCreate models.ConditionSetCreate) ApiCreateConditionSetRequest {
 	r.conditionSetCreate = &conditionSetCreate
 	return r
 }
 
-func (r ApiCreateConditionSetRequest) Execute() (*ConditionSetRead, *http.Response, error) {
+func (r ApiCreateConditionSetRequest) Execute() (*models.ConditionSetRead, *http.Response, error) {
 	return r.ApiService.CreateConditionSetExecute(r)
 }
 
@@ -60,12 +61,12 @@ func (a *ConditionSetsApiService) CreateConditionSet(ctx context.Context, projId
 
 // Execute executes the request
 //  @return ConditionSetRead
-func (a *ConditionSetsApiService) CreateConditionSetExecute(r ApiCreateConditionSetRequest) (*ConditionSetRead, *http.Response, error) {
+func (a *ConditionSetsApiService) CreateConditionSetExecute(r ApiCreateConditionSetRequest) (*models.ConditionSetRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ConditionSetRead
+		localVarReturnValue *models.ConditionSetRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetsApiService.CreateConditionSet")
@@ -126,7 +127,7 @@ func (a *ConditionSetsApiService) CreateConditionSetExecute(r ApiCreateCondition
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -246,7 +247,7 @@ func (a *ConditionSetsApiService) DeleteConditionSetExecute(r ApiDeleteCondition
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -269,7 +270,7 @@ type ApiGetConditionSetRequest struct {
 	conditionSetId string
 }
 
-func (r ApiGetConditionSetRequest) Execute() (*ConditionSetRead, *http.Response, error) {
+func (r ApiGetConditionSetRequest) Execute() (*models.ConditionSetRead, *http.Response, error) {
 	return r.ApiService.GetConditionSetExecute(r)
 }
 
@@ -296,12 +297,12 @@ func (a *ConditionSetsApiService) GetConditionSet(ctx context.Context, projId st
 
 // Execute executes the request
 //  @return ConditionSetRead
-func (a *ConditionSetsApiService) GetConditionSetExecute(r ApiGetConditionSetRequest) (*ConditionSetRead, *http.Response, error) {
+func (a *ConditionSetsApiService) GetConditionSetExecute(r ApiGetConditionSetRequest) (*models.ConditionSetRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ConditionSetRead
+		localVarReturnValue *models.ConditionSetRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetsApiService.GetConditionSet")
@@ -358,7 +359,7 @@ func (a *ConditionSetsApiService) GetConditionSetExecute(r ApiGetConditionSetReq
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -387,13 +388,13 @@ type ApiListConditionSetsRequest struct {
 	ApiService *ConditionSetsApiService
 	projId     string
 	envId      string
-	type_      *ConditionSetType
+	type_      *models.ConditionSetType
 	page       *int32
 	perPage    *int32
 }
 
 // if provided, will return only the condition sets of the specified type. e.g: only user sets.
-func (r ApiListConditionSetsRequest) Type_(type_ ConditionSetType) ApiListConditionSetsRequest {
+func (r ApiListConditionSetsRequest) Type_(type_ models.ConditionSetType) ApiListConditionSetsRequest {
 	r.type_ = &type_
 	return r
 }
@@ -410,7 +411,7 @@ func (r ApiListConditionSetsRequest) PerPage(perPage int32) ApiListConditionSets
 	return r
 }
 
-func (r ApiListConditionSetsRequest) Execute() ([]ConditionSetRead, *http.Response, error) {
+func (r ApiListConditionSetsRequest) Execute() ([]models.ConditionSetRead, *http.Response, error) {
 	return r.ApiService.ListConditionSetsExecute(r)
 }
 
@@ -435,12 +436,12 @@ func (a *ConditionSetsApiService) ListConditionSets(ctx context.Context, projId 
 
 // Execute executes the request
 //  @return []ConditionSetRead
-func (a *ConditionSetsApiService) ListConditionSetsExecute(r ApiListConditionSetsRequest) ([]ConditionSetRead, *http.Response, error) {
+func (a *ConditionSetsApiService) ListConditionSetsExecute(r ApiListConditionSetsRequest) ([]models.ConditionSetRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []ConditionSetRead
+		localVarReturnValue []models.ConditionSetRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetsApiService.ListConditionSets")
@@ -505,7 +506,7 @@ func (a *ConditionSetsApiService) ListConditionSetsExecute(r ApiListConditionSet
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -535,15 +536,15 @@ type ApiUpdateConditionSetRequest struct {
 	projId             string
 	envId              string
 	conditionSetId     string
-	conditionSetUpdate *ConditionSetUpdate
+	conditionSetUpdate *models.ConditionSetUpdate
 }
 
-func (r ApiUpdateConditionSetRequest) ConditionSetUpdate(conditionSetUpdate ConditionSetUpdate) ApiUpdateConditionSetRequest {
+func (r ApiUpdateConditionSetRequest) ConditionSetUpdate(conditionSetUpdate models.ConditionSetUpdate) ApiUpdateConditionSetRequest {
 	r.conditionSetUpdate = &conditionSetUpdate
 	return r
 }
 
-func (r ApiUpdateConditionSetRequest) Execute() (*ConditionSetRead, *http.Response, error) {
+func (r ApiUpdateConditionSetRequest) Execute() (*models.ConditionSetRead, *http.Response, error) {
 	return r.ApiService.UpdateConditionSetExecute(r)
 }
 
@@ -571,12 +572,12 @@ func (a *ConditionSetsApiService) UpdateConditionSet(ctx context.Context, projId
 
 // Execute executes the request
 //  @return ConditionSetRead
-func (a *ConditionSetsApiService) UpdateConditionSetExecute(r ApiUpdateConditionSetRequest) (*ConditionSetRead, *http.Response, error) {
+func (a *ConditionSetsApiService) UpdateConditionSetExecute(r ApiUpdateConditionSetRequest) (*models.ConditionSetRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ConditionSetRead
+		localVarReturnValue *models.ConditionSetRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetsApiService.UpdateConditionSet")
@@ -638,7 +639,7 @@ func (a *ConditionSetsApiService) UpdateConditionSetExecute(r ApiUpdateCondition
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -113,7 +114,7 @@ func (a *OrganizationsApiService) CancelInviteExecute(r ApiCancelInviteRequest) 
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -131,15 +132,15 @@ func (a *OrganizationsApiService) CancelInviteExecute(r ApiCancelInviteRequest) 
 type ApiCreateOrganizationRequest struct {
 	ctx                context.Context
 	ApiService         *OrganizationsApiService
-	organizationCreate *OrganizationCreate
+	organizationCreate *models.OrganizationCreate
 }
 
-func (r ApiCreateOrganizationRequest) OrganizationCreate(organizationCreate OrganizationCreate) ApiCreateOrganizationRequest {
+func (r ApiCreateOrganizationRequest) OrganizationCreate(organizationCreate models.OrganizationCreate) ApiCreateOrganizationRequest {
 	r.organizationCreate = &organizationCreate
 	return r
 }
 
-func (r ApiCreateOrganizationRequest) Execute() (*OrganizationReadWithAPIKey, *http.Response, error) {
+func (r ApiCreateOrganizationRequest) Execute() (*models.OrganizationReadWithAPIKey, *http.Response, error) {
 	return r.ApiService.CreateOrganizationExecute(r)
 }
 
@@ -161,12 +162,12 @@ func (a *OrganizationsApiService) CreateOrganization(ctx context.Context) ApiCre
 
 // Execute executes the request
 //  @return OrganizationReadWithAPIKey
-func (a *OrganizationsApiService) CreateOrganizationExecute(r ApiCreateOrganizationRequest) (*OrganizationReadWithAPIKey, *http.Response, error) {
+func (a *OrganizationsApiService) CreateOrganizationExecute(r ApiCreateOrganizationRequest) (*models.OrganizationReadWithAPIKey, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrganizationReadWithAPIKey
+		localVarReturnValue *models.OrganizationReadWithAPIKey
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.CreateOrganization")
@@ -225,7 +226,7 @@ func (a *OrganizationsApiService) CreateOrganizationExecute(r ApiCreateOrganizat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -336,7 +337,7 @@ func (a *OrganizationsApiService) DeleteOrganizationExecute(r ApiDeleteOrganizat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -356,7 +357,7 @@ type ApiGetActiveOrganizationRequest struct {
 	ApiService *OrganizationsApiService
 }
 
-func (r ApiGetActiveOrganizationRequest) Execute() (*OrganizationRead, *http.Response, error) {
+func (r ApiGetActiveOrganizationRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
 	return r.ApiService.GetActiveOrganizationExecute(r)
 }
 
@@ -378,12 +379,12 @@ func (a *OrganizationsApiService) GetActiveOrganization(ctx context.Context) Api
 
 // Execute executes the request
 //  @return OrganizationRead
-func (a *OrganizationsApiService) GetActiveOrganizationExecute(r ApiGetActiveOrganizationRequest) (*OrganizationRead, *http.Response, error) {
+func (a *OrganizationsApiService) GetActiveOrganizationExecute(r ApiGetActiveOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrganizationRead
+		localVarReturnValue *models.OrganizationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.GetActiveOrganization")
@@ -437,7 +438,7 @@ func (a *OrganizationsApiService) GetActiveOrganizationExecute(r ApiGetActiveOrg
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -467,7 +468,7 @@ type ApiGetOrganizationRequest struct {
 	orgId      string
 }
 
-func (r ApiGetOrganizationRequest) Execute() (*OrganizationRead, *http.Response, error) {
+func (r ApiGetOrganizationRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
 	return r.ApiService.GetOrganizationExecute(r)
 }
 
@@ -491,12 +492,12 @@ func (a *OrganizationsApiService) GetOrganization(ctx context.Context, orgId str
 
 // Execute executes the request
 //  @return OrganizationRead
-func (a *OrganizationsApiService) GetOrganizationExecute(r ApiGetOrganizationRequest) (*OrganizationRead, *http.Response, error) {
+func (a *OrganizationsApiService) GetOrganizationExecute(r ApiGetOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrganizationRead
+		localVarReturnValue *models.OrganizationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.GetOrganization")
@@ -551,7 +552,7 @@ func (a *OrganizationsApiService) GetOrganizationExecute(r ApiGetOrganizationReq
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -579,12 +580,12 @@ type ApiInviteMembersToOrganizationRequest struct {
 	ctx          context.Context
 	ApiService   *OrganizationsApiService
 	orgId        string
-	inviteCreate *[]InviteCreate
+	inviteCreate *[]models.InviteCreate
 	inviterName  *string
 	inviterEmail *string
 }
 
-func (r ApiInviteMembersToOrganizationRequest) InviteCreate(inviteCreate []InviteCreate) ApiInviteMembersToOrganizationRequest {
+func (r ApiInviteMembersToOrganizationRequest) InviteCreate(inviteCreate []models.InviteCreate) ApiInviteMembersToOrganizationRequest {
 	r.inviteCreate = &inviteCreate
 	return r
 }
@@ -599,7 +600,7 @@ func (r ApiInviteMembersToOrganizationRequest) InviterEmail(inviterEmail string)
 	return r
 }
 
-func (r ApiInviteMembersToOrganizationRequest) Execute() (*MultiInviteResult, *http.Response, error) {
+func (r ApiInviteMembersToOrganizationRequest) Execute() (*models.MultiInviteResult, *http.Response, error) {
 	return r.ApiService.InviteMembersToOrganizationExecute(r)
 }
 
@@ -622,12 +623,12 @@ func (a *OrganizationsApiService) InviteMembersToOrganization(ctx context.Contex
 
 // Execute executes the request
 //  @return MultiInviteResult
-func (a *OrganizationsApiService) InviteMembersToOrganizationExecute(r ApiInviteMembersToOrganizationRequest) (*MultiInviteResult, *http.Response, error) {
+func (a *OrganizationsApiService) InviteMembersToOrganizationExecute(r ApiInviteMembersToOrganizationRequest) (*models.MultiInviteResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *MultiInviteResult
+		localVarReturnValue *models.MultiInviteResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.InviteMembersToOrganization")
@@ -693,7 +694,7 @@ func (a *OrganizationsApiService) InviteMembersToOrganizationExecute(r ApiInvite
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -737,7 +738,7 @@ func (r ApiListOrganizationInvitesRequest) PerPage(perPage int32) ApiListOrganiz
 	return r
 }
 
-func (r ApiListOrganizationInvitesRequest) Execute() ([]InviteRead, *http.Response, error) {
+func (r ApiListOrganizationInvitesRequest) Execute() ([]models.InviteRead, *http.Response, error) {
 	return r.ApiService.ListOrganizationInvitesExecute(r)
 }
 
@@ -760,12 +761,12 @@ func (a *OrganizationsApiService) ListOrganizationInvites(ctx context.Context, o
 
 // Execute executes the request
 //  @return []InviteRead
-func (a *OrganizationsApiService) ListOrganizationInvitesExecute(r ApiListOrganizationInvitesRequest) ([]InviteRead, *http.Response, error) {
+func (a *OrganizationsApiService) ListOrganizationInvitesExecute(r ApiListOrganizationInvitesRequest) ([]models.InviteRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []InviteRead
+		localVarReturnValue []models.InviteRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.ListOrganizationInvites")
@@ -826,7 +827,7 @@ func (a *OrganizationsApiService) ListOrganizationInvitesExecute(r ApiListOrgani
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -869,7 +870,7 @@ func (r ApiListOrganizationsRequest) PerPage(perPage int32) ApiListOrganizations
 	return r
 }
 
-func (r ApiListOrganizationsRequest) Execute() ([]OrganizationRead, *http.Response, error) {
+func (r ApiListOrganizationsRequest) Execute() ([]models.OrganizationRead, *http.Response, error) {
 	return r.ApiService.ListOrganizationsExecute(r)
 }
 
@@ -891,12 +892,12 @@ func (a *OrganizationsApiService) ListOrganizations(ctx context.Context) ApiList
 
 // Execute executes the request
 //  @return []OrganizationRead
-func (a *OrganizationsApiService) ListOrganizationsExecute(r ApiListOrganizationsRequest) ([]OrganizationRead, *http.Response, error) {
+func (a *OrganizationsApiService) ListOrganizationsExecute(r ApiListOrganizationsRequest) ([]models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []OrganizationRead
+		localVarReturnValue []models.OrganizationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.ListOrganizations")
@@ -956,7 +957,7 @@ func (a *OrganizationsApiService) ListOrganizationsExecute(r ApiListOrganization
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -984,15 +985,15 @@ type ApiUpdateOrganizationRequest struct {
 	ctx                context.Context
 	ApiService         *OrganizationsApiService
 	orgId              string
-	organizationUpdate *OrganizationUpdate
+	organizationUpdate *models.OrganizationUpdate
 }
 
-func (r ApiUpdateOrganizationRequest) OrganizationUpdate(organizationUpdate OrganizationUpdate) ApiUpdateOrganizationRequest {
+func (r ApiUpdateOrganizationRequest) OrganizationUpdate(organizationUpdate models.OrganizationUpdate) ApiUpdateOrganizationRequest {
 	r.organizationUpdate = &organizationUpdate
 	return r
 }
 
-func (r ApiUpdateOrganizationRequest) Execute() (*OrganizationRead, *http.Response, error) {
+func (r ApiUpdateOrganizationRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
 	return r.ApiService.UpdateOrganizationExecute(r)
 }
 
@@ -1015,12 +1016,12 @@ func (a *OrganizationsApiService) UpdateOrganization(ctx context.Context, orgId 
 
 // Execute executes the request
 //  @return OrganizationRead
-func (a *OrganizationsApiService) UpdateOrganizationExecute(r ApiUpdateOrganizationRequest) (*OrganizationRead, *http.Response, error) {
+func (a *OrganizationsApiService) UpdateOrganizationExecute(r ApiUpdateOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrganizationRead
+		localVarReturnValue *models.OrganizationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.UpdateOrganization")
@@ -1080,7 +1081,7 @@ func (a *OrganizationsApiService) UpdateOrganizationExecute(r ApiUpdateOrganizat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

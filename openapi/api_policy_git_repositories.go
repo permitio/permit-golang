@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -29,7 +30,7 @@ type ApiActivatePolicyRepoRequest struct {
 	repoId     string
 }
 
-func (r ApiActivatePolicyRepoRequest) Execute() (*ProjectRead, *http.Response, error) {
+func (r ApiActivatePolicyRepoRequest) Execute() (*models.ProjectRead, *http.Response, error) {
 	return r.ApiService.ActivatePolicyRepoExecute(r)
 }
 
@@ -55,12 +56,12 @@ func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepo(ctx context.Context
 
 // Execute executes the request
 //  @return ProjectRead
-func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepoExecute(r ApiActivatePolicyRepoRequest) (*ProjectRead, *http.Response, error) {
+func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepoExecute(r ApiActivatePolicyRepoRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ProjectRead
+		localVarReturnValue *models.ProjectRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.ActivatePolicyRepo")
@@ -116,7 +117,7 @@ func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepoExecute(r ApiActivat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -144,15 +145,15 @@ type ApiCreatePolicyRepoRequest struct {
 	ctx              context.Context
 	ApiService       *PolicyGitRepositoriesApiService
 	projId           string
-	policyRepoCreate *PolicyRepoCreate
+	policyRepoCreate *models.PolicyRepoCreate
 }
 
-func (r ApiCreatePolicyRepoRequest) PolicyRepoCreate(policyRepoCreate PolicyRepoCreate) ApiCreatePolicyRepoRequest {
+func (r ApiCreatePolicyRepoRequest) PolicyRepoCreate(policyRepoCreate models.PolicyRepoCreate) ApiCreatePolicyRepoRequest {
 	r.policyRepoCreate = &policyRepoCreate
 	return r
 }
 
-func (r ApiCreatePolicyRepoRequest) Execute() (*PolicyRepoRead, *http.Response, error) {
+func (r ApiCreatePolicyRepoRequest) Execute() (*models.PolicyRepoRead, *http.Response, error) {
 	return r.ApiService.CreatePolicyRepoExecute(r)
 }
 
@@ -178,12 +179,12 @@ func (a *PolicyGitRepositoriesApiService) CreatePolicyRepo(ctx context.Context, 
 
 // Execute executes the request
 //  @return PolicyRepoRead
-func (a *PolicyGitRepositoriesApiService) CreatePolicyRepoExecute(r ApiCreatePolicyRepoRequest) (*PolicyRepoRead, *http.Response, error) {
+func (a *PolicyGitRepositoriesApiService) CreatePolicyRepoExecute(r ApiCreatePolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PolicyRepoRead
+		localVarReturnValue *models.PolicyRepoRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.CreatePolicyRepo")
@@ -243,7 +244,7 @@ func (a *PolicyGitRepositoriesApiService) CreatePolicyRepoExecute(r ApiCreatePol
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -358,7 +359,7 @@ func (a *PolicyGitRepositoriesApiService) DeletePolicyRepoExecute(r ApiDeletePol
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -379,7 +380,7 @@ type ApiDisableActivePolicyRepoRequest struct {
 	projId     string
 }
 
-func (r ApiDisableActivePolicyRepoRequest) Execute() (*ProjectRead, *http.Response, error) {
+func (r ApiDisableActivePolicyRepoRequest) Execute() (*models.ProjectRead, *http.Response, error) {
 	return r.ApiService.DisableActivePolicyRepoExecute(r)
 }
 
@@ -403,12 +404,12 @@ func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepo(ctx context.Co
 
 // Execute executes the request
 //  @return ProjectRead
-func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepoExecute(r ApiDisableActivePolicyRepoRequest) (*ProjectRead, *http.Response, error) {
+func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepoExecute(r ApiDisableActivePolicyRepoRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ProjectRead
+		localVarReturnValue *models.ProjectRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.DisableActivePolicyRepo")
@@ -463,7 +464,7 @@ func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepoExecute(r ApiDi
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -493,7 +494,7 @@ type ApiGetActivePolicyRepoRequest struct {
 	projId     string
 }
 
-func (r ApiGetActivePolicyRepoRequest) Execute() (*PolicyRepoRead, *http.Response, error) {
+func (r ApiGetActivePolicyRepoRequest) Execute() (*models.PolicyRepoRead, *http.Response, error) {
 	return r.ApiService.GetActivePolicyRepoExecute(r)
 }
 
@@ -516,12 +517,12 @@ func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepo(ctx context.Contex
 
 // Execute executes the request
 //  @return PolicyRepoRead
-func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepoExecute(r ApiGetActivePolicyRepoRequest) (*PolicyRepoRead, *http.Response, error) {
+func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepoExecute(r ApiGetActivePolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PolicyRepoRead
+		localVarReturnValue *models.PolicyRepoRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.GetActivePolicyRepo")
@@ -576,7 +577,7 @@ func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepoExecute(r ApiGetAct
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -607,7 +608,7 @@ type ApiGetPolicyRepoRequest struct {
 	repoId     string
 }
 
-func (r ApiGetPolicyRepoRequest) Execute() (*PolicyRepoRead, *http.Response, error) {
+func (r ApiGetPolicyRepoRequest) Execute() (*models.PolicyRepoRead, *http.Response, error) {
 	return r.ApiService.GetPolicyRepoExecute(r)
 }
 
@@ -632,12 +633,12 @@ func (a *PolicyGitRepositoriesApiService) GetPolicyRepo(ctx context.Context, pro
 
 // Execute executes the request
 //  @return PolicyRepoRead
-func (a *PolicyGitRepositoriesApiService) GetPolicyRepoExecute(r ApiGetPolicyRepoRequest) (*PolicyRepoRead, *http.Response, error) {
+func (a *PolicyGitRepositoriesApiService) GetPolicyRepoExecute(r ApiGetPolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PolicyRepoRead
+		localVarReturnValue *models.PolicyRepoRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.GetPolicyRepo")
@@ -693,7 +694,7 @@ func (a *PolicyGitRepositoriesApiService) GetPolicyRepoExecute(r ApiGetPolicyRep
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -737,7 +738,7 @@ func (r ApiListPolicyReposRequest) PerPage(perPage int32) ApiListPolicyReposRequ
 	return r
 }
 
-func (r ApiListPolicyReposRequest) Execute() ([]PolicyRepoRead, *http.Response, error) {
+func (r ApiListPolicyReposRequest) Execute() ([]models.PolicyRepoRead, *http.Response, error) {
 	return r.ApiService.ListPolicyReposExecute(r)
 }
 
@@ -760,12 +761,12 @@ func (a *PolicyGitRepositoriesApiService) ListPolicyRepos(ctx context.Context, p
 
 // Execute executes the request
 //  @return []PolicyRepoRead
-func (a *PolicyGitRepositoriesApiService) ListPolicyReposExecute(r ApiListPolicyReposRequest) ([]PolicyRepoRead, *http.Response, error) {
+func (a *PolicyGitRepositoriesApiService) ListPolicyReposExecute(r ApiListPolicyReposRequest) ([]models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []PolicyRepoRead
+		localVarReturnValue []models.PolicyRepoRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.ListPolicyRepos")
@@ -826,7 +827,7 @@ func (a *PolicyGitRepositoriesApiService) ListPolicyReposExecute(r ApiListPolicy
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

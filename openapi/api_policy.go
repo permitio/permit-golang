@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -32,7 +33,7 @@ func (r ApiGetOpalDataSourcesRequest) Token(token string) ApiGetOpalDataSourcesR
 	return r
 }
 
-func (r ApiGetOpalDataSourcesRequest) Execute() (*DataSourceConfig, *http.Response, error) {
+func (r ApiGetOpalDataSourcesRequest) Execute() (*models.DataSourceConfig, *http.Response, error) {
 	return r.ApiService.GetOpalDataSourcesExecute(r)
 }
 
@@ -51,12 +52,12 @@ func (a *PolicyApiService) GetOpalDataSources(ctx context.Context) ApiGetOpalDat
 
 // Execute executes the request
 //  @return DataSourceConfig
-func (a *PolicyApiService) GetOpalDataSourcesExecute(r ApiGetOpalDataSourcesRequest) (*DataSourceConfig, *http.Response, error) {
+func (a *PolicyApiService) GetOpalDataSourcesExecute(r ApiGetOpalDataSourcesRequest) (*models.DataSourceConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *DataSourceConfig
+		localVarReturnValue *models.DataSourceConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyApiService.GetOpalDataSources")
@@ -113,7 +114,7 @@ func (a *PolicyApiService) GetOpalDataSourcesExecute(r ApiGetOpalDataSourcesRequ
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -148,7 +149,7 @@ func (r ApiGetOpalDataSourcesOpalDataConfigGetRequest) Token(token string) ApiGe
 	return r
 }
 
-func (r ApiGetOpalDataSourcesOpalDataConfigGetRequest) Execute() (*DataSourceConfig, *http.Response, error) {
+func (r ApiGetOpalDataSourcesOpalDataConfigGetRequest) Execute() (*models.DataSourceConfig, *http.Response, error) {
 	return r.ApiService.GetOpalDataSourcesOpalDataConfigGetExecute(r)
 }
 
@@ -167,12 +168,12 @@ func (a *PolicyApiService) GetOpalDataSourcesOpalDataConfigGet(ctx context.Conte
 
 // Execute executes the request
 //  @return DataSourceConfig
-func (a *PolicyApiService) GetOpalDataSourcesOpalDataConfigGetExecute(r ApiGetOpalDataSourcesOpalDataConfigGetRequest) (*DataSourceConfig, *http.Response, error) {
+func (a *PolicyApiService) GetOpalDataSourcesOpalDataConfigGetExecute(r ApiGetOpalDataSourcesOpalDataConfigGetRequest) (*models.DataSourceConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *DataSourceConfig
+		localVarReturnValue *models.DataSourceConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyApiService.GetOpalDataSourcesOpalDataConfigGet")
@@ -229,7 +230,7 @@ func (a *PolicyApiService) GetOpalDataSourcesOpalDataConfigGetExecute(r ApiGetOp
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

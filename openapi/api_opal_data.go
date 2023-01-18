@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -36,7 +37,7 @@ func (r ApiGetAllDataRequest) InternalUpdateCache(internalUpdateCache bool) ApiG
 	return r
 }
 
-func (r ApiGetAllDataRequest) Execute() (*FullData, *http.Response, error) {
+func (r ApiGetAllDataRequest) Execute() (*models.FullData, *http.Response, error) {
 	return r.ApiService.GetAllDataExecute(r)
 }
 
@@ -61,12 +62,12 @@ func (a *OPALDataApiService) GetAllData(ctx context.Context, orgId string, projI
 
 // Execute executes the request
 //  @return FullData
-func (a *OPALDataApiService) GetAllDataExecute(r ApiGetAllDataRequest) (*FullData, *http.Response, error) {
+func (a *OPALDataApiService) GetAllDataExecute(r ApiGetAllDataRequest) (*models.FullData, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *FullData
+		localVarReturnValue *models.FullData
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OPALDataApiService.GetAllData")
@@ -126,7 +127,7 @@ func (a *OPALDataApiService) GetAllDataExecute(r ApiGetAllDataRequest) (*FullDat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -159,7 +160,7 @@ type ApiGetDataForRoleRequest struct {
 	roleId     string
 }
 
-func (r ApiGetDataForRoleRequest) Execute() (*RoleData, *http.Response, error) {
+func (r ApiGetDataForRoleRequest) Execute() (*models.RoleData, *http.Response, error) {
 	return r.ApiService.GetDataForRoleExecute(r)
 }
 
@@ -186,12 +187,12 @@ func (a *OPALDataApiService) GetDataForRole(ctx context.Context, orgId string, p
 
 // Execute executes the request
 //  @return RoleData
-func (a *OPALDataApiService) GetDataForRoleExecute(r ApiGetDataForRoleRequest) (*RoleData, *http.Response, error) {
+func (a *OPALDataApiService) GetDataForRoleExecute(r ApiGetDataForRoleRequest) (*models.RoleData, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *RoleData
+		localVarReturnValue *models.RoleData
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OPALDataApiService.GetDataForRole")
@@ -249,7 +250,7 @@ func (a *OPALDataApiService) GetDataForRoleExecute(r ApiGetDataForRoleRequest) (
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -378,7 +379,7 @@ func (a *OPALDataApiService) GetDataForSetRuleExecute(r ApiGetDataForSetRuleRequ
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -411,7 +412,7 @@ type ApiGetDataForUserRequest struct {
 	userId     string
 }
 
-func (r ApiGetDataForUserRequest) Execute() (*UserData, *http.Response, error) {
+func (r ApiGetDataForUserRequest) Execute() (*models.UserData, *http.Response, error) {
 	return r.ApiService.GetDataForUserExecute(r)
 }
 
@@ -438,12 +439,12 @@ func (a *OPALDataApiService) GetDataForUser(ctx context.Context, orgId string, p
 
 // Execute executes the request
 //  @return UserData
-func (a *OPALDataApiService) GetDataForUserExecute(r ApiGetDataForUserRequest) (*UserData, *http.Response, error) {
+func (a *OPALDataApiService) GetDataForUserExecute(r ApiGetDataForUserRequest) (*models.UserData, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *UserData
+		localVarReturnValue *models.UserData
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OPALDataApiService.GetDataForUser")
@@ -501,7 +502,7 @@ func (a *OPALDataApiService) GetDataForUserExecute(r ApiGetDataForUserRequest) (
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

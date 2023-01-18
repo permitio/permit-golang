@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -32,7 +33,7 @@ type ApiAddParentResourceRoleRequest struct {
 	parentRoleId string
 }
 
-func (r ApiAddParentResourceRoleRequest) Execute() (*ResourceRoleRead, *http.Response, error) {
+func (r ApiAddParentResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
 	return r.ApiService.AddParentResourceRoleExecute(r)
 }
 
@@ -74,12 +75,12 @@ func (a *ResourceRolesApiService) AddParentResourceRole(ctx context.Context, pro
 
 // Execute executes the request
 //  @return ResourceRoleRead
-func (a *ResourceRolesApiService) AddParentResourceRoleExecute(r ApiAddParentResourceRoleRequest) (*ResourceRoleRead, *http.Response, error) {
+func (a *ResourceRolesApiService) AddParentResourceRoleExecute(r ApiAddParentResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceRoleRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.AddParentResourceRole")
@@ -138,7 +139,7 @@ func (a *ResourceRolesApiService) AddParentResourceRoleExecute(r ApiAddParentRes
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -169,15 +170,15 @@ type ApiAssignPermissionsToResourceRoleRequest struct {
 	envId              string
 	resourceId         string
 	roleId             string
-	addRolePermissions *AddRolePermissions
+	addRolePermissions *models.AddRolePermissions
 }
 
-func (r ApiAssignPermissionsToResourceRoleRequest) AddRolePermissions(addRolePermissions AddRolePermissions) ApiAssignPermissionsToResourceRoleRequest {
+func (r ApiAssignPermissionsToResourceRoleRequest) AddRolePermissions(addRolePermissions models.AddRolePermissions) ApiAssignPermissionsToResourceRoleRequest {
 	r.addRolePermissions = &addRolePermissions
 	return r
 }
 
-func (r ApiAssignPermissionsToResourceRoleRequest) Execute() (*ResourceRoleRead, *http.Response, error) {
+func (r ApiAssignPermissionsToResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
 	return r.ApiService.AssignPermissionsToResourceRoleExecute(r)
 }
 
@@ -208,12 +209,12 @@ func (a *ResourceRolesApiService) AssignPermissionsToResourceRole(ctx context.Co
 
 // Execute executes the request
 //  @return ResourceRoleRead
-func (a *ResourceRolesApiService) AssignPermissionsToResourceRoleExecute(r ApiAssignPermissionsToResourceRoleRequest) (*ResourceRoleRead, *http.Response, error) {
+func (a *ResourceRolesApiService) AssignPermissionsToResourceRoleExecute(r ApiAssignPermissionsToResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceRoleRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.AssignPermissionsToResourceRole")
@@ -276,7 +277,7 @@ func (a *ResourceRolesApiService) AssignPermissionsToResourceRoleExecute(r ApiAs
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -306,15 +307,15 @@ type ApiCreateResourceRoleRequest struct {
 	projId             string
 	envId              string
 	resourceId         string
-	resourceRoleCreate *ResourceRoleCreate
+	resourceRoleCreate *models.ResourceRoleCreate
 }
 
-func (r ApiCreateResourceRoleRequest) ResourceRoleCreate(resourceRoleCreate ResourceRoleCreate) ApiCreateResourceRoleRequest {
+func (r ApiCreateResourceRoleRequest) ResourceRoleCreate(resourceRoleCreate models.ResourceRoleCreate) ApiCreateResourceRoleRequest {
 	r.resourceRoleCreate = &resourceRoleCreate
 	return r
 }
 
-func (r ApiCreateResourceRoleRequest) Execute() (*ResourceRoleRead, *http.Response, error) {
+func (r ApiCreateResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
 	return r.ApiService.CreateResourceRoleExecute(r)
 }
 
@@ -341,12 +342,12 @@ func (a *ResourceRolesApiService) CreateResourceRole(ctx context.Context, projId
 
 // Execute executes the request
 //  @return ResourceRoleRead
-func (a *ResourceRolesApiService) CreateResourceRoleExecute(r ApiCreateResourceRoleRequest) (*ResourceRoleRead, *http.Response, error) {
+func (a *ResourceRolesApiService) CreateResourceRoleExecute(r ApiCreateResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceRoleRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.CreateResourceRole")
@@ -408,7 +409,7 @@ func (a *ResourceRolesApiService) CreateResourceRoleExecute(r ApiCreateResourceR
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -532,7 +533,7 @@ func (a *ResourceRolesApiService) DeleteResourceRoleExecute(r ApiDeleteResourceR
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -556,7 +557,7 @@ type ApiGetResourceRoleRequest struct {
 	roleId     string
 }
 
-func (r ApiGetResourceRoleRequest) Execute() (*ResourceRoleRead, *http.Response, error) {
+func (r ApiGetResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
 	return r.ApiService.GetResourceRoleExecute(r)
 }
 
@@ -585,12 +586,12 @@ func (a *ResourceRolesApiService) GetResourceRole(ctx context.Context, projId st
 
 // Execute executes the request
 //  @return ResourceRoleRead
-func (a *ResourceRolesApiService) GetResourceRoleExecute(r ApiGetResourceRoleRequest) (*ResourceRoleRead, *http.Response, error) {
+func (a *ResourceRolesApiService) GetResourceRoleExecute(r ApiGetResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceRoleRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.GetResourceRole")
@@ -648,7 +649,7 @@ func (a *ResourceRolesApiService) GetResourceRoleExecute(r ApiGetResourceRoleReq
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -694,7 +695,7 @@ func (r ApiListResourceRolesRequest) PerPage(perPage int32) ApiListResourceRoles
 	return r
 }
 
-func (r ApiListResourceRolesRequest) Execute() ([]ResourceRoleRead, *http.Response, error) {
+func (r ApiListResourceRolesRequest) Execute() ([]models.ResourceRoleRead, *http.Response, error) {
 	return r.ApiService.ListResourceRolesExecute(r)
 }
 
@@ -721,12 +722,12 @@ func (a *ResourceRolesApiService) ListResourceRoles(ctx context.Context, projId 
 
 // Execute executes the request
 //  @return []ResourceRoleRead
-func (a *ResourceRolesApiService) ListResourceRolesExecute(r ApiListResourceRolesRequest) ([]ResourceRoleRead, *http.Response, error) {
+func (a *ResourceRolesApiService) ListResourceRolesExecute(r ApiListResourceRolesRequest) ([]models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []ResourceRoleRead
+		localVarReturnValue []models.ResourceRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.ListResourceRoles")
@@ -789,7 +790,7 @@ func (a *ResourceRolesApiService) ListResourceRolesExecute(r ApiListResourceRole
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -823,7 +824,7 @@ type ApiRemoveParentResourceRoleRequest struct {
 	parentRoleId string
 }
 
-func (r ApiRemoveParentResourceRoleRequest) Execute() (*ResourceRoleRead, *http.Response, error) {
+func (r ApiRemoveParentResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
 	return r.ApiService.RemoveParentResourceRoleExecute(r)
 }
 
@@ -862,12 +863,12 @@ func (a *ResourceRolesApiService) RemoveParentResourceRole(ctx context.Context, 
 
 // Execute executes the request
 //  @return ResourceRoleRead
-func (a *ResourceRolesApiService) RemoveParentResourceRoleExecute(r ApiRemoveParentResourceRoleRequest) (*ResourceRoleRead, *http.Response, error) {
+func (a *ResourceRolesApiService) RemoveParentResourceRoleExecute(r ApiRemoveParentResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodDelete
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceRoleRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.RemoveParentResourceRole")
@@ -926,7 +927,7 @@ func (a *ResourceRolesApiService) RemoveParentResourceRoleExecute(r ApiRemovePar
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -957,15 +958,15 @@ type ApiRemovePermissionsFromResourceRoleRequest struct {
 	envId                 string
 	resourceId            string
 	roleId                string
-	removeRolePermissions *RemoveRolePermissions
+	removeRolePermissions *models.RemoveRolePermissions
 }
 
-func (r ApiRemovePermissionsFromResourceRoleRequest) RemoveRolePermissions(removeRolePermissions RemoveRolePermissions) ApiRemovePermissionsFromResourceRoleRequest {
+func (r ApiRemovePermissionsFromResourceRoleRequest) RemoveRolePermissions(removeRolePermissions models.RemoveRolePermissions) ApiRemovePermissionsFromResourceRoleRequest {
 	r.removeRolePermissions = &removeRolePermissions
 	return r
 }
 
-func (r ApiRemovePermissionsFromResourceRoleRequest) Execute() (*ResourceRoleRead, *http.Response, error) {
+func (r ApiRemovePermissionsFromResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
 	return r.ApiService.RemovePermissionsFromResourceRoleExecute(r)
 }
 
@@ -996,12 +997,12 @@ func (a *ResourceRolesApiService) RemovePermissionsFromResourceRole(ctx context.
 
 // Execute executes the request
 //  @return ResourceRoleRead
-func (a *ResourceRolesApiService) RemovePermissionsFromResourceRoleExecute(r ApiRemovePermissionsFromResourceRoleRequest) (*ResourceRoleRead, *http.Response, error) {
+func (a *ResourceRolesApiService) RemovePermissionsFromResourceRoleExecute(r ApiRemovePermissionsFromResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodDelete
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceRoleRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.RemovePermissionsFromResourceRole")
@@ -1064,7 +1065,7 @@ func (a *ResourceRolesApiService) RemovePermissionsFromResourceRoleExecute(r Api
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1095,15 +1096,15 @@ type ApiUpdateResourceRoleRequest struct {
 	envId              string
 	resourceId         string
 	roleId             string
-	resourceRoleUpdate *ResourceRoleUpdate
+	resourceRoleUpdate *models.ResourceRoleUpdate
 }
 
-func (r ApiUpdateResourceRoleRequest) ResourceRoleUpdate(resourceRoleUpdate ResourceRoleUpdate) ApiUpdateResourceRoleRequest {
+func (r ApiUpdateResourceRoleRequest) ResourceRoleUpdate(resourceRoleUpdate models.ResourceRoleUpdate) ApiUpdateResourceRoleRequest {
 	r.resourceRoleUpdate = &resourceRoleUpdate
 	return r
 }
 
-func (r ApiUpdateResourceRoleRequest) Execute() (*ResourceRoleRead, *http.Response, error) {
+func (r ApiUpdateResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
 	return r.ApiService.UpdateResourceRoleExecute(r)
 }
 
@@ -1133,12 +1134,12 @@ func (a *ResourceRolesApiService) UpdateResourceRole(ctx context.Context, projId
 
 // Execute executes the request
 //  @return ResourceRoleRead
-func (a *ResourceRolesApiService) UpdateResourceRoleExecute(r ApiUpdateResourceRoleRequest) (*ResourceRoleRead, *http.Response, error) {
+func (a *ResourceRolesApiService) UpdateResourceRoleExecute(r ApiUpdateResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceRoleRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.UpdateResourceRole")
@@ -1201,7 +1202,7 @@ func (a *ResourceRolesApiService) UpdateResourceRoleExecute(r ApiUpdateResourceR
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

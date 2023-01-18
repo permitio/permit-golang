@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -25,15 +26,15 @@ type ProjectsApiService service
 type ApiCreateProjectRequest struct {
 	ctx           context.Context
 	ApiService    *ProjectsApiService
-	projectCreate *ProjectCreate
+	projectCreate *models.ProjectCreate
 }
 
-func (r ApiCreateProjectRequest) ProjectCreate(projectCreate ProjectCreate) ApiCreateProjectRequest {
+func (r ApiCreateProjectRequest) ProjectCreate(projectCreate models.ProjectCreate) ApiCreateProjectRequest {
 	r.projectCreate = &projectCreate
 	return r
 }
 
-func (r ApiCreateProjectRequest) Execute() (*ProjectRead, *http.Response, error) {
+func (r ApiCreateProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
 	return r.ApiService.CreateProjectExecute(r)
 }
 
@@ -54,12 +55,12 @@ func (a *ProjectsApiService) CreateProject(ctx context.Context) ApiCreateProject
 
 // Execute executes the request
 //  @return ProjectRead
-func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*ProjectRead, *http.Response, error) {
+func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ProjectRead
+		localVarReturnValue *models.ProjectRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.CreateProject")
@@ -118,7 +119,7 @@ func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*P
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -229,7 +230,7 @@ func (a *ProjectsApiService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -250,7 +251,7 @@ type ApiGetProjectRequest struct {
 	projId     string
 }
 
-func (r ApiGetProjectRequest) Execute() (*ProjectRead, *http.Response, error) {
+func (r ApiGetProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
 	return r.ApiService.GetProjectExecute(r)
 }
 
@@ -273,12 +274,12 @@ func (a *ProjectsApiService) GetProject(ctx context.Context, projId string) ApiG
 
 // Execute executes the request
 //  @return ProjectRead
-func (a *ProjectsApiService) GetProjectExecute(r ApiGetProjectRequest) (*ProjectRead, *http.Response, error) {
+func (a *ProjectsApiService) GetProjectExecute(r ApiGetProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ProjectRead
+		localVarReturnValue *models.ProjectRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.GetProject")
@@ -333,7 +334,7 @@ func (a *ProjectsApiService) GetProjectExecute(r ApiGetProjectRequest) (*Project
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -376,7 +377,7 @@ func (r ApiListProjectsRequest) PerPage(perPage int32) ApiListProjectsRequest {
 	return r
 }
 
-func (r ApiListProjectsRequest) Execute() ([]ProjectRead, *http.Response, error) {
+func (r ApiListProjectsRequest) Execute() ([]models.ProjectRead, *http.Response, error) {
 	return r.ApiService.ListProjectsExecute(r)
 }
 
@@ -397,12 +398,12 @@ func (a *ProjectsApiService) ListProjects(ctx context.Context) ApiListProjectsRe
 
 // Execute executes the request
 //  @return []ProjectRead
-func (a *ProjectsApiService) ListProjectsExecute(r ApiListProjectsRequest) ([]ProjectRead, *http.Response, error) {
+func (a *ProjectsApiService) ListProjectsExecute(r ApiListProjectsRequest) ([]models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []ProjectRead
+		localVarReturnValue []models.ProjectRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.ListProjects")
@@ -462,7 +463,7 @@ func (a *ProjectsApiService) ListProjectsExecute(r ApiListProjectsRequest) ([]Pr
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -490,15 +491,15 @@ type ApiUpdateProjectRequest struct {
 	ctx           context.Context
 	ApiService    *ProjectsApiService
 	projId        string
-	projectUpdate *ProjectUpdate
+	projectUpdate *models.ProjectUpdate
 }
 
-func (r ApiUpdateProjectRequest) ProjectUpdate(projectUpdate ProjectUpdate) ApiUpdateProjectRequest {
+func (r ApiUpdateProjectRequest) ProjectUpdate(projectUpdate models.ProjectUpdate) ApiUpdateProjectRequest {
 	r.projectUpdate = &projectUpdate
 	return r
 }
 
-func (r ApiUpdateProjectRequest) Execute() (*ProjectRead, *http.Response, error) {
+func (r ApiUpdateProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
 	return r.ApiService.UpdateProjectExecute(r)
 }
 
@@ -521,12 +522,12 @@ func (a *ProjectsApiService) UpdateProject(ctx context.Context, projId string) A
 
 // Execute executes the request
 //  @return ProjectRead
-func (a *ProjectsApiService) UpdateProjectExecute(r ApiUpdateProjectRequest) (*ProjectRead, *http.Response, error) {
+func (a *ProjectsApiService) UpdateProjectExecute(r ApiUpdateProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ProjectRead
+		localVarReturnValue *models.ProjectRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.UpdateProject")
@@ -586,7 +587,7 @@ func (a *ProjectsApiService) UpdateProjectExecute(r ApiUpdateProjectRequest) (*P
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

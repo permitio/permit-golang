@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -27,11 +28,11 @@ type ApiCreateUserAttributeRequest struct {
 	ApiService              *UserAttributesApiService
 	projId                  string
 	envId                   string
-	resourceAttributeCreate *ResourceAttributeCreate
+	resourceAttributeCreate *models.ResourceAttributeCreate
 	resourceId              *string
 }
 
-func (r ApiCreateUserAttributeRequest) ResourceAttributeCreate(resourceAttributeCreate ResourceAttributeCreate) ApiCreateUserAttributeRequest {
+func (r ApiCreateUserAttributeRequest) ResourceAttributeCreate(resourceAttributeCreate models.ResourceAttributeCreate) ApiCreateUserAttributeRequest {
 	r.resourceAttributeCreate = &resourceAttributeCreate
 	return r
 }
@@ -41,7 +42,7 @@ func (r ApiCreateUserAttributeRequest) ResourceId(resourceId string) ApiCreateUs
 	return r
 }
 
-func (r ApiCreateUserAttributeRequest) Execute() (*ResourceAttributeRead, *http.Response, error) {
+func (r ApiCreateUserAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
 	return r.ApiService.CreateUserAttributeExecute(r)
 }
 
@@ -66,12 +67,12 @@ func (a *UserAttributesApiService) CreateUserAttribute(ctx context.Context, proj
 
 // Execute executes the request
 //  @return ResourceAttributeRead
-func (a *UserAttributesApiService) CreateUserAttributeExecute(r ApiCreateUserAttributeRequest) (*ResourceAttributeRead, *http.Response, error) {
+func (a *UserAttributesApiService) CreateUserAttributeExecute(r ApiCreateUserAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceAttributeRead
+		localVarReturnValue *models.ResourceAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UserAttributesApiService.CreateUserAttribute")
@@ -135,7 +136,7 @@ func (a *UserAttributesApiService) CreateUserAttributeExecute(r ApiCreateUserAtt
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -286,7 +287,7 @@ func (a *UserAttributesApiService) DeleteUserAttributeExecute(r ApiDeleteUserAtt
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -315,7 +316,7 @@ func (r ApiGetUserAttributeRequest) ResourceId(resourceId string) ApiGetUserAttr
 	return r
 }
 
-func (r ApiGetUserAttributeRequest) Execute() (*ResourceAttributeRead, *http.Response, error) {
+func (r ApiGetUserAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
 	return r.ApiService.GetUserAttributeExecute(r)
 }
 
@@ -342,12 +343,12 @@ func (a *UserAttributesApiService) GetUserAttribute(ctx context.Context, projId 
 
 // Execute executes the request
 //  @return ResourceAttributeRead
-func (a *UserAttributesApiService) GetUserAttributeExecute(r ApiGetUserAttributeRequest) (*ResourceAttributeRead, *http.Response, error) {
+func (a *UserAttributesApiService) GetUserAttributeExecute(r ApiGetUserAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceAttributeRead
+		localVarReturnValue *models.ResourceAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UserAttributesApiService.GetUserAttribute")
@@ -407,7 +408,7 @@ func (a *UserAttributesApiService) GetUserAttributeExecute(r ApiGetUserAttribute
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -458,7 +459,7 @@ func (r ApiListUserAttributesRequest) PerPage(perPage int32) ApiListUserAttribut
 	return r
 }
 
-func (r ApiListUserAttributesRequest) Execute() ([]ResourceAttributeRead, *http.Response, error) {
+func (r ApiListUserAttributesRequest) Execute() ([]models.ResourceAttributeRead, *http.Response, error) {
 	return r.ApiService.ListUserAttributesExecute(r)
 }
 
@@ -483,12 +484,12 @@ func (a *UserAttributesApiService) ListUserAttributes(ctx context.Context, projI
 
 // Execute executes the request
 //  @return []ResourceAttributeRead
-func (a *UserAttributesApiService) ListUserAttributesExecute(r ApiListUserAttributesRequest) ([]ResourceAttributeRead, *http.Response, error) {
+func (a *UserAttributesApiService) ListUserAttributesExecute(r ApiListUserAttributesRequest) ([]models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []ResourceAttributeRead
+		localVarReturnValue []models.ResourceAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UserAttributesApiService.ListUserAttributes")
@@ -553,7 +554,7 @@ func (a *UserAttributesApiService) ListUserAttributesExecute(r ApiListUserAttrib
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -583,11 +584,11 @@ type ApiUpdateUserAttributeRequest struct {
 	projId                  string
 	envId                   string
 	attributeId             string
-	resourceAttributeUpdate *ResourceAttributeUpdate
+	resourceAttributeUpdate *models.ResourceAttributeUpdate
 	resourceId              *string
 }
 
-func (r ApiUpdateUserAttributeRequest) ResourceAttributeUpdate(resourceAttributeUpdate ResourceAttributeUpdate) ApiUpdateUserAttributeRequest {
+func (r ApiUpdateUserAttributeRequest) ResourceAttributeUpdate(resourceAttributeUpdate models.ResourceAttributeUpdate) ApiUpdateUserAttributeRequest {
 	r.resourceAttributeUpdate = &resourceAttributeUpdate
 	return r
 }
@@ -597,7 +598,7 @@ func (r ApiUpdateUserAttributeRequest) ResourceId(resourceId string) ApiUpdateUs
 	return r
 }
 
-func (r ApiUpdateUserAttributeRequest) Execute() (*ResourceAttributeRead, *http.Response, error) {
+func (r ApiUpdateUserAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
 	return r.ApiService.UpdateUserAttributeExecute(r)
 }
 
@@ -625,12 +626,12 @@ func (a *UserAttributesApiService) UpdateUserAttribute(ctx context.Context, proj
 
 // Execute executes the request
 //  @return ResourceAttributeRead
-func (a *UserAttributesApiService) UpdateUserAttributeExecute(r ApiUpdateUserAttributeRequest) (*ResourceAttributeRead, *http.Response, error) {
+func (a *UserAttributesApiService) UpdateUserAttributeExecute(r ApiUpdateUserAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *ResourceAttributeRead
+		localVarReturnValue *models.ResourceAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UserAttributesApiService.UpdateUserAttribute")
@@ -695,7 +696,7 @@ func (a *UserAttributesApiService) UpdateUserAttributeExecute(r ApiUpdateUserAtt
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

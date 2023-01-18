@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -25,10 +26,10 @@ type AuthenticationApiService service
 type ApiDevLoginRequest struct {
 	ctx        context.Context
 	ApiService *AuthenticationApiService
-	devLogin   *DevLogin
+	devLogin   *models.DevLogin
 }
 
-func (r ApiDevLoginRequest) DevLogin(devLogin DevLogin) ApiDevLoginRequest {
+func (r ApiDevLoginRequest) DevLogin(devLogin models.DevLogin) ApiDevLoginRequest {
 	r.devLogin = &devLogin
 	return r
 }
@@ -118,7 +119,7 @@ func (a *AuthenticationApiService) DevLoginExecute(r ApiDevLoginRequest) (*http.
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -136,15 +137,15 @@ func (a *AuthenticationApiService) DevLoginExecute(r ApiDevLoginRequest) (*http.
 type ApiElementsLoginAsRequest struct {
 	ctx                   context.Context
 	ApiService            *AuthenticationApiService
-	userLoginRequestInput *UserLoginRequestInput
+	userLoginRequestInput *models.UserLoginRequestInput
 }
 
-func (r ApiElementsLoginAsRequest) UserLoginRequestInput(userLoginRequestInput UserLoginRequestInput) ApiElementsLoginAsRequest {
+func (r ApiElementsLoginAsRequest) UserLoginRequestInput(userLoginRequestInput models.UserLoginRequestInput) ApiElementsLoginAsRequest {
 	r.userLoginRequestInput = &userLoginRequestInput
 	return r
 }
 
-func (r ApiElementsLoginAsRequest) Execute() (*EmbeddedLoginRequestOutput, *http.Response, error) {
+func (r ApiElementsLoginAsRequest) Execute() (*models.EmbeddedLoginRequestOutput, *http.Response, error) {
 	return r.ApiService.ElementsLoginAsExecute(r)
 }
 
@@ -163,12 +164,12 @@ func (a *AuthenticationApiService) ElementsLoginAs(ctx context.Context) ApiEleme
 
 // Execute executes the request
 //  @return EmbeddedLoginRequestOutput
-func (a *AuthenticationApiService) ElementsLoginAsExecute(r ApiElementsLoginAsRequest) (*EmbeddedLoginRequestOutput, *http.Response, error) {
+func (a *AuthenticationApiService) ElementsLoginAsExecute(r ApiElementsLoginAsRequest) (*models.EmbeddedLoginRequestOutput, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *EmbeddedLoginRequestOutput
+		localVarReturnValue *models.EmbeddedLoginRequestOutput
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthenticationApiService.ElementsLoginAs")
@@ -227,7 +228,7 @@ func (a *AuthenticationApiService) ElementsLoginAsExecute(r ApiElementsLoginAsRe
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -263,7 +264,7 @@ func (r ApiLoginRequest) InviteCode(inviteCode string) ApiLoginRequest {
 	return r
 }
 
-func (r ApiLoginRequest) Execute() (*LoginResult, *http.Response, error) {
+func (r ApiLoginRequest) Execute() (*models.LoginResult, *http.Response, error) {
 	return r.ApiService.LoginExecute(r)
 }
 
@@ -285,12 +286,12 @@ func (a *AuthenticationApiService) Login(ctx context.Context) ApiLoginRequest {
 
 // Execute executes the request
 //  @return LoginResult
-func (a *AuthenticationApiService) LoginExecute(r ApiLoginRequest) (*LoginResult, *http.Response, error) {
+func (a *AuthenticationApiService) LoginExecute(r ApiLoginRequest) (*models.LoginResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *LoginResult
+		localVarReturnValue *models.LoginResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthenticationApiService.Login")
@@ -347,7 +348,7 @@ func (a *AuthenticationApiService) LoginExecute(r ApiLoginRequest) (*LoginResult
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -382,7 +383,7 @@ func (r ApiLoginElementsRequest) Token(token string) ApiLoginElementsRequest {
 	return r
 }
 
-func (r ApiLoginElementsRequest) Execute() (*LoginResult, *http.Response, error) {
+func (r ApiLoginElementsRequest) Execute() (*models.LoginResult, *http.Response, error) {
 	return r.ApiService.LoginElementsExecute(r)
 }
 
@@ -404,12 +405,12 @@ func (a *AuthenticationApiService) LoginElements(ctx context.Context) ApiLoginEl
 
 // Execute executes the request
 //  @return LoginResult
-func (a *AuthenticationApiService) LoginElementsExecute(r ApiLoginElementsRequest) (*LoginResult, *http.Response, error) {
+func (a *AuthenticationApiService) LoginElementsExecute(r ApiLoginElementsRequest) (*models.LoginResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *LoginResult
+		localVarReturnValue *models.LoginResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthenticationApiService.LoginElements")
@@ -467,7 +468,7 @@ func (a *AuthenticationApiService) LoginElementsExecute(r ApiLoginElementsReques
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -574,7 +575,7 @@ func (a *AuthenticationApiService) LogoutGetExecute(r ApiLogoutGetRequest) (*htt
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -672,7 +673,7 @@ func (a *AuthenticationApiService) LogoutPostExecute(r ApiLogoutPostRequest) (*h
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -692,7 +693,7 @@ type ApiMeRequest struct {
 	ApiService *AuthenticationApiService
 }
 
-func (r ApiMeRequest) Execute() (*AuthnMeRead, *http.Response, error) {
+func (r ApiMeRequest) Execute() (*models.AuthnMeRead, *http.Response, error) {
 	return r.ApiService.MeExecute(r)
 }
 
@@ -711,12 +712,12 @@ func (a *AuthenticationApiService) Me(ctx context.Context) ApiMeRequest {
 
 // Execute executes the request
 //  @return AuthnMeRead
-func (a *AuthenticationApiService) MeExecute(r ApiMeRequest) (*AuthnMeRead, *http.Response, error) {
+func (a *AuthenticationApiService) MeExecute(r ApiMeRequest) (*models.AuthnMeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *AuthnMeRead
+		localVarReturnValue *models.AuthnMeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthenticationApiService.Me")
@@ -770,7 +771,7 @@ func (a *AuthenticationApiService) MeExecute(r ApiMeRequest) (*AuthnMeRead, *htt
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -800,7 +801,7 @@ type ApiSwitchOrganizationRequest struct {
 	orgId      string
 }
 
-func (r ApiSwitchOrganizationRequest) Execute() (*LoginResult, *http.Response, error) {
+func (r ApiSwitchOrganizationRequest) Execute() (*models.LoginResult, *http.Response, error) {
 	return r.ApiService.SwitchOrganizationExecute(r)
 }
 
@@ -825,12 +826,12 @@ func (a *AuthenticationApiService) SwitchOrganization(ctx context.Context, orgId
 
 // Execute executes the request
 //  @return LoginResult
-func (a *AuthenticationApiService) SwitchOrganizationExecute(r ApiSwitchOrganizationRequest) (*LoginResult, *http.Response, error) {
+func (a *AuthenticationApiService) SwitchOrganizationExecute(r ApiSwitchOrganizationRequest) (*models.LoginResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *LoginResult
+		localVarReturnValue *models.LoginResult
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthenticationApiService.SwitchOrganization")
@@ -885,7 +886,7 @@ func (a *AuthenticationApiService) SwitchOrganizationExecute(r ApiSwitchOrganiza
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

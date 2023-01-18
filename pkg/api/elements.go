@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/permit"
@@ -22,7 +23,7 @@ func NewElementsApi(client *openapi.APIClient, config *permit.PermitConfig) *Ele
 	}
 }
 
-func (e *Elements) LoginAs(ctx context.Context, userLogin openapi.UserLoginRequestInput) (*openapi.EmbeddedLoginRequestOutput, error) {
+func (e *Elements) LoginAs(ctx context.Context, userLogin models.UserLoginRequestInput) (*models.EmbeddedLoginRequestOutput, error) {
 	err := e.LazyLoadContext(ctx)
 	if err != nil {
 		return nil, err

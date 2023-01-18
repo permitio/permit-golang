@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -27,15 +28,15 @@ type ApiCreateTenantRequest struct {
 	ApiService   *TenantsApiService
 	projId       string
 	envId        string
-	tenantCreate *TenantCreate
+	tenantCreate *models.TenantCreate
 }
 
-func (r ApiCreateTenantRequest) TenantCreate(tenantCreate TenantCreate) ApiCreateTenantRequest {
+func (r ApiCreateTenantRequest) TenantCreate(tenantCreate models.TenantCreate) ApiCreateTenantRequest {
 	r.tenantCreate = &tenantCreate
 	return r
 }
 
-func (r ApiCreateTenantRequest) Execute() (*TenantRead, *http.Response, error) {
+func (r ApiCreateTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
 	return r.ApiService.CreateTenantExecute(r)
 }
 
@@ -63,12 +64,12 @@ func (a *TenantsApiService) CreateTenant(ctx context.Context, projId string, env
 
 // Execute executes the request
 //  @return TenantRead
-func (a *TenantsApiService) CreateTenantExecute(r ApiCreateTenantRequest) (*TenantRead, *http.Response, error) {
+func (a *TenantsApiService) CreateTenantExecute(r ApiCreateTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *TenantRead
+		localVarReturnValue *models.TenantRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.CreateTenant")
@@ -129,7 +130,7 @@ func (a *TenantsApiService) CreateTenantExecute(r ApiCreateTenantRequest) (*Tena
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -248,7 +249,7 @@ func (a *TenantsApiService) DeleteTenantExecute(r ApiDeleteTenantRequest) (*http
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -362,7 +363,7 @@ func (a *TenantsApiService) DeleteTenantUserExecute(r ApiDeleteTenantUserRequest
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -385,7 +386,7 @@ type ApiGetTenantRequest struct {
 	tenantId   string
 }
 
-func (r ApiGetTenantRequest) Execute() (*TenantRead, *http.Response, error) {
+func (r ApiGetTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
 	return r.ApiService.GetTenantExecute(r)
 }
 
@@ -412,12 +413,12 @@ func (a *TenantsApiService) GetTenant(ctx context.Context, projId string, envId 
 
 // Execute executes the request
 //  @return TenantRead
-func (a *TenantsApiService) GetTenantExecute(r ApiGetTenantRequest) (*TenantRead, *http.Response, error) {
+func (a *TenantsApiService) GetTenantExecute(r ApiGetTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *TenantRead
+		localVarReturnValue *models.TenantRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.GetTenant")
@@ -474,7 +475,7 @@ func (a *TenantsApiService) GetTenantExecute(r ApiGetTenantRequest) (*TenantRead
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -527,7 +528,7 @@ func (r ApiListTenantUsersRequest) PerPage(perPage int32) ApiListTenantUsersRequ
 	return r
 }
 
-func (r ApiListTenantUsersRequest) Execute() (*PaginatedResultUserRead, *http.Response, error) {
+func (r ApiListTenantUsersRequest) Execute() (*models.PaginatedResultUserRead, *http.Response, error) {
 	return r.ApiService.ListTenantUsersExecute(r)
 }
 
@@ -552,12 +553,12 @@ func (a *TenantsApiService) ListTenantUsers(ctx context.Context, projId string, 
 
 // Execute executes the request
 //  @return PaginatedResultUserRead
-func (a *TenantsApiService) ListTenantUsersExecute(r ApiListTenantUsersRequest) (*PaginatedResultUserRead, *http.Response, error) {
+func (a *TenantsApiService) ListTenantUsersExecute(r ApiListTenantUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PaginatedResultUserRead
+		localVarReturnValue *models.PaginatedResultUserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.ListTenantUsers")
@@ -623,7 +624,7 @@ func (a *TenantsApiService) ListTenantUsersExecute(r ApiListTenantUsersRequest) 
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -675,7 +676,7 @@ func (r ApiListTenantsRequest) PerPage(perPage int32) ApiListTenantsRequest {
 	return r
 }
 
-func (r ApiListTenantsRequest) Execute() ([]TenantRead, *http.Response, error) {
+func (r ApiListTenantsRequest) Execute() ([]models.TenantRead, *http.Response, error) {
 	return r.ApiService.ListTenantsExecute(r)
 }
 
@@ -700,12 +701,12 @@ func (a *TenantsApiService) ListTenants(ctx context.Context, projId string, envI
 
 // Execute executes the request
 //  @return []TenantRead
-func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]TenantRead, *http.Response, error) {
+func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []TenantRead
+		localVarReturnValue []models.TenantRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.ListTenants")
@@ -770,7 +771,7 @@ func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]Tenan
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -800,15 +801,15 @@ type ApiUpdateTenantRequest struct {
 	projId       string
 	envId        string
 	tenantId     string
-	tenantUpdate *TenantUpdate
+	tenantUpdate *models.TenantUpdate
 }
 
-func (r ApiUpdateTenantRequest) TenantUpdate(tenantUpdate TenantUpdate) ApiUpdateTenantRequest {
+func (r ApiUpdateTenantRequest) TenantUpdate(tenantUpdate models.TenantUpdate) ApiUpdateTenantRequest {
 	r.tenantUpdate = &tenantUpdate
 	return r
 }
 
-func (r ApiUpdateTenantRequest) Execute() (*TenantRead, *http.Response, error) {
+func (r ApiUpdateTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
 	return r.ApiService.UpdateTenantExecute(r)
 }
 
@@ -836,12 +837,12 @@ func (a *TenantsApiService) UpdateTenant(ctx context.Context, projId string, env
 
 // Execute executes the request
 //  @return TenantRead
-func (a *TenantsApiService) UpdateTenantExecute(r ApiUpdateTenantRequest) (*TenantRead, *http.Response, error) {
+func (a *TenantsApiService) UpdateTenantExecute(r ApiUpdateTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *TenantRead
+		localVarReturnValue *models.TenantRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.UpdateTenant")
@@ -903,7 +904,7 @@ func (a *TenantsApiService) UpdateTenantExecute(r ApiUpdateTenantRequest) (*Tena
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

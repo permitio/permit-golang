@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -28,15 +29,15 @@ type ApiAssignRoleToUserRequest struct {
 	projId         string
 	envId          string
 	userId         string
-	userRoleCreate *UserRoleCreate
+	userRoleCreate *models.UserRoleCreate
 }
 
-func (r ApiAssignRoleToUserRequest) UserRoleCreate(userRoleCreate UserRoleCreate) ApiAssignRoleToUserRequest {
+func (r ApiAssignRoleToUserRequest) UserRoleCreate(userRoleCreate models.UserRoleCreate) ApiAssignRoleToUserRequest {
 	r.userRoleCreate = &userRoleCreate
 	return r
 }
 
-func (r ApiAssignRoleToUserRequest) Execute() (*RoleAssignmentRead, *http.Response, error) {
+func (r ApiAssignRoleToUserRequest) Execute() (*models.RoleAssignmentRead, *http.Response, error) {
 	return r.ApiService.AssignRoleToUserExecute(r)
 }
 
@@ -65,12 +66,12 @@ func (a *UsersApiService) AssignRoleToUser(ctx context.Context, projId string, e
 
 // Execute executes the request
 //  @return RoleAssignmentRead
-func (a *UsersApiService) AssignRoleToUserExecute(r ApiAssignRoleToUserRequest) (*RoleAssignmentRead, *http.Response, error) {
+func (a *UsersApiService) AssignRoleToUserExecute(r ApiAssignRoleToUserRequest) (*models.RoleAssignmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *RoleAssignmentRead
+		localVarReturnValue *models.RoleAssignmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.AssignRoleToUser")
@@ -132,7 +133,7 @@ func (a *UsersApiService) AssignRoleToUserExecute(r ApiAssignRoleToUserRequest) 
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -161,15 +162,15 @@ type ApiCreateUserRequest struct {
 	ApiService *UsersApiService
 	projId     string
 	envId      string
-	userCreate *UserCreate
+	userCreate *models.UserCreate
 }
 
-func (r ApiCreateUserRequest) UserCreate(userCreate UserCreate) ApiCreateUserRequest {
+func (r ApiCreateUserRequest) UserCreate(userCreate models.UserCreate) ApiCreateUserRequest {
 	r.userCreate = &userCreate
 	return r
 }
 
-func (r ApiCreateUserRequest) Execute() (*UserRead, *http.Response, error) {
+func (r ApiCreateUserRequest) Execute() (*models.UserRead, *http.Response, error) {
 	return r.ApiService.CreateUserExecute(r)
 }
 
@@ -198,12 +199,12 @@ func (a *UsersApiService) CreateUser(ctx context.Context, projId string, envId s
 
 // Execute executes the request
 //  @return UserRead
-func (a *UsersApiService) CreateUserExecute(r ApiCreateUserRequest) (*UserRead, *http.Response, error) {
+func (a *UsersApiService) CreateUserExecute(r ApiCreateUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *UserRead
+		localVarReturnValue *models.UserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.CreateUser")
@@ -264,7 +265,7 @@ func (a *UsersApiService) CreateUserExecute(r ApiCreateUserRequest) (*UserRead, 
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -383,7 +384,7 @@ func (a *UsersApiService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -406,7 +407,7 @@ type ApiGetUserRequest struct {
 	userId     string
 }
 
-func (r ApiGetUserRequest) Execute() (*UserRead, *http.Response, error) {
+func (r ApiGetUserRequest) Execute() (*models.UserRead, *http.Response, error) {
 	return r.ApiService.GetUserExecute(r)
 }
 
@@ -433,12 +434,12 @@ func (a *UsersApiService) GetUser(ctx context.Context, projId string, envId stri
 
 // Execute executes the request
 //  @return UserRead
-func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (*UserRead, *http.Response, error) {
+func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *UserRead
+		localVarReturnValue *models.UserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.GetUser")
@@ -495,7 +496,7 @@ func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (*UserRead, *http.
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -547,7 +548,7 @@ func (r ApiListUsersRequest) PerPage(perPage int32) ApiListUsersRequest {
 	return r
 }
 
-func (r ApiListUsersRequest) Execute() (*PaginatedResultUserRead, *http.Response, error) {
+func (r ApiListUsersRequest) Execute() (*models.PaginatedResultUserRead, *http.Response, error) {
 	return r.ApiService.ListUsersExecute(r)
 }
 
@@ -572,12 +573,12 @@ func (a *UsersApiService) ListUsers(ctx context.Context, projId string, envId st
 
 // Execute executes the request
 //  @return PaginatedResultUserRead
-func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) (*PaginatedResultUserRead, *http.Response, error) {
+func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PaginatedResultUserRead
+		localVarReturnValue *models.PaginatedResultUserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.ListUsers")
@@ -642,7 +643,7 @@ func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) (*PaginatedRes
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -672,15 +673,15 @@ type ApiReplaceUserRequest struct {
 	projId     string
 	envId      string
 	userId     string
-	userCreate *UserCreate
+	userCreate *models.UserCreate
 }
 
-func (r ApiReplaceUserRequest) UserCreate(userCreate UserCreate) ApiReplaceUserRequest {
+func (r ApiReplaceUserRequest) UserCreate(userCreate models.UserCreate) ApiReplaceUserRequest {
 	r.userCreate = &userCreate
 	return r
 }
 
-func (r ApiReplaceUserRequest) Execute() (*UserRead, *http.Response, error) {
+func (r ApiReplaceUserRequest) Execute() (*models.UserRead, *http.Response, error) {
 	return r.ApiService.ReplaceUserExecute(r)
 }
 
@@ -705,12 +706,12 @@ func (a *UsersApiService) ReplaceUser(ctx context.Context, projId string, envId 
 
 // Execute executes the request
 //  @return UserRead
-func (a *UsersApiService) ReplaceUserExecute(r ApiReplaceUserRequest) (*UserRead, *http.Response, error) {
+func (a *UsersApiService) ReplaceUserExecute(r ApiReplaceUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *UserRead
+		localVarReturnValue *models.UserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.ReplaceUser")
@@ -772,7 +773,7 @@ func (a *UsersApiService) ReplaceUserExecute(r ApiReplaceUserRequest) (*UserRead
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -802,15 +803,15 @@ type ApiUnassignRoleFromUserRequest struct {
 	projId         string
 	envId          string
 	userId         string
-	userRoleRemove *UserRoleRemove
+	userRoleRemove *models.UserRoleRemove
 }
 
-func (r ApiUnassignRoleFromUserRequest) UserRoleRemove(userRoleRemove UserRoleRemove) ApiUnassignRoleFromUserRequest {
+func (r ApiUnassignRoleFromUserRequest) UserRoleRemove(userRoleRemove models.UserRoleRemove) ApiUnassignRoleFromUserRequest {
 	r.userRoleRemove = &userRoleRemove
 	return r
 }
 
-func (r ApiUnassignRoleFromUserRequest) Execute() (*UserRead, *http.Response, error) {
+func (r ApiUnassignRoleFromUserRequest) Execute() (*models.UserRead, *http.Response, error) {
 	return r.ApiService.UnassignRoleFromUserExecute(r)
 }
 
@@ -841,12 +842,12 @@ func (a *UsersApiService) UnassignRoleFromUser(ctx context.Context, projId strin
 
 // Execute executes the request
 //  @return UserRead
-func (a *UsersApiService) UnassignRoleFromUserExecute(r ApiUnassignRoleFromUserRequest) (*UserRead, *http.Response, error) {
+func (a *UsersApiService) UnassignRoleFromUserExecute(r ApiUnassignRoleFromUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodDelete
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *UserRead
+		localVarReturnValue *models.UserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.UnassignRoleFromUser")
@@ -908,7 +909,7 @@ func (a *UsersApiService) UnassignRoleFromUserExecute(r ApiUnassignRoleFromUserR
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -938,15 +939,15 @@ type ApiUpdateUserRequest struct {
 	projId     string
 	envId      string
 	userId     string
-	userUpdate *UserUpdate
+	userUpdate *models.UserUpdate
 }
 
-func (r ApiUpdateUserRequest) UserUpdate(userUpdate UserUpdate) ApiUpdateUserRequest {
+func (r ApiUpdateUserRequest) UserUpdate(userUpdate models.UserUpdate) ApiUpdateUserRequest {
 	r.userUpdate = &userUpdate
 	return r
 }
 
-func (r ApiUpdateUserRequest) Execute() (*UserRead, *http.Response, error) {
+func (r ApiUpdateUserRequest) Execute() (*models.UserRead, *http.Response, error) {
 	return r.ApiService.UpdateUserExecute(r)
 }
 
@@ -974,12 +975,12 @@ func (a *UsersApiService) UpdateUser(ctx context.Context, projId string, envId s
 
 // Execute executes the request
 //  @return UserRead
-func (a *UsersApiService) UpdateUserExecute(r ApiUpdateUserRequest) (*UserRead, *http.Response, error) {
+func (a *UsersApiService) UpdateUserExecute(r ApiUpdateUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *UserRead
+		localVarReturnValue *models.UserRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.UpdateUser")
@@ -1041,7 +1042,7 @@ func (a *UsersApiService) UpdateUserExecute(r ApiUpdateUserRequest) (*UserRead, 
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

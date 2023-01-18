@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -26,15 +27,15 @@ type ApiCreateEnvironmentRequest struct {
 	ctx               context.Context
 	ApiService        *EnvironmentsApiService
 	projId            string
-	environmentCreate *EnvironmentCreate
+	environmentCreate *models.EnvironmentCreate
 }
 
-func (r ApiCreateEnvironmentRequest) EnvironmentCreate(environmentCreate EnvironmentCreate) ApiCreateEnvironmentRequest {
+func (r ApiCreateEnvironmentRequest) EnvironmentCreate(environmentCreate models.EnvironmentCreate) ApiCreateEnvironmentRequest {
 	r.environmentCreate = &environmentCreate
 	return r
 }
 
-func (r ApiCreateEnvironmentRequest) Execute() (*EnvironmentRead, *http.Response, error) {
+func (r ApiCreateEnvironmentRequest) Execute() (*models.EnvironmentRead, *http.Response, error) {
 	return r.ApiService.CreateEnvironmentExecute(r)
 }
 
@@ -57,12 +58,12 @@ func (a *EnvironmentsApiService) CreateEnvironment(ctx context.Context, projId s
 
 // Execute executes the request
 //  @return EnvironmentRead
-func (a *EnvironmentsApiService) CreateEnvironmentExecute(r ApiCreateEnvironmentRequest) (*EnvironmentRead, *http.Response, error) {
+func (a *EnvironmentsApiService) CreateEnvironmentExecute(r ApiCreateEnvironmentRequest) (*models.EnvironmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *EnvironmentRead
+		localVarReturnValue *models.EnvironmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EnvironmentsApiService.CreateEnvironment")
@@ -122,7 +123,7 @@ func (a *EnvironmentsApiService) CreateEnvironmentExecute(r ApiCreateEnvironment
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -237,7 +238,7 @@ func (a *EnvironmentsApiService) DeleteEnvironmentExecute(r ApiDeleteEnvironment
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -259,7 +260,7 @@ type ApiGetEnvironmentRequest struct {
 	envId      string
 }
 
-func (r ApiGetEnvironmentRequest) Execute() (*EnvironmentRead, *http.Response, error) {
+func (r ApiGetEnvironmentRequest) Execute() (*models.EnvironmentRead, *http.Response, error) {
 	return r.ApiService.GetEnvironmentExecute(r)
 }
 
@@ -284,12 +285,12 @@ func (a *EnvironmentsApiService) GetEnvironment(ctx context.Context, projId stri
 
 // Execute executes the request
 //  @return EnvironmentRead
-func (a *EnvironmentsApiService) GetEnvironmentExecute(r ApiGetEnvironmentRequest) (*EnvironmentRead, *http.Response, error) {
+func (a *EnvironmentsApiService) GetEnvironmentExecute(r ApiGetEnvironmentRequest) (*models.EnvironmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *EnvironmentRead
+		localVarReturnValue *models.EnvironmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EnvironmentsApiService.GetEnvironment")
@@ -345,7 +346,7 @@ func (a *EnvironmentsApiService) GetEnvironmentExecute(r ApiGetEnvironmentReques
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -389,7 +390,7 @@ func (r ApiListEnvironmentsRequest) PerPage(perPage int32) ApiListEnvironmentsRe
 	return r
 }
 
-func (r ApiListEnvironmentsRequest) Execute() ([]EnvironmentRead, *http.Response, error) {
+func (r ApiListEnvironmentsRequest) Execute() ([]models.EnvironmentRead, *http.Response, error) {
 	return r.ApiService.ListEnvironmentsExecute(r)
 }
 
@@ -412,12 +413,12 @@ func (a *EnvironmentsApiService) ListEnvironments(ctx context.Context, projId st
 
 // Execute executes the request
 //  @return []EnvironmentRead
-func (a *EnvironmentsApiService) ListEnvironmentsExecute(r ApiListEnvironmentsRequest) ([]EnvironmentRead, *http.Response, error) {
+func (a *EnvironmentsApiService) ListEnvironmentsExecute(r ApiListEnvironmentsRequest) ([]models.EnvironmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []EnvironmentRead
+		localVarReturnValue []models.EnvironmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EnvironmentsApiService.ListEnvironments")
@@ -478,7 +479,7 @@ func (a *EnvironmentsApiService) ListEnvironmentsExecute(r ApiListEnvironmentsRe
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -509,7 +510,7 @@ type ApiStatsEnvironmentsRequest struct {
 	envId      string
 }
 
-func (r ApiStatsEnvironmentsRequest) Execute() (*EnvironmentStats, *http.Response, error) {
+func (r ApiStatsEnvironmentsRequest) Execute() (*models.EnvironmentStats, *http.Response, error) {
 	return r.ApiService.StatsEnvironmentsExecute(r)
 }
 
@@ -532,12 +533,12 @@ func (a *EnvironmentsApiService) StatsEnvironments(ctx context.Context, projId s
 
 // Execute executes the request
 //  @return EnvironmentStats
-func (a *EnvironmentsApiService) StatsEnvironmentsExecute(r ApiStatsEnvironmentsRequest) (*EnvironmentStats, *http.Response, error) {
+func (a *EnvironmentsApiService) StatsEnvironmentsExecute(r ApiStatsEnvironmentsRequest) (*models.EnvironmentStats, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *EnvironmentStats
+		localVarReturnValue *models.EnvironmentStats
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EnvironmentsApiService.StatsEnvironments")
@@ -593,7 +594,7 @@ func (a *EnvironmentsApiService) StatsEnvironmentsExecute(r ApiStatsEnvironments
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -622,15 +623,15 @@ type ApiUpdateEnvironmentRequest struct {
 	ApiService        *EnvironmentsApiService
 	projId            string
 	envId             string
-	environmentUpdate *EnvironmentUpdate
+	environmentUpdate *models.EnvironmentUpdate
 }
 
-func (r ApiUpdateEnvironmentRequest) EnvironmentUpdate(environmentUpdate EnvironmentUpdate) ApiUpdateEnvironmentRequest {
+func (r ApiUpdateEnvironmentRequest) EnvironmentUpdate(environmentUpdate models.EnvironmentUpdate) ApiUpdateEnvironmentRequest {
 	r.environmentUpdate = &environmentUpdate
 	return r
 }
 
-func (r ApiUpdateEnvironmentRequest) Execute() (*EnvironmentRead, *http.Response, error) {
+func (r ApiUpdateEnvironmentRequest) Execute() (*models.EnvironmentRead, *http.Response, error) {
 	return r.ApiService.UpdateEnvironmentExecute(r)
 }
 
@@ -655,12 +656,12 @@ func (a *EnvironmentsApiService) UpdateEnvironment(ctx context.Context, projId s
 
 // Execute executes the request
 //  @return EnvironmentRead
-func (a *EnvironmentsApiService) UpdateEnvironmentExecute(r ApiUpdateEnvironmentRequest) (*EnvironmentRead, *http.Response, error) {
+func (a *EnvironmentsApiService) UpdateEnvironmentExecute(r ApiUpdateEnvironmentRequest) (*models.EnvironmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *EnvironmentRead
+		localVarReturnValue *models.EnvironmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EnvironmentsApiService.UpdateEnvironment")
@@ -721,7 +722,7 @@ func (a *EnvironmentsApiService) UpdateEnvironmentExecute(r ApiUpdateEnvironment
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

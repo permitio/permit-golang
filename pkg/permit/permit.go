@@ -2,7 +2,7 @@ package permit
 
 import (
 	"context"
-	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/pkg/api"
 	"go.uber.org/zap"
 )
@@ -31,6 +31,6 @@ func NewPermit(apiUrl string, token string, pdpUrl string, permitContext *Permit
 
 type PermitInterface interface {
 	Check() bool
-	SyncUser() openapi.UserRead
-	SyncResources() []openapi.ResourceRead
+	SyncUser() models.UserRead
+	SyncResources() []models.ResourceRead
 }

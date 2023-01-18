@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -25,15 +26,15 @@ type APIKeysApiService service
 type ApiCreateApiKeyRequest struct {
 	ctx          context.Context
 	ApiService   *APIKeysApiService
-	aPIKeyCreate *APIKeyCreate
+	aPIKeyCreate *models.APIKeyCreate
 }
 
-func (r ApiCreateApiKeyRequest) APIKeyCreate(aPIKeyCreate APIKeyCreate) ApiCreateApiKeyRequest {
+func (r ApiCreateApiKeyRequest) APIKeyCreate(aPIKeyCreate models.APIKeyCreate) ApiCreateApiKeyRequest {
 	r.aPIKeyCreate = &aPIKeyCreate
 	return r
 }
 
-func (r ApiCreateApiKeyRequest) Execute() (*APIKeyRead, *http.Response, error) {
+func (r ApiCreateApiKeyRequest) Execute() (*models.APIKeyRead, *http.Response, error) {
 	return r.ApiService.CreateApiKeyExecute(r)
 }
 
@@ -54,12 +55,12 @@ func (a *APIKeysApiService) CreateApiKey(ctx context.Context) ApiCreateApiKeyReq
 
 // Execute executes the request
 //  @return APIKeyRead
-func (a *APIKeysApiService) CreateApiKeyExecute(r ApiCreateApiKeyRequest) (*APIKeyRead, *http.Response, error) {
+func (a *APIKeysApiService) CreateApiKeyExecute(r ApiCreateApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *APIKeyRead
+		localVarReturnValue *models.APIKeyRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.CreateApiKey")
@@ -118,7 +119,7 @@ func (a *APIKeysApiService) CreateApiKeyExecute(r ApiCreateApiKeyRequest) (*APIK
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -229,7 +230,7 @@ func (a *APIKeysApiService) DeleteApiKeyExecute(r ApiDeleteApiKeyRequest) (*http
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -250,7 +251,7 @@ type ApiGetApiKeyRequest struct {
 	apiKeyId   string
 }
 
-func (r ApiGetApiKeyRequest) Execute() (*APIKeyRead, *http.Response, error) {
+func (r ApiGetApiKeyRequest) Execute() (*models.APIKeyRead, *http.Response, error) {
 	return r.ApiService.GetApiKeyExecute(r)
 }
 
@@ -273,12 +274,12 @@ func (a *APIKeysApiService) GetApiKey(ctx context.Context, apiKeyId string) ApiG
 
 // Execute executes the request
 //  @return APIKeyRead
-func (a *APIKeysApiService) GetApiKeyExecute(r ApiGetApiKeyRequest) (*APIKeyRead, *http.Response, error) {
+func (a *APIKeysApiService) GetApiKeyExecute(r ApiGetApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *APIKeyRead
+		localVarReturnValue *models.APIKeyRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.GetApiKey")
@@ -333,7 +334,7 @@ func (a *APIKeysApiService) GetApiKeyExecute(r ApiGetApiKeyRequest) (*APIKeyRead
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -362,7 +363,7 @@ type ApiGetApiKeyScopeRequest struct {
 	ApiService *APIKeysApiService
 }
 
-func (r ApiGetApiKeyScopeRequest) Execute() (*APIKeyScopeRead, *http.Response, error) {
+func (r ApiGetApiKeyScopeRequest) Execute() (*models.APIKeyScopeRead, *http.Response, error) {
 	return r.ApiService.GetApiKeyScopeExecute(r)
 }
 
@@ -381,12 +382,12 @@ func (a *APIKeysApiService) GetApiKeyScope(ctx context.Context) ApiGetApiKeyScop
 
 // Execute executes the request
 //  @return APIKeyScopeRead
-func (a *APIKeysApiService) GetApiKeyScopeExecute(r ApiGetApiKeyScopeRequest) (*APIKeyScopeRead, *http.Response, error) {
+func (a *APIKeysApiService) GetApiKeyScopeExecute(r ApiGetApiKeyScopeRequest) (*models.APIKeyScopeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *APIKeyScopeRead
+		localVarReturnValue *models.APIKeyScopeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.GetApiKeyScope")
@@ -440,7 +441,7 @@ func (a *APIKeysApiService) GetApiKeyScopeExecute(r ApiGetApiKeyScopeRequest) (*
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -471,7 +472,7 @@ type ApiGetEnvironmentApiKeyRequest struct {
 	envId      string
 }
 
-func (r ApiGetEnvironmentApiKeyRequest) Execute() (*APIKeyRead, *http.Response, error) {
+func (r ApiGetEnvironmentApiKeyRequest) Execute() (*models.APIKeyRead, *http.Response, error) {
 	return r.ApiService.GetEnvironmentApiKeyExecute(r)
 }
 
@@ -494,12 +495,12 @@ func (a *APIKeysApiService) GetEnvironmentApiKey(ctx context.Context, projId str
 
 // Execute executes the request
 //  @return APIKeyRead
-func (a *APIKeysApiService) GetEnvironmentApiKeyExecute(r ApiGetEnvironmentApiKeyRequest) (*APIKeyRead, *http.Response, error) {
+func (a *APIKeysApiService) GetEnvironmentApiKeyExecute(r ApiGetEnvironmentApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *APIKeyRead
+		localVarReturnValue *models.APIKeyRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.GetEnvironmentApiKey")
@@ -555,7 +556,7 @@ func (a *APIKeysApiService) GetEnvironmentApiKeyExecute(r ApiGetEnvironmentApiKe
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -598,7 +599,7 @@ func (r ApiListApiKeysRequest) PerPage(perPage int32) ApiListApiKeysRequest {
 	return r
 }
 
-func (r ApiListApiKeysRequest) Execute() (*PaginatedResultAPIKeyRead, *http.Response, error) {
+func (r ApiListApiKeysRequest) Execute() (*models.PaginatedResultAPIKeyRead, *http.Response, error) {
 	return r.ApiService.ListApiKeysExecute(r)
 }
 
@@ -619,12 +620,12 @@ func (a *APIKeysApiService) ListApiKeys(ctx context.Context) ApiListApiKeysReque
 
 // Execute executes the request
 //  @return PaginatedResultAPIKeyRead
-func (a *APIKeysApiService) ListApiKeysExecute(r ApiListApiKeysRequest) (*PaginatedResultAPIKeyRead, *http.Response, error) {
+func (a *APIKeysApiService) ListApiKeysExecute(r ApiListApiKeysRequest) (*models.PaginatedResultAPIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PaginatedResultAPIKeyRead
+		localVarReturnValue *models.PaginatedResultAPIKeyRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.ListApiKeys")
@@ -684,7 +685,7 @@ func (a *APIKeysApiService) ListApiKeysExecute(r ApiListApiKeysRequest) (*Pagina
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

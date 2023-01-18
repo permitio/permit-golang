@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -80,7 +81,7 @@ func (r ApiListPdpDecisionLogsRequest) PerPage(perPage int32) ApiListPdpDecision
 	return r
 }
 
-func (r ApiListPdpDecisionLogsRequest) Execute() (*PaginatedResultOPADecisionLog, *http.Response, error) {
+func (r ApiListPdpDecisionLogsRequest) Execute() (*models.PaginatedResultOPADecisionLog, *http.Response, error) {
 	return r.ApiService.ListPdpDecisionLogsExecute(r)
 }
 
@@ -105,12 +106,12 @@ func (a *DecisionLogsApiService) ListPdpDecisionLogs(ctx context.Context, projId
 
 // Execute executes the request
 //  @return PaginatedResultOPADecisionLog
-func (a *DecisionLogsApiService) ListPdpDecisionLogsExecute(r ApiListPdpDecisionLogsRequest) (*PaginatedResultOPADecisionLog, *http.Response, error) {
+func (a *DecisionLogsApiService) ListPdpDecisionLogsExecute(r ApiListPdpDecisionLogsRequest) (*models.PaginatedResultOPADecisionLog, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PaginatedResultOPADecisionLog
+		localVarReturnValue *models.PaginatedResultOPADecisionLog
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DecisionLogsApiService.ListPdpDecisionLogs")
@@ -204,7 +205,7 @@ func (a *DecisionLogsApiService) ListPdpDecisionLogsExecute(r ApiListPdpDecision
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

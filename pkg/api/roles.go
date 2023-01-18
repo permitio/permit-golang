@@ -3,11 +3,11 @@ package api
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Roles struct {
@@ -25,13 +25,10 @@ func NewRolesApi(client *openapi.APIClient, config *permit.PermitConfig) *Roles 
 }
 
 type RoleRead struct {
-	openapi.RoleRead
+	models.RoleRead
 }
 
-func NewRoleRead(name string, key string, id string, organizationId string, projectId string, environmentId string, createdAt time.Time, updatedAt time.Time) *RoleRead {
-	refleopenapi.NewRoleRead(name, key, id, organizationId, projectId, environmentId, createdAt, updatedAt)
-}
-func (r *Roles) List(ctx context.Context, page int, perPage int) ([]openapi.RoleRead, error) {
+func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
@@ -52,7 +49,7 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]openapi.Role
 	return roles, nil
 }
 
-func (r *Roles) Get(ctx context.Context, roleKey string) (*openapi.RoleRead, error) {
+func (r *Roles) Get(ctx context.Context, roleKey string) (*models.RoleRead, error) {
 	err := r.LazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
@@ -68,15 +65,15 @@ func (r *Roles) Get(ctx context.Context, roleKey string) (*openapi.RoleRead, err
 	return role, nil
 }
 
-func (r *Roles) GetByKey(ctx context.Context, roleKey string) (*openapi.RoleRead, error) {
+func (r *Roles) GetByKey(ctx context.Context, roleKey string) (*models.RoleRead, error) {
 	return r.Get(ctx, roleKey)
 }
 
-func (r *Roles) GetById(ctx context.Context, roleKey uuid.UUID) (*openapi.RoleRead, error) {
+func (r *Roles) GetById(ctx context.Context, roleKey uuid.UUID) (*models.RoleRead, error) {
 	return r.Get(ctx, roleKey.String())
 }
 
-func (r *Roles) Create(ctx context.Context, roleCreate openapi.RoleCreate) (*openapi.RoleRead, error) {
+func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*models.RoleRead, error) {
 	err := r.LazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
@@ -91,7 +88,7 @@ func (r *Roles) Create(ctx context.Context, roleCreate openapi.RoleCreate) (*ope
 	return role, nil
 }
 
-func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate openapi.RoleUpdate) (*openapi.RoleRead, error) {
+func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.RoleUpdate) (*models.RoleRead, error) {
 	err := r.LazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
@@ -127,7 +124,7 @@ func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissio
 		r.logger.Error("", zap.Error(err))
 		return err
 	}
-	addRolePermissions := *openapi.NewAddRolePermissions(permissions)
+	addRolePermissions := *models.NewAddRolePermissions(permissions)
 	_, httpRes, err := r.client.RolesApi.AssignPermissionsToRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey).AddRolePermissions(addRolePermissions).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
@@ -143,7 +140,7 @@ func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissio
 		r.logger.Error("", zap.Error(err))
 		return err
 	}
-	removeRolePermissions := *openapi.NewRemoveRolePermissions(permissions)
+	removeRolePermissions := *models.NewRemoveRolePermissions(permissions)
 	_, httpRes, err := r.client.RolesApi.RemovePermissionsFromRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey).RemoveRolePermissions(removeRolePermissions).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {

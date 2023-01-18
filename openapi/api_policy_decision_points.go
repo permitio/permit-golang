@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -25,15 +26,15 @@ type PolicyDecisionPointsApiService service
 type ApiGetAuthenticatingPdpConfigValuesRequest struct {
 	ctx            context.Context
 	ApiService     *PolicyDecisionPointsApiService
-	pDPStateUpdate *PDPStateUpdate
+	pDPStateUpdate *models.PDPStateUpdate
 }
 
-func (r ApiGetAuthenticatingPdpConfigValuesRequest) PDPStateUpdate(pDPStateUpdate PDPStateUpdate) ApiGetAuthenticatingPdpConfigValuesRequest {
+func (r ApiGetAuthenticatingPdpConfigValuesRequest) PDPStateUpdate(pDPStateUpdate models.PDPStateUpdate) ApiGetAuthenticatingPdpConfigValuesRequest {
 	r.pDPStateUpdate = &pDPStateUpdate
 	return r
 }
 
-func (r ApiGetAuthenticatingPdpConfigValuesRequest) Execute() (*RemoteConfig, *http.Response, error) {
+func (r ApiGetAuthenticatingPdpConfigValuesRequest) Execute() (*models.RemoteConfig, *http.Response, error) {
 	return r.ApiService.GetAuthenticatingPdpConfigValuesExecute(r)
 }
 
@@ -61,12 +62,12 @@ func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValues(ctx co
 
 // Execute executes the request
 //  @return RemoteConfig
-func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesExecute(r ApiGetAuthenticatingPdpConfigValuesRequest) (*RemoteConfig, *http.Response, error) {
+func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesExecute(r ApiGetAuthenticatingPdpConfigValuesRequest) (*models.RemoteConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *RemoteConfig
+		localVarReturnValue *models.RemoteConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValues")
@@ -125,7 +126,7 @@ func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesExecute
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -154,7 +155,7 @@ type ApiGetAuthenticatingPdpConfigValuesLegacyRequest struct {
 	ApiService *PolicyDecisionPointsApiService
 }
 
-func (r ApiGetAuthenticatingPdpConfigValuesLegacyRequest) Execute() (*RemoteConfig, *http.Response, error) {
+func (r ApiGetAuthenticatingPdpConfigValuesLegacyRequest) Execute() (*models.RemoteConfig, *http.Response, error) {
 	return r.ApiService.GetAuthenticatingPdpConfigValuesLegacyExecute(r)
 }
 
@@ -182,12 +183,12 @@ func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacy(
 
 // Execute executes the request
 //  @return RemoteConfig
-func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacyExecute(r ApiGetAuthenticatingPdpConfigValuesLegacyRequest) (*RemoteConfig, *http.Response, error) {
+func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacyExecute(r ApiGetAuthenticatingPdpConfigValuesLegacyRequest) (*models.RemoteConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *RemoteConfig
+		localVarReturnValue *models.RemoteConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValuesLegacy")
@@ -241,7 +242,7 @@ func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacyE
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -273,7 +274,7 @@ type ApiGetPdpConfigValuesRequest struct {
 	pdpId      string
 }
 
-func (r ApiGetPdpConfigValuesRequest) Execute() (*RemoteConfig, *http.Response, error) {
+func (r ApiGetPdpConfigValuesRequest) Execute() (*models.RemoteConfig, *http.Response, error) {
 	return r.ApiService.GetPdpConfigValuesExecute(r)
 }
 
@@ -303,12 +304,12 @@ func (a *PolicyDecisionPointsApiService) GetPdpConfigValues(ctx context.Context,
 
 // Execute executes the request
 //  @return RemoteConfig
-func (a *PolicyDecisionPointsApiService) GetPdpConfigValuesExecute(r ApiGetPdpConfigValuesRequest) (*RemoteConfig, *http.Response, error) {
+func (a *PolicyDecisionPointsApiService) GetPdpConfigValuesExecute(r ApiGetPdpConfigValuesRequest) (*models.RemoteConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *RemoteConfig
+		localVarReturnValue *models.RemoteConfig
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.GetPdpConfigValues")
@@ -365,7 +366,7 @@ func (a *PolicyDecisionPointsApiService) GetPdpConfigValuesExecute(r ApiGetPdpCo
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -410,7 +411,7 @@ func (r ApiListPdpConfigsRequest) PerPage(perPage int32) ApiListPdpConfigsReques
 	return r
 }
 
-func (r ApiListPdpConfigsRequest) Execute() ([]PDPConfigRead, *http.Response, error) {
+func (r ApiListPdpConfigsRequest) Execute() ([]models.PDPConfigRead, *http.Response, error) {
 	return r.ApiService.ListPdpConfigsExecute(r)
 }
 
@@ -433,12 +434,12 @@ func (a *PolicyDecisionPointsApiService) ListPdpConfigs(ctx context.Context, pro
 
 // Execute executes the request
 //  @return []PDPConfigRead
-func (a *PolicyDecisionPointsApiService) ListPdpConfigsExecute(r ApiListPdpConfigsRequest) ([]PDPConfigRead, *http.Response, error) {
+func (a *PolicyDecisionPointsApiService) ListPdpConfigsExecute(r ApiListPdpConfigsRequest) ([]models.PDPConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []PDPConfigRead
+		localVarReturnValue []models.PDPConfigRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.ListPdpConfigs")
@@ -500,7 +501,7 @@ func (a *PolicyDecisionPointsApiService) ListPdpConfigsExecute(r ApiListPdpConfi
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -532,7 +533,7 @@ type ApiRotatePdpApiKeyRequest struct {
 	pdpId      string
 }
 
-func (r ApiRotatePdpApiKeyRequest) Execute() (*PDPConfigRead, *http.Response, error) {
+func (r ApiRotatePdpApiKeyRequest) Execute() (*models.PDPConfigRead, *http.Response, error) {
 	return r.ApiService.RotatePdpApiKeyExecute(r)
 }
 
@@ -561,12 +562,12 @@ func (a *PolicyDecisionPointsApiService) RotatePdpApiKey(ctx context.Context, pr
 
 // Execute executes the request
 //  @return PDPConfigRead
-func (a *PolicyDecisionPointsApiService) RotatePdpApiKeyExecute(r ApiRotatePdpApiKeyRequest) (*PDPConfigRead, *http.Response, error) {
+func (a *PolicyDecisionPointsApiService) RotatePdpApiKeyExecute(r ApiRotatePdpApiKeyRequest) (*models.PDPConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *PDPConfigRead
+		localVarReturnValue *models.PDPConfigRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.RotatePdpApiKey")
@@ -623,7 +624,7 @@ func (a *PolicyDecisionPointsApiService) RotatePdpApiKeyExecute(r ApiRotatePdpAp
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

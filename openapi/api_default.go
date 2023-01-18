@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -220,7 +221,7 @@ type ApiGetOrganizationV2StressDbOrganizationGetRequest struct {
 	ApiService *DefaultApiService
 }
 
-func (r ApiGetOrganizationV2StressDbOrganizationGetRequest) Execute() (*OrganizationRead, *http.Response, error) {
+func (r ApiGetOrganizationV2StressDbOrganizationGetRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
 	return r.ApiService.GetOrganizationV2StressDbOrganizationGetExecute(r)
 }
 
@@ -239,12 +240,12 @@ func (a *DefaultApiService) GetOrganizationV2StressDbOrganizationGet(ctx context
 
 // Execute executes the request
 //  @return OrganizationRead
-func (a *DefaultApiService) GetOrganizationV2StressDbOrganizationGetExecute(r ApiGetOrganizationV2StressDbOrganizationGetRequest) (*OrganizationRead, *http.Response, error) {
+func (a *DefaultApiService) GetOrganizationV2StressDbOrganizationGetExecute(r ApiGetOrganizationV2StressDbOrganizationGetRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrganizationRead
+		localVarReturnValue *models.OrganizationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DefaultApiService.GetOrganizationV2StressDbOrganizationGet")
@@ -317,7 +318,7 @@ type ApiGetOrganizationWithAuthnRequest struct {
 	ApiService *DefaultApiService
 }
 
-func (r ApiGetOrganizationWithAuthnRequest) Execute() (*OrganizationRead, *http.Response, error) {
+func (r ApiGetOrganizationWithAuthnRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
 	return r.ApiService.GetOrganizationWithAuthnExecute(r)
 }
 
@@ -336,12 +337,12 @@ func (a *DefaultApiService) GetOrganizationWithAuthn(ctx context.Context) ApiGet
 
 // Execute executes the request
 //  @return OrganizationRead
-func (a *DefaultApiService) GetOrganizationWithAuthnExecute(r ApiGetOrganizationWithAuthnRequest) (*OrganizationRead, *http.Response, error) {
+func (a *DefaultApiService) GetOrganizationWithAuthnExecute(r ApiGetOrganizationWithAuthnRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrganizationRead
+		localVarReturnValue *models.OrganizationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DefaultApiService.GetOrganizationWithAuthn")
@@ -395,7 +396,7 @@ func (a *DefaultApiService) GetOrganizationWithAuthnExecute(r ApiGetOrganization
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -424,7 +425,7 @@ type ApiGetOrganizationWithAuthzRequest struct {
 	ApiService *DefaultApiService
 }
 
-func (r ApiGetOrganizationWithAuthzRequest) Execute() (*OrganizationRead, *http.Response, error) {
+func (r ApiGetOrganizationWithAuthzRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
 	return r.ApiService.GetOrganizationWithAuthzExecute(r)
 }
 
@@ -443,12 +444,12 @@ func (a *DefaultApiService) GetOrganizationWithAuthz(ctx context.Context) ApiGet
 
 // Execute executes the request
 //  @return OrganizationRead
-func (a *DefaultApiService) GetOrganizationWithAuthzExecute(r ApiGetOrganizationWithAuthzRequest) (*OrganizationRead, *http.Response, error) {
+func (a *DefaultApiService) GetOrganizationWithAuthzExecute(r ApiGetOrganizationWithAuthzRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrganizationRead
+		localVarReturnValue *models.OrganizationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DefaultApiService.GetOrganizationWithAuthz")
@@ -502,7 +503,7 @@ func (a *DefaultApiService) GetOrganizationWithAuthzExecute(r ApiGetOrganization
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

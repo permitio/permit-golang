@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/permit"
@@ -23,7 +24,7 @@ func NewUsersApi(client *openapi.APIClient, config *permit.PermitConfig) *Users 
 	}
 }
 
-func (u *Users) List(ctx context.Context, page int, perPage int) ([]openapi.UserRead, error) {
+func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
@@ -44,7 +45,7 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]openapi.User
 	return users.GetData(), nil
 }
 
-func (u *Users) Get(ctx context.Context, userKey string) (*openapi.UserRead, error) {
+func (u *Users) Get(ctx context.Context, userKey string) (*models.UserRead, error) {
 	err := u.LazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
@@ -59,15 +60,15 @@ func (u *Users) Get(ctx context.Context, userKey string) (*openapi.UserRead, err
 	return user, nil
 }
 
-func (u *Users) GetByKey(ctx context.Context, userKey string) (*openapi.UserRead, error) {
+func (u *Users) GetByKey(ctx context.Context, userKey string) (*models.UserRead, error) {
 	return u.Get(ctx, userKey)
 }
 
-func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*openapi.UserRead, error) {
+func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead, error) {
 	return u.Get(ctx, userId.String())
 }
 
-func (u *Users) Create(ctx context.Context, userCreate openapi.UserCreate) (*openapi.UserRead, error) {
+func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*models.UserRead, error) {
 	err := u.LazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
@@ -82,7 +83,7 @@ func (u *Users) Create(ctx context.Context, userCreate openapi.UserCreate) (*ope
 	return user, nil
 }
 
-func (u *Users) Update(ctx context.Context, userKey string, userUpdate openapi.UserUpdate) (*openapi.UserRead, error) {
+func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.UserUpdate) (*models.UserRead, error) {
 	err := u.LazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
@@ -112,13 +113,13 @@ func (u *Users) Delete(ctx context.Context, userKey string) error {
 	return nil
 }
 
-func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*openapi.RoleAssignmentRead, error) {
+func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.RoleAssignmentRead, error) {
 	err := u.LazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	userRoleCreate := *openapi.NewUserRoleCreate(roleKey, tenantKey)
+	userRoleCreate := *models.NewUserRoleCreate(roleKey, tenantKey)
 	roleAssignmentRead, httpRes, err := u.client.UsersApi.AssignRoleToUser(ctx, u.config.Context.GetEnvironment(), u.config.Context.GetProject(), userKey).UserRoleCreate(userRoleCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
@@ -128,13 +129,13 @@ func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, 
 	return roleAssignmentRead, nil
 }
 
-func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*openapi.UserRead, error) {
+func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.UserRead, error) {
 	err := u.LazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	UserRoleRemove := *openapi.NewUserRoleRemove(roleKey, tenantKey)
+	UserRoleRemove := *models.NewUserRoleRemove(roleKey, tenantKey)
 	user, httpRes, err := u.client.UsersApi.UnassignRoleFromUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserRoleRemove(UserRoleRemove).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
@@ -143,7 +144,7 @@ func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string
 	}
 	return user, nil
 }
-func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey string, page int, perPage int) ([]openapi.RoleAssignmentRead, error) {
+func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey string, page int, perPage int) ([]models.RoleAssignmentRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/permit"
@@ -23,7 +24,7 @@ func NewResourcesApi(client *openapi.APIClient, config *permit.PermitConfig) *Re
 	}
 }
 
-func (r *Resources) List(ctx context.Context, page int, perPage int) ([]openapi.ResourceRead, error) {
+func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.ResourceRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
@@ -44,7 +45,7 @@ func (r *Resources) List(ctx context.Context, page int, perPage int) ([]openapi.
 	return resources, nil
 }
 
-func (r *Resources) Get(ctx context.Context, resourceKey string) (*openapi.ResourceRead, error) {
+func (r *Resources) Get(ctx context.Context, resourceKey string) (*models.ResourceRead, error) {
 	err := r.LazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
@@ -59,14 +60,14 @@ func (r *Resources) Get(ctx context.Context, resourceKey string) (*openapi.Resou
 	return resource, nil
 }
 
-func (r *Resources) GetByKey(ctx context.Context, resourceKey string) (*openapi.ResourceRead, error) {
+func (r *Resources) GetByKey(ctx context.Context, resourceKey string) (*models.ResourceRead, error) {
 	return r.Get(ctx, resourceKey)
 }
-func (r *Resources) GetById(ctx context.Context, resourceId uuid.UUID) (*openapi.ResourceRead, error) {
+func (r *Resources) GetById(ctx context.Context, resourceId uuid.UUID) (*models.ResourceRead, error) {
 	return r.Get(ctx, resourceId.String())
 }
 
-func (r *Resources) Create(ctx context.Context, resourceCreate openapi.ResourceCreate) (*openapi.ResourceRead, error) {
+func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCreate) (*models.ResourceRead, error) {
 	err := r.LazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
@@ -81,7 +82,7 @@ func (r *Resources) Create(ctx context.Context, resourceCreate openapi.ResourceC
 	return resource, nil
 }
 
-func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpdate openapi.ResourceUpdate) (*openapi.ResourceRead, error) {
+func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpdate models.ResourceUpdate) (*models.ResourceRead, error) {
 	err := r.LazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))

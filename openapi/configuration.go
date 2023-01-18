@@ -13,6 +13,7 @@ package openapi
 import (
 	"context"
 	"fmt"
+	"github.com/permitio/permit-golang/models"
 	"net/http"
 	"strings"
 )

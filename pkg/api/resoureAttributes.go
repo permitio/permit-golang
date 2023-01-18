@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/permit"
@@ -23,7 +24,7 @@ func NewResourceAttributesApi(client *openapi.APIClient, config *permit.PermitCo
 	}
 }
 
-func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page int, perPage int) ([]openapi.ResourceAttributeRead, error) {
+func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceAttributeRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
@@ -42,7 +43,7 @@ func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page 
 	return resourceAttributes, nil
 }
 
-func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attributeKey string) (*openapi.ResourceAttributeRead, error) {
+func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error) {
 	err := a.LazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
@@ -55,15 +56,15 @@ func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attrib
 	return resourceAttribute, nil
 }
 
-func (a *ResourceAttributes) GetByKey(ctx context.Context, resourceKey string, attributeKey string) (*openapi.ResourceAttributeRead, error) {
+func (a *ResourceAttributes) GetByKey(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error) {
 	return a.Get(ctx, resourceKey, attributeKey)
 }
 
-func (a *ResourceAttributes) GetById(ctx context.Context, resourceKey uuid.UUID, attributeKey uuid.UUID) (*openapi.ResourceAttributeRead, error) {
+func (a *ResourceAttributes) GetById(ctx context.Context, resourceKey uuid.UUID, attributeKey uuid.UUID) (*models.ResourceAttributeRead, error) {
 	return a.Get(ctx, resourceKey.String(), attributeKey.String())
 }
 
-func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, resourceAttributeCreate openapi.ResourceAttributeCreate) (*openapi.ResourceAttributeRead, error) {
+func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, resourceAttributeCreate models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error) {
 	err := a.LazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
@@ -76,7 +77,7 @@ func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, res
 	return resourceAttribute, nil
 }
 
-func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, attributeKey string, resourceAttributeUpdate openapi.ResourceAttributeUpdate) (*openapi.ResourceAttributeRead, error) {
+func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, attributeKey string, resourceAttributeUpdate models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error) {
 	err := a.LazyLoadContext(ctx)
 	if err != nil {
 		return nil, err

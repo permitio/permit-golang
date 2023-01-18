@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/permit"
@@ -23,7 +24,7 @@ func NewTenantsApi(client *openapi.APIClient, config *permit.PermitConfig) *Tena
 	}
 }
 
-func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]openapi.TenantRead, error) {
+func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.TenantRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
@@ -43,7 +44,7 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]openapi.Te
 	return tenants, nil
 }
 
-func (t *Tenants) Get(ctx context.Context, tenantKey string) (*openapi.TenantRead, error) {
+func (t *Tenants) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error) {
 	err := t.LazyLoadContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
@@ -59,15 +60,15 @@ func (t *Tenants) Get(ctx context.Context, tenantKey string) (*openapi.TenantRea
 	return tenant, nil
 }
 
-func (t *Tenants) GetByKey(ctx context.Context, tenantKey string) (*openapi.TenantRead, error) {
+func (t *Tenants) GetByKey(ctx context.Context, tenantKey string) (*models.TenantRead, error) {
 	return t.Get(ctx, tenantKey)
 }
 
-func (t *Tenants) GetById(ctx context.Context, tenantId uuid.UUID) (*openapi.TenantRead, error) {
+func (t *Tenants) GetById(ctx context.Context, tenantId uuid.UUID) (*models.TenantRead, error) {
 	return t.Get(ctx, tenantId.String())
 }
 
-func (t *Tenants) Create(ctx context.Context, tenantCreate openapi.TenantCreate) (*openapi.TenantRead, error) {
+func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) (*models.TenantRead, error) {
 	err := t.LazyLoadContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
@@ -82,7 +83,7 @@ func (t *Tenants) Create(ctx context.Context, tenantCreate openapi.TenantCreate)
 	return tenant, nil
 }
 
-func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate openapi.TenantUpdate) (*openapi.TenantRead, error) {
+func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate models.TenantUpdate) (*models.TenantRead, error) {
 	err := t.LazyLoadContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))

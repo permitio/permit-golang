@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/permit"
@@ -23,7 +24,7 @@ func NewResourceActionsApi(client *openapi.APIClient, config *permit.PermitConfi
 	}
 }
 
-func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int, perPage int) ([]openapi.ResourceActionRead, error) {
+func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceActionRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
@@ -42,7 +43,7 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	return resourceActions, nil
 }
 
-func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey string) (*openapi.ResourceActionRead, error) {
+func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
 	err := a.LazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
@@ -55,15 +56,15 @@ func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey
 	return resourceActions, nil
 }
 
-func (a *ResourceActions) GetByKey(ctx context.Context, resourceKey string, actionKey string) (*openapi.ResourceActionRead, error) {
+func (a *ResourceActions) GetByKey(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
 	return a.Get(ctx, resourceKey, actionKey)
 }
 
-func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, actionKey uuid.UUID) (*openapi.ResourceActionRead, error) {
+func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, actionKey uuid.UUID) (*models.ResourceActionRead, error) {
 	return a.Get(ctx, resourceKey.String(), actionKey.String())
 }
 
-func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resourceActionCreate openapi.ResourceActionCreate) (*openapi.ResourceActionRead, error) {
+func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resourceActionCreate models.ResourceActionCreate) (*models.ResourceActionRead, error) {
 	err := a.LazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
@@ -76,7 +77,7 @@ func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resour
 	return resourceAction, nil
 }
 
-func (a *ResourceActions) Update(ctx context.Context, resourceKey string, actionKey string, resourceActionUpdate openapi.ResourceActionUpdate) (*openapi.ResourceActionRead, error) {
+func (a *ResourceActions) Update(ctx context.Context, resourceKey string, actionKey string, resourceActionUpdate models.ResourceActionUpdate) (*models.ResourceActionRead, error) {
 	err := a.LazyLoadContext(ctx)
 	if err != nil {
 		return nil, err

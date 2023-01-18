@@ -13,6 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"github.com/permitio/permit-golang/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -114,7 +115,7 @@ func (a *MembersApiService) DeleteOrganizationMemberExecute(r ApiDeleteOrganizat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -134,7 +135,7 @@ type ApiGetAuthenticatedMemberRequest struct {
 	ApiService *MembersApiService
 }
 
-func (r ApiGetAuthenticatedMemberRequest) Execute() (*OrgMemberRead, *http.Response, error) {
+func (r ApiGetAuthenticatedMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
 	return r.ApiService.GetAuthenticatedMemberExecute(r)
 }
 
@@ -155,12 +156,12 @@ func (a *MembersApiService) GetAuthenticatedMember(ctx context.Context) ApiGetAu
 
 // Execute executes the request
 //  @return OrgMemberRead
-func (a *MembersApiService) GetAuthenticatedMemberExecute(r ApiGetAuthenticatedMemberRequest) (*OrgMemberRead, *http.Response, error) {
+func (a *MembersApiService) GetAuthenticatedMemberExecute(r ApiGetAuthenticatedMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrgMemberRead
+		localVarReturnValue *models.OrgMemberRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.GetAuthenticatedMember")
@@ -214,7 +215,7 @@ func (a *MembersApiService) GetAuthenticatedMemberExecute(r ApiGetAuthenticatedM
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -244,7 +245,7 @@ type ApiGetOrganizationMemberRequest struct {
 	memberId   string
 }
 
-func (r ApiGetOrganizationMemberRequest) Execute() (*OrgMemberRead, *http.Response, error) {
+func (r ApiGetOrganizationMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
 	return r.ApiService.GetOrganizationMemberExecute(r)
 }
 
@@ -268,12 +269,12 @@ func (a *MembersApiService) GetOrganizationMember(ctx context.Context, memberId 
 
 // Execute executes the request
 //  @return OrgMemberRead
-func (a *MembersApiService) GetOrganizationMemberExecute(r ApiGetOrganizationMemberRequest) (*OrgMemberRead, *http.Response, error) {
+func (a *MembersApiService) GetOrganizationMemberExecute(r ApiGetOrganizationMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrgMemberRead
+		localVarReturnValue *models.OrgMemberRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.GetOrganizationMember")
@@ -328,7 +329,7 @@ func (a *MembersApiService) GetOrganizationMemberExecute(r ApiGetOrganizationMem
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -371,7 +372,7 @@ func (r ApiListOrganizationMembersRequest) PerPage(perPage int32) ApiListOrganiz
 	return r
 }
 
-func (r ApiListOrganizationMembersRequest) Execute() ([]OrgMemberRead, *http.Response, error) {
+func (r ApiListOrganizationMembersRequest) Execute() ([]models.OrgMemberRead, *http.Response, error) {
 	return r.ApiService.ListOrganizationMembersExecute(r)
 }
 
@@ -393,12 +394,12 @@ func (a *MembersApiService) ListOrganizationMembers(ctx context.Context) ApiList
 
 // Execute executes the request
 //  @return []OrgMemberRead
-func (a *MembersApiService) ListOrganizationMembersExecute(r ApiListOrganizationMembersRequest) ([]OrgMemberRead, *http.Response, error) {
+func (a *MembersApiService) ListOrganizationMembersExecute(r ApiListOrganizationMembersRequest) ([]models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []OrgMemberRead
+		localVarReturnValue []models.OrgMemberRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.ListOrganizationMembers")
@@ -458,7 +459,7 @@ func (a *MembersApiService) ListOrganizationMembersExecute(r ApiListOrganization
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -486,15 +487,15 @@ type ApiUpdateOrganizationMemberRequest struct {
 	ctx             context.Context
 	ApiService      *MembersApiService
 	memberId        string
-	orgMemberUpdate *OrgMemberUpdate
+	orgMemberUpdate *models.OrgMemberUpdate
 }
 
-func (r ApiUpdateOrganizationMemberRequest) OrgMemberUpdate(orgMemberUpdate OrgMemberUpdate) ApiUpdateOrganizationMemberRequest {
+func (r ApiUpdateOrganizationMemberRequest) OrgMemberUpdate(orgMemberUpdate models.OrgMemberUpdate) ApiUpdateOrganizationMemberRequest {
 	r.orgMemberUpdate = &orgMemberUpdate
 	return r
 }
 
-func (r ApiUpdateOrganizationMemberRequest) Execute() (*OrgMemberRead, *http.Response, error) {
+func (r ApiUpdateOrganizationMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
 	return r.ApiService.UpdateOrganizationMemberExecute(r)
 }
 
@@ -517,12 +518,12 @@ func (a *MembersApiService) UpdateOrganizationMember(ctx context.Context, member
 
 // Execute executes the request
 //  @return OrgMemberRead
-func (a *MembersApiService) UpdateOrganizationMemberExecute(r ApiUpdateOrganizationMemberRequest) (*OrgMemberRead, *http.Response, error) {
+func (a *MembersApiService) UpdateOrganizationMemberExecute(r ApiUpdateOrganizationMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *OrgMemberRead
+		localVarReturnValue *models.OrgMemberRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.UpdateOrganizationMember")
@@ -582,7 +583,7 @@ func (a *MembersApiService) UpdateOrganizationMemberExecute(r ApiUpdateOrganizat
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 422 {
-			var v HTTPValidationError
+			var v models.HTTPValidationError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

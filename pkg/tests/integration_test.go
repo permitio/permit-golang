@@ -12,7 +12,7 @@ import (
 func TestIntegration(t *testing.T) {
 	logger := zap.NewExample()
 	permitContext := config.NewPermitContext(config.ProjectAPIKeyLevel, "project-id", "environment-id")
-	permitClient := permit.New(config.NewConfigBuilder("permit_key_nfPgSYZLjOQ0kfWyiKFwvrN91Fzkg38zcdQ1SzyA9BUS73EjjWwcdFCkoBy4EwU96k4nboSsZviyHz9fIo1UIz", "http://localhost:7766").WithContext(permitContext).WithLogger(logger).Build())
+	permitClient := permit.New(config.NewConfigBuilder("", "http://localhost:7766").WithContext(permitContext).WithLogger(logger).Build())
 
 	user := enforcement.UserBuilder("sandy@permit.io").Build()
 	resource := enforcement.ResourceBuilder("folder").WithTenant("default").Build()

@@ -4,19 +4,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
 type Environments struct {
-	PermitBaseApi
+	permitBaseApi
 }
 
-func NewEnvironmentsApi(client *openapi.APIClient, config *permit.PermitConfig) *Environments {
+func NewEnvironmentsApi(client *openapi.APIClient, config *config.PermitConfig) *Environments {
 	return &Environments{
-		PermitBaseApi{
+		permitBaseApi{
 			client: client,
 			config: config,
 			logger: config.Logger,
@@ -31,7 +31,7 @@ func (e *Environments) List(ctx context.Context, page int, perPage int) ([]model
 		e.logger.Error("error listing environments - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := e.LazyLoadContext(ctx)
+	err := e.lazyLoadContext(ctx)
 	if err != nil {
 		e.logger.Error("", zap.Error(err))
 		return nil, err
@@ -46,7 +46,7 @@ func (e *Environments) List(ctx context.Context, page int, perPage int) ([]model
 }
 
 func (e *Environments) Get(ctx context.Context, environmentKey string) *models.EnvironmentRead {
-	err := e.LazyLoadContext(ctx)
+	err := e.lazyLoadContext(ctx)
 	if err != nil {
 		e.logger.Error("", zap.Error(err))
 	}
@@ -68,7 +68,7 @@ func (e *Environments) GetById(ctx context.Context, environmentId uuid.UUID) *mo
 }
 
 func (e *Environments) Create(ctx context.Context, environmentCreate models.EnvironmentCreate) *models.EnvironmentRead {
-	err := e.LazyLoadContext(ctx)
+	err := e.lazyLoadContext(ctx)
 	if err != nil {
 		e.logger.Error("", zap.Error(err))
 	}
@@ -82,7 +82,7 @@ func (e *Environments) Create(ctx context.Context, environmentCreate models.Envi
 }
 
 func (e *Environments) Update(ctx context.Context, environmentKey string, environmentUpdate models.EnvironmentUpdate) *models.EnvironmentRead {
-	err := e.LazyLoadContext(ctx)
+	err := e.lazyLoadContext(ctx)
 	if err != nil {
 		e.logger.Error("", zap.Error(err))
 	}
@@ -96,7 +96,7 @@ func (e *Environments) Update(ctx context.Context, environmentKey string, enviro
 }
 
 func (e *Environments) Delete(ctx context.Context, environmentKey string) {
-	err := e.LazyLoadContext(ctx)
+	err := e.lazyLoadContext(ctx)
 	if err != nil {
 		e.logger.Error("", zap.Error(err))
 	}

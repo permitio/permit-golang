@@ -43,6 +43,9 @@ type PermitContextError struct {
 type PermitPaginationError struct {
 	PermitError
 }
+type PermitConnectionError struct {
+	PermitError
+}
 
 func NewPermitUnexpectedError(err error) *PermitUnexpectedError {
 	return &PermitUnexpectedError{NewPermitError(ErrorMessage(err.Error()), UnexpectedError, GENERAL_ERROR)}
@@ -97,5 +100,10 @@ func NewPermitContextError(additionalMessage ErrorMessage) *PermitContextError {
 func NewPermitDuplicateEntityError(err error) *PermitDuplicateEntityError {
 	return &PermitDuplicateEntityError{
 		NewPermitError(ErrorMessage(err.Error()), DuplicateEntity, GENERAL_ERROR),
+	}
+}
+func NewPermitConnectionError(err error) *PermitDuplicateEntityError {
+	return &PermitDuplicateEntityError{
+		NewPermitError(ErrorMessage(err.Error()), ConnectionError, GENERAL_ERROR),
 	}
 }

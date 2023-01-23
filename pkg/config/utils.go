@@ -1,4 +1,4 @@
-package permit
+package config
 
 import (
 	"github.com/permitio/permit-golang/models"

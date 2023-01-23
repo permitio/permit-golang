@@ -5,18 +5,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
 )
 
 type Roles struct {
-	PermitBaseApi
+	permitBaseApi
 }
 
-func NewRolesApi(client *openapi.APIClient, config *permit.PermitConfig) *Roles {
+func NewRolesApi(client *openapi.APIClient, config *config.PermitConfig) *Roles {
 	return &Roles{
-		PermitBaseApi{
+		permitBaseApi{
 			client: client,
 			config: config,
 			logger: config.Logger,
@@ -35,7 +35,7 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -50,7 +50,7 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 }
 
 func (r *Roles) Get(ctx context.Context, roleKey string) (*models.RoleRead, error) {
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -74,7 +74,7 @@ func (r *Roles) GetById(ctx context.Context, roleKey uuid.UUID) (*models.RoleRea
 }
 
 func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*models.RoleRead, error) {
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -89,7 +89,7 @@ func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*mode
 }
 
 func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.RoleUpdate) (*models.RoleRead, error) {
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -104,7 +104,7 @@ func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.Ro
 }
 
 func (r *Roles) Delete(ctx context.Context, roleKey string) error {
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err
@@ -119,7 +119,7 @@ func (r *Roles) Delete(ctx context.Context, roleKey string) error {
 }
 
 func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissions []string) error {
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err
@@ -135,7 +135,7 @@ func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissio
 }
 
 func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissions []string) error {
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err
@@ -151,7 +151,7 @@ func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissio
 }
 
 func (r *Roles) AddParentRole(ctx context.Context, roleKey string, parentRoleKey string) error {
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err
@@ -166,7 +166,7 @@ func (r *Roles) AddParentRole(ctx context.Context, roleKey string, parentRoleKey
 }
 
 func (r *Roles) RemoveParentRole(ctx context.Context, roleKey string, parentRoleKey string) error {
-	err := r.LazyLoadContext(ctx)
+	err := r.lazyLoadContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err

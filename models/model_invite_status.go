@@ -20,10 +20,10 @@ type InviteStatus string
 
 // List of InviteStatus
 const (
-	PENDING  InviteStatus = "pending"
-	ACCEPTED InviteStatus = "accepted"
-	FAILED   InviteStatus = "failed"
-	CANCELED InviteStatus = "canceled"
+	INVITE_PENDING  InviteStatus = "pending"
+	INVITE_ACCEPTED InviteStatus = "accepted"
+	INVITE_FAILED   InviteStatus = "failed"
+	INVITE_CANCELED InviteStatus = "canceled"
 )
 
 // All allowed values of InviteStatus enum

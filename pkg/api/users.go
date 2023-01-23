@@ -5,18 +5,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
 )
 
 type Users struct {
-	PermitBaseApi
+	permitBaseApi
 }
 
-func NewUsersApi(client *openapi.APIClient, config *permit.PermitConfig) *Users {
+func NewUsersApi(client *openapi.APIClient, config *config.PermitConfig) *Users {
 	return &Users{
-		PermitBaseApi{
+		permitBaseApi{
 			client: client,
 			config: config,
 			logger: config.Logger,
@@ -31,7 +31,7 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 		u.logger.Error("error listing users - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := u.LazyLoadContext(ctx)
+	err := u.lazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -46,7 +46,7 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 }
 
 func (u *Users) Get(ctx context.Context, userKey string) (*models.UserRead, error) {
-	err := u.LazyLoadContext(ctx)
+	err := u.lazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -69,7 +69,7 @@ func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead
 }
 
 func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*models.UserRead, error) {
-	err := u.LazyLoadContext(ctx)
+	err := u.lazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -84,7 +84,7 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 }
 
 func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.UserUpdate) (*models.UserRead, error) {
-	err := u.LazyLoadContext(ctx)
+	err := u.lazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -99,7 +99,7 @@ func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.Us
 }
 
 func (u *Users) Delete(ctx context.Context, userKey string) error {
-	err := u.LazyLoadContext(ctx)
+	err := u.lazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return err
@@ -114,7 +114,7 @@ func (u *Users) Delete(ctx context.Context, userKey string) error {
 }
 
 func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.RoleAssignmentRead, error) {
-	err := u.LazyLoadContext(ctx)
+	err := u.lazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -130,7 +130,7 @@ func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, 
 }
 
 func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.UserRead, error) {
-	err := u.LazyLoadContext(ctx)
+	err := u.lazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -151,7 +151,7 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 		u.logger.Error("error listing users - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := u.LazyLoadContext(ctx)
+	err := u.lazyLoadContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err

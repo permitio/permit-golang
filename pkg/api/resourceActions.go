@@ -5,18 +5,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
 )
 
 type ResourceActions struct {
-	PermitBaseApi
+	permitBaseApi
 }
 
-func NewResourceActionsApi(client *openapi.APIClient, config *permit.PermitConfig) *ResourceActions {
+func NewResourceActionsApi(client *openapi.APIClient, config *config.PermitConfig) *ResourceActions {
 	return &ResourceActions{
-		PermitBaseApi{
+		permitBaseApi{
 			client: client,
 			config: config,
 			logger: config.Logger,
@@ -31,7 +31,7 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 		a.logger.Error("error listing resource actions - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 }
 
 func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, ac
 }
 
 func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resourceActionCreate models.ResourceActionCreate) (*models.ResourceActionRead, error) {
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resour
 }
 
 func (a *ResourceActions) Update(ctx context.Context, resourceKey string, actionKey string, resourceActionUpdate models.ResourceActionUpdate) (*models.ResourceActionRead, error) {
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (a *ResourceActions) Update(ctx context.Context, resourceKey string, action
 }
 
 func (a *ResourceActions) Delete(ctx context.Context, resourceKey string, actionKey string) error {
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return err
 	}

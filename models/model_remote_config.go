@@ -1,7 +1,7 @@
 /*
 Permit.io API
 
- Authorization as a service 
+ Authorization as a service
 
 API version: 2.0.0
 */
@@ -26,24 +26,24 @@ type RemoteConfig struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewRemoteConfig(opalClient OPALClient, context PDPContext) *RemoteConfig {
-	this := RemoteConfig{}
-	this.OpalClient = opalClient
-	var pdp Pdp = {}
-	this.Pdp = &pdp
-	this.Context = context
-	return &this
-}
+//func NewRemoteConfig(opalClient OPALClient, context PDPContext) *RemoteConfig {
+//	this := RemoteConfig{}
+//	this.OpalClient = opalClient
+//	var pdp Pdp = Pdp{}
+//	this.Pdp = &pdp
+//	this.Context = context
+//	return &this
+//}
 
 // NewRemoteConfigWithDefaults instantiates a new RemoteConfig object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewRemoteConfigWithDefaults() *RemoteConfig {
-	this := RemoteConfig{}
-	var pdp Pdp = {}
-	this.Pdp = &pdp
-	return &this
-}
+//func NewRemoteConfigWithDefaults() *RemoteConfig {
+//	this := RemoteConfig{}
+//	var pdp Pdp = {}
+//	this.Pdp = &pdp
+//	return &this
+//}
 
 // GetOpalCommon returns the OpalCommon field value if set, zero value otherwise.
 func (o *RemoteConfig) GetOpalCommon() map[string]interface{} {
@@ -58,7 +58,7 @@ func (o *RemoteConfig) GetOpalCommon() map[string]interface{} {
 // and a boolean to check if the value has been set.
 func (o *RemoteConfig) GetOpalCommonOk() (map[string]interface{}, bool) {
 	if o == nil || IsNil(o.OpalCommon) {
-    return map[string]interface{}{}, false
+		return map[string]interface{}{}, false
 	}
 	return o.OpalCommon, true
 }
@@ -91,7 +91,7 @@ func (o *RemoteConfig) GetOpalClient() OPALClient {
 // and a boolean to check if the value has been set.
 func (o *RemoteConfig) GetOpalClientOk() (*OPALClient, bool) {
 	if o == nil {
-    return nil, false
+		return nil, false
 	}
 	return &o.OpalClient, true
 }
@@ -114,7 +114,7 @@ func (o *RemoteConfig) GetPdp() Pdp {
 // and a boolean to check if the value has been set.
 func (o *RemoteConfig) GetPdpOk() (*Pdp, bool) {
 	if o == nil || IsNil(o.Pdp) {
-    return nil, false
+		return nil, false
 	}
 	return o.Pdp, true
 }
@@ -147,7 +147,7 @@ func (o *RemoteConfig) GetContext() PDPContext {
 // and a boolean to check if the value has been set.
 func (o *RemoteConfig) GetContextOk() (*PDPContext, bool) {
 	if o == nil {
-    return nil, false
+		return nil, false
 	}
 	return &o.Context, true
 }
@@ -209,5 +209,3 @@ func (v *NullableRemoteConfig) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }
-
-

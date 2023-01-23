@@ -13,7 +13,6 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/permitio/permit-golang/openapi"
 )
 
 // Actor - struct for Actor
@@ -49,7 +48,7 @@ func (dst *Actor) UnmarshalJSON(data []byte) error {
 	var err error
 	match := 0
 	// try to unmarshal data into AuthnMeAPIKeyRead
-	err = openapi.newStrictDecoder(data).Decode(&dst.AuthnMeAPIKeyRead)
+	err = newStrictDecoder(data).Decode(&dst.AuthnMeAPIKeyRead)
 	if err == nil {
 		jsonAuthnMeAPIKeyRead, _ := json.Marshal(dst.AuthnMeAPIKeyRead)
 		if string(jsonAuthnMeAPIKeyRead) == "{}" { // empty struct
@@ -62,7 +61,7 @@ func (dst *Actor) UnmarshalJSON(data []byte) error {
 	}
 
 	// try to unmarshal data into AuthnMeMemberRead
-	err = openapi.newStrictDecoder(data).Decode(&dst.AuthnMeMemberRead)
+	err = newStrictDecoder(data).Decode(&dst.AuthnMeMemberRead)
 	if err == nil {
 		jsonAuthnMeMemberRead, _ := json.Marshal(dst.AuthnMeMemberRead)
 		if string(jsonAuthnMeMemberRead) == "{}" { // empty struct
@@ -75,7 +74,7 @@ func (dst *Actor) UnmarshalJSON(data []byte) error {
 	}
 
 	// try to unmarshal data into AuthnMeUserRead
-	err = openapi.newStrictDecoder(data).Decode(&dst.AuthnMeUserRead)
+	err = newStrictDecoder(data).Decode(&dst.AuthnMeUserRead)
 	if err == nil {
 		jsonAuthnMeUserRead, _ := json.Marshal(dst.AuthnMeUserRead)
 		if string(jsonAuthnMeUserRead) == "{}" { // empty struct

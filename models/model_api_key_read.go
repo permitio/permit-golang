@@ -37,9 +37,9 @@ type APIKeyRead struct {
 func NewAPIKeyRead(organizationId string, ownerType APIKeyOwnerType, id string, createdAt time.Time, createdByMember OrgMemberRead) *APIKeyRead {
 	this := APIKeyRead{}
 	this.OrganizationId = organizationId
-	var objectType MemberAccessObj = env
+	var objectType MemberAccessObj = ENV
 	this.ObjectType = &objectType
-	var accessLevel MemberAccessLevel = admin
+	var accessLevel MemberAccessLevel = ADMIN
 	this.AccessLevel = &accessLevel
 	this.OwnerType = ownerType
 	this.Id = id
@@ -53,9 +53,9 @@ func NewAPIKeyRead(organizationId string, ownerType APIKeyOwnerType, id string, 
 // but it doesn't guarantee that properties required by API are set
 func NewAPIKeyReadWithDefaults() *APIKeyRead {
 	this := APIKeyRead{}
-	var objectType MemberAccessObj = env
+	var objectType MemberAccessObj = ENV
 	this.ObjectType = &objectType
-	var accessLevel MemberAccessLevel = admin
+	var accessLevel MemberAccessLevel = ADMIN
 	this.AccessLevel = &accessLevel
 	return &this
 }

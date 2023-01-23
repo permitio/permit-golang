@@ -5,18 +5,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
 )
 
 type Tenants struct {
-	PermitBaseApi
+	permitBaseApi
 }
 
-func NewTenantsApi(client *openapi.APIClient, config *permit.PermitConfig) *Tenants {
+func NewTenantsApi(client *openapi.APIClient, config *config.PermitConfig) *Tenants {
 	return &Tenants{
-		PermitBaseApi{
+		permitBaseApi{
 			client: client,
 			config: config,
 			logger: config.Logger,
@@ -31,7 +31,7 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := t.LazyLoadContext(ctx)
+	err := t.lazyLoadContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return nil, err
@@ -45,7 +45,7 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 }
 
 func (t *Tenants) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error) {
-	err := t.LazyLoadContext(ctx)
+	err := t.lazyLoadContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return nil, err
@@ -69,7 +69,7 @@ func (t *Tenants) GetById(ctx context.Context, tenantId uuid.UUID) (*models.Tena
 }
 
 func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) (*models.TenantRead, error) {
-	err := t.LazyLoadContext(ctx)
+	err := t.lazyLoadContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return nil, err
@@ -84,7 +84,7 @@ func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) 
 }
 
 func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate models.TenantUpdate) (*models.TenantRead, error) {
-	err := t.LazyLoadContext(ctx)
+	err := t.lazyLoadContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return nil, err
@@ -103,11 +103,11 @@ func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate mod
 //
 // Usage Example:
 // ```
-// Permit := permit.NewPermitClient("https://api")
+// PermitClient := permit.NewPermitClient("https://api")
 // err := api.Tenants().Delete(ctx, "tenant-key")
 // ```
 func (t *Tenants) Delete(ctx context.Context, tenantKey string) error {
-	err := t.LazyLoadContext(ctx)
+	err := t.lazyLoadContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return err

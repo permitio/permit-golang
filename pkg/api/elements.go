@@ -4,18 +4,18 @@ import (
 	"context"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
 )
 
 type Elements struct {
-	PermitBaseApi
+	permitBaseApi
 }
 
-func NewElementsApi(client *openapi.APIClient, config *permit.PermitConfig) *Elements {
+func NewElementsApi(client *openapi.APIClient, config *config.PermitConfig) *Elements {
 	return &Elements{
-		PermitBaseApi{
+		permitBaseApi{
 			client: client,
 			config: config,
 			logger: config.Logger,
@@ -24,7 +24,7 @@ func NewElementsApi(client *openapi.APIClient, config *permit.PermitConfig) *Ele
 }
 
 func (e *Elements) LoginAs(ctx context.Context, userLogin models.UserLoginRequestInput) (*models.EmbeddedLoginRequestOutput, error) {
-	err := e.LazyLoadContext(ctx)
+	err := e.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}

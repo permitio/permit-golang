@@ -5,18 +5,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
 )
 
 type Projects struct {
-	PermitBaseApi
+	permitBaseApi
 }
 
-func NewProjectsApi(client *openapi.APIClient, config *permit.PermitConfig) *Projects {
+func NewProjectsApi(client *openapi.APIClient, config *config.PermitConfig) *Projects {
 	return &Projects{
-		PermitBaseApi{
+		permitBaseApi{
 			client: client,
 			config: config,
 			logger: config.Logger,
@@ -31,7 +31,7 @@ func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.Pr
 		p.logger.Error("error listing projects - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := p.LazyLoadContext(ctx, permit.ProjectAPIKeyLevel)
+	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return nil, err
@@ -47,7 +47,7 @@ func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.Pr
 }
 
 func (p *Projects) Get(ctx context.Context, projectKey string) (*models.ProjectRead, error) {
-	err := p.LazyLoadContext(ctx, permit.ProjectAPIKeyLevel)
+	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return nil, err
@@ -70,7 +70,7 @@ func (p *Projects) GetById(ctx context.Context, projectId uuid.UUID) (*models.Pr
 }
 
 func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreate) (*models.ProjectRead, error) {
-	err := p.LazyLoadContext(ctx, permit.ProjectAPIKeyLevel)
+	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return nil, err
@@ -85,7 +85,7 @@ func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreat
 }
 
 func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate models.ProjectUpdate) (*models.ProjectRead, error) {
-	err := p.LazyLoadContext(ctx, permit.ProjectAPIKeyLevel)
+	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return nil, err
@@ -100,7 +100,7 @@ func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate 
 }
 
 func (p *Projects) Delete(ctx context.Context, projectKey string) error {
-	err := p.LazyLoadContext(ctx, permit.ProjectAPIKeyLevel)
+	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return err

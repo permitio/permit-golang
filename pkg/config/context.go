@@ -1,4 +1,4 @@
-package permit
+package config
 
 import (
 	"context"
@@ -58,15 +58,15 @@ func PermitContextFactory(ctx context.Context, logger *zap.Logger, client *opena
 	}
 	if apiKeyLevel == EnvironmentAPIKeyLevel {
 		if environment == "" || project == "" {
-			return nil, PermitErrors.NewPermitContextError("You initiated the Permit.io " +
-				"Client with an Environment level API key, " +
+			return nil, PermitErrors.NewPermitContextError("You initiated the PermitClient.io " +
+				"client with an Environment level API key, " +
 				"please set a context with the API key related environment and project")
 		}
 	}
 	if apiKeyLevel == ProjectAPIKeyLevel {
 		if project == "" {
-			return nil, PermitErrors.NewPermitContextError("You initiated the Permit.io " +
-				"Client with a Project level API key, " +
+			return nil, PermitErrors.NewPermitContextError("You initiated the PermitClient.io " +
+				"client with a Project level API key, " +
 				"please set a context with the API key related project")
 		}
 	}

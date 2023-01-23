@@ -5,18 +5,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/openapi"
+	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"github.com/permitio/permit-golang/pkg/permit"
 	"go.uber.org/zap"
 )
 
 type ResourceAttributes struct {
-	PermitBaseApi
+	permitBaseApi
 }
 
-func NewResourceAttributesApi(client *openapi.APIClient, config *permit.PermitConfig) *ResourceAttributes {
+func NewResourceAttributesApi(client *openapi.APIClient, config *config.PermitConfig) *ResourceAttributes {
 	return &ResourceAttributes{
-		PermitBaseApi{
+		permitBaseApi{
 			client: client,
 			config: config,
 			logger: config.Logger,
@@ -31,7 +31,7 @@ func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page 
 		a.logger.Error("error listing resource attributes - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page 
 }
 
 func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error) {
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (a *ResourceAttributes) GetById(ctx context.Context, resourceKey uuid.UUID,
 }
 
 func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, resourceAttributeCreate models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error) {
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, res
 }
 
 func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, attributeKey string, resourceAttributeUpdate models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error) {
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, att
 }
 
 func (a *ResourceAttributes) Delete(ctx context.Context, resourceKey string, attributeKey string) error {
-	err := a.LazyLoadContext(ctx)
+	err := a.lazyLoadContext(ctx)
 	if err != nil {
 		return err
 	}

@@ -8,10 +8,10 @@ func HttpErrorHandle(err error, response *http.Response) error {
 
 	}
 	if response.StatusCode == 401 {
-		return NewPermitUnauthorizedError(err)
+		return NewPermitUnauthorizedError()
 	}
 	if response.StatusCode == 403 {
-		return NewPermitForbiddenError(err)
+		return NewPermitForbiddenError()
 	}
 	if response.StatusCode == 404 {
 		return NewPermitNotFoundError(err)

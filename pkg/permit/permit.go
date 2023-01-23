@@ -4,29 +4,42 @@ import (
 	"context"
 	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/pkg/api"
+	config "github.com/permitio/permit-golang/pkg/config"
+	"github.com/permitio/permit-golang/pkg/enforcement"
 	"go.uber.org/zap"
 )
 
-type Permit struct {
-	ctx      context.Context
-	config   PermitConfig
-	logger   *zap.Logger
-	api      *api.PermitApiClient
-	elements *api.Elements
+type Client struct {
+	ctx         context.Context
+	config      config.PermitConfig
+	logger      *zap.Logger
+	Api         *api.PermitApiClient
+	Elements    *api.Elements
+	enforcement *enforcement.PermitEnforcer
 }
 
-func NewPermit(apiUrl string, token string, pdpUrl string, permitContext *PermitContext, debugMode bool) *Permit {
-	logger := zap.New()
-	ctx := context.Background()
-	config := NewPermitConfig(apiUrl, token, pdpUrl, debugMode, permitContext, logger)
-	apiClient := api.NewPermitApiClient(ctx, config)
-	return &Permit{
-		config:   *config,
-		logger:   logger,
-		ctx:      context.Background(),
-		api:      apiClient,
-		elements: apiClient.Elements,
+var New = NewPermit
+
+func NewPermit(config config.PermitConfig) *Client {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		panic(err)
 	}
+	ctx := context.Background()
+	apiClient := api.NewPermitApiClient(ctx, &config)
+	enforcerClient := enforcement.NewPermitEnforcerClient(&config)
+	return &Client{
+		config:      config,
+		logger:      logger,
+		ctx:         context.Background(),
+		Api:         apiClient,
+		Elements:    apiClient.Elements,
+		enforcement: enforcerClient,
+	}
+}
+
+func (c *Client) Check(user enforcement.User, action enforcement.Action, resource enforcement.Resource) (bool, error) {
+	return c.enforcement.Check(user, action, resource)
 }
 
 type PermitInterface interface {

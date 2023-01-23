@@ -9,6 +9,7 @@ const (
 	TeapotError              ErrorCode = "TeapotError"
 	ContextError             ErrorCode = "ContextError"
 	DuplicateEntity          ErrorCode = "DuplicateEntity"
+	ConnectionError          ErrorCode = "ConnectionError"
 	UnprocessableEntityError ErrorCode = "UnprocessableEntityError"
 	EmptyDecisionLogs        ErrorCode = "EmptyDecisionLogs"
 	MissingRequestAttribute  ErrorCode = "MissingRequestAttribute"

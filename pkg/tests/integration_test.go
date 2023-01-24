@@ -21,14 +21,9 @@ func TestIntegration(t *testing.T) {
 	const resourceKey = "document3"
 	const roleKey = "editor3"
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "test", "staging")
-	permitClient := permit.New(config.NewConfigBuilder("permit_key_e5tklEYpoWaajyHJmft6xjUow7UHgvgFQ7Nx4PiKbkHMVa35SsY4ILEmABeCE77geGD7h3V2ZmXM6XaTJe0735", "http://localhost:7766").WithContext(permitContext).WithLogger(logger).Build())
-	//_, err := permitClient.Api.Users.Create(ctx, *models.NewUserCreate(userKey))
-	//if err != nil {
-	//	if !strings.Contains(err.Error(), string(errors.ConflictMessage)) {
-	//		t.Error(err)
-	//	}
-	//
-	//}
+	permitClient := permit.New(config.NewConfigBuilder("", "http://localhost:7766").WithContext(permitContext).WithLogger(logger).Build())
+
+	// Create a user
 	newUser := *models.NewUserCreate(userKey)
 	newUser.SetFirstName("tesasdt")
 	_, err := permitClient.SyncUser(ctx, newUser)
@@ -36,12 +31,15 @@ func TestIntegration(t *testing.T) {
 		t.Error(err)
 	}
 
+	// Create a resource
 	_, err = permitClient.Api.Resources.Create(ctx, *models.NewResourceCreate(resourceKey, resourceKey, map[string]models.ActionBlockEditable{"read": {}, "write": {}}))
 	if err != nil {
 		if !strings.Contains(err.Error(), string(errors.ConflictMessage)) {
 			t.Error(err)
 		}
 	}
+
+	// Create a role
 	permissions := []string{resourceKey + ":read", resourceKey + ":write"}
 	roleCreate := models.NewRoleCreate(roleKey, roleKey)
 	roleCreate.SetPermissions(permissions)
@@ -52,12 +50,15 @@ func TestIntegration(t *testing.T) {
 		}
 	}
 
+	// Assign role to user
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, "default")
 	if err != nil {
 		if !strings.Contains(err.Error(), string(errors.ConflictMessage)) {
 			t.Error(err)
 		}
 	}
+
+	// Check if user has permission
 	time.Sleep(6 * time.Second)
 
 	userCheck := enforcement.UserBuilder(userKey).Build()

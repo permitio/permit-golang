@@ -3,6 +3,9 @@ package errors
 import "net/http"
 
 func HttpErrorHandle(err error, response *http.Response) error {
+	if response == nil {
+		return err
+	}
 	res := getJsonFromHttpResponse(response)
 	if res != "" {
 
@@ -14,10 +17,12 @@ func HttpErrorHandle(err error, response *http.Response) error {
 		return NewPermitForbiddenError()
 	}
 	if response.StatusCode == 404 {
-		return NewPermitNotFoundError(err)
+		err = NewPermitNotFoundError(err)
+		return err
 	}
-	if response.StatusCode == 418 {
-		return NewPermitTeapotError(err)
+	if response.StatusCode == 409 {
+		err = NewPermitConflictError()
+		return err
 	}
 	if response.StatusCode == 422 {
 		return NewPermitUnprocessableEntityError(err)
@@ -28,5 +33,5 @@ func HttpErrorHandle(err error, response *http.Response) error {
 	if err != nil {
 		return NewPermitUnexpectedError(err)
 	}
-	return http.ErrNoLocation
+	return nil
 }

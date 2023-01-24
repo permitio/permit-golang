@@ -84,7 +84,8 @@ func (e *PermitEnforcer) Check(user User, action Action, resource Resource, cont
 		e.logger.Error("error marshalling Permit.Check() response from PDP", zap.Error(permitError))
 		return false, permitError
 	}
-	if res.StatusCode != 200 {
+	err = errors.HttpErrorHandle(err, res)
+	if err != nil {
 		e.logger.Error(string(stringRes), zap.Error(err))
 		return false, err
 	}

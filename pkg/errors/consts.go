@@ -5,6 +5,7 @@ type ErrorCode string
 const (
 	UnexpectedError          ErrorCode = "UnexpectedError"
 	NotFound                 ErrorCode = "NotFound"
+	Conflict                 ErrorCode = "Conflict"
 	PaginationError          ErrorCode = "PaginationError"
 	TeapotError              ErrorCode = "TeapotError"
 	ContextError             ErrorCode = "ContextError"
@@ -35,11 +36,16 @@ const (
 type ErrorMessage string
 
 const (
-	EmptyErrorMessage        ErrorMessage = ""
-	SeperatorErrorMessage    ErrorMessage = " - "
-	PaginationMessage        ErrorMessage = "The pagination page and size per page are invalid"
-	ForbiddenMessage         ErrorMessage = "The access for this object is forbidden using the provided API key"
-	ContextMessage           ErrorMessage = "The context is missing or invalid"
-	ContextUnexpectedMessage ErrorMessage = "The context is missing or invalid"
-	UnauthorizedMessage      ErrorMessage = "The access for this object is not authorized using the provided API key"
+	EmptyErrorMessage          ErrorMessage = ""
+	SeperatorErrorMessage      ErrorMessage = " - "
+	PaginationMessage          ErrorMessage = "The pagination page and size per page are invalid"
+	ConflictMessage            ErrorMessage = "The resource already exists"
+	NotFoundMessage            ErrorMessage = "The resource was not found"
+	ForbiddenMessage           ErrorMessage = "The access for this object is forbidden using the provided API key"
+	ContextMessage             ErrorMessage = "The context is missing or invalid"
+	ContextUnexpectedMessage   ErrorMessage = "The context is missing or invalid"
+	UnauthorizedMessage        ErrorMessage = "The access for this object is not authorized using the provided API key"
+	DuplicateEntityMessage     ErrorMessage = "The entity already exists"
+	ConnectionErrorMessage     ErrorMessage = "The connection to the api failed"
+	UnprocessableEntityMessage ErrorMessage = "The entity send with the request is not valid"
 )

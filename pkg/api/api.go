@@ -78,7 +78,11 @@ func (p *PermitApiClient) SetContext(project string, environment string) {
 }
 
 func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *PermitApiClient {
-	client := openapi.NewAPIClient(openapi.NewConfiguration())
+	clientConfig := openapi.NewConfiguration()
+	clientConfig.Host = getHostFromUrl(config.GetApiUrl())
+	clientConfig.Scheme = getSchemaFromUrl(config.GetApiUrl())
+	clientConfig.AddDefaultHeader("Authorization", "Bearer "+config.GetToken())
+	client := openapi.NewAPIClient(clientConfig)
 	return &PermitApiClient{
 		config:             config,
 		ctx:                ctx,

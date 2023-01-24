@@ -56,8 +56,19 @@ func NewPermitError(errorMessage ErrorMessage, errorCode ErrorCode, errorType Er
 }
 
 func NewPermitNotFoundError(err error) *PermitNotFoundError {
+	if err == nil {
+		return &PermitNotFoundError{
+			NewPermitError(NotFoundMessage, NotFound, GENERAL_ERROR),
+		}
+	}
 	return &PermitNotFoundError{
 		NewPermitError(ErrorMessage(err.Error()), NotFound, GENERAL_ERROR),
+	}
+}
+
+func NewPermitConflictError() *PermitNotFoundError {
+	return &PermitNotFoundError{
+		NewPermitError(ConflictMessage, Conflict, GENERAL_ERROR),
 	}
 }
 
@@ -67,13 +78,12 @@ func NewPermitPaginationError() *PermitPaginationError {
 	}
 }
 
-func NewPermitTeapotError(err error) *PermitNotFoundError {
-	return &PermitNotFoundError{
-		NewPermitError(ErrorMessage(err.Error()), NotFound, GENERAL_ERROR),
-	}
-}
-
 func NewPermitUnprocessableEntityError(err error) *PermitUnprocessableEntityError {
+	if err == nil {
+		return &PermitUnprocessableEntityError{
+			NewPermitError(UnprocessableEntityMessage, UnprocessableEntityError, GENERAL_ERROR),
+		}
+	}
 	return &PermitUnprocessableEntityError{
 		NewPermitError(ErrorMessage(err.Error()), UnprocessableEntityError, GENERAL_ERROR),
 	}
@@ -98,11 +108,21 @@ func NewPermitContextError(additionalMessage ErrorMessage) *PermitContextError {
 }
 
 func NewPermitDuplicateEntityError(err error) *PermitDuplicateEntityError {
+	if err == nil {
+		return &PermitDuplicateEntityError{
+			NewPermitError(DuplicateEntityMessage, DuplicateEntity, GENERAL_ERROR),
+		}
+	}
 	return &PermitDuplicateEntityError{
 		NewPermitError(ErrorMessage(err.Error()), DuplicateEntity, GENERAL_ERROR),
 	}
 }
 func NewPermitConnectionError(err error) *PermitDuplicateEntityError {
+	if err == nil {
+		return &PermitDuplicateEntityError{
+			NewPermitError(ConnectionErrorMessage, ConnectionError, GENERAL_ERROR),
+		}
+	}
 	return &PermitDuplicateEntityError{
 		NewPermitError(ErrorMessage(err.Error()), ConnectionError, GENERAL_ERROR),
 	}

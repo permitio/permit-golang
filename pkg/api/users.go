@@ -36,7 +36,7 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	users, httpRes, err := u.client.UsersApi.ListUsers(ctx, u.config.Context.GetEnvironment(), u.config.Context.GetProject()).Page(int32(page)).PerPage(int32(perPage)).Execute()
+	users, httpRes, err := u.client.UsersApi.ListUsers(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment()).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		u.logger.Error("error listing users", zap.Error(err))
@@ -51,7 +51,7 @@ func (u *Users) Get(ctx context.Context, userKey string) (*models.UserRead, erro
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	user, httpRes, err := u.client.UsersApi.GetUser(ctx, u.config.Context.GetEnvironment(), u.config.Context.GetProject(), userKey).Execute()
+	user, httpRes, err := u.client.UsersApi.GetUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		u.logger.Error("error getting user: "+userKey, zap.Error(err))
@@ -74,10 +74,10 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	user, httpRes, err := u.client.UsersApi.CreateUser(ctx, u.config.Context.GetEnvironment(), u.config.Context.GetProject()).UserCreate(userCreate).Execute()
+	user, httpRes, err := u.client.UsersApi.CreateUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment()).UserCreate(userCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error creating userCreate:"+userCreate.GetKey(), zap.Error(err))
+		u.logger.Error("error creating user:"+userCreate.GetKey(), zap.Error(err))
 		return nil, err
 	}
 	return user, nil
@@ -89,7 +89,7 @@ func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.Us
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	user, httpRes, err := u.client.UsersApi.UpdateUser(ctx, u.config.Context.GetEnvironment(), u.config.Context.GetProject(), userKey).UserUpdate(userUpdate).Execute()
+	user, httpRes, err := u.client.UsersApi.UpdateUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserUpdate(userUpdate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		u.logger.Error("error updating user:"+userKey, zap.Error(err))
@@ -104,7 +104,7 @@ func (u *Users) Delete(ctx context.Context, userKey string) error {
 		u.logger.Error("", zap.Error(err))
 		return err
 	}
-	httpRes, err := u.client.UsersApi.DeleteUser(ctx, u.config.Context.GetEnvironment(), u.config.Context.GetProject(), userKey).Execute()
+	httpRes, err := u.client.UsersApi.DeleteUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		u.logger.Error("error deleting user:"+userKey, zap.Error(err))
@@ -120,7 +120,7 @@ func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, 
 		return nil, err
 	}
 	userRoleCreate := *models.NewUserRoleCreate(roleKey, tenantKey)
-	roleAssignmentRead, httpRes, err := u.client.UsersApi.AssignRoleToUser(ctx, u.config.Context.GetEnvironment(), u.config.Context.GetProject(), userKey).UserRoleCreate(userRoleCreate).Execute()
+	roleAssignmentRead, httpRes, err := u.client.UsersApi.AssignRoleToUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserRoleCreate(userRoleCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		u.logger.Error("error assigning role:"+roleKey+" to user:"+userKey, zap.Error(err))
@@ -156,7 +156,7 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	roleAssignments, httpRes, err := u.client.RoleAssignmentsApi.ListRoleAssignments(ctx, u.config.Context.GetEnvironment(), u.config.Context.GetProject()).
+	roleAssignments, httpRes, err := u.client.RoleAssignmentsApi.ListRoleAssignments(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment()).
 		User(userKey).
 		Tenant(tenantKey).
 		Page(int32(page)).PerPage(int32(perPage)).Execute()

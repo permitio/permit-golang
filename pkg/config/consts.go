@@ -2,6 +2,6 @@ package config
 
 // Default Builder consts
 const (
-	DefaultApiUrl    = "apiUrl"
+	DefaultApiUrl    = "https://api.permit.io"
 	DefaultDebugMode = false
 )

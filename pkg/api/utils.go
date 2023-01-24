@@ -13,3 +13,15 @@ func listToString(list []string) string {
 	}
 	return str
 }
+
+func getSchemaFromUrl(url string) string {
+	if url[0:5] == "https" {
+		return "https"
+	}
+	return "http"
+}
+
+func getHostFromUrl(url string) string {
+	schema := getSchemaFromUrl(url)
+	return url[len(schema)+3:]
+}

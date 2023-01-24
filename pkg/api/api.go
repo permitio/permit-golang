@@ -15,7 +15,7 @@ type permitBaseApi struct {
 }
 
 type IPermitBaseApi interface {
-	LazyLoadContext() error
+	lazyLoadContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
 }
 
 func (a *permitBaseApi) lazyLoadContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
@@ -83,6 +83,7 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 	clientConfig.Scheme = getSchemaFromUrl(config.GetApiUrl())
 	clientConfig.AddDefaultHeader("Authorization", "Bearer "+config.GetToken())
 	client := openapi.NewAPIClient(clientConfig)
+	userApi := NewUsersApi(client, config)
 	return &PermitApiClient{
 		config:             config,
 		ctx:                ctx,
@@ -94,7 +95,7 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 		ResourceAttributes: NewResourceAttributesApi(client, config),
 		Resources:          NewResourcesApi(client, config),
 		Roles:              NewRolesApi(client, config),
-		Users:              NewUsersApi(client, config),
+		Users:              userApi,
 		Elements:           NewElementsApi(client, config),
 	}
 }

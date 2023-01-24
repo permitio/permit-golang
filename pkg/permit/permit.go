@@ -37,7 +37,9 @@ func NewPermit(config config.PermitConfig) *Client {
 		enforcement: enforcerClient,
 	}
 }
-
+func (c *Client) SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error) {
+	return c.Api.Users.SyncUser(ctx, user)
+}
 func (c *Client) Check(user enforcement.User, action enforcement.Action, resource enforcement.Resource) (bool, error) {
 	return c.enforcement.Check(user, action, resource)
 }

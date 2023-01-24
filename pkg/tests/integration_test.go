@@ -22,13 +22,20 @@ func TestIntegration(t *testing.T) {
 	const roleKey = "editor3"
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "test", "staging")
 	permitClient := permit.New(config.NewConfigBuilder("permit_key_e5tklEYpoWaajyHJmft6xjUow7UHgvgFQ7Nx4PiKbkHMVa35SsY4ILEmABeCE77geGD7h3V2ZmXM6XaTJe0735", "http://localhost:7766").WithContext(permitContext).WithLogger(logger).Build())
-	_, err := permitClient.Api.Users.Create(ctx, *models.NewUserCreate(userKey))
+	//_, err := permitClient.Api.Users.Create(ctx, *models.NewUserCreate(userKey))
+	//if err != nil {
+	//	if !strings.Contains(err.Error(), string(errors.ConflictMessage)) {
+	//		t.Error(err)
+	//	}
+	//
+	//}
+	newUser := *models.NewUserCreate(userKey)
+	newUser.SetFirstName("tesasdt")
+	_, err := permitClient.SyncUser(ctx, newUser)
 	if err != nil {
-		if !strings.Contains(err.Error(), string(errors.ConflictMessage)) {
-			t.Error(err)
-		}
-
+		t.Error(err)
 	}
+
 	_, err = permitClient.Api.Resources.Create(ctx, *models.NewResourceCreate(resourceKey, resourceKey, map[string]models.ActionBlockEditable{"read": {}, "write": {}}))
 	if err != nil {
 		if !strings.Contains(err.Error(), string(errors.ConflictMessage)) {

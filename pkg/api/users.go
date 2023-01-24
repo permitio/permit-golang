@@ -167,3 +167,43 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 	}
 	return roleAssignments, nil
 }
+
+func (u *Users) SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error) {
+	err := u.lazyLoadContext(ctx)
+	if err != nil {
+		u.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	existUser, err := u.Get(ctx, user.GetKey())
+	if err != nil {
+		u.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	if existUser != nil {
+		u.logger.Info("User already exists, updating it...", zap.String("user", user.GetKey()))
+		userUpdate := models.NewUserUpdate()
+		if email := user.GetEmail(); email != "" {
+			userUpdate.SetEmail(user.GetEmail())
+		}
+		if firstName := user.GetFirstName(); firstName != "" {
+			userUpdate.SetFirstName(user.GetFirstName())
+		}
+		if lastName := user.GetLastName(); lastName != "" {
+			userUpdate.SetLastName(user.GetLastName())
+		}
+		userUpdate.SetAttributes(user.GetAttributes())
+		userRead, err := u.Update(ctx, user.GetKey(), *userUpdate)
+		if err != nil {
+			u.logger.Error("error updating user: "+user.GetKey(), zap.Error(err))
+			return nil, err
+		}
+		return userRead, nil
+	}
+	u.logger.Info("User does not exist, creating it...", zap.String("user", user.GetKey()))
+	userRead, err := u.Create(ctx, user)
+	if err != nil {
+		u.logger.Error("error creating user: "+user.GetKey(), zap.Error(err))
+		return nil, err
+	}
+	return userRead, err
+}

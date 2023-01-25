@@ -65,10 +65,16 @@ func (e *Environments) Get(ctx context.Context, environmentKey string) *models.E
 	return environment
 }
 
+// GetByKey get an environment by key.
+// Usage Example:
+// 	`environment, err := PermitClient.Api.Environments.GetByKey(ctx, "production")`
 func (e *Environments) GetByKey(ctx context.Context, environmentKey string) *models.EnvironmentRead {
 	return e.Get(ctx, environmentKey)
 }
 
+// GetById get an environment by id.
+// Usage Example:
+// 	`environment, err := PermitClient.Api.Environments.GetById(ctx, uuid.New())`
 func (e *Environments) GetById(ctx context.Context, environmentId uuid.UUID) *models.EnvironmentRead {
 	return e.Get(ctx, environmentId.String())
 }

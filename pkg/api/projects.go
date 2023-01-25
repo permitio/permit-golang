@@ -67,10 +67,16 @@ func (p *Projects) Get(ctx context.Context, projectKey string) (*models.ProjectR
 	return project, nil
 }
 
+// GetByKey get a project by key, requires Project level API key, or higher.
+// Usage Example:
+// `project, err := PermitClient.Api.Projects.GetByKey(ctx, "project-key")`
 func (p *Projects) GetByKey(ctx context.Context, projectKey string) (*models.ProjectRead, error) {
 	return p.Get(ctx, projectKey)
 }
 
+// GetById get a project by id, requires Project level API key, or higher.
+// Usage Example:
+// `project, err := PermitClient.Api.Projects.GetById(ctx, uuid.New())`
 func (p *Projects) GetById(ctx context.Context, projectId uuid.UUID) (*models.ProjectRead, error) {
 	return p.Get(ctx, projectId.String())
 }

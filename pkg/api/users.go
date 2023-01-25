@@ -66,10 +66,16 @@ func (u *Users) Get(ctx context.Context, userKey string) (*models.UserRead, erro
 	return user, nil
 }
 
+// GetByKey gets a user by key from your context's environment.
+// Usage Example:
+//  `user, err := PermitClient.Api.Users.GetByKey(ctx, "user-key")`
 func (u *Users) GetByKey(ctx context.Context, userKey string) (*models.UserRead, error) {
 	return u.Get(ctx, userKey)
 }
 
+// GetById gets a user by id from your context's environment.
+// Usage Example:
+//  `user, err := PermitClient.Api.Users.GetById(ctx, uuid.New())`
 func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead, error) {
 	return u.Get(ctx, userId.String())
 }

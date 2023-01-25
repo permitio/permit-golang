@@ -66,10 +66,16 @@ func (t *Tenants) Get(ctx context.Context, tenantKey string) (*models.TenantRead
 	return tenant, nil
 }
 
+// GetByKey gets a tenant under the context's environment - by a given tenant key.
+// Usage Example:
+// `tenant, err := PermitClient.Api.Tenants.GetByKey(ctx, "tenant-key")`
 func (t *Tenants) GetByKey(ctx context.Context, tenantKey string) (*models.TenantRead, error) {
 	return t.Get(ctx, tenantKey)
 }
 
+// GetById gets a tenant under the context's environment - by a given tenant id.
+// Usage Example:
+// `tenant, err := PermitClient.Api.Tenants.GetById(ctx, uuid.New())`
 func (t *Tenants) GetById(ctx context.Context, tenantId uuid.UUID) (*models.TenantRead, error) {
 	return t.Get(ctx, tenantId.String())
 }

@@ -71,10 +71,16 @@ func (r *Roles) Get(ctx context.Context, roleKey string) (*models.RoleRead, erro
 	return role, nil
 }
 
+// GetByKey get a role by key.
+// Usage Example:
+// `role, err := PermitClient.Api.Roles.GetByKey(ctx, "role-key")`
 func (r *Roles) GetByKey(ctx context.Context, roleKey string) (*models.RoleRead, error) {
 	return r.Get(ctx, roleKey)
 }
 
+// GetById get a role by id.
+// Usage Example:
+// `role, err := PermitClient.Api.Roles.GetById(ctx, uuid.New())`
 func (r *Roles) GetById(ctx context.Context, roleKey uuid.UUID) (*models.RoleRead, error) {
 	return r.Get(ctx, roleKey.String())
 }

@@ -62,10 +62,16 @@ func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey
 	return resourceActions, nil
 }
 
+// GetByKey gets a resource action by resource key and action key.
+// Usage Example:
+//  `resourceAction, err := PermitClient.Api.ResourceActions.GetByKey(ctx, "resource-key", "action-key")`
 func (a *ResourceActions) GetByKey(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
 	return a.Get(ctx, resourceKey, actionKey)
 }
 
+// GetById gets a resource action by resource ID and action ID.
+// Usage Example:
+//  `resourceAction, err := PermitClient.Api.ResourceActions.GetById(ctx, uuid.New(), uuid.New())`
 func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, actionKey uuid.UUID) (*models.ResourceActionRead, error) {
 	return a.Get(ctx, resourceKey.String(), actionKey.String())
 }

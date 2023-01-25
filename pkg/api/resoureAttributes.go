@@ -62,10 +62,16 @@ func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attrib
 	return resourceAttribute, nil
 }
 
+// GetByKey gets a resource attribute by resource key and attribute key.
+// Usage Example:
+//  `resourceAttribute, err := PermitClient.Api.ResourceAttributes.GetByKey(ctx, "resource-key", "attribute-key")`
 func (a *ResourceAttributes) GetByKey(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error) {
 	return a.Get(ctx, resourceKey, attributeKey)
 }
 
+// GetById gets a resource attribute by resource ID and attribute ID.
+// Usage Example:
+//  `resourceAttribute, err := PermitClient.Api.ResourceAttributes.GetById(ctx, uuid.New(), uuid.New())`
 func (a *ResourceAttributes) GetById(ctx context.Context, resourceKey uuid.UUID, attributeKey uuid.UUID) (*models.ResourceAttributeRead, error) {
 	return a.Get(ctx, resourceKey.String(), attributeKey.String())
 }

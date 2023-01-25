@@ -76,6 +76,12 @@ func (a *ResourceAttributes) GetById(ctx context.Context, resourceKey uuid.UUID,
 	return a.Get(ctx, resourceKey.String(), attributeKey.String())
 }
 
+// Create a resource attribute by resource key.
+// Usage Example:
+// ```
+//  resourceAttributeCreate := models.NewResourceAttributeCreate("attribute-key", models.AttributeType("string"))
+//  resourceAttribute, err := PermitClient.Api.ResourceAttributes.Create(ctx, "resource-key", resourceAttributeCreate)
+// ```
 func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, resourceAttributeCreate models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error) {
 	err := a.lazyLoadContext(ctx)
 	if err != nil {

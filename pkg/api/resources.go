@@ -80,6 +80,12 @@ func (r *Resources) GetById(ctx context.Context, resourceId uuid.UUID) (*models.
 	return r.Get(ctx, resourceId.String())
 }
 
+// Create a new resource.
+// Usage Example:
+// ```
+//  resourceCreate := models.NewResourceCreate("document", "Document", map[string]models.ActionBlockEditable{"read": {}, "write": {}}
+//  resource, err := PermitClient.Api.Resources.Create(ctx, resourceCreate)
+// ```
 func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCreate) (*models.ResourceRead, error) {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

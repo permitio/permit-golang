@@ -76,6 +76,12 @@ func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, ac
 	return a.Get(ctx, resourceKey.String(), actionKey.String())
 }
 
+// Create a resource action by resource key.
+// Usage Example:
+// ```
+//  resourceActionCreate := models.NewResourceActionCreate("action-key", "action-name")
+//  resourceAction, err := PermitClient.Api.ResourceActions.Create(ctx, "resource-key", resourceActionCreate)
+// ```
 func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resourceActionCreate models.ResourceActionCreate) (*models.ResourceActionRead, error) {
 	err := a.lazyLoadContext(ctx)
 	if err != nil {

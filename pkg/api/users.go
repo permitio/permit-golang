@@ -80,6 +80,16 @@ func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead
 	return u.Get(ctx, userId.String())
 }
 
+// Create a user in your context's environment.
+// Usage Example:
+// ```
+//  userCreate := models.NewUserCreate("user-key")
+//  userCreate.SetEmail("user-email@mail.com")
+//  userCreate.SetFirstName("user-first-name")
+//  userCreate.SetLastName("user-last-name")
+//  user, err := PermitClient.Api.Users.Create(ctx, userCreate)
+// ```
+
 func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*models.UserRead, error) {
 	err := u.lazyLoadContext(ctx)
 	if err != nil {

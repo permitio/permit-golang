@@ -81,6 +81,12 @@ func (p *Projects) GetById(ctx context.Context, projectId uuid.UUID) (*models.Pr
 	return p.Get(ctx, projectId.String())
 }
 
+// Create a new project, requires Project level API key, or higher.
+// Usage Example:
+// ```
+// projectCreate := models.NewProjectCreate("project-key", "project-name")
+// project, err := PermitClient.Api.Projects.Create(ctx, projectCreate)
+// ```
 func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreate) (*models.ProjectRead, error) {
 	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {

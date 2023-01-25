@@ -80,6 +80,12 @@ func (t *Tenants) GetById(ctx context.Context, tenantId uuid.UUID) (*models.Tena
 	return t.Get(ctx, tenantId.String())
 }
 
+// Create a new tenant under the context's environment.
+// Usage Example:
+// ```
+// tenantCreate := models.NewTenantCreate("tenant-key", "tenant-name")
+// tenant, err := PermitClient.Api.Tenants.Create(ctx, tenantCreate)
+// ```
 func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) (*models.TenantRead, error) {
 	err := t.lazyLoadContext(ctx)
 	if err != nil {

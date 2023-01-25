@@ -85,6 +85,12 @@ func (r *Roles) GetById(ctx context.Context, roleKey uuid.UUID) (*models.RoleRea
 	return r.Get(ctx, roleKey.String())
 }
 
+// Create a new role.
+// Usage Example:
+// ```
+// roleCreate := models.NewRoleCreate("role-key", "role-name")
+// role, err := PermitClient.Api.Roles.Create(ctx, roleCreate)
+// ```
 func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*models.RoleRead, error) {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

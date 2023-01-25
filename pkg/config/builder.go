@@ -8,12 +8,12 @@ type PermitBuilder struct {
 	PermitConfig
 }
 
-func NewConfigBuilder(token string, pdpUrl string) *PermitBuilder {
+func NewConfigBuilder(token string) *PermitBuilder {
 	return &PermitBuilder{
 		PermitConfig: PermitConfig{
 			apiUrl:  DefaultApiUrl,
 			token:   token,
-			pdpUrl:  pdpUrl,
+			pdpUrl:  DefaultPdpUrl,
 			debug:   DefaultDebugMode,
 			Context: nil,
 			Logger:  nil,

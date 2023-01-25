@@ -24,6 +24,9 @@ func NewResourceActionsApi(client *openapi.APIClient, config *config.PermitConfi
 	}
 }
 
+// List all resource actions of a resource by resource key.
+// Usage Example:
+//  `resourceActions, err := PermitClient.Api.ResourceActions.List(ctx, "resource-key", 1, 10)`
 func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceActionRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {

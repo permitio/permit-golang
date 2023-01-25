@@ -24,6 +24,9 @@ func NewResourcesApi(client *openapi.APIClient, config *config.PermitConfig) *Re
 	}
 }
 
+// List all the resources in the current environment.
+// Usage Example:
+//  `resources, err := PermitClient.Api.Resources.List(ctx, 1, 10)`
 func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.ResourceRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {

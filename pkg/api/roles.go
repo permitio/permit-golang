@@ -28,6 +28,9 @@ type RoleRead struct {
 	models.RoleRead
 }
 
+// List all roles in the current environment.
+// Usage Example:
+// `roles, err := PermitClient.Api.Roles.List(ctx,1, 10)`
 func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {

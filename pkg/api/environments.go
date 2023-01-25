@@ -24,6 +24,9 @@ func NewEnvironmentsApi(client *openapi.APIClient, config *config.PermitConfig) 
 	}
 }
 
+// List the environments in the project of your context
+// Usage Example:
+// 	`environments, err := PermitClient.Api.Environments.List(ctx, 1, 10)`
 func (e *Environments) List(ctx context.Context, page int, perPage int) ([]models.EnvironmentRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {

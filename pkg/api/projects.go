@@ -24,6 +24,9 @@ func NewProjectsApi(client *openapi.APIClient, config *config.PermitConfig) *Pro
 	}
 }
 
+// List all projects in the organization, requires Project level API key, or higher.
+// Usage Example:
+// `projects, err := PermitClient.Api.Projects.List(ctx, 1, 10)`
 func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.ProjectRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {

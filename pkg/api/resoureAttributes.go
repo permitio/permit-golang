@@ -24,6 +24,9 @@ func NewResourceAttributesApi(client *openapi.APIClient, config *config.PermitCo
 	}
 }
 
+// List all resource attributes of a resource, by resource key.
+// Usage Example:
+//  `resourceAttributes, err := PermitClient.Api.ResourceAttributes.List(ctx, "resource-key", 1, 10)`
 func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceAttributeRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {

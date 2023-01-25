@@ -24,6 +24,9 @@ func NewUsersApi(client *openapi.APIClient, config *config.PermitConfig) *Users 
 	}
 }
 
+// List the users from your context's environment.
+// Usage Example:
+//  `users, err := PermitClient.Api.Users.List(ctx, 1, 10)`
 func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {

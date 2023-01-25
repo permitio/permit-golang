@@ -24,6 +24,9 @@ func NewTenantsApi(client *openapi.APIClient, config *config.PermitConfig) *Tena
 	}
 }
 
+// List all tenants under the context's environment.
+// Usage Example:
+// `tenants, err := PermitClient.Api.Tenants.List(ctx, 1, 10)`
 func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.TenantRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {

@@ -146,6 +146,9 @@ func (u *Users) Delete(ctx context.Context, userKey string) error {
 	return nil
 }
 
+// AssignRole assigns a role to a user in your context's environment, by user key, role key and tenant key.
+// Usage Example:
+// `roleAssignment, err := PermitClient.Api.Users.AssignRole(ctx, "user-key", "role-key", "default")`
 func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.RoleAssignmentRead, error) {
 	err := u.lazyLoadContext(ctx)
 	if err != nil {
@@ -162,6 +165,9 @@ func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, 
 	return roleAssignmentRead, nil
 }
 
+// UnassignRole unassigns a role from a user in your context's environment, by user key, role key and tenant key.
+// Usage Example:
+// `err := PermitClient.Api.Users.UnassignRole(ctx, "user-key", "role-key", "default")`
 func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.UserRead, error) {
 	err := u.lazyLoadContext(ctx)
 	if err != nil {
@@ -177,6 +183,11 @@ func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string
 	}
 	return user, nil
 }
+
+// GetAssignedRoles lists all roles assigned to a user in your context's environment, by user key, tenant key and pagination options.
+// Usage Example:
+// ```
+//  `roleAssignmentList, err := PermitClient.Api.Users.GetAssignedRoles(ctx, "user-key", "default", 1, 10)`
 func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey string, page int, perPage int) ([]models.RoleAssignmentRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
@@ -201,6 +212,15 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 	return roleAssignments, nil
 }
 
+// SyncUser syncs a user in your context's environment, by user.
+// Usage Example:
+// ```
+// userCreate := *models.NewUserCreate("user-key")
+// userCreate.SetEmail("user-email")
+// userCreate.SetFirstName("user-first-name")
+// userCreate.SetLastName("user-last-name")
+// user, err := PermitClient.Api.Users.SyncUser(ctx, userCreate)
+// ```
 func (u *Users) SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error) {
 	err := u.lazyLoadContext(ctx)
 	if err != nil {

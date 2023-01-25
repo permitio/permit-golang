@@ -146,6 +146,11 @@ func (r *Roles) Delete(ctx context.Context, roleKey string) error {
 	return nil
 }
 
+// AssignPermissions assign permissions to a role, by role key and list of permission keys.
+// If a permission is already granted to the role it is skipped.
+// Each permission can be either a resource-action key, or {resource_key}:{action_key}, i.e: the "document:read".
+// Usage Example:
+// `err := PermitClient.Api.Roles.AssignPermissions(ctx, "role-key", []string{"document:read", "document:write"})`
 func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissions []string) error {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {
@@ -162,6 +167,11 @@ func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissio
 	return nil
 }
 
+// RemovePermissions remove permissions from a role, by role key and list of permission keys.
+// If a permission is not found it is skipped.
+// Each permission can be either a resource-action key, or {resource_key}:{action_key}, i.e: the "document:read".
+// Usage Example:
+// `err := PermitClient.Api.Roles.RemovePermissions(ctx, "role-key", []string{"document:read", "document:write"})`
 func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissions []string) error {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {
@@ -178,6 +188,12 @@ func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissio
 	return nil
 }
 
+// AddParentRole add a parent role to a role, by role key and parent role key.
+// Makes a role extend the parent role.
+// In other words, a role will automatically be assigned any permissions that are granted to the parent role.
+// We can say the role extends the parent role or inherits from the parent role.
+// Usage Example:
+// `err := PermitClient.Api.Roles.AddParentRole(ctx, "role-key", "parent-role-key")`
 func (r *Roles) AddParentRole(ctx context.Context, roleKey string, parentRoleKey string) error {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {
@@ -193,6 +209,9 @@ func (r *Roles) AddParentRole(ctx context.Context, roleKey string, parentRoleKey
 	return nil
 }
 
+// RemoveParentRole remove a parent role from a role, by role key and parent role key.
+// Usage Example:
+// `err := PermitClient.Api.Roles.RemoveParentRole(ctx, "role-key", "parent-role-key")`
 func (r *Roles) RemoveParentRole(ctx context.Context, roleKey string, parentRoleKey string) error {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

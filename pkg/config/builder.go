@@ -26,6 +26,11 @@ func (c *PermitConfig) WithApiUrl(apiUrl string) *PermitConfig {
 	return c
 }
 
+func (c *PermitConfig) WithPdpUrl(pdpUrl string) *PermitConfig {
+	c.pdpUrl = pdpUrl
+	return c
+}
+
 func (c *PermitConfig) WithDebug(debug bool) *PermitConfig {
 	c.debug = debug
 	return c
@@ -42,5 +47,12 @@ func (c *PermitConfig) WithLogger(logger *zap.Logger) *PermitConfig {
 }
 
 func (c *PermitConfig) Build() PermitConfig {
+	if c.Logger == nil {
+		logger, err := zap.NewProduction()
+		if err != nil {
+			panic(err)
+		}
+		c.Logger = logger
+	}
 	return *c
 }

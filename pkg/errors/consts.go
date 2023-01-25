@@ -44,7 +44,7 @@ const (
 	ForbiddenMessage           ErrorMessage = "The access for this object is forbidden using the provided API key"
 	ContextMessage             ErrorMessage = "The context is missing or invalid"
 	ContextUnexpectedMessage   ErrorMessage = "The context is missing or invalid"
-	UnauthorizedMessage        ErrorMessage = "The access for this object is not authorized using the provided API key"
+	UnauthorizedMessage        ErrorMessage = "The access for this object is not authorized using the provided API key, make sure you have the right permissions with the right API key"
 	DuplicateEntityMessage     ErrorMessage = "The entity already exists"
 	ConnectionErrorMessage     ErrorMessage = "The connection to the api failed"
 	UnprocessableEntityMessage ErrorMessage = "The entity send with the request is not valid"

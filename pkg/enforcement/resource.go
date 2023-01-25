@@ -35,5 +35,8 @@ func (r *Resource) WithContext(context map[string]string) *Resource {
 }
 
 func (r *Resource) Build() Resource {
+	if r.Tenant == "" {
+		r.Tenant = DefaultTenant
+	}
 	return *r
 }

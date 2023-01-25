@@ -8,6 +8,7 @@ import (
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"go.uber.org/zap"
+	"strings"
 )
 
 type Users struct {
@@ -229,8 +230,10 @@ func (u *Users) SyncUser(ctx context.Context, user models.UserCreate) (*models.U
 	}
 	existUser, err := u.Get(ctx, user.GetKey())
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
-		return nil, err
+		if !strings.Contains(err.Error(), string(errors.NotFound)) {
+			u.logger.Error("", zap.Error(err))
+			return nil, err
+		}
 	}
 	if existUser != nil {
 		u.logger.Info("User already exists, updating it...", zap.String("user", user.GetKey()))

@@ -22,11 +22,11 @@ func (a *permitBaseApi) lazyLoadContext(ctx context.Context, methodApiLevelArg .
 	var methodApiLevel config.APIKeyLevel
 	permitContext := a.config.Context.GetContext()
 	if permitContext == nil {
-		permitContext, err := config.PermitContextFactory(ctx, a.logger, a.client, "", "", false)
+		newPermitContext, err := config.PermitContextFactory(ctx, a.client, "", "", false)
 		if err != nil {
 			return err
 		}
-		a.config.Context = permitContext
+		a.config.Context = newPermitContext
 	} else {
 		a.logger.Info("Context already loaded")
 	}
@@ -35,14 +35,14 @@ func (a *permitBaseApi) lazyLoadContext(ctx context.Context, methodApiLevelArg .
 	} else {
 		methodApiLevel = methodApiLevelArg[0]
 	}
-	if methodApiLevel == config.ProjectAPIKeyLevel && permitContext.EnvironmentId == "" {
+	if methodApiLevel == config.ProjectAPIKeyLevel && a.config.GetContext().GetEnvironment() == "" {
 		return errors.NewPermitContextError("You're trying to use an SDK method that's specific to a project," +
 			"but you haven't set the current project in your client's context yet," +
 			"or you are using an organization level API key." +
 			"Please set the context to a specific" +
 			"project using `PermitClient.SetContext()` method.")
 	}
-	if methodApiLevel == config.EnvironmentAPIKeyLevel && permitContext.ProjectId == "" && permitContext.EnvironmentId == "" {
+	if methodApiLevel == config.EnvironmentAPIKeyLevel && a.config.GetContext().GetProject() == "" && a.config.GetContext().GetEnvironment() == "" {
 		return errors.NewPermitContextError("You're trying to use an SDK method that's specific to an environment," +
 			"but you haven't set the current environment in your client's context yet," +
 			"or you are using an organization/project level API key." +
@@ -70,7 +70,7 @@ type PermitApiClient struct {
 }
 
 func (p *PermitApiClient) SetContext(project string, environment string) {
-	permitContext, err := config.PermitContextFactory(p.ctx, p.logger, p.client, project, environment, true)
+	permitContext, err := config.PermitContextFactory(p.ctx, p.client, project, environment, true)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 	}

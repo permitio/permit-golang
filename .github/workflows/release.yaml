@@ -1,0 +1,23 @@
+name: Release Permit Golang Package
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 14
+      - name: Build and test package
+        run: |
+          go build -v .
+          go test -v ./...
+      - name: Release package
+        run: |
+          go get github.com/goreleaser/goreleaser
+          goreleaser --rm-dist

@@ -2,6 +2,7 @@ package errors
 
 import (
 	e "errors"
+	"strings"
 )
 
 type PermitError struct {
@@ -79,13 +80,15 @@ func NewPermitPaginationError() *PermitPaginationError {
 }
 
 func NewPermitUnprocessableEntityError(err error) *PermitUnprocessableEntityError {
+	errorMessage := ErrorMessage(err.Error())
 	if err == nil {
-		return &PermitUnprocessableEntityError{
-			NewPermitError(UnprocessableEntityMessage, UnprocessableEntityError, GENERAL_ERROR),
-		}
+		errorMessage = UnprocessableEntityMessage
+	}
+	if strings.Contains(err.Error(), "not a valid email address") {
+		errorMessage = "Email is not valid"
 	}
 	return &PermitUnprocessableEntityError{
-		NewPermitError(ErrorMessage(err.Error()), UnprocessableEntityError, GENERAL_ERROR),
+		NewPermitError(errorMessage, UnprocessableEntityError, GENERAL_ERROR),
 	}
 }
 

@@ -1,6 +1,8 @@
 package errors
 
-import "net/http"
+import (
+	"net/http"
+)
 
 func HttpErrorHandle(err error, response *http.Response) error {
 	if response == nil {

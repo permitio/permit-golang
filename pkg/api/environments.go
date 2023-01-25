@@ -103,6 +103,14 @@ func (e *Environments) Create(ctx context.Context, environmentCreate models.Envi
 	return environment, nil
 }
 
+// Update an environment in the project of your context.
+// Usage Example:
+//  ```
+//  environmentUpdate := models.NewEnvironmentUpdate()
+//  environmentUpdate.SetName("Production")
+// 	environment, err := PermitClient.Api.Environments.Update(ctx, "production", *environmentUpdate)
+//  ```
+
 func (e *Environments) Update(ctx context.Context, environmentKey string, environmentUpdate models.EnvironmentUpdate) (*models.EnvironmentRead, error) {
 	err := e.lazyLoadContext(ctx)
 	if err != nil {

@@ -95,6 +95,13 @@ func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resour
 	return resourceAction, nil
 }
 
+// Update a resource action by resource key and action key.
+// Usage Example:
+// ```
+//  resourceActionUpdate := models.NewResourceActionUpdate()
+//  resourceActionUpdate.SetName("new-action-name")
+//  resourceAction, err := PermitClient.Api.ResourceActions.Update(ctx, "resource-key", "action-key", resourceActionUpdate)
+// ```
 func (a *ResourceActions) Update(ctx context.Context, resourceKey string, actionKey string, resourceActionUpdate models.ResourceActionUpdate) (*models.ResourceActionRead, error) {
 	err := a.lazyLoadContext(ctx)
 	if err != nil {

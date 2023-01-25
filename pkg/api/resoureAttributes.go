@@ -95,6 +95,13 @@ func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, res
 	return resourceAttribute, nil
 }
 
+// Update a resource attribute by resource key and attribute key.
+// Usage Example:
+// ```
+//  resourceAttributeUpdate := models.NewResourceAttributeUpdate()
+//  resourceAttributeUpdate.SetType("bool")
+//  resourceAttribute, err := PermitClient.Api.ResourceAttributes.Update(ctx, "resource-key", "attribute-key", resourceAttributeUpdate)
+// ```
 func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, attributeKey string, resourceAttributeUpdate models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error) {
 	err := a.lazyLoadContext(ctx)
 	if err != nil {

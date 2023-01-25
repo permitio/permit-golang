@@ -89,7 +89,6 @@ func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead
 //  userCreate.SetLastName("user-last-name")
 //  user, err := PermitClient.Api.Users.Create(ctx, userCreate)
 // ```
-
 func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*models.UserRead, error) {
 	err := u.lazyLoadContext(ctx)
 	if err != nil {
@@ -105,6 +104,15 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 	return user, nil
 }
 
+// Update a user in your context's environment.
+// Usage Example:
+// ```
+//  userUpdate := models.NewUserUpdate()
+//  userUpdate.SetEmail("new@email.com")
+//  userUpdate.SetFirstName("new-first-name")
+//  userUpdate.SetLastName("new-last-name")
+//  user, err := PermitClient.Api.Users.Update(ctx, "user-key", userUpdate)
+// ```
 func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.UserUpdate) (*models.UserRead, error) {
 	err := u.lazyLoadContext(ctx)
 	if err != nil {

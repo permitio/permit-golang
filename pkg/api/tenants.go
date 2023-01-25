@@ -101,6 +101,13 @@ func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) 
 	return tenant, nil
 }
 
+// Update a tenant under the context's environment.
+// Usage Example:
+// ```
+// tenantUpdate := models.NewTenantUpdate()
+// tenantUpdate.SetName("new-tenant-name")
+// tenant, err := PermitClient.Api.Tenants.Update(ctx, "tenant-key", tenantUpdate)
+// ```
 func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate models.TenantUpdate) (*models.TenantRead, error) {
 	err := t.lazyLoadContext(ctx)
 	if err != nil {

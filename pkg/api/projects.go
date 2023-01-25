@@ -102,6 +102,13 @@ func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreat
 	return project, nil
 }
 
+// Update a project, requires Project level API key, or higher.
+// Usage Example:
+// ```
+// projectUpdate := models.NewProjectUpdate()
+// projectUpdate.SetName("new-project-name")
+// project, err := PermitClient.Api.Projects.Update(ctx, "project-key", projectUpdate)
+// ```
 func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate models.ProjectUpdate) (*models.ProjectRead, error) {
 	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {

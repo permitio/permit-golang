@@ -106,6 +106,13 @@ func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*mode
 	return role, nil
 }
 
+// Update a role.
+// Usage Example:
+// ```
+// roleUpdate := models.NewRoleUpdate()
+// roleUpdate.SetName("new-role-name")
+// role, err := PermitClient.Api.Roles.Update(ctx, "role-key", roleUpdate)
+// ```
 func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.RoleUpdate) (*models.RoleRead, error) {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

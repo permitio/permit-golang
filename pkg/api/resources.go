@@ -101,6 +101,13 @@ func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCr
 	return resource, nil
 }
 
+// Update a resource.
+// Usage Example:
+// ```
+//  resourceUpdate := models.NewResourceUpdate()
+//  resourceUpdate.SetActions(map[string]models.ActionBlockEditable{"read": {}, "write": {}}
+//  resource, err := PermitClient.Api.Resources.Update(ctx, "my-resource", resourceUpdate)
+// ```
 func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpdate models.ResourceUpdate) (*models.ResourceRead, error) {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

@@ -51,4 +51,9 @@ func TestIntegration(t *testing.T) {
 	allowed, err := permitClient.Check(userCheck, "read", resourceCheck)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
+
+	// Elements
+	a, err := permitClient.Elements.LoginAs(ctx, *models.NewUserLoginRequestInput(userKey, "default"))
+	assert.NoError(t, err)
+	assert.Equal(t, userKey, a.RedirectUrl)
 }

@@ -123,14 +123,9 @@ func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate mod
 	return tenant, nil
 }
 
-// Delete
-// Deletes a tenant under the context's environment - by a given tenant key.
-//
+// Delete a tenant under the context's environment.
 // Usage Example:
-// ```
-// PermitClient := permit.NewPermitClient("https://api")
-// err := api.Tenants().Delete(ctx, "tenant-key")
-// ```
+// `err := PermitClient.Api.Tenants.Delete(ctx, "tenant-key")`
 func (t *Tenants) Delete(ctx context.Context, tenantKey string) error {
 	err := t.lazyLoadContext(ctx)
 	if err != nil {

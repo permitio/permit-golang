@@ -115,6 +115,9 @@ func (a *ResourceActions) Update(ctx context.Context, resourceKey string, action
 	return resourceAction, nil
 }
 
+// Delete a resource action by resource key and action key.
+// Usage Example:
+//  `err := PermitClient.Api.ResourceActions.Delete(ctx, "resource-key", "action-key")`
 func (a *ResourceActions) Delete(ctx context.Context, resourceKey string, actionKey string) error {
 	err := a.lazyLoadContext(ctx)
 	if err != nil {

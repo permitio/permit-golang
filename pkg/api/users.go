@@ -128,6 +128,9 @@ func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.Us
 	return user, nil
 }
 
+// Delete a user from your context's environment.
+// Usage Example:
+//  `err := PermitClient.Api.Users.Delete(ctx, "user-key")`
 func (u *Users) Delete(ctx context.Context, userKey string) error {
 	err := u.lazyLoadContext(ctx)
 	if err != nil {

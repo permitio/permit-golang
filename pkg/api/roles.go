@@ -128,6 +128,9 @@ func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.Ro
 	return role, nil
 }
 
+// Delete a role.
+// Usage Example:
+// `err := PermitClient.Api.Roles.Delete(ctx, "role-key")`
 func (r *Roles) Delete(ctx context.Context, roleKey string) error {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

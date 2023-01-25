@@ -115,6 +115,9 @@ func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, att
 	return resourceAttribute, nil
 }
 
+// Delete a resource attribute by resource key and attribute key.
+// Usage Example:
+//  `err := PermitClient.Api.ResourceAttributes.Delete(ctx, "resource-key", "attribute-key")`
 func (a *ResourceAttributes) Delete(ctx context.Context, resourceKey string, attributeKey string) error {
 	err := a.lazyLoadContext(ctx)
 	if err != nil {

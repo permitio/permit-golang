@@ -123,6 +123,9 @@ func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpda
 	return resource, nil
 }
 
+// Delete a resource.
+// Usage Example:
+//  `err := PermitClient.Api.Resources.Delete(ctx, "my-resource")`
 func (r *Resources) Delete(ctx context.Context, resourceKey string) error {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

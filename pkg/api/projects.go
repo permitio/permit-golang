@@ -124,6 +124,9 @@ func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate 
 	return project, nil
 }
 
+// Delete a project, requires Project level API key, or higher.
+// Usage Example:
+// `err := PermitClient.Api.Projects.Delete(ctx, "project-key")`
 func (p *Projects) Delete(ctx context.Context, projectKey string) error {
 	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {

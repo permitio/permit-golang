@@ -127,6 +127,9 @@ func (e *Environments) Update(ctx context.Context, environmentKey string, enviro
 	return environment, nil
 }
 
+// Delete an environment in the project of your context.
+// Usage Example:
+// 	`err := PermitClient.Api.Environments.Delete(ctx, "production")`
 func (e *Environments) Delete(ctx context.Context, environmentKey string) error {
 	err := e.lazyLoadContext(ctx)
 	if err != nil {

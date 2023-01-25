@@ -17,7 +17,12 @@ jobs:
         run: |
           go build -v ./...
 #          go test -v ./...
-      - name: Release package
-        run: |
-          go get github.com/goreleaser/goreleaser
-          goreleaser --rm-dist
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

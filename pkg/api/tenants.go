@@ -47,6 +47,9 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 	return tenants, nil
 }
 
+// Get a tenant under the context's environment - by a given tenant key.
+// Usage Example:
+// `tenant, err := PermitClient.Api.Tenants.Get(ctx, "tenant-key")`
 func (t *Tenants) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error) {
 	err := t.lazyLoadContext(ctx)
 	if err != nil {

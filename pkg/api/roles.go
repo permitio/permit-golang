@@ -52,6 +52,9 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 	return roles, nil
 }
 
+// Get a role by key.
+// Usage Example:
+// `role, err := PermitClient.Api.Roles.Get(ctx, "role-key")`
 func (r *Roles) Get(ctx context.Context, roleKey string) (*models.RoleRead, error) {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

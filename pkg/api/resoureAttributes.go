@@ -46,6 +46,9 @@ func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page 
 	return resourceAttributes, nil
 }
 
+// Get a resource attribute by resource key and attribute key.
+// Usage Example:
+//  `resourceAttribute, err := PermitClient.Api.ResourceAttributes.Get(ctx, "resource-key", "attribute-key")`
 func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error) {
 	err := a.lazyLoadContext(ctx)
 	if err != nil {

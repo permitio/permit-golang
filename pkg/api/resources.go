@@ -48,6 +48,9 @@ func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.R
 	return resources, nil
 }
 
+// Get a resource by its key.
+// Usage Example:
+//  `resource, err := PermitClient.Api.Resources.Get(ctx, "my-resource")`
 func (r *Resources) Get(ctx context.Context, resourceKey string) (*models.ResourceRead, error) {
 	err := r.lazyLoadContext(ctx)
 	if err != nil {

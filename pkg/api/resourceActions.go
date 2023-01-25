@@ -46,6 +46,9 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	return resourceActions, nil
 }
 
+// Get a resource action by resource key and action key.
+// Usage Example:
+//  `resourceAction, err := PermitClient.Api.ResourceActions.Get(ctx, "resource-key", "action-key")`
 func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
 	err := a.lazyLoadContext(ctx)
 	if err != nil {

@@ -49,6 +49,9 @@ func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.Pr
 	return projects, nil
 }
 
+// Get a project by key, requires Project level API key, or higher.
+// Usage Example:
+// `project, err := PermitClient.Api.Projects.Get(ctx, "project-key")`
 func (p *Projects) Get(ctx context.Context, projectKey string) (*models.ProjectRead, error) {
 	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {

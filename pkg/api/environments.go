@@ -48,6 +48,9 @@ func (e *Environments) List(ctx context.Context, page int, perPage int) ([]model
 	return environments, nil
 }
 
+// Get an environment by key.
+// Usage Example:
+// 	`environment, err := PermitClient.Api.Environments.Get(ctx, "production")`
 func (e *Environments) Get(ctx context.Context, environmentKey string) *models.EnvironmentRead {
 	err := e.lazyLoadContext(ctx)
 	if err != nil {

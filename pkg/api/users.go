@@ -48,6 +48,9 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 	return users.GetData(), nil
 }
 
+// Get a user from your context's environment.
+// Usage Example:
+//  `user, err := PermitClient.Api.Users.Get(ctx, "user-key")`
 func (u *Users) Get(ctx context.Context, userKey string) (*models.UserRead, error) {
 	err := u.lazyLoadContext(ctx)
 	if err != nil {

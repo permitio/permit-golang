@@ -12,6 +12,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
+          stable: false
           go-version: latest
       - name: Build and test package
         run: |

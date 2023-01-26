@@ -73,11 +73,11 @@ func main() {
 ```
 
 ### Sync users
-To sync users to the Permit.io API, using the `Permit.SyncUsers()` method, 
+To sync users to the Permit.io API, using the `Permit.SyncUsers()` method,
 you will have to create a User model using our main Models package.
 The models are located in `github.com/permitio/permit-golang/pkg/models`
 
-Follow the example below: 
+Follow the example below:
 ```golang
 package main
 

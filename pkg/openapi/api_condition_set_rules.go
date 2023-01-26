@@ -13,47 +13,47 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// RoleAssignmentsApiService RoleAssignmentsApi service
-type RoleAssignmentsApiService service
+// ConditionSetRulesApiService ConditionSetRulesApi service
+type ConditionSetRulesApiService service
 
-type ApiAssignRoleRequest struct {
-	ctx                  context.Context
-	ApiService           *RoleAssignmentsApiService
-	projId               string
-	envId                string
-	roleAssignmentCreate *models.RoleAssignmentCreate
+type ApiAssignSetPermissionsRequest struct {
+	ctx                    context.Context
+	ApiService             *ConditionSetRulesApiService
+	projId                 string
+	envId                  string
+	conditionSetRuleCreate *models.ConditionSetRuleCreate
 }
 
-func (r ApiAssignRoleRequest) RoleAssignmentCreate(roleAssignmentCreate models.RoleAssignmentCreate) ApiAssignRoleRequest {
-	r.roleAssignmentCreate = &roleAssignmentCreate
+func (r ApiAssignSetPermissionsRequest) ConditionSetRuleCreate(conditionSetRuleCreate models.ConditionSetRuleCreate) ApiAssignSetPermissionsRequest {
+	r.conditionSetRuleCreate = &conditionSetRuleCreate
 	return r
 }
 
-func (r ApiAssignRoleRequest) Execute() (*models.RoleAssignmentRead, *http.Response, error) {
-	return r.ApiService.AssignRoleExecute(r)
+func (r ApiAssignSetPermissionsRequest) Execute() ([]models.ConditionSetRuleRead, *http.Response, error) {
+	return r.ApiService.AssignSetPermissionsExecute(r)
 }
 
 /*
-AssignRole Assign Role
+AssignSetPermissions Assign Set Permissions
 
-Assigns a role to a user within a tenant.
+Grant permissions to a user set *on* a resource set.
 
-The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
+If the permission is already granted, it is skipped.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiAssignRoleRequest
+ @return ApiAssignSetPermissionsRequest
 */
-func (a *RoleAssignmentsApiService) AssignRole(ctx context.Context, projId string, envId string) ApiAssignRoleRequest {
-	return ApiAssignRoleRequest{
+func (a *ConditionSetRulesApiService) AssignSetPermissions(ctx context.Context, projId string, envId string) ApiAssignSetPermissionsRequest {
+	return ApiAssignSetPermissionsRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
@@ -62,29 +62,29 @@ func (a *RoleAssignmentsApiService) AssignRole(ctx context.Context, projId strin
 }
 
 // Execute executes the request
-//  @return RoleAssignmentRead
-func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*models.RoleAssignmentRead, *http.Response, error) {
+//  @return []ConditionSetRuleRead
+func (a *ConditionSetRulesApiService) AssignSetPermissionsExecute(r ApiAssignSetPermissionsRequest) ([]models.ConditionSetRuleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.RoleAssignmentRead
+		localVarReturnValue []models.ConditionSetRuleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.AssignRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetRulesApiService.AssignSetPermissions")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/set_rules"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.roleAssignmentCreate == nil {
-		return localVarReturnValue, nil, reportError("roleAssignmentCreate is required and must be specified")
+	if r.conditionSetRuleCreate == nil {
+		return localVarReturnValue, nil, reportError("conditionSetRuleCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -105,7 +105,7 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.roleAssignmentCreate
+	localVarPostBody = r.conditionSetRuleCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -153,68 +153,67 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListRoleAssignmentsRequest struct {
-	ctx        context.Context
-	ApiService *RoleAssignmentsApiService
-	projId     string
-	envId      string
-	user       *string
-	role       *string
-	tenant     *string
-	page       *int32
-	perPage    *int32
+type ApiListSetPermissionsRequest struct {
+	ctx         context.Context
+	ApiService  *ConditionSetRulesApiService
+	projId      string
+	envId       string
+	userSet     *string
+	permission  *string
+	resourceSet *string
+	page        *int32
+	perPage     *int32
 }
 
-// optional user filter, will only return role assignments granted to this user.
-func (r ApiListRoleAssignmentsRequest) User(user string) ApiListRoleAssignmentsRequest {
-	r.user = &user
+// optional user set filter, will only return rules where the permission is granted to this user set
+func (r ApiListSetPermissionsRequest) UserSet(userSet string) ApiListSetPermissionsRequest {
+	r.userSet = &userSet
 	return r
 }
 
-// optional role filter, will only return role assignments granting this role.
-func (r ApiListRoleAssignmentsRequest) Role(role string) ApiListRoleAssignmentsRequest {
-	r.role = &role
+// optional permission filter, will only return condition set rules granting this permission
+func (r ApiListSetPermissionsRequest) Permission(permission string) ApiListSetPermissionsRequest {
+	r.permission = &permission
 	return r
 }
 
-// optional tenant filter, will only return role assignments granted in that tenant.
-func (r ApiListRoleAssignmentsRequest) Tenant(tenant string) ApiListRoleAssignmentsRequest {
-	r.tenant = &tenant
+// optional resource set filter, will only return rules where the permission is granted on this resource set
+func (r ApiListSetPermissionsRequest) ResourceSet(resourceSet string) ApiListSetPermissionsRequest {
+	r.resourceSet = &resourceSet
 	return r
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListRoleAssignmentsRequest) Page(page int32) ApiListRoleAssignmentsRequest {
+func (r ApiListSetPermissionsRequest) Page(page int32) ApiListSetPermissionsRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListRoleAssignmentsRequest) PerPage(perPage int32) ApiListRoleAssignmentsRequest {
+func (r ApiListSetPermissionsRequest) PerPage(perPage int32) ApiListSetPermissionsRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListRoleAssignmentsRequest) Execute() ([]models.RoleAssignmentRead, *http.Response, error) {
-	return r.ApiService.ListRoleAssignmentsExecute(r)
+func (r ApiListSetPermissionsRequest) Execute() ([]models.ConditionSetRuleRead, *http.Response, error) {
+	return r.ApiService.ListSetPermissionsExecute(r)
 }
 
 /*
-ListRoleAssignments List Role Assignments
+ListSetPermissions List Set Permissions
 
-Lists the role assignments defined within an environment.
-
-- If the `user` filter is present, will only return the role assignments of that user.
-- If the `tenant` filter is present, will only return the role assignments in that tenant.
-- If the `role` filter is present, will only return role assignments that are granting that role.
+Lists the condition set rules matching the filter.
+- If the `user_set` filter is present, will only return the permissions set of that user set.
+- If the `permission` filter is present, will only return the permissions sets that equals to the queried permission.
+- If the `resource_set` filter is present, will only return the permissions set of that resource set.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListRoleAssignmentsRequest
+ @return ApiListSetPermissionsRequest
 */
-func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, projId string, envId string) ApiListRoleAssignmentsRequest {
-	return ApiListRoleAssignmentsRequest{
+func (a *ConditionSetRulesApiService) ListSetPermissions(ctx context.Context, projId string, envId string) ApiListSetPermissionsRequest {
+	return ApiListSetPermissionsRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
@@ -223,21 +222,21 @@ func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, pro
 }
 
 // Execute executes the request
-//  @return []RoleAssignmentRead
-func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) ([]models.RoleAssignmentRead, *http.Response, error) {
+//  @return []ConditionSetRuleRead
+func (a *ConditionSetRulesApiService) ListSetPermissionsExecute(r ApiListSetPermissionsRequest) ([]models.ConditionSetRuleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.RoleAssignmentRead
+		localVarReturnValue []models.ConditionSetRuleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.ListRoleAssignments")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetRulesApiService.ListSetPermissions")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/set_rules"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
@@ -245,14 +244,14 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.user != nil {
-		localVarQueryParams.Add("user", parameterToString(*r.user, ""))
+	if r.userSet != nil {
+		localVarQueryParams.Add("user_set", parameterToString(*r.userSet, ""))
 	}
-	if r.role != nil {
-		localVarQueryParams.Add("role", parameterToString(*r.role, ""))
+	if r.permission != nil {
+		localVarQueryParams.Add("permission", parameterToString(*r.permission, ""))
 	}
-	if r.tenant != nil {
-		localVarQueryParams.Add("tenant", parameterToString(*r.tenant, ""))
+	if r.resourceSet != nil {
+		localVarQueryParams.Add("resource_set", parameterToString(*r.resourceSet, ""))
 	}
 	if r.page != nil {
 		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
@@ -324,39 +323,37 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiUnassignRoleRequest struct {
-	ctx                  context.Context
-	ApiService           *RoleAssignmentsApiService
-	projId               string
-	envId                string
-	roleAssignmentRemove *models.RoleAssignmentRemove
+type ApiUnassignSetPermissionsRequest struct {
+	ctx                    context.Context
+	ApiService             *ConditionSetRulesApiService
+	projId                 string
+	envId                  string
+	conditionSetRuleRemove *models.ConditionSetRuleRemove
 }
 
-func (r ApiUnassignRoleRequest) RoleAssignmentRemove(roleAssignmentRemove models.RoleAssignmentRemove) ApiUnassignRoleRequest {
-	r.roleAssignmentRemove = &roleAssignmentRemove
+func (r ApiUnassignSetPermissionsRequest) ConditionSetRuleRemove(conditionSetRuleRemove models.ConditionSetRuleRemove) ApiUnassignSetPermissionsRequest {
+	r.conditionSetRuleRemove = &conditionSetRuleRemove
 	return r
 }
 
-func (r ApiUnassignRoleRequest) Execute() (*http.Response, error) {
-	return r.ApiService.UnassignRoleExecute(r)
+func (r ApiUnassignSetPermissionsRequest) Execute() (*http.Response, error) {
+	return r.ApiService.UnassignSetPermissionsExecute(r)
 }
 
 /*
-UnassignRole Unassign Role
+UnassignSetPermissions Unassign Set Permissions
 
-Unassigns a user role within a tenant.
+Revokes permissions to a user set *on* a resource set.
 
-The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
-
-If the role is not actually assigned, will return 404.
+If the permission is not granted, it is skipped.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUnassignRoleRequest
+ @return ApiUnassignSetPermissionsRequest
 */
-func (a *RoleAssignmentsApiService) UnassignRole(ctx context.Context, projId string, envId string) ApiUnassignRoleRequest {
-	return ApiUnassignRoleRequest{
+func (a *ConditionSetRulesApiService) UnassignSetPermissions(ctx context.Context, projId string, envId string) ApiUnassignSetPermissionsRequest {
+	return ApiUnassignSetPermissionsRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
@@ -365,27 +362,27 @@ func (a *RoleAssignmentsApiService) UnassignRole(ctx context.Context, projId str
 }
 
 // Execute executes the request
-func (a *RoleAssignmentsApiService) UnassignRoleExecute(r ApiUnassignRoleRequest) (*http.Response, error) {
+func (a *ConditionSetRulesApiService) UnassignSetPermissionsExecute(r ApiUnassignSetPermissionsRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.UnassignRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetRulesApiService.UnassignSetPermissions")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/set_rules"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.roleAssignmentRemove == nil {
-		return nil, reportError("roleAssignmentRemove is required and must be specified")
+	if r.conditionSetRuleRemove == nil {
+		return nil, reportError("conditionSetRuleRemove is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -406,7 +403,7 @@ func (a *RoleAssignmentsApiService) UnassignRoleExecute(r ApiUnassignRoleRequest
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.roleAssignmentRemove
+	localVarPostBody = r.conditionSetRuleRemove
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return nil, err

@@ -13,7 +13,7 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"

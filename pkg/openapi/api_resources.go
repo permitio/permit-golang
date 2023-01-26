@@ -13,48 +13,45 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// TenantsApiService TenantsApi service
-type TenantsApiService service
+// ResourcesApiService ResourcesApi service
+type ResourcesApiService service
 
-type ApiCreateTenantRequest struct {
-	ctx          context.Context
-	ApiService   *TenantsApiService
-	projId       string
-	envId        string
-	tenantCreate *models.TenantCreate
+type ApiCreateResourceRequest struct {
+	ctx            context.Context
+	ApiService     *ResourcesApiService
+	projId         string
+	envId          string
+	resourceCreate *models.ResourceCreate
 }
 
-func (r ApiCreateTenantRequest) TenantCreate(tenantCreate models.TenantCreate) ApiCreateTenantRequest {
-	r.tenantCreate = &tenantCreate
+func (r ApiCreateResourceRequest) ResourceCreate(resourceCreate models.ResourceCreate) ApiCreateResourceRequest {
+	r.resourceCreate = &resourceCreate
 	return r
 }
 
-func (r ApiCreateTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
-	return r.ApiService.CreateTenantExecute(r)
+func (r ApiCreateResourceRequest) Execute() (*models.ResourceRead, *http.Response, error) {
+	return r.ApiService.CreateResourceExecute(r)
 }
 
 /*
-CreateTenant Create Tenant
+CreateResource Create Resource
 
-Creates a new tenant inside the Permit.io system.
-
-If the tenant is already created: will return 200 instead of 201,
-and will return the existing tenant object in the response body.
+Creates a new resource (a type of object you may protect with permissions).
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateTenantRequest
+ @return ApiCreateResourceRequest
 */
-func (a *TenantsApiService) CreateTenant(ctx context.Context, projId string, envId string) ApiCreateTenantRequest {
-	return ApiCreateTenantRequest{
+func (a *ResourcesApiService) CreateResource(ctx context.Context, projId string, envId string) ApiCreateResourceRequest {
+	return ApiCreateResourceRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
@@ -63,29 +60,29 @@ func (a *TenantsApiService) CreateTenant(ctx context.Context, projId string, env
 }
 
 // Execute executes the request
-//  @return TenantRead
-func (a *TenantsApiService) CreateTenantExecute(r ApiCreateTenantRequest) (*models.TenantRead, *http.Response, error) {
+//  @return ResourceRead
+func (a *ResourcesApiService) CreateResourceExecute(r ApiCreateResourceRequest) (*models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.TenantRead
+		localVarReturnValue *models.ResourceRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.CreateTenant")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.CreateResource")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.tenantCreate == nil {
-		return localVarReturnValue, nil, reportError("tenantCreate is required and must be specified")
+	if r.resourceCreate == nil {
+		return localVarReturnValue, nil, reportError("resourceCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -106,7 +103,7 @@ func (a *TenantsApiService) CreateTenantExecute(r ApiCreateTenantRequest) (*mode
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.tenantCreate
+	localVarPostBody = r.resourceCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -154,56 +151,56 @@ func (a *TenantsApiService) CreateTenantExecute(r ApiCreateTenantRequest) (*mode
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteTenantRequest struct {
+type ApiDeleteResourceRequest struct {
 	ctx        context.Context
-	ApiService *TenantsApiService
+	ApiService *ResourcesApiService
 	projId     string
 	envId      string
-	tenantId   string
+	resourceId string
 }
 
-func (r ApiDeleteTenantRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteTenantExecute(r)
+func (r ApiDeleteResourceRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteResourceExecute(r)
 }
 
 /*
-DeleteTenant Delete Tenant
+DeleteResource Delete Resource
 
-Deletes the tenant and all its related data.
+Deletes the resource and all its related data.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @return ApiDeleteTenantRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiDeleteResourceRequest
 */
-func (a *TenantsApiService) DeleteTenant(ctx context.Context, projId string, envId string, tenantId string) ApiDeleteTenantRequest {
-	return ApiDeleteTenantRequest{
+func (a *ResourcesApiService) DeleteResource(ctx context.Context, projId string, envId string, resourceId string) ApiDeleteResourceRequest {
+	return ApiDeleteResourceRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		tenantId:   tenantId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-func (a *TenantsApiService) DeleteTenantExecute(r ApiDeleteTenantRequest) (*http.Response, error) {
+func (a *ResourcesApiService) DeleteResourceExecute(r ApiDeleteResourceRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.DeleteTenant")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.DeleteResource")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -264,172 +261,58 @@ func (a *TenantsApiService) DeleteTenantExecute(r ApiDeleteTenantRequest) (*http
 	return localVarHTTPResponse, nil
 }
 
-type ApiDeleteTenantUserRequest struct {
+type ApiGetResourceRequest struct {
 	ctx        context.Context
-	ApiService *TenantsApiService
+	ApiService *ResourcesApiService
 	projId     string
 	envId      string
-	tenantId   string
-	userId     string
+	resourceId string
 }
 
-func (r ApiDeleteTenantUserRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteTenantUserExecute(r)
+func (r ApiGetResourceRequest) Execute() (*models.ResourceRead, *http.Response, error) {
+	return r.ApiService.GetResourceExecute(r)
 }
 
 /*
-DeleteTenantUser Delete Tenant User
+GetResource Get Resource
 
-Deletes a user under a tenant.
+Gets a single resource, if such resource exists.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiDeleteTenantUserRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiGetResourceRequest
 */
-func (a *TenantsApiService) DeleteTenantUser(ctx context.Context, projId string, envId string, tenantId string, userId string) ApiDeleteTenantUserRequest {
-	return ApiDeleteTenantUserRequest{
+func (a *ResourcesApiService) GetResource(ctx context.Context, projId string, envId string, resourceId string) ApiGetResourceRequest {
+	return ApiGetResourceRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		tenantId:   tenantId,
-		userId:     userId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-func (a *TenantsApiService) DeleteTenantUserExecute(r ApiDeleteTenantUserRequest) (*http.Response, error) {
-	var (
-		localVarHTTPMethod = http.MethodDelete
-		localVarPostBody   interface{}
-		formFiles          []formFile
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.DeleteTenantUser")
-	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarHTTPResponse, newErr
-	}
-
-	return localVarHTTPResponse, nil
-}
-
-type ApiGetTenantRequest struct {
-	ctx        context.Context
-	ApiService *TenantsApiService
-	projId     string
-	envId      string
-	tenantId   string
-}
-
-func (r ApiGetTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
-	return r.ApiService.GetTenantExecute(r)
-}
-
-/*
-GetTenant Get Tenant
-
-Gets a tenant, if such tenant exists. Otherwise returns 404.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @return ApiGetTenantRequest
-*/
-func (a *TenantsApiService) GetTenant(ctx context.Context, projId string, envId string, tenantId string) ApiGetTenantRequest {
-	return ApiGetTenantRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		tenantId:   tenantId,
-	}
-}
-
-// Execute executes the request
-//  @return TenantRead
-func (a *TenantsApiService) GetTenantExecute(r ApiGetTenantRequest) (*models.TenantRead, *http.Response, error) {
+//  @return ResourceRead
+func (a *ResourcesApiService) GetResourceExecute(r ApiGetResourceRequest) (*models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.TenantRead
+		localVarReturnValue *models.ResourceRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.GetTenant")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.GetResource")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -499,84 +382,82 @@ func (a *TenantsApiService) GetTenantExecute(r ApiGetTenantRequest) (*models.Ten
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListTenantUsersRequest struct {
-	ctx        context.Context
-	ApiService *TenantsApiService
-	projId     string
-	tenantId   string
-	envId      string
-	search     *string
-	page       *int32
-	perPage    *int32
+type ApiListResourcesRequest struct {
+	ctx            context.Context
+	ApiService     *ResourcesApiService
+	projId         string
+	envId          string
+	includeBuiltIn *bool
+	page           *int32
+	perPage        *int32
 }
 
-// Text search for the email field
-func (r ApiListTenantUsersRequest) Search(search string) ApiListTenantUsersRequest {
-	r.search = &search
+// Whether to include or exclude built-in resources, default is False
+func (r ApiListResourcesRequest) IncludeBuiltIn(includeBuiltIn bool) ApiListResourcesRequest {
+	r.includeBuiltIn = &includeBuiltIn
 	return r
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListTenantUsersRequest) Page(page int32) ApiListTenantUsersRequest {
+func (r ApiListResourcesRequest) Page(page int32) ApiListResourcesRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListTenantUsersRequest) PerPage(perPage int32) ApiListTenantUsersRequest {
+func (r ApiListResourcesRequest) PerPage(perPage int32) ApiListResourcesRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListTenantUsersRequest) Execute() (*models.PaginatedResultUserRead, *http.Response, error) {
-	return r.ApiService.ListTenantUsersExecute(r)
+func (r ApiListResourcesRequest) Execute() ([]models.ResourceRead, *http.Response, error) {
+	return r.ApiService.ListResourcesExecute(r)
 }
 
 /*
-ListTenantUsers List Tenant Users
+ListResources List Resources
+
+Lists all the resources defined in your schema.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListTenantUsersRequest
+ @return ApiListResourcesRequest
 */
-func (a *TenantsApiService) ListTenantUsers(ctx context.Context, projId string, tenantId string, envId string) ApiListTenantUsersRequest {
-	return ApiListTenantUsersRequest{
+func (a *ResourcesApiService) ListResources(ctx context.Context, projId string, envId string) ApiListResourcesRequest {
+	return ApiListResourcesRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
-		tenantId:   tenantId,
 		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return PaginatedResultUserRead
-func (a *TenantsApiService) ListTenantUsersExecute(r ApiListTenantUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
+//  @return []ResourceRead
+func (a *ResourcesApiService) ListResourcesExecute(r ApiListResourcesRequest) ([]models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.PaginatedResultUserRead
+		localVarReturnValue []models.ResourceRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.ListTenantUsers")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.ListResources")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.search != nil {
-		localVarQueryParams.Add("search", parameterToString(*r.search, ""))
+	if r.includeBuiltIn != nil {
+		localVarQueryParams.Add("include_built_in", parameterToString(*r.includeBuiltIn, ""))
 	}
 	if r.page != nil {
 		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
@@ -648,91 +529,80 @@ func (a *TenantsApiService) ListTenantUsersExecute(r ApiListTenantUsersRequest) 
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListTenantsRequest struct {
-	ctx        context.Context
-	ApiService *TenantsApiService
-	projId     string
-	envId      string
-	search     *string
-	page       *int32
-	perPage    *int32
+type ApiReplaceResourceRequest struct {
+	ctx             context.Context
+	ApiService      *ResourcesApiService
+	projId          string
+	envId           string
+	resourceId      string
+	resourceReplace *models.ResourceReplace
 }
 
-// Text search for the tenant name or key
-func (r ApiListTenantsRequest) Search(search string) ApiListTenantsRequest {
-	r.search = &search
+func (r ApiReplaceResourceRequest) ResourceReplace(resourceReplace models.ResourceReplace) ApiReplaceResourceRequest {
+	r.resourceReplace = &resourceReplace
 	return r
 }
 
-// Page number of the results to fetch, starting at 1.
-func (r ApiListTenantsRequest) Page(page int32) ApiListTenantsRequest {
-	r.page = &page
-	return r
-}
-
-// The number of results per page (max 100).
-func (r ApiListTenantsRequest) PerPage(perPage int32) ApiListTenantsRequest {
-	r.perPage = &perPage
-	return r
-}
-
-func (r ApiListTenantsRequest) Execute() ([]models.TenantRead, *http.Response, error) {
-	return r.ApiService.ListTenantsExecute(r)
+func (r ApiReplaceResourceRequest) Execute() (*models.ResourceRead, *http.Response, error) {
+	return r.ApiService.ReplaceResourceExecute(r)
 }
 
 /*
-ListTenants List Tenants
+ReplaceResource Replace Resource
 
-Lists all the tenants defined within an environment.
+Completely replaces the resource definition.
+
+- If the resource key is changed, all role and permissions assignments for the the resource will be revoked.
+- If the resource key is unchanged, but some actions are removed or renamed from the resource definition,
+role and permissions assignments for these actions will be revoked.
+
+TODO: we need to decide if we are auto-revoking, or if we are rejecting the PUT completely while there are permissions that can be affected.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListTenantsRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiReplaceResourceRequest
 */
-func (a *TenantsApiService) ListTenants(ctx context.Context, projId string, envId string) ApiListTenantsRequest {
-	return ApiListTenantsRequest{
+func (a *ResourcesApiService) ReplaceResource(ctx context.Context, projId string, envId string, resourceId string) ApiReplaceResourceRequest {
+	return ApiReplaceResourceRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return []TenantRead
-func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]models.TenantRead, *http.Response, error) {
+//  @return ResourceRead
+func (a *ResourcesApiService) ReplaceResourceExecute(r ApiReplaceResourceRequest) (*models.ResourceRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodGet
+		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.TenantRead
+		localVarReturnValue *models.ResourceRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.ListTenants")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.ReplaceResource")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
+	if r.resourceReplace == nil {
+		return localVarReturnValue, nil, reportError("resourceReplace is required and must be specified")
+	}
 
-	if r.search != nil {
-		localVarQueryParams.Add("search", parameterToString(*r.search, ""))
-	}
-	if r.page != nil {
-		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
-	}
-	if r.perPage != nil {
-		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
-	}
 	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
+	localVarHTTPContentTypes := []string{"application/json"}
 
 	// set Content-Type header
 	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
@@ -748,6 +618,8 @@ func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]model
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	// body params
+	localVarPostBody = r.resourceReplace
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -795,71 +667,71 @@ func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]model
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiUpdateTenantRequest struct {
-	ctx          context.Context
-	ApiService   *TenantsApiService
-	projId       string
-	envId        string
-	tenantId     string
-	tenantUpdate *models.TenantUpdate
+type ApiUpdateResourceRequest struct {
+	ctx            context.Context
+	ApiService     *ResourcesApiService
+	projId         string
+	envId          string
+	resourceId     string
+	resourceUpdate *models.ResourceUpdate
 }
 
-func (r ApiUpdateTenantRequest) TenantUpdate(tenantUpdate models.TenantUpdate) ApiUpdateTenantRequest {
-	r.tenantUpdate = &tenantUpdate
+func (r ApiUpdateResourceRequest) ResourceUpdate(resourceUpdate models.ResourceUpdate) ApiUpdateResourceRequest {
+	r.resourceUpdate = &resourceUpdate
 	return r
 }
 
-func (r ApiUpdateTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
-	return r.ApiService.UpdateTenantExecute(r)
+func (r ApiUpdateResourceRequest) Execute() (*models.ResourceRead, *http.Response, error) {
+	return r.ApiService.UpdateResourceExecute(r)
 }
 
 /*
-UpdateTenant Update Tenant
+UpdateResource Update Resource
 
-Partially updates the tenant definition.
+Partially updates the resource definition.
 Fields that will be provided will be completely overwritten.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @return ApiUpdateTenantRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiUpdateResourceRequest
 */
-func (a *TenantsApiService) UpdateTenant(ctx context.Context, projId string, envId string, tenantId string) ApiUpdateTenantRequest {
-	return ApiUpdateTenantRequest{
+func (a *ResourcesApiService) UpdateResource(ctx context.Context, projId string, envId string, resourceId string) ApiUpdateResourceRequest {
+	return ApiUpdateResourceRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		tenantId:   tenantId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return TenantRead
-func (a *TenantsApiService) UpdateTenantExecute(r ApiUpdateTenantRequest) (*models.TenantRead, *http.Response, error) {
+//  @return ResourceRead
+func (a *ResourcesApiService) UpdateResourceExecute(r ApiUpdateResourceRequest) (*models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.TenantRead
+		localVarReturnValue *models.ResourceRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.UpdateTenant")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.UpdateResource")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.tenantUpdate == nil {
-		return localVarReturnValue, nil, reportError("tenantUpdate is required and must be specified")
+	if r.resourceUpdate == nil {
+		return localVarReturnValue, nil, reportError("resourceUpdate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -880,7 +752,7 @@ func (a *TenantsApiService) UpdateTenantExecute(r ApiUpdateTenantRequest) (*mode
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.tenantUpdate
+	localVarPostBody = r.resourceUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

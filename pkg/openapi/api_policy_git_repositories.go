@@ -13,80 +13,72 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// ResourcesApiService ResourcesApi service
-type ResourcesApiService service
+// PolicyGitRepositoriesApiService PolicyGitRepositoriesApi service
+type PolicyGitRepositoriesApiService service
 
-type ApiCreateResourceRequest struct {
-	ctx            context.Context
-	ApiService     *ResourcesApiService
-	projId         string
-	envId          string
-	resourceCreate *models.ResourceCreate
+type ApiActivatePolicyRepoRequest struct {
+	ctx        context.Context
+	ApiService *PolicyGitRepositoriesApiService
+	projId     string
+	repoId     string
 }
 
-func (r ApiCreateResourceRequest) ResourceCreate(resourceCreate models.ResourceCreate) ApiCreateResourceRequest {
-	r.resourceCreate = &resourceCreate
-	return r
-}
-
-func (r ApiCreateResourceRequest) Execute() (*models.ResourceRead, *http.Response, error) {
-	return r.ApiService.CreateResourceExecute(r)
+func (r ApiActivatePolicyRepoRequest) Execute() (*models.ProjectRead, *http.Response, error) {
+	return r.ApiService.ActivatePolicyRepoExecute(r)
 }
 
 /*
-CreateResource Create Resource
+ActivatePolicyRepo Activate Policy Repo
 
-Creates a new resource (a type of object you may protect with permissions).
+Disable the currently active policy repo, this action means to turn off the gitops feature.
+If there is no active policy repo, this action will do nothing.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateResourceRequest
+ @param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
+ @return ApiActivatePolicyRepoRequest
 */
-func (a *ResourcesApiService) CreateResource(ctx context.Context, projId string, envId string) ApiCreateResourceRequest {
-	return ApiCreateResourceRequest{
+func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepo(ctx context.Context, projId string, repoId string) ApiActivatePolicyRepoRequest {
+	return ApiActivatePolicyRepoRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
-		envId:      envId,
+		repoId:     repoId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceRead
-func (a *ResourcesApiService) CreateResourceExecute(r ApiCreateResourceRequest) (*models.ResourceRead, *http.Response, error) {
+//  @return ProjectRead
+func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepoExecute(r ApiActivatePolicyRepoRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodPost
+		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceRead
+		localVarReturnValue *models.ProjectRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.CreateResource")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.ActivatePolicyRepo")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources"
+	localVarPath := localBasePath + "/v2/projects/{proj_id}/repos/{repo_id}/activate"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"repo_id"+"}", url.PathEscape(parameterToString(r.repoId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.resourceCreate == nil {
-		return localVarReturnValue, nil, reportError("resourceCreate is required and must be specified")
-	}
 
 	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
+	localVarHTTPContentTypes := []string{}
 
 	// set Content-Type header
 	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
@@ -102,8 +94,6 @@ func (a *ResourcesApiService) CreateResourceExecute(r ApiCreateResourceRequest) 
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
-	// body params
-	localVarPostBody = r.resourceCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -151,56 +141,179 @@ func (a *ResourcesApiService) CreateResourceExecute(r ApiCreateResourceRequest) 
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteResourceRequest struct {
-	ctx        context.Context
-	ApiService *ResourcesApiService
-	projId     string
-	envId      string
-	resourceId string
+type ApiCreatePolicyRepoRequest struct {
+	ctx              context.Context
+	ApiService       *PolicyGitRepositoriesApiService
+	projId           string
+	policyRepoCreate *models.PolicyRepoCreate
 }
 
-func (r ApiDeleteResourceRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteResourceExecute(r)
+func (r ApiCreatePolicyRepoRequest) PolicyRepoCreate(policyRepoCreate models.PolicyRepoCreate) ApiCreatePolicyRepoRequest {
+	r.policyRepoCreate = &policyRepoCreate
+	return r
+}
+
+func (r ApiCreatePolicyRepoRequest) Execute() (*models.PolicyRepoRead, *http.Response, error) {
+	return r.ApiService.CreatePolicyRepoExecute(r)
 }
 
 /*
-DeleteResource Delete Resource
+CreatePolicyRepo Create Policy Repo
 
-Deletes the resource and all its related data.
+Creates a new policy repository configuration under a given project.
+The given repository is created with status 'pending', it will be changed and used as the 'active' repository for
+the policy only after a successful attempt to use it.
+The repository main branch must be present in the remote.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiDeleteResourceRequest
+ @return ApiCreatePolicyRepoRequest
 */
-func (a *ResourcesApiService) DeleteResource(ctx context.Context, projId string, envId string, resourceId string) ApiDeleteResourceRequest {
-	return ApiDeleteResourceRequest{
+func (a *PolicyGitRepositoriesApiService) CreatePolicyRepo(ctx context.Context, projId string) ApiCreatePolicyRepoRequest {
+	return ApiCreatePolicyRepoRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
-		envId:      envId,
-		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-func (a *ResourcesApiService) DeleteResourceExecute(r ApiDeleteResourceRequest) (*http.Response, error) {
+//  @return PolicyRepoRead
+func (a *PolicyGitRepositoriesApiService) CreatePolicyRepoExecute(r ApiCreatePolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.PolicyRepoRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.CreatePolicyRepo")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/projects/{proj_id}/repos"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.policyRepoCreate == nil {
+		return localVarReturnValue, nil, reportError("policyRepoCreate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.policyRepoCreate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiDeletePolicyRepoRequest struct {
+	ctx        context.Context
+	ApiService *PolicyGitRepositoriesApiService
+	projId     string
+	repoId     string
+}
+
+func (r ApiDeletePolicyRepoRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeletePolicyRepoExecute(r)
+}
+
+/*
+DeletePolicyRepo Delete Policy Repo
+
+Deletes an environment and all its related data.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
+ @return ApiDeletePolicyRepoRequest
+*/
+func (a *PolicyGitRepositoriesApiService) DeletePolicyRepo(ctx context.Context, projId string, repoId string) ApiDeletePolicyRepoRequest {
+	return ApiDeletePolicyRepoRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		repoId:     repoId,
+	}
+}
+
+// Execute executes the request
+func (a *PolicyGitRepositoriesApiService) DeletePolicyRepoExecute(r ApiDeletePolicyRepoRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.DeleteResource")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.DeletePolicyRepo")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}"
+	localVarPath := localBasePath + "/v2/projects/{proj_id}/repos/{repo_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"repo_id"+"}", url.PathEscape(parameterToString(r.repoId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -261,58 +374,51 @@ func (a *ResourcesApiService) DeleteResourceExecute(r ApiDeleteResourceRequest) 
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetResourceRequest struct {
+type ApiDisableActivePolicyRepoRequest struct {
 	ctx        context.Context
-	ApiService *ResourcesApiService
+	ApiService *PolicyGitRepositoriesApiService
 	projId     string
-	envId      string
-	resourceId string
 }
 
-func (r ApiGetResourceRequest) Execute() (*models.ResourceRead, *http.Response, error) {
-	return r.ApiService.GetResourceExecute(r)
+func (r ApiDisableActivePolicyRepoRequest) Execute() (*models.ProjectRead, *http.Response, error) {
+	return r.ApiService.DisableActivePolicyRepoExecute(r)
 }
 
 /*
-GetResource Get Resource
+DisableActivePolicyRepo Disable Active Policy Repo
 
-Gets a single resource, if such resource exists.
+Disable the currently active policy repo, this action means to turn off the gitops feature.
+If there is no active policy repo, this action will do nothing.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiGetResourceRequest
+ @return ApiDisableActivePolicyRepoRequest
 */
-func (a *ResourcesApiService) GetResource(ctx context.Context, projId string, envId string, resourceId string) ApiGetResourceRequest {
-	return ApiGetResourceRequest{
+func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepo(ctx context.Context, projId string) ApiDisableActivePolicyRepoRequest {
+	return ApiDisableActivePolicyRepoRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
-		envId:      envId,
-		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceRead
-func (a *ResourcesApiService) GetResourceExecute(r ApiGetResourceRequest) (*models.ResourceRead, *http.Response, error) {
+//  @return ProjectRead
+func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepoExecute(r ApiDisableActivePolicyRepoRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodGet
+		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceRead
+		localVarReturnValue *models.ProjectRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.GetResource")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.DisableActivePolicyRepo")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}"
+	localVarPath := localBasePath + "/v2/projects/{proj_id}/repos/disable"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -382,83 +488,299 @@ func (a *ResourcesApiService) GetResourceExecute(r ApiGetResourceRequest) (*mode
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListResourcesRequest struct {
-	ctx            context.Context
-	ApiService     *ResourcesApiService
-	projId         string
-	envId          string
-	includeBuiltIn *bool
-	page           *int32
-	perPage        *int32
+type ApiGetActivePolicyRepoRequest struct {
+	ctx        context.Context
+	ApiService *PolicyGitRepositoriesApiService
+	projId     string
 }
 
-// Whether to include or exclude built-in resources, default is False
-func (r ApiListResourcesRequest) IncludeBuiltIn(includeBuiltIn bool) ApiListResourcesRequest {
-	r.includeBuiltIn = &includeBuiltIn
-	return r
-}
-
-// Page number of the results to fetch, starting at 1.
-func (r ApiListResourcesRequest) Page(page int32) ApiListResourcesRequest {
-	r.page = &page
-	return r
-}
-
-// The number of results per page (max 100).
-func (r ApiListResourcesRequest) PerPage(perPage int32) ApiListResourcesRequest {
-	r.perPage = &perPage
-	return r
-}
-
-func (r ApiListResourcesRequest) Execute() ([]models.ResourceRead, *http.Response, error) {
-	return r.ApiService.ListResourcesExecute(r)
+func (r ApiGetActivePolicyRepoRequest) Execute() (*models.PolicyRepoRead, *http.Response, error) {
+	return r.ApiService.GetActivePolicyRepoExecute(r)
 }
 
 /*
-ListResources List Resources
+GetActivePolicyRepo Get Active Policy Repo
 
-Lists all the resources defined in your schema.
+Gets the currently active repository, if such repository exists.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListResourcesRequest
+ @return ApiGetActivePolicyRepoRequest
 */
-func (a *ResourcesApiService) ListResources(ctx context.Context, projId string, envId string) ApiListResourcesRequest {
-	return ApiListResourcesRequest{
+func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepo(ctx context.Context, projId string) ApiGetActivePolicyRepoRequest {
+	return ApiGetActivePolicyRepoRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
-		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return []ResourceRead
-func (a *ResourcesApiService) ListResourcesExecute(r ApiListResourcesRequest) ([]models.ResourceRead, *http.Response, error) {
+//  @return PolicyRepoRead
+func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepoExecute(r ApiGetActivePolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.ResourceRead
+		localVarReturnValue *models.PolicyRepoRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.ListResources")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.GetActivePolicyRepo")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources"
+	localVarPath := localBasePath + "/v2/projects/{proj_id}/repos/active"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.includeBuiltIn != nil {
-		localVarQueryParams.Add("include_built_in", parameterToString(*r.includeBuiltIn, ""))
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
 	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiGetPolicyRepoRequest struct {
+	ctx        context.Context
+	ApiService *PolicyGitRepositoriesApiService
+	projId     string
+	repoId     string
+}
+
+func (r ApiGetPolicyRepoRequest) Execute() (*models.PolicyRepoRead, *http.Response, error) {
+	return r.ApiService.GetPolicyRepoExecute(r)
+}
+
+/*
+GetPolicyRepo Get Policy Repo
+
+Gets a single repository matching the given repo_id, if such repository exists.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
+ @return ApiGetPolicyRepoRequest
+*/
+func (a *PolicyGitRepositoriesApiService) GetPolicyRepo(ctx context.Context, projId string, repoId string) ApiGetPolicyRepoRequest {
+	return ApiGetPolicyRepoRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		repoId:     repoId,
+	}
+}
+
+// Execute executes the request
+//  @return PolicyRepoRead
+func (a *PolicyGitRepositoriesApiService) GetPolicyRepoExecute(r ApiGetPolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.PolicyRepoRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.GetPolicyRepo")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/projects/{proj_id}/repos/{repo_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"repo_id"+"}", url.PathEscape(parameterToString(r.repoId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiListPolicyReposRequest struct {
+	ctx        context.Context
+	ApiService *PolicyGitRepositoriesApiService
+	projId     string
+	page       *int32
+	perPage    *int32
+}
+
+// Page number of the results to fetch, starting at 1.
+func (r ApiListPolicyReposRequest) Page(page int32) ApiListPolicyReposRequest {
+	r.page = &page
+	return r
+}
+
+// The number of results per page (max 100).
+func (r ApiListPolicyReposRequest) PerPage(perPage int32) ApiListPolicyReposRequest {
+	r.perPage = &perPage
+	return r
+}
+
+func (r ApiListPolicyReposRequest) Execute() ([]models.PolicyRepoRead, *http.Response, error) {
+	return r.ApiService.ListPolicyReposExecute(r)
+}
+
+/*
+ListPolicyRepos List Policy Repos
+
+Lists all the policy repositories under a given project.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @return ApiListPolicyReposRequest
+*/
+func (a *PolicyGitRepositoriesApiService) ListPolicyRepos(ctx context.Context, projId string) ApiListPolicyReposRequest {
+	return ApiListPolicyReposRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+	}
+}
+
+// Execute executes the request
+//  @return []PolicyRepoRead
+func (a *PolicyGitRepositoriesApiService) ListPolicyReposExecute(r ApiListPolicyReposRequest) ([]models.PolicyRepoRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue []models.PolicyRepoRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyGitRepositoriesApiService.ListPolicyRepos")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/projects/{proj_id}/repos"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
 	if r.page != nil {
 		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
 	}
@@ -482,277 +804,6 @@ func (a *ResourcesApiService) ListResourcesExecute(r ApiListResourcesRequest) ([
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiReplaceResourceRequest struct {
-	ctx             context.Context
-	ApiService      *ResourcesApiService
-	projId          string
-	envId           string
-	resourceId      string
-	resourceReplace *models.ResourceReplace
-}
-
-func (r ApiReplaceResourceRequest) ResourceReplace(resourceReplace models.ResourceReplace) ApiReplaceResourceRequest {
-	r.resourceReplace = &resourceReplace
-	return r
-}
-
-func (r ApiReplaceResourceRequest) Execute() (*models.ResourceRead, *http.Response, error) {
-	return r.ApiService.ReplaceResourceExecute(r)
-}
-
-/*
-ReplaceResource Replace Resource
-
-Completely replaces the resource definition.
-
-- If the resource key is changed, all role and permissions assignments for the the resource will be revoked.
-- If the resource key is unchanged, but some actions are removed or renamed from the resource definition,
-role and permissions assignments for these actions will be revoked.
-
-TODO: we need to decide if we are auto-revoking, or if we are rejecting the PUT completely while there are permissions that can be affected.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiReplaceResourceRequest
-*/
-func (a *ResourcesApiService) ReplaceResource(ctx context.Context, projId string, envId string, resourceId string) ApiReplaceResourceRequest {
-	return ApiReplaceResourceRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		resourceId: resourceId,
-	}
-}
-
-// Execute executes the request
-//  @return ResourceRead
-func (a *ResourcesApiService) ReplaceResourceExecute(r ApiReplaceResourceRequest) (*models.ResourceRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPut
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.ResourceRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.ReplaceResource")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.resourceReplace == nil {
-		return localVarReturnValue, nil, reportError("resourceReplace is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.resourceReplace
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUpdateResourceRequest struct {
-	ctx            context.Context
-	ApiService     *ResourcesApiService
-	projId         string
-	envId          string
-	resourceId     string
-	resourceUpdate *models.ResourceUpdate
-}
-
-func (r ApiUpdateResourceRequest) ResourceUpdate(resourceUpdate models.ResourceUpdate) ApiUpdateResourceRequest {
-	r.resourceUpdate = &resourceUpdate
-	return r
-}
-
-func (r ApiUpdateResourceRequest) Execute() (*models.ResourceRead, *http.Response, error) {
-	return r.ApiService.UpdateResourceExecute(r)
-}
-
-/*
-UpdateResource Update Resource
-
-Partially updates the resource definition.
-Fields that will be provided will be completely overwritten.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiUpdateResourceRequest
-*/
-func (a *ResourcesApiService) UpdateResource(ctx context.Context, projId string, envId string, resourceId string) ApiUpdateResourceRequest {
-	return ApiUpdateResourceRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		resourceId: resourceId,
-	}
-}
-
-// Execute executes the request
-//  @return ResourceRead
-func (a *ResourcesApiService) UpdateResourceExecute(r ApiUpdateResourceRequest) (*models.ResourceRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPatch
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.ResourceRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourcesApiService.UpdateResource")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.resourceUpdate == nil {
-		return localVarReturnValue, nil, reportError("resourceUpdate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.resourceUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

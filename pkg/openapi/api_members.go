@@ -13,53 +13,63 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
-// DefaultApiService DefaultApi service
-type DefaultApiService service
+// MembersApiService MembersApi service
+type MembersApiService service
 
-type ApiDummyRequest struct {
+type ApiDeleteOrganizationMemberRequest struct {
 	ctx        context.Context
-	ApiService *DefaultApiService
+	ApiService *MembersApiService
+	memberId   string
 }
 
-func (r ApiDummyRequest) Execute() (interface{}, *http.Response, error) {
-	return r.ApiService.DummyExecute(r)
+func (r ApiDeleteOrganizationMemberRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteOrganizationMemberExecute(r)
 }
 
 /*
-Dummy Dummy
+DeleteOrganizationMember Delete Organization Member
+
+Deletes an account member matching the given id or email address.
+The member will be removed from the active account in permit.io.
+
+If the member is the only member in its account (organization), returns 400 (bad request),
+due to nobody remains with access to the account, meaning deletion of the entire account (org).
+To completely remove an account, call DELETE `/orgs/{org}`.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiDummyRequest
+ @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
+ @return ApiDeleteOrganizationMemberRequest
 */
-func (a *DefaultApiService) Dummy(ctx context.Context) ApiDummyRequest {
-	return ApiDummyRequest{
+func (a *MembersApiService) DeleteOrganizationMember(ctx context.Context, memberId string) ApiDeleteOrganizationMemberRequest {
+	return ApiDeleteOrganizationMemberRequest{
 		ApiService: a,
 		ctx:        ctx,
+		memberId:   memberId,
 	}
 }
 
 // Execute executes the request
-//  @return interface{}
-func (a *DefaultApiService) DummyExecute(r ApiDummyRequest) (interface{}, *http.Response, error) {
+func (a *MembersApiService) DeleteOrganizationMemberExecute(r ApiDeleteOrganizationMemberRequest) (*http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue interface{}
+		localVarHTTPMethod = http.MethodDelete
+		localVarPostBody   interface{}
+		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DefaultApiService.Dummy")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.DeleteOrganizationMember")
 	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/stress/dummy"
+	localVarPath := localBasePath + "/v2/members/{member_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"member_id"+"}", url.PathEscape(parameterToString(r.memberId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -84,19 +94,19 @@ func (a *DefaultApiService) DummyExecute(r ApiDummyRequest) (interface{}, *http.
 	}
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return localVarReturnValue, nil, err
+		return nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
+		return localVarHTTPResponse, err
 	}
 
 	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
+		return localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -104,253 +114,62 @@ func (a *DefaultApiService) DummyExecute(r ApiDummyRequest) (interface{}, *http.
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
 		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
+		return localVarHTTPResponse, newErr
 	}
 
-	return localVarReturnValue, localVarHTTPResponse, nil
+	return localVarHTTPResponse, nil
 }
 
-type ApiDummyDbRequest struct {
+type ApiGetAuthenticatedMemberRequest struct {
 	ctx        context.Context
-	ApiService *DefaultApiService
+	ApiService *MembersApiService
 }
 
-func (r ApiDummyDbRequest) Execute() (interface{}, *http.Response, error) {
-	return r.ApiService.DummyDbExecute(r)
+func (r ApiGetAuthenticatedMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
+	return r.ApiService.GetAuthenticatedMemberExecute(r)
 }
 
 /*
-DummyDb Dummy Db
+GetAuthenticatedMember Get the authenticated account member
+
+Gets the authenticated account member's details.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiDummyDbRequest
+ @return ApiGetAuthenticatedMemberRequest
 */
-func (a *DefaultApiService) DummyDb(ctx context.Context) ApiDummyDbRequest {
-	return ApiDummyDbRequest{
+func (a *MembersApiService) GetAuthenticatedMember(ctx context.Context) ApiGetAuthenticatedMemberRequest {
+	return ApiGetAuthenticatedMemberRequest{
 		ApiService: a,
 		ctx:        ctx,
 	}
 }
 
 // Execute executes the request
-//  @return interface{}
-func (a *DefaultApiService) DummyDbExecute(r ApiDummyDbRequest) (interface{}, *http.Response, error) {
+//  @return OrgMemberRead
+func (a *MembersApiService) GetAuthenticatedMemberExecute(r ApiGetAuthenticatedMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue interface{}
+		localVarReturnValue *models.OrgMemberRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DefaultApiService.DummyDb")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.GetAuthenticatedMember")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/stress/db/dummy"
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiGetOrganizationV2StressDbOrganizationGetRequest struct {
-	ctx        context.Context
-	ApiService *DefaultApiService
-}
-
-func (r ApiGetOrganizationV2StressDbOrganizationGetRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
-	return r.ApiService.GetOrganizationV2StressDbOrganizationGetExecute(r)
-}
-
-/*
-GetOrganizationV2StressDbOrganizationGet Get Organization
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetOrganizationV2StressDbOrganizationGetRequest
-*/
-func (a *DefaultApiService) GetOrganizationV2StressDbOrganizationGet(ctx context.Context) ApiGetOrganizationV2StressDbOrganizationGetRequest {
-	return ApiGetOrganizationV2StressDbOrganizationGetRequest{
-		ApiService: a,
-		ctx:        ctx,
-	}
-}
-
-// Execute executes the request
-//  @return OrganizationRead
-func (a *DefaultApiService) GetOrganizationV2StressDbOrganizationGetExecute(r ApiGetOrganizationV2StressDbOrganizationGetRequest) (*models.OrganizationRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.OrganizationRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DefaultApiService.GetOrganizationV2StressDbOrganizationGet")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/stress/db/organization"
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiGetOrganizationWithAuthnRequest struct {
-	ctx        context.Context
-	ApiService *DefaultApiService
-}
-
-func (r ApiGetOrganizationWithAuthnRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
-	return r.ApiService.GetOrganizationWithAuthnExecute(r)
-}
-
-/*
-GetOrganizationWithAuthn Get Organization With Authn
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetOrganizationWithAuthnRequest
-*/
-func (a *DefaultApiService) GetOrganizationWithAuthn(ctx context.Context) ApiGetOrganizationWithAuthnRequest {
-	return ApiGetOrganizationWithAuthnRequest{
-		ApiService: a,
-		ctx:        ctx,
-	}
-}
-
-// Execute executes the request
-//  @return OrganizationRead
-func (a *DefaultApiService) GetOrganizationWithAuthnExecute(r ApiGetOrganizationWithAuthnRequest) (*models.OrganizationRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.OrganizationRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DefaultApiService.GetOrganizationWithAuthn")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/stress/db/organization_auth"
+	localVarPath := localBasePath + "/v2/members/me"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -420,44 +239,51 @@ func (a *DefaultApiService) GetOrganizationWithAuthnExecute(r ApiGetOrganization
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiGetOrganizationWithAuthzRequest struct {
+type ApiGetOrganizationMemberRequest struct {
 	ctx        context.Context
-	ApiService *DefaultApiService
+	ApiService *MembersApiService
+	memberId   string
 }
 
-func (r ApiGetOrganizationWithAuthzRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
-	return r.ApiService.GetOrganizationWithAuthzExecute(r)
+func (r ApiGetOrganizationMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
+	return r.ApiService.GetOrganizationMemberExecute(r)
 }
 
 /*
-GetOrganizationWithAuthz Get Organization With Authz
+GetOrganizationMember Get Organization Member
+
+Gets a single account member by its id or email address. matching the given member,
+if no such member exists under the current active account (organization), returns 404.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetOrganizationWithAuthzRequest
+ @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
+ @return ApiGetOrganizationMemberRequest
 */
-func (a *DefaultApiService) GetOrganizationWithAuthz(ctx context.Context) ApiGetOrganizationWithAuthzRequest {
-	return ApiGetOrganizationWithAuthzRequest{
+func (a *MembersApiService) GetOrganizationMember(ctx context.Context, memberId string) ApiGetOrganizationMemberRequest {
+	return ApiGetOrganizationMemberRequest{
 		ApiService: a,
 		ctx:        ctx,
+		memberId:   memberId,
 	}
 }
 
 // Execute executes the request
-//  @return OrganizationRead
-func (a *DefaultApiService) GetOrganizationWithAuthzExecute(r ApiGetOrganizationWithAuthzRequest) (*models.OrganizationRead, *http.Response, error) {
+//  @return OrgMemberRead
+func (a *MembersApiService) GetOrganizationMemberExecute(r ApiGetOrganizationMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.OrganizationRead
+		localVarReturnValue *models.OrgMemberRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "DefaultApiService.GetOrganizationWithAuthz")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.GetOrganizationMember")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/stress/db/organization_authz"
+	localVarPath := localBasePath + "/v2/members/{member_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"member_id"+"}", url.PathEscape(parameterToString(r.memberId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -480,6 +306,260 @@ func (a *DefaultApiService) GetOrganizationWithAuthzExecute(r ApiGetOrganization
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiListOrganizationMembersRequest struct {
+	ctx        context.Context
+	ApiService *MembersApiService
+	page       *int32
+	perPage    *int32
+}
+
+// Page number of the results to fetch, starting at 1.
+func (r ApiListOrganizationMembersRequest) Page(page int32) ApiListOrganizationMembersRequest {
+	r.page = &page
+	return r
+}
+
+// The number of results per page (max 100).
+func (r ApiListOrganizationMembersRequest) PerPage(perPage int32) ApiListOrganizationMembersRequest {
+	r.perPage = &perPage
+	return r
+}
+
+func (r ApiListOrganizationMembersRequest) Execute() ([]models.OrgMemberRead, *http.Response, error) {
+	return r.ApiService.ListOrganizationMembersExecute(r)
+}
+
+/*
+ListOrganizationMembers List Organization Members
+
+Lists all the account members that have access to the current active account.
+The active account/organization is determined by the API Key used or by the authenticated session id.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiListOrganizationMembersRequest
+*/
+func (a *MembersApiService) ListOrganizationMembers(ctx context.Context) ApiListOrganizationMembersRequest {
+	return ApiListOrganizationMembersRequest{
+		ApiService: a,
+		ctx:        ctx,
+	}
+}
+
+// Execute executes the request
+//  @return []OrgMemberRead
+func (a *MembersApiService) ListOrganizationMembersExecute(r ApiListOrganizationMembersRequest) ([]models.OrgMemberRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue []models.OrgMemberRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.ListOrganizationMembers")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/members"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.page != nil {
+		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
+	}
+	if r.perPage != nil {
+		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiUpdateOrganizationMemberRequest struct {
+	ctx             context.Context
+	ApiService      *MembersApiService
+	memberId        string
+	orgMemberUpdate *models.OrgMemberUpdate
+}
+
+func (r ApiUpdateOrganizationMemberRequest) OrgMemberUpdate(orgMemberUpdate models.OrgMemberUpdate) ApiUpdateOrganizationMemberRequest {
+	r.orgMemberUpdate = &orgMemberUpdate
+	return r
+}
+
+func (r ApiUpdateOrganizationMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
+	return r.ApiService.UpdateOrganizationMemberExecute(r)
+}
+
+/*
+UpdateOrganizationMember Update Organization Member
+
+Updates an account member's settings.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
+ @return ApiUpdateOrganizationMemberRequest
+*/
+func (a *MembersApiService) UpdateOrganizationMember(ctx context.Context, memberId string) ApiUpdateOrganizationMemberRequest {
+	return ApiUpdateOrganizationMemberRequest{
+		ApiService: a,
+		ctx:        ctx,
+		memberId:   memberId,
+	}
+}
+
+// Execute executes the request
+//  @return OrgMemberRead
+func (a *MembersApiService) UpdateOrganizationMemberExecute(r ApiUpdateOrganizationMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPatch
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.OrgMemberRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.UpdateOrganizationMember")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/members/{member_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"member_id"+"}", url.PathEscape(parameterToString(r.memberId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.orgMemberUpdate == nil {
+		return localVarReturnValue, nil, reportError("orgMemberUpdate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.orgMemberUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

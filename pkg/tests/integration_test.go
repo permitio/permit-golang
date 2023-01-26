@@ -2,10 +2,10 @@ package tests
 
 import (
 	"context"
-	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/enforcement"
 	"github.com/permitio/permit-golang/pkg/errors"
+	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/permit"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"

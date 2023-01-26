@@ -13,86 +13,94 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// UsersApiService UsersApi service
-type UsersApiService service
+// ResourceRolesApiService ResourceRolesApi service
+type ResourceRolesApiService service
 
-type ApiAssignRoleToUserRequest struct {
-	ctx            context.Context
-	ApiService     *UsersApiService
-	projId         string
-	envId          string
-	userId         string
-	userRoleCreate *models.UserRoleCreate
+type ApiAddParentResourceRoleRequest struct {
+	ctx          context.Context
+	ApiService   *ResourceRolesApiService
+	projId       string
+	envId        string
+	resourceId   string
+	roleId       string
+	parentRoleId string
 }
 
-func (r ApiAssignRoleToUserRequest) UserRoleCreate(userRoleCreate models.UserRoleCreate) ApiAssignRoleToUserRequest {
-	r.userRoleCreate = &userRoleCreate
-	return r
-}
-
-func (r ApiAssignRoleToUserRequest) Execute() (*models.RoleAssignmentRead, *http.Response, error) {
-	return r.ApiService.AssignRoleToUserExecute(r)
+func (r ApiAddParentResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
+	return r.ApiService.AddParentResourceRoleExecute(r)
 }
 
 /*
-AssignRoleToUser Assign Role To User
+AddParentResourceRole Add Parent Role
 
-Assigns a role to the user within the tenant.
+This endpoint is part of the role hierarchy feature.
 
-The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
+Makes role with id `role_id` extend the role with id `parent_role_id`.
+In other words, `role_id` will automatically be assigned any permissions
+that are granted to `parent_role_id`.
+
+We can say the `role_id` **extends** `parent_role_id` or **inherits** from `parent_role_id`.
+
+If `role_id` is already an ancestor of `parent_role_id`,
+the request will fail with HTTP 400 to prevent a cycle in the role hierarchy.
+
+Both roles must be defined on the same resource, identified by id `resource_id`.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiAssignRoleToUserRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
+ @return ApiAddParentResourceRoleRequest
 */
-func (a *UsersApiService) AssignRoleToUser(ctx context.Context, projId string, envId string, userId string) ApiAssignRoleToUserRequest {
-	return ApiAssignRoleToUserRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		userId:     userId,
+func (a *ResourceRolesApiService) AddParentResourceRole(ctx context.Context, projId string, envId string, resourceId string, roleId string, parentRoleId string) ApiAddParentResourceRoleRequest {
+	return ApiAddParentResourceRoleRequest{
+		ApiService:   a,
+		ctx:          ctx,
+		projId:       projId,
+		envId:        envId,
+		resourceId:   resourceId,
+		roleId:       roleId,
+		parentRoleId: parentRoleId,
 	}
 }
 
 // Execute executes the request
-//  @return RoleAssignmentRead
-func (a *UsersApiService) AssignRoleToUserExecute(r ApiAssignRoleToUserRequest) (*models.RoleAssignmentRead, *http.Response, error) {
+//  @return ResourceRoleRead
+func (a *ResourceRolesApiService) AddParentResourceRoleExecute(r ApiAddParentResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodPost
+		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.RoleAssignmentRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.AssignRoleToUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.AddParentResourceRole")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/parents/{parent_role_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"parent_role_id"+"}", url.PathEscape(parameterToString(r.parentRoleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.userRoleCreate == nil {
-		return localVarReturnValue, nil, reportError("userRoleCreate is required and must be specified")
-	}
 
 	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
+	localVarHTTPContentTypes := []string{}
 
 	// set Content-Type header
 	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
@@ -108,8 +116,6 @@ func (a *UsersApiService) AssignRoleToUserExecute(r ApiAssignRoleToUserRequest) 
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
-	// body params
-	localVarPostBody = r.userRoleCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -157,70 +163,76 @@ func (a *UsersApiService) AssignRoleToUserExecute(r ApiAssignRoleToUserRequest) 
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiCreateUserRequest struct {
-	ctx        context.Context
-	ApiService *UsersApiService
-	projId     string
-	envId      string
-	userCreate *models.UserCreate
+type ApiAssignPermissionsToResourceRoleRequest struct {
+	ctx                context.Context
+	ApiService         *ResourceRolesApiService
+	projId             string
+	envId              string
+	resourceId         string
+	roleId             string
+	addRolePermissions *models.AddRolePermissions
 }
 
-func (r ApiCreateUserRequest) UserCreate(userCreate models.UserCreate) ApiCreateUserRequest {
-	r.userCreate = &userCreate
+func (r ApiAssignPermissionsToResourceRoleRequest) AddRolePermissions(addRolePermissions models.AddRolePermissions) ApiAssignPermissionsToResourceRoleRequest {
+	r.addRolePermissions = &addRolePermissions
 	return r
 }
 
-func (r ApiCreateUserRequest) Execute() (*models.UserRead, *http.Response, error) {
-	return r.ApiService.CreateUserExecute(r)
+func (r ApiAssignPermissionsToResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
+	return r.ApiService.AssignPermissionsToResourceRoleExecute(r)
 }
 
 /*
-CreateUser Create User
+AssignPermissionsToResourceRole Assign Permissions to Role
 
-Creates a new user inside the Permit.io system, from that point forward
-you may run permission checks on that user.
+Assign permissions to role.
 
-If the user is already created: will return 200 instead of 201,
-and will return the existing user object in the response body.
+If some of the permissions specified are already unassigned, will skip them.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateUserRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiAssignPermissionsToResourceRoleRequest
 */
-func (a *UsersApiService) CreateUser(ctx context.Context, projId string, envId string) ApiCreateUserRequest {
-	return ApiCreateUserRequest{
+func (a *ResourceRolesApiService) AssignPermissionsToResourceRole(ctx context.Context, projId string, envId string, resourceId string, roleId string) ApiAssignPermissionsToResourceRoleRequest {
+	return ApiAssignPermissionsToResourceRoleRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
+		resourceId: resourceId,
+		roleId:     roleId,
 	}
 }
 
 // Execute executes the request
-//  @return UserRead
-func (a *UsersApiService) CreateUserExecute(r ApiCreateUserRequest) (*models.UserRead, *http.Response, error) {
+//  @return ResourceRoleRead
+func (a *ResourceRolesApiService) AssignPermissionsToResourceRoleExecute(r ApiAssignPermissionsToResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.UserRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.CreateUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.AssignPermissionsToResourceRole")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.userCreate == nil {
-		return localVarReturnValue, nil, reportError("userCreate is required and must be specified")
+	if r.addRolePermissions == nil {
+		return localVarReturnValue, nil, reportError("addRolePermissions is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -241,7 +253,7 @@ func (a *UsersApiService) CreateUserExecute(r ApiCreateUserRequest) (*models.Use
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.userCreate
+	localVarPostBody = r.addRolePermissions
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -289,56 +301,193 @@ func (a *UsersApiService) CreateUserExecute(r ApiCreateUserRequest) (*models.Use
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteUserRequest struct {
-	ctx        context.Context
-	ApiService *UsersApiService
-	projId     string
-	envId      string
-	userId     string
+type ApiCreateResourceRoleRequest struct {
+	ctx                context.Context
+	ApiService         *ResourceRolesApiService
+	projId             string
+	envId              string
+	resourceId         string
+	resourceRoleCreate *models.ResourceRoleCreate
 }
 
-func (r ApiDeleteUserRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteUserExecute(r)
+func (r ApiCreateResourceRoleRequest) ResourceRoleCreate(resourceRoleCreate models.ResourceRoleCreate) ApiCreateResourceRoleRequest {
+	r.resourceRoleCreate = &resourceRoleCreate
+	return r
+}
+
+func (r ApiCreateResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
+	return r.ApiService.CreateResourceRoleExecute(r)
 }
 
 /*
-DeleteUser Delete User
+CreateResourceRole Create Resource Role
 
-Deletes the user and all its related data.
+Creates a new role associated with the resource.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiDeleteUserRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiCreateResourceRoleRequest
 */
-func (a *UsersApiService) DeleteUser(ctx context.Context, projId string, envId string, userId string) ApiDeleteUserRequest {
-	return ApiDeleteUserRequest{
+func (a *ResourceRolesApiService) CreateResourceRole(ctx context.Context, projId string, envId string, resourceId string) ApiCreateResourceRoleRequest {
+	return ApiCreateResourceRoleRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		userId:     userId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-func (a *UsersApiService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Response, error) {
+//  @return ResourceRoleRead
+func (a *ResourceRolesApiService) CreateResourceRoleExecute(r ApiCreateResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.ResourceRoleRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.CreateResourceRole")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.resourceRoleCreate == nil {
+		return localVarReturnValue, nil, reportError("resourceRoleCreate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.resourceRoleCreate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiDeleteResourceRoleRequest struct {
+	ctx        context.Context
+	ApiService *ResourceRolesApiService
+	projId     string
+	envId      string
+	resourceId string
+	roleId     string
+}
+
+func (r ApiDeleteResourceRoleRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteResourceRoleExecute(r)
+}
+
+/*
+DeleteResourceRole Delete Resource Role
+
+Deletes the role and all its related data.
+This includes any permissions granted to said role.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiDeleteResourceRoleRequest
+*/
+func (a *ResourceRolesApiService) DeleteResourceRole(ctx context.Context, projId string, envId string, resourceId string, roleId string) ApiDeleteResourceRoleRequest {
+	return ApiDeleteResourceRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		resourceId: resourceId,
+		roleId:     roleId,
+	}
+}
+
+// Execute executes the request
+func (a *ResourceRolesApiService) DeleteResourceRoleExecute(r ApiDeleteResourceRoleRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.DeleteUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.DeleteResourceRole")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -399,58 +548,62 @@ func (a *UsersApiService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetUserRequest struct {
+type ApiGetResourceRoleRequest struct {
 	ctx        context.Context
-	ApiService *UsersApiService
+	ApiService *ResourceRolesApiService
 	projId     string
 	envId      string
-	userId     string
+	resourceId string
+	roleId     string
 }
 
-func (r ApiGetUserRequest) Execute() (*models.UserRead, *http.Response, error) {
-	return r.ApiService.GetUserExecute(r)
+func (r ApiGetResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
+	return r.ApiService.GetResourceRoleExecute(r)
 }
 
 /*
-GetUser Get User
+GetResourceRole Get Resource Role
 
-Gets a user, if such user exists. Otherwise returns 404.
+Gets a single role defined on the resource, if such role exists.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiGetUserRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiGetResourceRoleRequest
 */
-func (a *UsersApiService) GetUser(ctx context.Context, projId string, envId string, userId string) ApiGetUserRequest {
-	return ApiGetUserRequest{
+func (a *ResourceRolesApiService) GetResourceRole(ctx context.Context, projId string, envId string, resourceId string, roleId string) ApiGetResourceRoleRequest {
+	return ApiGetResourceRoleRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		userId:     userId,
+		resourceId: resourceId,
+		roleId:     roleId,
 	}
 }
 
 // Execute executes the request
-//  @return UserRead
-func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (*models.UserRead, *http.Response, error) {
+//  @return ResourceRoleRead
+func (a *ResourceRolesApiService) GetResourceRoleExecute(r ApiGetResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.UserRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.GetUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.GetResourceRole")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -520,83 +673,77 @@ func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (*models.UserRead,
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListUsersRequest struct {
+type ApiListResourceRolesRequest struct {
 	ctx        context.Context
-	ApiService *UsersApiService
+	ApiService *ResourceRolesApiService
 	projId     string
 	envId      string
-	search     *string
+	resourceId string
 	page       *int32
 	perPage    *int32
 }
 
-// Text search for the email field
-func (r ApiListUsersRequest) Search(search string) ApiListUsersRequest {
-	r.search = &search
-	return r
-}
-
 // Page number of the results to fetch, starting at 1.
-func (r ApiListUsersRequest) Page(page int32) ApiListUsersRequest {
+func (r ApiListResourceRolesRequest) Page(page int32) ApiListResourceRolesRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListUsersRequest) PerPage(perPage int32) ApiListUsersRequest {
+func (r ApiListResourceRolesRequest) PerPage(perPage int32) ApiListResourceRolesRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListUsersRequest) Execute() (*models.PaginatedResultUserRead, *http.Response, error) {
-	return r.ApiService.ListUsersExecute(r)
+func (r ApiListResourceRolesRequest) Execute() ([]models.ResourceRoleRead, *http.Response, error) {
+	return r.ApiService.ListResourceRolesExecute(r)
 }
 
 /*
-ListUsers List Users
+ListResourceRoles List Resource Roles
 
-Lists all the users defined within an environment.
+Lists all the roles defined on the resource.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListUsersRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiListResourceRolesRequest
 */
-func (a *UsersApiService) ListUsers(ctx context.Context, projId string, envId string) ApiListUsersRequest {
-	return ApiListUsersRequest{
+func (a *ResourceRolesApiService) ListResourceRoles(ctx context.Context, projId string, envId string, resourceId string) ApiListResourceRolesRequest {
+	return ApiListResourceRolesRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return PaginatedResultUserRead
-func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
+//  @return []ResourceRoleRead
+func (a *ResourceRolesApiService) ListResourceRolesExecute(r ApiListResourceRolesRequest) ([]models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.PaginatedResultUserRead
+		localVarReturnValue []models.ResourceRoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.ListUsers")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.ListResourceRoles")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.search != nil {
-		localVarQueryParams.Add("search", parameterToString(*r.search, ""))
-	}
 	if r.page != nil {
 		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
 	}
@@ -667,208 +814,81 @@ func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) (*models.Pagin
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiReplaceUserRequest struct {
-	ctx        context.Context
-	ApiService *UsersApiService
-	projId     string
-	envId      string
-	userId     string
-	userCreate *models.UserCreate
+type ApiRemoveParentResourceRoleRequest struct {
+	ctx          context.Context
+	ApiService   *ResourceRolesApiService
+	projId       string
+	envId        string
+	resourceId   string
+	roleId       string
+	parentRoleId string
 }
 
-func (r ApiReplaceUserRequest) UserCreate(userCreate models.UserCreate) ApiReplaceUserRequest {
-	r.userCreate = &userCreate
-	return r
-}
-
-func (r ApiReplaceUserRequest) Execute() (*models.UserRead, *http.Response, error) {
-	return r.ApiService.ReplaceUserExecute(r)
+func (r ApiRemoveParentResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
+	return r.ApiService.RemoveParentResourceRoleExecute(r)
 }
 
 /*
-ReplaceUser Replace User
+RemoveParentResourceRole Remove Parent Role
+
+This endpoint is part of the role hierarchy feature.
+
+Removes `parent_role_id` from the list of parent roles of role with id `role_id`.
+In other words, `role_id` will no longer be automatically assigned permissions
+that are granted to `parent_role_id`.
+
+We can say the `role_id` **not longer extends** `parent_role_id` or **no longer inherits** from `parent_role_id`.
+
+Both roles must be defined on the same resource, identified by id `resource_id`.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiReplaceUserRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
+ @return ApiRemoveParentResourceRoleRequest
 */
-func (a *UsersApiService) ReplaceUser(ctx context.Context, projId string, envId string, userId string) ApiReplaceUserRequest {
-	return ApiReplaceUserRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		userId:     userId,
+func (a *ResourceRolesApiService) RemoveParentResourceRole(ctx context.Context, projId string, envId string, resourceId string, roleId string, parentRoleId string) ApiRemoveParentResourceRoleRequest {
+	return ApiRemoveParentResourceRoleRequest{
+		ApiService:   a,
+		ctx:          ctx,
+		projId:       projId,
+		envId:        envId,
+		resourceId:   resourceId,
+		roleId:       roleId,
+		parentRoleId: parentRoleId,
 	}
 }
 
 // Execute executes the request
-//  @return UserRead
-func (a *UsersApiService) ReplaceUserExecute(r ApiReplaceUserRequest) (*models.UserRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPut
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.UserRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.ReplaceUser")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.userCreate == nil {
-		return localVarReturnValue, nil, reportError("userCreate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.userCreate
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUnassignRoleFromUserRequest struct {
-	ctx            context.Context
-	ApiService     *UsersApiService
-	projId         string
-	envId          string
-	userId         string
-	userRoleRemove *models.UserRoleRemove
-}
-
-func (r ApiUnassignRoleFromUserRequest) UserRoleRemove(userRoleRemove models.UserRoleRemove) ApiUnassignRoleFromUserRequest {
-	r.userRoleRemove = &userRoleRemove
-	return r
-}
-
-func (r ApiUnassignRoleFromUserRequest) Execute() (*models.UserRead, *http.Response, error) {
-	return r.ApiService.UnassignRoleFromUserExecute(r)
-}
-
-/*
-UnassignRoleFromUser Unassign Role From User
-
-Unassigns the role from the user within the tenant.
-
-The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
-
-If the role is not actually assigned, will return 404.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiUnassignRoleFromUserRequest
-*/
-func (a *UsersApiService) UnassignRoleFromUser(ctx context.Context, projId string, envId string, userId string) ApiUnassignRoleFromUserRequest {
-	return ApiUnassignRoleFromUserRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		userId:     userId,
-	}
-}
-
-// Execute executes the request
-//  @return UserRead
-func (a *UsersApiService) UnassignRoleFromUserExecute(r ApiUnassignRoleFromUserRequest) (*models.UserRead, *http.Response, error) {
+//  @return ResourceRoleRead
+func (a *ResourceRolesApiService) RemoveParentResourceRoleExecute(r ApiRemoveParentResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodDelete
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.UserRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.UnassignRoleFromUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.RemoveParentResourceRole")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/parents/{parent_role_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"parent_role_id"+"}", url.PathEscape(parameterToString(r.parentRoleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.userRoleRemove == nil {
-		return localVarReturnValue, nil, reportError("userRoleRemove is required and must be specified")
-	}
 
 	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
+	localVarHTTPContentTypes := []string{}
 
 	// set Content-Type header
 	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
@@ -884,8 +904,6 @@ func (a *UsersApiService) UnassignRoleFromUserExecute(r ApiUnassignRoleFromUserR
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
-	// body params
-	localVarPostBody = r.userRoleRemove
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -933,71 +951,213 @@ func (a *UsersApiService) UnassignRoleFromUserExecute(r ApiUnassignRoleFromUserR
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiUpdateUserRequest struct {
-	ctx        context.Context
-	ApiService *UsersApiService
-	projId     string
-	envId      string
-	userId     string
-	userUpdate *models.UserUpdate
+type ApiRemovePermissionsFromResourceRoleRequest struct {
+	ctx                   context.Context
+	ApiService            *ResourceRolesApiService
+	projId                string
+	envId                 string
+	resourceId            string
+	roleId                string
+	removeRolePermissions *models.RemoveRolePermissions
 }
 
-func (r ApiUpdateUserRequest) UserUpdate(userUpdate models.UserUpdate) ApiUpdateUserRequest {
-	r.userUpdate = &userUpdate
+func (r ApiRemovePermissionsFromResourceRoleRequest) RemoveRolePermissions(removeRolePermissions models.RemoveRolePermissions) ApiRemovePermissionsFromResourceRoleRequest {
+	r.removeRolePermissions = &removeRolePermissions
 	return r
 }
 
-func (r ApiUpdateUserRequest) Execute() (*models.UserRead, *http.Response, error) {
-	return r.ApiService.UpdateUserExecute(r)
+func (r ApiRemovePermissionsFromResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
+	return r.ApiService.RemovePermissionsFromResourceRoleExecute(r)
 }
 
 /*
-UpdateUser Update User
+RemovePermissionsFromResourceRole Remove Permissions from Role
 
-Partially updates the user definition.
+Remove permissions from role.
+
+If some of the permissions specified are already unassigned, will skip them.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiRemovePermissionsFromResourceRoleRequest
+*/
+func (a *ResourceRolesApiService) RemovePermissionsFromResourceRole(ctx context.Context, projId string, envId string, resourceId string, roleId string) ApiRemovePermissionsFromResourceRoleRequest {
+	return ApiRemovePermissionsFromResourceRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		resourceId: resourceId,
+		roleId:     roleId,
+	}
+}
+
+// Execute executes the request
+//  @return ResourceRoleRead
+func (a *ResourceRolesApiService) RemovePermissionsFromResourceRoleExecute(r ApiRemovePermissionsFromResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodDelete
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.ResourceRoleRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.RemovePermissionsFromResourceRole")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.removeRolePermissions == nil {
+		return localVarReturnValue, nil, reportError("removeRolePermissions is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.removeRolePermissions
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiUpdateResourceRoleRequest struct {
+	ctx                context.Context
+	ApiService         *ResourceRolesApiService
+	projId             string
+	envId              string
+	resourceId         string
+	roleId             string
+	resourceRoleUpdate *models.ResourceRoleUpdate
+}
+
+func (r ApiUpdateResourceRoleRequest) ResourceRoleUpdate(resourceRoleUpdate models.ResourceRoleUpdate) ApiUpdateResourceRoleRequest {
+	r.resourceRoleUpdate = &resourceRoleUpdate
+	return r
+}
+
+func (r ApiUpdateResourceRoleRequest) Execute() (*models.ResourceRoleRead, *http.Response, error) {
+	return r.ApiService.UpdateResourceRoleExecute(r)
+}
+
+/*
+UpdateResourceRole Update Resource Role
+
+Partially updates the role defined on a resource.
 Fields that will be provided will be completely overwritten.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiUpdateUserRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiUpdateResourceRoleRequest
 */
-func (a *UsersApiService) UpdateUser(ctx context.Context, projId string, envId string, userId string) ApiUpdateUserRequest {
-	return ApiUpdateUserRequest{
+func (a *ResourceRolesApiService) UpdateResourceRole(ctx context.Context, projId string, envId string, resourceId string, roleId string) ApiUpdateResourceRoleRequest {
+	return ApiUpdateResourceRoleRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		userId:     userId,
+		resourceId: resourceId,
+		roleId:     roleId,
 	}
 }
 
 // Execute executes the request
-//  @return UserRead
-func (a *UsersApiService) UpdateUserExecute(r ApiUpdateUserRequest) (*models.UserRead, *http.Response, error) {
+//  @return ResourceRoleRead
+func (a *ResourceRolesApiService) UpdateResourceRoleExecute(r ApiUpdateResourceRoleRequest) (*models.ResourceRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.UserRead
+		localVarReturnValue *models.ResourceRoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.UpdateUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRolesApiService.UpdateResourceRole")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.userUpdate == nil {
-		return localVarReturnValue, nil, reportError("userUpdate is required and must be specified")
+	if r.resourceRoleUpdate == nil {
+		return localVarReturnValue, nil, reportError("resourceRoleUpdate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1018,7 +1178,7 @@ func (a *UsersApiService) UpdateUserExecute(r ApiUpdateUserRequest) (*models.Use
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.userUpdate
+	localVarPostBody = r.resourceRoleUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

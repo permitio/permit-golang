@@ -13,76 +13,80 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// ElementsConfigsApiService ElementsConfigsApi service
-type ElementsConfigsApiService service
+// ResourceActionsApiService ResourceActionsApi service
+type ResourceActionsApiService service
 
-type ApiCreateElementsConfigRequest struct {
+type ApiCreateResourceActionRequest struct {
 	ctx                  context.Context
-	ApiService           *ElementsConfigsApiService
+	ApiService           *ResourceActionsApiService
 	projId               string
 	envId                string
-	elementsConfigCreate *models.ElementsConfigCreate
+	resourceId           string
+	resourceActionCreate *models.ResourceActionCreate
 }
 
-func (r ApiCreateElementsConfigRequest) ElementsConfigCreate(elementsConfigCreate models.ElementsConfigCreate) ApiCreateElementsConfigRequest {
-	r.elementsConfigCreate = &elementsConfigCreate
+func (r ApiCreateResourceActionRequest) ResourceActionCreate(resourceActionCreate models.ResourceActionCreate) ApiCreateResourceActionRequest {
+	r.resourceActionCreate = &resourceActionCreate
 	return r
 }
 
-func (r ApiCreateElementsConfigRequest) Execute() (*models.ElementsConfigRead, *http.Response, error) {
-	return r.ApiService.CreateElementsConfigExecute(r)
+func (r ApiCreateResourceActionRequest) Execute() (*models.ResourceActionRead, *http.Response, error) {
+	return r.ApiService.CreateResourceActionExecute(r)
 }
 
 /*
-CreateElementsConfig Create Elements Config
+CreateResourceAction Create Resource Action
 
-Creates a new elements_config under the active organization.
+Creates a new action that can affect the resource.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateElementsConfigRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiCreateResourceActionRequest
 */
-func (a *ElementsConfigsApiService) CreateElementsConfig(ctx context.Context, projId string, envId string) ApiCreateElementsConfigRequest {
-	return ApiCreateElementsConfigRequest{
+func (a *ResourceActionsApiService) CreateResourceAction(ctx context.Context, projId string, envId string, resourceId string) ApiCreateResourceActionRequest {
+	return ApiCreateResourceActionRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return ElementsConfigRead
-func (a *ElementsConfigsApiService) CreateElementsConfigExecute(r ApiCreateElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
+//  @return ResourceActionRead
+func (a *ResourceActionsApiService) CreateResourceActionExecute(r ApiCreateResourceActionRequest) (*models.ResourceActionRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ElementsConfigRead
+		localVarReturnValue *models.ResourceActionRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.CreateElementsConfig")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionsApiService.CreateResourceAction")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.elementsConfigCreate == nil {
-		return localVarReturnValue, nil, reportError("elementsConfigCreate is required and must be specified")
+	if r.resourceActionCreate == nil {
+		return localVarReturnValue, nil, reportError("resourceActionCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -103,7 +107,7 @@ func (a *ElementsConfigsApiService) CreateElementsConfigExecute(r ApiCreateEleme
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.elementsConfigCreate
+	localVarPostBody = r.resourceActionCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -151,56 +155,61 @@ func (a *ElementsConfigsApiService) CreateElementsConfigExecute(r ApiCreateEleme
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteElementsConfigRequest struct {
-	ctx              context.Context
-	ApiService       *ElementsConfigsApiService
-	elementsConfigId string
-	projId           string
-	envId            string
+type ApiDeleteResourceActionRequest struct {
+	ctx        context.Context
+	ApiService *ResourceActionsApiService
+	projId     string
+	envId      string
+	resourceId string
+	actionId   string
 }
 
-func (r ApiDeleteElementsConfigRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteElementsConfigExecute(r)
+func (r ApiDeleteResourceActionRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteResourceActionExecute(r)
 }
 
 /*
-DeleteElementsConfig Delete Elements Config
+DeleteResourceAction Delete Resource Action
 
-Deletes the elements_config and all its related data.
+Deletes the action and all its related data.
+This includes any permissions granted to perform the action.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiDeleteElementsConfigRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
+ @return ApiDeleteResourceActionRequest
 */
-func (a *ElementsConfigsApiService) DeleteElementsConfig(ctx context.Context, elementsConfigId string, projId string, envId string) ApiDeleteElementsConfigRequest {
-	return ApiDeleteElementsConfigRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		elementsConfigId: elementsConfigId,
-		projId:           projId,
-		envId:            envId,
+func (a *ResourceActionsApiService) DeleteResourceAction(ctx context.Context, projId string, envId string, resourceId string, actionId string) ApiDeleteResourceActionRequest {
+	return ApiDeleteResourceActionRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		resourceId: resourceId,
+		actionId:   actionId,
 	}
 }
 
 // Execute executes the request
-func (a *ElementsConfigsApiService) DeleteElementsConfigExecute(r ApiDeleteElementsConfigRequest) (*http.Response, error) {
+func (a *ResourceActionsApiService) DeleteResourceActionExecute(r ApiDeleteResourceActionRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.DeleteElementsConfig")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionsApiService.DeleteResourceAction")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/{elements_config_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"action_id"+"}", url.PathEscape(parameterToString(r.actionId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -261,173 +270,62 @@ func (a *ElementsConfigsApiService) DeleteElementsConfigExecute(r ApiDeleteEleme
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetElementsConfigRequest struct {
-	ctx              context.Context
-	ApiService       *ElementsConfigsApiService
-	projId           string
-	envId            string
-	elementsConfigId string
-}
-
-func (r ApiGetElementsConfigRequest) Execute() (*models.ElementsConfigRead, *http.Response, error) {
-	return r.ApiService.GetElementsConfigExecute(r)
-}
-
-/*
-GetElementsConfig Get Elements Config
-
-Gets a single elements_config matching the given elements_config_id, if such elements_config exists.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @return ApiGetElementsConfigRequest
-*/
-func (a *ElementsConfigsApiService) GetElementsConfig(ctx context.Context, projId string, envId string, elementsConfigId string) ApiGetElementsConfigRequest {
-	return ApiGetElementsConfigRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		projId:           projId,
-		envId:            envId,
-		elementsConfigId: elementsConfigId,
-	}
-}
-
-// Execute executes the request
-//  @return ElementsConfigRead
-func (a *ElementsConfigsApiService) GetElementsConfigExecute(r ApiGetElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.ElementsConfigRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.GetElementsConfig")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiGetEnvConfigRequest struct {
+type ApiGetResourceActionRequest struct {
 	ctx        context.Context
-	ApiService *ElementsConfigsApiService
+	ApiService *ResourceActionsApiService
 	projId     string
 	envId      string
+	resourceId string
+	actionId   string
 }
 
-func (r ApiGetEnvConfigRequest) Execute() (*models.ElementsEnvRead, *http.Response, error) {
-	return r.ApiService.GetEnvConfigExecute(r)
+func (r ApiGetResourceActionRequest) Execute() (*models.ResourceActionRead, *http.Response, error) {
+	return r.ApiService.GetResourceActionExecute(r)
 }
 
 /*
-GetEnvConfig Get Env Config
+GetResourceAction Get Resource Action
+
+Gets a single action defined on the resource, if such action exists.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiGetEnvConfigRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
+ @return ApiGetResourceActionRequest
 */
-func (a *ElementsConfigsApiService) GetEnvConfig(ctx context.Context, projId string, envId string) ApiGetEnvConfigRequest {
-	return ApiGetEnvConfigRequest{
+func (a *ResourceActionsApiService) GetResourceAction(ctx context.Context, projId string, envId string, resourceId string, actionId string) ApiGetResourceActionRequest {
+	return ApiGetResourceActionRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
+		resourceId: resourceId,
+		actionId:   actionId,
 	}
 }
 
 // Execute executes the request
-//  @return ElementsEnvRead
-func (a *ElementsConfigsApiService) GetEnvConfigExecute(r ApiGetEnvConfigRequest) (*models.ElementsEnvRead, *http.Response, error) {
+//  @return ResourceActionRead
+func (a *ResourceActionsApiService) GetResourceActionExecute(r ApiGetResourceActionRequest) (*models.ResourceActionRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ElementsEnvRead
+		localVarReturnValue *models.ResourceActionRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.GetEnvConfig")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionsApiService.GetResourceAction")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"action_id"+"}", url.PathEscape(parameterToString(r.actionId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -497,68 +395,72 @@ func (a *ElementsConfigsApiService) GetEnvConfigExecute(r ApiGetEnvConfigRequest
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListElementsConfigsRequest struct {
+type ApiListResourceActionsRequest struct {
 	ctx        context.Context
-	ApiService *ElementsConfigsApiService
+	ApiService *ResourceActionsApiService
 	projId     string
 	envId      string
+	resourceId string
 	page       *int32
 	perPage    *int32
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListElementsConfigsRequest) Page(page int32) ApiListElementsConfigsRequest {
+func (r ApiListResourceActionsRequest) Page(page int32) ApiListResourceActionsRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListElementsConfigsRequest) PerPage(perPage int32) ApiListElementsConfigsRequest {
+func (r ApiListResourceActionsRequest) PerPage(perPage int32) ApiListResourceActionsRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListElementsConfigsRequest) Execute() (*models.PaginatedResultElementsConfigRead, *http.Response, error) {
-	return r.ApiService.ListElementsConfigsExecute(r)
+func (r ApiListResourceActionsRequest) Execute() ([]models.ResourceActionRead, *http.Response, error) {
+	return r.ApiService.ListResourceActionsExecute(r)
 }
 
 /*
-ListElementsConfigs List Elements Configs
+ListResourceActions List Resource Actions
 
-Lists all the elements_configs under the active organization.
+Lists all the actions defined on the resource.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListElementsConfigsRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiListResourceActionsRequest
 */
-func (a *ElementsConfigsApiService) ListElementsConfigs(ctx context.Context, projId string, envId string) ApiListElementsConfigsRequest {
-	return ApiListElementsConfigsRequest{
+func (a *ResourceActionsApiService) ListResourceActions(ctx context.Context, projId string, envId string, resourceId string) ApiListResourceActionsRequest {
+	return ApiListResourceActionsRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return PaginatedResultElementsConfigRead
-func (a *ElementsConfigsApiService) ListElementsConfigsExecute(r ApiListElementsConfigsRequest) (*models.PaginatedResultElementsConfigRead, *http.Response, error) {
+//  @return []ResourceActionRead
+func (a *ResourceActionsApiService) ListResourceActionsExecute(r ApiListResourceActionsRequest) ([]models.ResourceActionRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.PaginatedResultElementsConfigRead
+		localVarReturnValue []models.ResourceActionRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.ListElementsConfigs")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionsApiService.ListResourceActions")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -634,196 +536,75 @@ func (a *ElementsConfigsApiService) ListElementsConfigsExecute(r ApiListElements
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiUpdateElementsConfigRequest struct {
+type ApiUpdateResourceActionRequest struct {
 	ctx                  context.Context
-	ApiService           *ElementsConfigsApiService
-	elementsConfigId     string
+	ApiService           *ResourceActionsApiService
 	projId               string
 	envId                string
-	elementsConfigUpdate *models.ElementsConfigUpdate
+	resourceId           string
+	actionId             string
+	resourceActionUpdate *models.ResourceActionUpdate
 }
 
-func (r ApiUpdateElementsConfigRequest) ElementsConfigUpdate(elementsConfigUpdate models.ElementsConfigUpdate) ApiUpdateElementsConfigRequest {
-	r.elementsConfigUpdate = &elementsConfigUpdate
+func (r ApiUpdateResourceActionRequest) ResourceActionUpdate(resourceActionUpdate models.ResourceActionUpdate) ApiUpdateResourceActionRequest {
+	r.resourceActionUpdate = &resourceActionUpdate
 	return r
 }
 
-func (r ApiUpdateElementsConfigRequest) Execute() (*models.ElementsConfigRead, *http.Response, error) {
-	return r.ApiService.UpdateElementsConfigExecute(r)
+func (r ApiUpdateResourceActionRequest) Execute() (*models.ResourceActionRead, *http.Response, error) {
+	return r.ApiService.UpdateResourceActionExecute(r)
 }
 
 /*
-UpdateElementsConfig Update Elements Config
+UpdateResourceAction Update Resource Action
 
-Updates the elements_config.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUpdateElementsConfigRequest
-*/
-func (a *ElementsConfigsApiService) UpdateElementsConfig(ctx context.Context, elementsConfigId string, projId string, envId string) ApiUpdateElementsConfigRequest {
-	return ApiUpdateElementsConfigRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		elementsConfigId: elementsConfigId,
-		projId:           projId,
-		envId:            envId,
-	}
-}
-
-// Execute executes the request
-//  @return ElementsConfigRead
-func (a *ElementsConfigsApiService) UpdateElementsConfigExecute(r ApiUpdateElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPatch
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.ElementsConfigRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.UpdateElementsConfig")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.elementsConfigUpdate == nil {
-		return localVarReturnValue, nil, reportError("elementsConfigUpdate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.elementsConfigUpdate
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUpdateElementsEnvRequest struct {
-	ctx               context.Context
-	ApiService        *ElementsConfigsApiService
-	projId            string
-	envId             string
-	elementsEnvUpdate *models.ElementsEnvUpdate
-}
-
-func (r ApiUpdateElementsEnvRequest) ElementsEnvUpdate(elementsEnvUpdate models.ElementsEnvUpdate) ApiUpdateElementsEnvRequest {
-	r.elementsEnvUpdate = &elementsEnvUpdate
-	return r
-}
-
-func (r ApiUpdateElementsEnvRequest) Execute() (*models.ElementsEnvRead, *http.Response, error) {
-	return r.ApiService.UpdateElementsEnvExecute(r)
-}
-
-/*
-UpdateElementsEnv Update Elements Env
+Partially updates the action defined on a resource.
+Fields that will be provided will be completely overwritten.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUpdateElementsEnvRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
+ @return ApiUpdateResourceActionRequest
 */
-func (a *ElementsConfigsApiService) UpdateElementsEnv(ctx context.Context, projId string, envId string) ApiUpdateElementsEnvRequest {
-	return ApiUpdateElementsEnvRequest{
+func (a *ResourceActionsApiService) UpdateResourceAction(ctx context.Context, projId string, envId string, resourceId string, actionId string) ApiUpdateResourceActionRequest {
+	return ApiUpdateResourceActionRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
+		resourceId: resourceId,
+		actionId:   actionId,
 	}
 }
 
 // Execute executes the request
-//  @return ElementsEnvRead
-func (a *ElementsConfigsApiService) UpdateElementsEnvExecute(r ApiUpdateElementsEnvRequest) (*models.ElementsEnvRead, *http.Response, error) {
+//  @return ResourceActionRead
+func (a *ResourceActionsApiService) UpdateResourceActionExecute(r ApiUpdateResourceActionRequest) (*models.ResourceActionRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ElementsEnvRead
+		localVarReturnValue *models.ResourceActionRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsConfigsApiService.UpdateElementsEnv")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionsApiService.UpdateResourceAction")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"action_id"+"}", url.PathEscape(parameterToString(r.actionId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.elementsEnvUpdate == nil {
-		return localVarReturnValue, nil, reportError("elementsEnvUpdate is required and must be specified")
+	if r.resourceActionUpdate == nil {
+		return localVarReturnValue, nil, reportError("resourceActionUpdate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -844,7 +625,7 @@ func (a *ElementsConfigsApiService) UpdateElementsEnvExecute(r ApiUpdateElements
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.elementsEnvUpdate
+	localVarPostBody = r.resourceActionUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

@@ -13,79 +13,68 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// ResourceInstancesApiService ResourceInstancesApi service
-type ResourceInstancesApiService service
+// ProjectsApiService ProjectsApi service
+type ProjectsApiService service
 
-type ApiCreateResourceInstanceRequest struct {
-	ctx                    context.Context
-	ApiService             *ResourceInstancesApiService
-	projId                 string
-	envId                  string
-	resourceInstanceCreate *models.ResourceInstanceCreate
+type ApiCreateProjectRequest struct {
+	ctx           context.Context
+	ApiService    *ProjectsApiService
+	projectCreate *models.ProjectCreate
 }
 
-func (r ApiCreateResourceInstanceRequest) ResourceInstanceCreate(resourceInstanceCreate models.ResourceInstanceCreate) ApiCreateResourceInstanceRequest {
-	r.resourceInstanceCreate = &resourceInstanceCreate
+func (r ApiCreateProjectRequest) ProjectCreate(projectCreate models.ProjectCreate) ApiCreateProjectRequest {
+	r.projectCreate = &projectCreate
 	return r
 }
 
-func (r ApiCreateResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.CreateResourceInstanceExecute(r)
+func (r ApiCreateProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
+	return r.ApiService.CreateProjectExecute(r)
 }
 
 /*
-CreateResourceInstance Create Resource Instance
+CreateProject Create Project
 
-Creates a new instance inside the Permit.io system.
-
-If the instance is already created: will return 200 instead of 201,
-and will return the existing instance object in the response body.
+Creates a new project under the active organization.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateResourceInstanceRequest
+ @return ApiCreateProjectRequest
 */
-func (a *ResourceInstancesApiService) CreateResourceInstance(ctx context.Context, projId string, envId string) ApiCreateResourceInstanceRequest {
-	return ApiCreateResourceInstanceRequest{
+func (a *ProjectsApiService) CreateProject(ctx context.Context) ApiCreateProjectRequest {
+	return ApiCreateProjectRequest{
 		ApiService: a,
 		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
+//  @return ProjectRead
+func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceInstanceRead
+		localVarReturnValue *models.ProjectRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.CreateResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.CreateProject")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath := localBasePath + "/v2/projects"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.resourceInstanceCreate == nil {
-		return localVarReturnValue, nil, reportError("resourceInstanceCreate is required and must be specified")
+	if r.projectCreate == nil {
+		return localVarReturnValue, nil, reportError("projectCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -106,7 +95,7 @@ func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateR
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.resourceInstanceCreate
+	localVarPostBody = r.projectCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -154,56 +143,48 @@ func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateR
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteResourceInstanceRequest struct {
+type ApiDeleteProjectRequest struct {
 	ctx        context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *ProjectsApiService
 	projId     string
-	envId      string
-	instanceId string
 }
 
-func (r ApiDeleteResourceInstanceRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteResourceInstanceExecute(r)
+func (r ApiDeleteProjectRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteProjectExecute(r)
 }
 
 /*
-DeleteResourceInstance Delete Resource Instance
+DeleteProject Delete Project
 
-Deletes the instance and all its related data.
+Deletes the project and all its related data.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiDeleteResourceInstanceRequest
+ @return ApiDeleteProjectRequest
 */
-func (a *ResourceInstancesApiService) DeleteResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiDeleteResourceInstanceRequest {
-	return ApiDeleteResourceInstanceRequest{
+func (a *ProjectsApiService) DeleteProject(ctx context.Context, projId string) ApiDeleteProjectRequest {
+	return ApiDeleteProjectRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
-		envId:      envId,
-		instanceId: instanceId,
 	}
 }
 
 // Execute executes the request
-func (a *ResourceInstancesApiService) DeleteResourceInstanceExecute(r ApiDeleteResourceInstanceRequest) (*http.Response, error) {
+func (a *ProjectsApiService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.DeleteResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.DeleteProject")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath := localBasePath + "/v2/projects/{proj_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterToString(r.instanceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -264,58 +245,50 @@ func (a *ResourceInstancesApiService) DeleteResourceInstanceExecute(r ApiDeleteR
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetResourceInstanceRequest struct {
+type ApiGetProjectRequest struct {
 	ctx        context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *ProjectsApiService
 	projId     string
-	envId      string
-	instanceId string
 }
 
-func (r ApiGetResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.GetResourceInstanceExecute(r)
+func (r ApiGetProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
+	return r.ApiService.GetProjectExecute(r)
 }
 
 /*
-GetResourceInstance Get Resource Instance
+GetProject Get Project
 
-Gets a instance, if such instance exists. Otherwise returns 404.
+Gets a single project matching the given proj_id, if such project exists.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiGetResourceInstanceRequest
+ @return ApiGetProjectRequest
 */
-func (a *ResourceInstancesApiService) GetResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiGetResourceInstanceRequest {
-	return ApiGetResourceInstanceRequest{
+func (a *ProjectsApiService) GetProject(ctx context.Context, projId string) ApiGetProjectRequest {
+	return ApiGetProjectRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
-		envId:      envId,
-		instanceId: instanceId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) GetResourceInstanceExecute(r ApiGetResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
+//  @return ProjectRead
+func (a *ProjectsApiService) GetProjectExecute(r ApiGetProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceInstanceRead
+		localVarReturnValue *models.ProjectRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.GetResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.GetProject")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath := localBasePath + "/v2/projects/{proj_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterToString(r.instanceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -385,68 +358,60 @@ func (a *ResourceInstancesApiService) GetResourceInstanceExecute(r ApiGetResourc
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListResourceInstancesRequest struct {
+type ApiListProjectsRequest struct {
 	ctx        context.Context
-	ApiService *ResourceInstancesApiService
-	projId     string
-	envId      string
+	ApiService *ProjectsApiService
 	page       *int32
 	perPage    *int32
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListResourceInstancesRequest) Page(page int32) ApiListResourceInstancesRequest {
+func (r ApiListProjectsRequest) Page(page int32) ApiListProjectsRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListResourceInstancesRequest) PerPage(perPage int32) ApiListResourceInstancesRequest {
+func (r ApiListProjectsRequest) PerPage(perPage int32) ApiListProjectsRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListResourceInstancesRequest) Execute() ([]models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.ListResourceInstancesExecute(r)
+func (r ApiListProjectsRequest) Execute() ([]models.ProjectRead, *http.Response, error) {
+	return r.ApiService.ListProjectsExecute(r)
 }
 
 /*
-ListResourceInstances List Resource Instances
+ListProjects List Projects
 
-Lists all the resource instances defined within an environment.
+Lists all the projects under the active organization.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListResourceInstancesRequest
+ @return ApiListProjectsRequest
 */
-func (a *ResourceInstancesApiService) ListResourceInstances(ctx context.Context, projId string, envId string) ApiListResourceInstancesRequest {
-	return ApiListResourceInstancesRequest{
+func (a *ProjectsApiService) ListProjects(ctx context.Context) ApiListProjectsRequest {
+	return ApiListProjectsRequest{
 		ApiService: a,
 		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return []ResourceInstanceRead
-func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListResourceInstancesRequest) ([]models.ResourceInstanceRead, *http.Response, error) {
+//  @return []ProjectRead
+func (a *ProjectsApiService) ListProjectsExecute(r ApiListProjectsRequest) ([]models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.ResourceInstanceRead
+		localVarReturnValue []models.ProjectRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.ListResourceInstances")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.ListProjects")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath := localBasePath + "/v2/projects"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -522,71 +487,62 @@ func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListReso
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiUpdateResourceInstanceRequest struct {
-	ctx                    context.Context
-	ApiService             *ResourceInstancesApiService
-	projId                 string
-	envId                  string
-	instanceId             string
-	resourceInstanceUpdate *models.ResourceInstanceUpdate
+type ApiUpdateProjectRequest struct {
+	ctx           context.Context
+	ApiService    *ProjectsApiService
+	projId        string
+	projectUpdate *models.ProjectUpdate
 }
 
-func (r ApiUpdateResourceInstanceRequest) ResourceInstanceUpdate(resourceInstanceUpdate models.ResourceInstanceUpdate) ApiUpdateResourceInstanceRequest {
-	r.resourceInstanceUpdate = &resourceInstanceUpdate
+func (r ApiUpdateProjectRequest) ProjectUpdate(projectUpdate models.ProjectUpdate) ApiUpdateProjectRequest {
+	r.projectUpdate = &projectUpdate
 	return r
 }
 
-func (r ApiUpdateResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.UpdateResourceInstanceExecute(r)
+func (r ApiUpdateProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
+	return r.ApiService.UpdateProjectExecute(r)
 }
 
 /*
-UpdateResourceInstance Update Resource Instance
+UpdateProject Update Project
 
-Partially updates the instance definition.
-Fields that will be provided will be completely overwritten.
+Updates the project.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiUpdateResourceInstanceRequest
+ @return ApiUpdateProjectRequest
 */
-func (a *ResourceInstancesApiService) UpdateResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiUpdateResourceInstanceRequest {
-	return ApiUpdateResourceInstanceRequest{
+func (a *ProjectsApiService) UpdateProject(ctx context.Context, projId string) ApiUpdateProjectRequest {
+	return ApiUpdateProjectRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
-		envId:      envId,
-		instanceId: instanceId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) UpdateResourceInstanceExecute(r ApiUpdateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
+//  @return ProjectRead
+func (a *ProjectsApiService) UpdateProjectExecute(r ApiUpdateProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceInstanceRead
+		localVarReturnValue *models.ProjectRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.UpdateResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.UpdateProject")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath := localBasePath + "/v2/projects/{proj_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterToString(r.instanceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.resourceInstanceUpdate == nil {
-		return localVarReturnValue, nil, reportError("resourceInstanceUpdate is required and must be specified")
+	if r.projectUpdate == nil {
+		return localVarReturnValue, nil, reportError("projectUpdate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -607,7 +563,7 @@ func (a *ResourceInstancesApiService) UpdateResourceInstanceExecute(r ApiUpdateR
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.resourceInstanceUpdate
+	localVarPostBody = r.projectUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

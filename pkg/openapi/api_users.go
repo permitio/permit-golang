@@ -13,37 +13,36 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// ElementsDataApiService ElementsDataApi service
-type ElementsDataApiService service
+// UsersApiService UsersApi service
+type UsersApiService service
 
-type ApiElementsAssignRoleToUserRequest struct {
-	ctx                    context.Context
-	ApiService             *ElementsDataApiService
-	projId                 string
-	envId                  string
-	elementsConfigId       string
-	userId                 string
-	elementsUserRoleCreate *models.ElementsUserRoleCreate
+type ApiAssignRoleToUserRequest struct {
+	ctx            context.Context
+	ApiService     *UsersApiService
+	projId         string
+	envId          string
+	userId         string
+	userRoleCreate *models.UserRoleCreate
 }
 
-func (r ApiElementsAssignRoleToUserRequest) ElementsUserRoleCreate(elementsUserRoleCreate models.ElementsUserRoleCreate) ApiElementsAssignRoleToUserRequest {
-	r.elementsUserRoleCreate = &elementsUserRoleCreate
+func (r ApiAssignRoleToUserRequest) UserRoleCreate(userRoleCreate models.UserRoleCreate) ApiAssignRoleToUserRequest {
+	r.userRoleCreate = &userRoleCreate
 	return r
 }
 
-func (r ApiElementsAssignRoleToUserRequest) Execute() (*models.RoleAssignmentRead, *http.Response, error) {
-	return r.ApiService.ElementsAssignRoleToUserExecute(r)
+func (r ApiAssignRoleToUserRequest) Execute() (*models.RoleAssignmentRead, *http.Response, error) {
+	return r.ApiService.AssignRoleToUserExecute(r)
 }
 
 /*
-ElementsAssignRoleToUser Assign role to user
+AssignRoleToUser Assign Role To User
 
 Assigns a role to the user within the tenant.
 
@@ -52,24 +51,22 @@ The tenant defines the scope of the assignment. In other words, the role is effe
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
  @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiElementsAssignRoleToUserRequest
+ @return ApiAssignRoleToUserRequest
 */
-func (a *ElementsDataApiService) ElementsAssignRoleToUser(ctx context.Context, projId string, envId string, elementsConfigId string, userId string) ApiElementsAssignRoleToUserRequest {
-	return ApiElementsAssignRoleToUserRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		projId:           projId,
-		envId:            envId,
-		elementsConfigId: elementsConfigId,
-		userId:           userId,
+func (a *UsersApiService) AssignRoleToUser(ctx context.Context, projId string, envId string, userId string) ApiAssignRoleToUserRequest {
+	return ApiAssignRoleToUserRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		userId:     userId,
 	}
 }
 
 // Execute executes the request
 //  @return RoleAssignmentRead
-func (a *ElementsDataApiService) ElementsAssignRoleToUserExecute(r ApiElementsAssignRoleToUserRequest) (*models.RoleAssignmentRead, *http.Response, error) {
+func (a *UsersApiService) AssignRoleToUserExecute(r ApiAssignRoleToUserRequest) (*models.RoleAssignmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
@@ -77,22 +74,21 @@ func (a *ElementsDataApiService) ElementsAssignRoleToUserExecute(r ApiElementsAs
 		localVarReturnValue *models.RoleAssignmentRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsAssignRoleToUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.AssignRoleToUser")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.elementsUserRoleCreate == nil {
-		return localVarReturnValue, nil, reportError("elementsUserRoleCreate is required and must be specified")
+	if r.userRoleCreate == nil {
+		return localVarReturnValue, nil, reportError("userRoleCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -113,7 +109,7 @@ func (a *ElementsDataApiService) ElementsAssignRoleToUserExecute(r ApiElementsAs
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.elementsUserRoleCreate
+	localVarPostBody = r.userRoleCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -161,26 +157,25 @@ func (a *ElementsDataApiService) ElementsAssignRoleToUserExecute(r ApiElementsAs
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiElementsCreateUserRequest struct {
-	ctx                context.Context
-	ApiService         *ElementsDataApiService
-	projId             string
-	envId              string
-	elementsConfigId   string
-	elementsUserCreate *models.ElementsUserCreate
+type ApiCreateUserRequest struct {
+	ctx        context.Context
+	ApiService *UsersApiService
+	projId     string
+	envId      string
+	userCreate *models.UserCreate
 }
 
-func (r ApiElementsCreateUserRequest) ElementsUserCreate(elementsUserCreate models.ElementsUserCreate) ApiElementsCreateUserRequest {
-	r.elementsUserCreate = &elementsUserCreate
+func (r ApiCreateUserRequest) UserCreate(userCreate models.UserCreate) ApiCreateUserRequest {
+	r.userCreate = &userCreate
 	return r
 }
 
-func (r ApiElementsCreateUserRequest) Execute() (*models.UserRead, *http.Response, error) {
-	return r.ApiService.ElementsCreateUserExecute(r)
+func (r ApiCreateUserRequest) Execute() (*models.UserRead, *http.Response, error) {
+	return r.ApiService.CreateUserExecute(r)
 }
 
 /*
-ElementsCreateUser Create user
+CreateUser Create User
 
 Creates a new user inside the Permit.io system, from that point forward
 you may run permission checks on that user.
@@ -191,22 +186,20 @@ and will return the existing user object in the response body.
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @return ApiElementsCreateUserRequest
+ @return ApiCreateUserRequest
 */
-func (a *ElementsDataApiService) ElementsCreateUser(ctx context.Context, projId string, envId string, elementsConfigId string) ApiElementsCreateUserRequest {
-	return ApiElementsCreateUserRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		projId:           projId,
-		envId:            envId,
-		elementsConfigId: elementsConfigId,
+func (a *UsersApiService) CreateUser(ctx context.Context, projId string, envId string) ApiCreateUserRequest {
+	return ApiCreateUserRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
 //  @return UserRead
-func (a *ElementsDataApiService) ElementsCreateUserExecute(r ApiElementsCreateUserRequest) (*models.UserRead, *http.Response, error) {
+func (a *UsersApiService) CreateUserExecute(r ApiCreateUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
@@ -214,21 +207,20 @@ func (a *ElementsDataApiService) ElementsCreateUserExecute(r ApiElementsCreateUs
 		localVarReturnValue *models.UserRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsCreateUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.CreateUser")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.elementsUserCreate == nil {
-		return localVarReturnValue, nil, reportError("elementsUserCreate is required and must be specified")
+	if r.userCreate == nil {
+		return localVarReturnValue, nil, reportError("userCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -249,7 +241,7 @@ func (a *ElementsDataApiService) ElementsCreateUserExecute(r ApiElementsCreateUs
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.elementsUserCreate
+	localVarPostBody = r.userCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -297,57 +289,55 @@ func (a *ElementsDataApiService) ElementsCreateUserExecute(r ApiElementsCreateUs
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiElementsDeleteUserRequest struct {
-	ctx              context.Context
-	ApiService       *ElementsDataApiService
-	projId           string
-	envId            string
-	elementsConfigId string
-	userId           string
+type ApiDeleteUserRequest struct {
+	ctx        context.Context
+	ApiService *UsersApiService
+	projId     string
+	envId      string
+	userId     string
 }
 
-func (r ApiElementsDeleteUserRequest) Execute() (*http.Response, error) {
-	return r.ApiService.ElementsDeleteUserExecute(r)
+func (r ApiDeleteUserRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteUserExecute(r)
 }
 
 /*
-ElementsDeleteUser Delete user
+DeleteUser Delete User
+
+Deletes the user and all its related data.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
  @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiElementsDeleteUserRequest
+ @return ApiDeleteUserRequest
 */
-func (a *ElementsDataApiService) ElementsDeleteUser(ctx context.Context, projId string, envId string, elementsConfigId string, userId string) ApiElementsDeleteUserRequest {
-	return ApiElementsDeleteUserRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		projId:           projId,
-		envId:            envId,
-		elementsConfigId: elementsConfigId,
-		userId:           userId,
+func (a *UsersApiService) DeleteUser(ctx context.Context, projId string, envId string, userId string) ApiDeleteUserRequest {
+	return ApiDeleteUserRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		userId:     userId,
 	}
 }
 
 // Execute executes the request
-func (a *ElementsDataApiService) ElementsDeleteUserExecute(r ApiElementsDeleteUserRequest) (*http.Response, error) {
+func (a *UsersApiService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsDeleteUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.DeleteUser")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -409,93 +399,63 @@ func (a *ElementsDataApiService) ElementsDeleteUserExecute(r ApiElementsDeleteUs
 	return localVarHTTPResponse, nil
 }
 
-type ApiElementsListRolesRequest struct {
-	ctx              context.Context
-	ApiService       *ElementsDataApiService
-	projId           string
-	envId            string
-	elementsConfigId string
-	search           *string
-	page             *int32
-	perPage          *int32
+type ApiGetUserRequest struct {
+	ctx        context.Context
+	ApiService *UsersApiService
+	projId     string
+	envId      string
+	userId     string
 }
 
-// Text search for the email field
-func (r ApiElementsListRolesRequest) Search(search string) ApiElementsListRolesRequest {
-	r.search = &search
-	return r
-}
-
-// Page number of the results to fetch, starting at 1.
-func (r ApiElementsListRolesRequest) Page(page int32) ApiElementsListRolesRequest {
-	r.page = &page
-	return r
-}
-
-// The number of results per page (max 100).
-func (r ApiElementsListRolesRequest) PerPage(perPage int32) ApiElementsListRolesRequest {
-	r.perPage = &perPage
-	return r
-}
-
-func (r ApiElementsListRolesRequest) Execute() ([]models.ElementsRoleRead, *http.Response, error) {
-	return r.ApiService.ElementsListRolesExecute(r)
+func (r ApiGetUserRequest) Execute() (*models.UserRead, *http.Response, error) {
+	return r.ApiService.GetUserExecute(r)
 }
 
 /*
-ElementsListRoles List roles
+GetUser Get User
 
-Lists all the users defined within an environment.
+Gets a user, if such user exists. Otherwise returns 404.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @return ApiElementsListRolesRequest
+ @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+ @return ApiGetUserRequest
 */
-func (a *ElementsDataApiService) ElementsListRoles(ctx context.Context, projId string, envId string, elementsConfigId string) ApiElementsListRolesRequest {
-	return ApiElementsListRolesRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		projId:           projId,
-		envId:            envId,
-		elementsConfigId: elementsConfigId,
+func (a *UsersApiService) GetUser(ctx context.Context, projId string, envId string, userId string) ApiGetUserRequest {
+	return ApiGetUserRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		userId:     userId,
 	}
 }
 
 // Execute executes the request
-//  @return []ElementsRoleRead
-func (a *ElementsDataApiService) ElementsListRolesExecute(r ApiElementsListRolesRequest) ([]models.ElementsRoleRead, *http.Response, error) {
+//  @return UserRead
+func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.ElementsRoleRead
+		localVarReturnValue *models.UserRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsListRoles")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.GetUser")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/roles"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.search != nil {
-		localVarQueryParams.Add("search", parameterToString(*r.search, ""))
-	}
-	if r.page != nil {
-		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
-	}
-	if r.perPage != nil {
-		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
-	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -560,63 +520,60 @@ func (a *ElementsDataApiService) ElementsListRolesExecute(r ApiElementsListRoles
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiElementsListUsersRequest struct {
-	ctx              context.Context
-	ApiService       *ElementsDataApiService
-	projId           string
-	envId            string
-	elementsConfigId string
-	search           *string
-	page             *int32
-	perPage          *int32
+type ApiListUsersRequest struct {
+	ctx        context.Context
+	ApiService *UsersApiService
+	projId     string
+	envId      string
+	search     *string
+	page       *int32
+	perPage    *int32
 }
 
 // Text search for the email field
-func (r ApiElementsListUsersRequest) Search(search string) ApiElementsListUsersRequest {
+func (r ApiListUsersRequest) Search(search string) ApiListUsersRequest {
 	r.search = &search
 	return r
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiElementsListUsersRequest) Page(page int32) ApiElementsListUsersRequest {
+func (r ApiListUsersRequest) Page(page int32) ApiListUsersRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiElementsListUsersRequest) PerPage(perPage int32) ApiElementsListUsersRequest {
+func (r ApiListUsersRequest) PerPage(perPage int32) ApiListUsersRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiElementsListUsersRequest) Execute() (*models.PaginatedResultUserRead, *http.Response, error) {
-	return r.ApiService.ElementsListUsersExecute(r)
+func (r ApiListUsersRequest) Execute() (*models.PaginatedResultUserRead, *http.Response, error) {
+	return r.ApiService.ListUsersExecute(r)
 }
 
 /*
-ElementsListUsers List users
+ListUsers List Users
 
 Lists all the users defined within an environment.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @return ApiElementsListUsersRequest
+ @return ApiListUsersRequest
 */
-func (a *ElementsDataApiService) ElementsListUsers(ctx context.Context, projId string, envId string, elementsConfigId string) ApiElementsListUsersRequest {
-	return ApiElementsListUsersRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		projId:           projId,
-		envId:            envId,
-		elementsConfigId: elementsConfigId,
+func (a *UsersApiService) ListUsers(ctx context.Context, projId string, envId string) ApiListUsersRequest {
+	return ApiListUsersRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
 //  @return PaginatedResultUserRead
-func (a *ElementsDataApiService) ElementsListUsersExecute(r ApiElementsListUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
+func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
@@ -624,15 +581,14 @@ func (a *ElementsDataApiService) ElementsListUsersExecute(r ApiElementsListUsers
 		localVarReturnValue *models.PaginatedResultUserRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsListUsers")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.ListUsers")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -711,27 +667,156 @@ func (a *ElementsDataApiService) ElementsListUsersExecute(r ApiElementsListUsers
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiElementsUnassignRoleFromUserRequest struct {
-	ctx                    context.Context
-	ApiService             *ElementsDataApiService
-	projId                 string
-	envId                  string
-	elementsConfigId       string
-	userId                 string
-	elementsUserRoleRemove *models.ElementsUserRoleRemove
+type ApiReplaceUserRequest struct {
+	ctx        context.Context
+	ApiService *UsersApiService
+	projId     string
+	envId      string
+	userId     string
+	userCreate *models.UserCreate
 }
 
-func (r ApiElementsUnassignRoleFromUserRequest) ElementsUserRoleRemove(elementsUserRoleRemove models.ElementsUserRoleRemove) ApiElementsUnassignRoleFromUserRequest {
-	r.elementsUserRoleRemove = &elementsUserRoleRemove
+func (r ApiReplaceUserRequest) UserCreate(userCreate models.UserCreate) ApiReplaceUserRequest {
+	r.userCreate = &userCreate
 	return r
 }
 
-func (r ApiElementsUnassignRoleFromUserRequest) Execute() (*http.Response, error) {
-	return r.ApiService.ElementsUnassignRoleFromUserExecute(r)
+func (r ApiReplaceUserRequest) Execute() (*models.UserRead, *http.Response, error) {
+	return r.ApiService.ReplaceUserExecute(r)
 }
 
 /*
-ElementsUnassignRoleFromUser Unassign role from user
+ReplaceUser Replace User
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+ @return ApiReplaceUserRequest
+*/
+func (a *UsersApiService) ReplaceUser(ctx context.Context, projId string, envId string, userId string) ApiReplaceUserRequest {
+	return ApiReplaceUserRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		userId:     userId,
+	}
+}
+
+// Execute executes the request
+//  @return UserRead
+func (a *UsersApiService) ReplaceUserExecute(r ApiReplaceUserRequest) (*models.UserRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPut
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.UserRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.ReplaceUser")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.userCreate == nil {
+		return localVarReturnValue, nil, reportError("userCreate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.userCreate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiUnassignRoleFromUserRequest struct {
+	ctx            context.Context
+	ApiService     *UsersApiService
+	projId         string
+	envId          string
+	userId         string
+	userRoleRemove *models.UserRoleRemove
+}
+
+func (r ApiUnassignRoleFromUserRequest) UserRoleRemove(userRoleRemove models.UserRoleRemove) ApiUnassignRoleFromUserRequest {
+	r.userRoleRemove = &userRoleRemove
+	return r
+}
+
+func (r ApiUnassignRoleFromUserRequest) Execute() (*models.UserRead, *http.Response, error) {
+	return r.ApiService.UnassignRoleFromUserExecute(r)
+}
+
+/*
+UnassignRoleFromUser Unassign Role From User
 
 Unassigns the role from the user within the tenant.
 
@@ -742,45 +827,44 @@ If the role is not actually assigned, will return 404.
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
  @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiElementsUnassignRoleFromUserRequest
+ @return ApiUnassignRoleFromUserRequest
 */
-func (a *ElementsDataApiService) ElementsUnassignRoleFromUser(ctx context.Context, projId string, envId string, elementsConfigId string, userId string) ApiElementsUnassignRoleFromUserRequest {
-	return ApiElementsUnassignRoleFromUserRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		projId:           projId,
-		envId:            envId,
-		elementsConfigId: elementsConfigId,
-		userId:           userId,
+func (a *UsersApiService) UnassignRoleFromUser(ctx context.Context, projId string, envId string, userId string) ApiUnassignRoleFromUserRequest {
+	return ApiUnassignRoleFromUserRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		userId:     userId,
 	}
 }
 
 // Execute executes the request
-func (a *ElementsDataApiService) ElementsUnassignRoleFromUserExecute(r ApiElementsUnassignRoleFromUserRequest) (*http.Response, error) {
+//  @return UserRead
+func (a *UsersApiService) UnassignRoleFromUserExecute(r ApiUnassignRoleFromUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod = http.MethodDelete
-		localVarPostBody   interface{}
-		formFiles          []formFile
+		localVarHTTPMethod  = http.MethodDelete
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.UserRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.ElementsUnassignRoleFromUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.UnassignRoleFromUser")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.elementsUserRoleRemove == nil {
-		return nil, reportError("elementsUserRoleRemove is required and must be specified")
+	if r.userRoleRemove == nil {
+		return localVarReturnValue, nil, reportError("userRoleRemove is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -801,22 +885,22 @@ func (a *ElementsDataApiService) ElementsUnassignRoleFromUserExecute(r ApiElemen
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.elementsUserRoleRemove
+	localVarPostBody = r.userRoleRemove
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -829,74 +913,95 @@ func (a *ElementsDataApiService) ElementsUnassignRoleFromUserExecute(r ApiElemen
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
-				return localVarHTTPResponse, newErr
+				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
 			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
 			newErr.model = v
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiSetConfigActiveRequest struct {
-	ctx              context.Context
-	ApiService       *ElementsDataApiService
-	elementsConfigId string
-	projId           string
-	envId            string
+type ApiUpdateUserRequest struct {
+	ctx        context.Context
+	ApiService *UsersApiService
+	projId     string
+	envId      string
+	userId     string
+	userUpdate *models.UserUpdate
 }
 
-func (r ApiSetConfigActiveRequest) Execute() (*http.Response, error) {
-	return r.ApiService.SetConfigActiveExecute(r)
+func (r ApiUpdateUserRequest) UserUpdate(userUpdate models.UserUpdate) ApiUpdateUserRequest {
+	r.userUpdate = &userUpdate
+	return r
+}
+
+func (r ApiUpdateUserRequest) Execute() (*models.UserRead, *http.Response, error) {
+	return r.ApiService.UpdateUserExecute(r)
 }
 
 /*
-SetConfigActive Set Config Active
+UpdateUser Update User
 
-Updates the embed_config.
+Partially updates the user definition.
+Fields that will be provided will be completely overwritten.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiSetConfigActiveRequest
+ @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+ @return ApiUpdateUserRequest
 */
-func (a *ElementsDataApiService) SetConfigActive(ctx context.Context, elementsConfigId string, projId string, envId string) ApiSetConfigActiveRequest {
-	return ApiSetConfigActiveRequest{
-		ApiService:       a,
-		ctx:              ctx,
-		elementsConfigId: elementsConfigId,
-		projId:           projId,
-		envId:            envId,
+func (a *UsersApiService) UpdateUser(ctx context.Context, projId string, envId string, userId string) ApiUpdateUserRequest {
+	return ApiUpdateUserRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		userId:     userId,
 	}
 }
 
 // Execute executes the request
-func (a *ElementsDataApiService) SetConfigActiveExecute(r ApiSetConfigActiveRequest) (*http.Response, error) {
+//  @return UserRead
+func (a *UsersApiService) UpdateUserExecute(r ApiUpdateUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod = http.MethodPost
-		localVarPostBody   interface{}
-		formFiles          []formFile
+		localVarHTTPMethod  = http.MethodPatch
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.UserRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ElementsDataApiService.SetConfigActive")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersApiService.UpdateUser")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/active"
-	localVarPath = strings.Replace(localVarPath, "{"+"elements_config_id"+"}", url.PathEscape(parameterToString(r.elementsConfigId, "")), -1)
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/users/{user_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
+	if r.userUpdate == nil {
+		return localVarReturnValue, nil, reportError("userUpdate is required and must be specified")
+	}
 
 	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
+	localVarHTTPContentTypes := []string{"application/json"}
 
 	// set Content-Type header
 	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
@@ -912,21 +1017,23 @@ func (a *ElementsDataApiService) SetConfigActiveExecute(r ApiSetConfigActiveRequ
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	// body params
+	localVarPostBody = r.userUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
-		return nil, err
+		return localVarReturnValue, nil, err
 	}
 
 	localVarHTTPResponse, err := a.client.callAPI(req)
 	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
 	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
-		return localVarHTTPResponse, err
+		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
 	if localVarHTTPResponse.StatusCode >= 300 {
@@ -939,13 +1046,22 @@ func (a *ElementsDataApiService) SetConfigActiveExecute(r ApiSetConfigActiveRequ
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
-				return localVarHTTPResponse, newErr
+				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
 			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
 			newErr.model = v
 		}
-		return localVarHTTPResponse, newErr
+		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
 
-	return localVarHTTPResponse, nil
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }

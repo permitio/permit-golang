@@ -2,10 +2,10 @@ package permit
 
 import (
 	"context"
-	"github.com/permitio/permit-golang/models"
 	"github.com/permitio/permit-golang/pkg/api"
 	config "github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/enforcement"
+	"github.com/permitio/permit-golang/pkg/models"
 	"go.uber.org/zap"
 )
 

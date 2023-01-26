@@ -2,10 +2,10 @@ package api
 
 import (
 	"github.com/google/uuid"
-	"github.com/permitio/permit-golang/models"
-	"github.com/permitio/permit-golang/openapi"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
+	"github.com/permitio/permit-golang/pkg/models"
+	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )

@@ -13,63 +13,197 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// MembersApiService MembersApi service
-type MembersApiService service
+// ResourceInstancesApiService ResourceInstancesApi service
+type ResourceInstancesApiService service
 
-type ApiDeleteOrganizationMemberRequest struct {
-	ctx        context.Context
-	ApiService *MembersApiService
-	memberId   string
+type ApiCreateResourceInstanceRequest struct {
+	ctx                    context.Context
+	ApiService             *ResourceInstancesApiService
+	projId                 string
+	envId                  string
+	resourceInstanceCreate *models.ResourceInstanceCreate
 }
 
-func (r ApiDeleteOrganizationMemberRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteOrganizationMemberExecute(r)
+func (r ApiCreateResourceInstanceRequest) ResourceInstanceCreate(resourceInstanceCreate models.ResourceInstanceCreate) ApiCreateResourceInstanceRequest {
+	r.resourceInstanceCreate = &resourceInstanceCreate
+	return r
+}
+
+func (r ApiCreateResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
+	return r.ApiService.CreateResourceInstanceExecute(r)
 }
 
 /*
-DeleteOrganizationMember Delete Organization Member
+CreateResourceInstance Create Resource Instance
 
-Deletes an account member matching the given id or email address.
-The member will be removed from the active account in permit.io.
+Creates a new instance inside the Permit.io system.
 
-If the member is the only member in its account (organization), returns 400 (bad request),
-due to nobody remains with access to the account, meaning deletion of the entire account (org).
-To completely remove an account, call DELETE `/orgs/{org}`.
+If the instance is already created: will return 200 instead of 201,
+and will return the existing instance object in the response body.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
- @return ApiDeleteOrganizationMemberRequest
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiCreateResourceInstanceRequest
 */
-func (a *MembersApiService) DeleteOrganizationMember(ctx context.Context, memberId string) ApiDeleteOrganizationMemberRequest {
-	return ApiDeleteOrganizationMemberRequest{
+func (a *ResourceInstancesApiService) CreateResourceInstance(ctx context.Context, projId string, envId string) ApiCreateResourceInstanceRequest {
+	return ApiCreateResourceInstanceRequest{
 		ApiService: a,
 		ctx:        ctx,
-		memberId:   memberId,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-func (a *MembersApiService) DeleteOrganizationMemberExecute(r ApiDeleteOrganizationMemberRequest) (*http.Response, error) {
+//  @return ResourceInstanceRead
+func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.ResourceInstanceRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.CreateResourceInstance")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.resourceInstanceCreate == nil {
+		return localVarReturnValue, nil, reportError("resourceInstanceCreate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.resourceInstanceCreate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiDeleteResourceInstanceRequest struct {
+	ctx        context.Context
+	ApiService *ResourceInstancesApiService
+	projId     string
+	envId      string
+	instanceId string
+}
+
+func (r ApiDeleteResourceInstanceRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteResourceInstanceExecute(r)
+}
+
+/*
+DeleteResourceInstance Delete Resource Instance
+
+Deletes the instance and all its related data.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
+ @return ApiDeleteResourceInstanceRequest
+*/
+func (a *ResourceInstancesApiService) DeleteResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiDeleteResourceInstanceRequest {
+	return ApiDeleteResourceInstanceRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		instanceId: instanceId,
+	}
+}
+
+// Execute executes the request
+func (a *ResourceInstancesApiService) DeleteResourceInstanceExecute(r ApiDeleteResourceInstanceRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.DeleteOrganizationMember")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.DeleteResourceInstance")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/members/{member_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"member_id"+"}", url.PathEscape(parameterToString(r.memberId, "")), -1)
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterToString(r.instanceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -130,46 +264,58 @@ func (a *MembersApiService) DeleteOrganizationMemberExecute(r ApiDeleteOrganizat
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetAuthenticatedMemberRequest struct {
+type ApiGetResourceInstanceRequest struct {
 	ctx        context.Context
-	ApiService *MembersApiService
+	ApiService *ResourceInstancesApiService
+	projId     string
+	envId      string
+	instanceId string
 }
 
-func (r ApiGetAuthenticatedMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
-	return r.ApiService.GetAuthenticatedMemberExecute(r)
+func (r ApiGetResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
+	return r.ApiService.GetResourceInstanceExecute(r)
 }
 
 /*
-GetAuthenticatedMember Get the authenticated account member
+GetResourceInstance Get Resource Instance
 
-Gets the authenticated account member's details.
+Gets a instance, if such instance exists. Otherwise returns 404.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetAuthenticatedMemberRequest
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
+ @return ApiGetResourceInstanceRequest
 */
-func (a *MembersApiService) GetAuthenticatedMember(ctx context.Context) ApiGetAuthenticatedMemberRequest {
-	return ApiGetAuthenticatedMemberRequest{
+func (a *ResourceInstancesApiService) GetResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiGetResourceInstanceRequest {
+	return ApiGetResourceInstanceRequest{
 		ApiService: a,
 		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		instanceId: instanceId,
 	}
 }
 
 // Execute executes the request
-//  @return OrgMemberRead
-func (a *MembersApiService) GetAuthenticatedMemberExecute(r ApiGetAuthenticatedMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
+//  @return ResourceInstanceRead
+func (a *ResourceInstancesApiService) GetResourceInstanceExecute(r ApiGetResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.OrgMemberRead
+		localVarReturnValue *models.ResourceInstanceRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.GetAuthenticatedMember")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.GetResourceInstance")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/members/me"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterToString(r.instanceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -239,175 +385,68 @@ func (a *MembersApiService) GetAuthenticatedMemberExecute(r ApiGetAuthenticatedM
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiGetOrganizationMemberRequest struct {
+type ApiListResourceInstancesRequest struct {
 	ctx        context.Context
-	ApiService *MembersApiService
-	memberId   string
-}
-
-func (r ApiGetOrganizationMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
-	return r.ApiService.GetOrganizationMemberExecute(r)
-}
-
-/*
-GetOrganizationMember Get Organization Member
-
-Gets a single account member by its id or email address. matching the given member,
-if no such member exists under the current active account (organization), returns 404.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
- @return ApiGetOrganizationMemberRequest
-*/
-func (a *MembersApiService) GetOrganizationMember(ctx context.Context, memberId string) ApiGetOrganizationMemberRequest {
-	return ApiGetOrganizationMemberRequest{
-		ApiService: a,
-		ctx:        ctx,
-		memberId:   memberId,
-	}
-}
-
-// Execute executes the request
-//  @return OrgMemberRead
-func (a *MembersApiService) GetOrganizationMemberExecute(r ApiGetOrganizationMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.OrgMemberRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.GetOrganizationMember")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/members/{member_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"member_id"+"}", url.PathEscape(parameterToString(r.memberId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiListOrganizationMembersRequest struct {
-	ctx        context.Context
-	ApiService *MembersApiService
+	ApiService *ResourceInstancesApiService
+	projId     string
+	envId      string
 	page       *int32
 	perPage    *int32
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListOrganizationMembersRequest) Page(page int32) ApiListOrganizationMembersRequest {
+func (r ApiListResourceInstancesRequest) Page(page int32) ApiListResourceInstancesRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListOrganizationMembersRequest) PerPage(perPage int32) ApiListOrganizationMembersRequest {
+func (r ApiListResourceInstancesRequest) PerPage(perPage int32) ApiListResourceInstancesRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListOrganizationMembersRequest) Execute() ([]models.OrgMemberRead, *http.Response, error) {
-	return r.ApiService.ListOrganizationMembersExecute(r)
+func (r ApiListResourceInstancesRequest) Execute() ([]models.ResourceInstanceRead, *http.Response, error) {
+	return r.ApiService.ListResourceInstancesExecute(r)
 }
 
 /*
-ListOrganizationMembers List Organization Members
+ListResourceInstances List Resource Instances
 
-Lists all the account members that have access to the current active account.
-The active account/organization is determined by the API Key used or by the authenticated session id.
+Lists all the resource instances defined within an environment.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListOrganizationMembersRequest
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiListResourceInstancesRequest
 */
-func (a *MembersApiService) ListOrganizationMembers(ctx context.Context) ApiListOrganizationMembersRequest {
-	return ApiListOrganizationMembersRequest{
+func (a *ResourceInstancesApiService) ListResourceInstances(ctx context.Context, projId string, envId string) ApiListResourceInstancesRequest {
+	return ApiListResourceInstancesRequest{
 		ApiService: a,
 		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return []OrgMemberRead
-func (a *MembersApiService) ListOrganizationMembersExecute(r ApiListOrganizationMembersRequest) ([]models.OrgMemberRead, *http.Response, error) {
+//  @return []ResourceInstanceRead
+func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListResourceInstancesRequest) ([]models.ResourceInstanceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.OrgMemberRead
+		localVarReturnValue []models.ResourceInstanceRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.ListOrganizationMembers")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.ListResourceInstances")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/members"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -483,62 +522,71 @@ func (a *MembersApiService) ListOrganizationMembersExecute(r ApiListOrganization
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiUpdateOrganizationMemberRequest struct {
-	ctx             context.Context
-	ApiService      *MembersApiService
-	memberId        string
-	orgMemberUpdate *models.OrgMemberUpdate
+type ApiUpdateResourceInstanceRequest struct {
+	ctx                    context.Context
+	ApiService             *ResourceInstancesApiService
+	projId                 string
+	envId                  string
+	instanceId             string
+	resourceInstanceUpdate *models.ResourceInstanceUpdate
 }
 
-func (r ApiUpdateOrganizationMemberRequest) OrgMemberUpdate(orgMemberUpdate models.OrgMemberUpdate) ApiUpdateOrganizationMemberRequest {
-	r.orgMemberUpdate = &orgMemberUpdate
+func (r ApiUpdateResourceInstanceRequest) ResourceInstanceUpdate(resourceInstanceUpdate models.ResourceInstanceUpdate) ApiUpdateResourceInstanceRequest {
+	r.resourceInstanceUpdate = &resourceInstanceUpdate
 	return r
 }
 
-func (r ApiUpdateOrganizationMemberRequest) Execute() (*models.OrgMemberRead, *http.Response, error) {
-	return r.ApiService.UpdateOrganizationMemberExecute(r)
+func (r ApiUpdateResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
+	return r.ApiService.UpdateResourceInstanceExecute(r)
 }
 
 /*
-UpdateOrganizationMember Update Organization Member
+UpdateResourceInstance Update Resource Instance
 
-Updates an account member's settings.
+Partially updates the instance definition.
+Fields that will be provided will be completely overwritten.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
- @return ApiUpdateOrganizationMemberRequest
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
+ @return ApiUpdateResourceInstanceRequest
 */
-func (a *MembersApiService) UpdateOrganizationMember(ctx context.Context, memberId string) ApiUpdateOrganizationMemberRequest {
-	return ApiUpdateOrganizationMemberRequest{
+func (a *ResourceInstancesApiService) UpdateResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiUpdateResourceInstanceRequest {
+	return ApiUpdateResourceInstanceRequest{
 		ApiService: a,
 		ctx:        ctx,
-		memberId:   memberId,
+		projId:     projId,
+		envId:      envId,
+		instanceId: instanceId,
 	}
 }
 
 // Execute executes the request
-//  @return OrgMemberRead
-func (a *MembersApiService) UpdateOrganizationMemberExecute(r ApiUpdateOrganizationMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
+//  @return ResourceInstanceRead
+func (a *ResourceInstancesApiService) UpdateResourceInstanceExecute(r ApiUpdateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.OrgMemberRead
+		localVarReturnValue *models.ResourceInstanceRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "MembersApiService.UpdateOrganizationMember")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.UpdateResourceInstance")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/members/{member_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"member_id"+"}", url.PathEscape(parameterToString(r.memberId, "")), -1)
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterToString(r.instanceId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.orgMemberUpdate == nil {
-		return localVarReturnValue, nil, reportError("orgMemberUpdate is required and must be specified")
+	if r.resourceInstanceUpdate == nil {
+		return localVarReturnValue, nil, reportError("resourceInstanceUpdate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -559,7 +607,7 @@ func (a *MembersApiService) UpdateOrganizationMemberExecute(r ApiUpdateOrganizat
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.orgMemberUpdate
+	localVarPostBody = r.resourceInstanceUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

@@ -13,80 +13,68 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// ResourceAttributesApiService ResourceAttributesApi service
-type ResourceAttributesApiService service
+// APIKeysApiService APIKeysApi service
+type APIKeysApiService service
 
-type ApiCreateResourceAttributeRequest struct {
-	ctx                     context.Context
-	ApiService              *ResourceAttributesApiService
-	projId                  string
-	envId                   string
-	resourceId              string
-	resourceAttributeCreate *models.ResourceAttributeCreate
+type ApiCreateApiKeyRequest struct {
+	ctx          context.Context
+	ApiService   *APIKeysApiService
+	aPIKeyCreate *models.APIKeyCreate
 }
 
-func (r ApiCreateResourceAttributeRequest) ResourceAttributeCreate(resourceAttributeCreate models.ResourceAttributeCreate) ApiCreateResourceAttributeRequest {
-	r.resourceAttributeCreate = &resourceAttributeCreate
+func (r ApiCreateApiKeyRequest) APIKeyCreate(aPIKeyCreate models.APIKeyCreate) ApiCreateApiKeyRequest {
+	r.aPIKeyCreate = &aPIKeyCreate
 	return r
 }
 
-func (r ApiCreateResourceAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
-	return r.ApiService.CreateResourceAttributeExecute(r)
+func (r ApiCreateApiKeyRequest) Execute() (*models.APIKeyRead, *http.Response, error) {
+	return r.ApiService.CreateApiKeyExecute(r)
 }
 
 /*
-CreateResourceAttribute Create Resource Attribute
+CreateApiKey Create Api Key
 
-Creates a new attribute as part of the resource definition.
+Creates a new api_key under the active organization.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiCreateResourceAttributeRequest
+ @return ApiCreateApiKeyRequest
 */
-func (a *ResourceAttributesApiService) CreateResourceAttribute(ctx context.Context, projId string, envId string, resourceId string) ApiCreateResourceAttributeRequest {
-	return ApiCreateResourceAttributeRequest{
+func (a *APIKeysApiService) CreateApiKey(ctx context.Context) ApiCreateApiKeyRequest {
+	return ApiCreateApiKeyRequest{
 		ApiService: a,
 		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceAttributeRead
-func (a *ResourceAttributesApiService) CreateResourceAttributeExecute(r ApiCreateResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
+//  @return APIKeyRead
+func (a *APIKeysApiService) CreateApiKeyExecute(r ApiCreateApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceAttributeRead
+		localVarReturnValue *models.APIKeyRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.CreateResourceAttribute")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.CreateApiKey")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath := localBasePath + "/v2/api-key"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.resourceAttributeCreate == nil {
-		return localVarReturnValue, nil, reportError("resourceAttributeCreate is required and must be specified")
+	if r.aPIKeyCreate == nil {
+		return localVarReturnValue, nil, reportError("aPIKeyCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -107,7 +95,7 @@ func (a *ResourceAttributesApiService) CreateResourceAttributeExecute(r ApiCreat
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.resourceAttributeCreate
+	localVarPostBody = r.aPIKeyCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -155,88 +143,53 @@ func (a *ResourceAttributesApiService) CreateResourceAttributeExecute(r ApiCreat
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteResourceAttributeRequest struct {
-	ctx         context.Context
-	ApiService  *ResourceAttributesApiService
-	projId      string
-	envId       string
-	resourceId  string
-	attributeId string
-	page        *int32
-	perPage     *int32
+type ApiDeleteApiKeyRequest struct {
+	ctx        context.Context
+	ApiService *APIKeysApiService
+	apiKeyId   string
 }
 
-// Page number of the results to fetch, starting at 1.
-func (r ApiDeleteResourceAttributeRequest) Page(page int32) ApiDeleteResourceAttributeRequest {
-	r.page = &page
-	return r
-}
-
-// The number of results per page (max 100).
-func (r ApiDeleteResourceAttributeRequest) PerPage(perPage int32) ApiDeleteResourceAttributeRequest {
-	r.perPage = &perPage
-	return r
-}
-
-func (r ApiDeleteResourceAttributeRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteResourceAttributeExecute(r)
+func (r ApiDeleteApiKeyRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteApiKeyExecute(r)
 }
 
 /*
-DeleteResourceAttribute Delete Resource Attribute
+DeleteApiKey Delete Api Key
 
-Deletes the attribute and all its related data.
-
-Note: If the attribute is used by policies, removing it will cause the
-attribute to evaluate as `undefined`.
+Deletes the api_key and all its related data.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
- @return ApiDeleteResourceAttributeRequest
+ @param apiKeyId The unique id of the API key
+ @return ApiDeleteApiKeyRequest
 */
-func (a *ResourceAttributesApiService) DeleteResourceAttribute(ctx context.Context, projId string, envId string, resourceId string, attributeId string) ApiDeleteResourceAttributeRequest {
-	return ApiDeleteResourceAttributeRequest{
-		ApiService:  a,
-		ctx:         ctx,
-		projId:      projId,
-		envId:       envId,
-		resourceId:  resourceId,
-		attributeId: attributeId,
+func (a *APIKeysApiService) DeleteApiKey(ctx context.Context, apiKeyId string) ApiDeleteApiKeyRequest {
+	return ApiDeleteApiKeyRequest{
+		ApiService: a,
+		ctx:        ctx,
+		apiKeyId:   apiKeyId,
 	}
 }
 
 // Execute executes the request
-func (a *ResourceAttributesApiService) DeleteResourceAttributeExecute(r ApiDeleteResourceAttributeRequest) (*http.Response, error) {
+func (a *APIKeysApiService) DeleteApiKeyExecute(r ApiDeleteApiKeyRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.DeleteResourceAttribute")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.DeleteApiKey")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"attribute_id"+"}", url.PathEscape(parameterToString(r.attributeId, "")), -1)
+	localVarPath := localBasePath + "/v2/api-key/{api_key_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"api_key_id"+"}", url.PathEscape(parameterToString(r.apiKeyId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.page != nil {
-		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
-	}
-	if r.perPage != nil {
-		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
-	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -292,62 +245,50 @@ func (a *ResourceAttributesApiService) DeleteResourceAttributeExecute(r ApiDelet
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetResourceAttributeRequest struct {
-	ctx         context.Context
-	ApiService  *ResourceAttributesApiService
-	projId      string
-	envId       string
-	resourceId  string
-	attributeId string
+type ApiGetApiKeyRequest struct {
+	ctx        context.Context
+	ApiService *APIKeysApiService
+	apiKeyId   string
 }
 
-func (r ApiGetResourceAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
-	return r.ApiService.GetResourceAttributeExecute(r)
+func (r ApiGetApiKeyRequest) Execute() (*models.APIKeyRead, *http.Response, error) {
+	return r.ApiService.GetApiKeyExecute(r)
 }
 
 /*
-GetResourceAttribute Get Resource Attribute
+GetApiKey Get Api Key
 
-Gets a single attribute defined on the resource, if such attribute exists.
+Gets a single api_key matching the given api_key_id, if such api_key exists.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
- @return ApiGetResourceAttributeRequest
+ @param apiKeyId The unique id of the API key
+ @return ApiGetApiKeyRequest
 */
-func (a *ResourceAttributesApiService) GetResourceAttribute(ctx context.Context, projId string, envId string, resourceId string, attributeId string) ApiGetResourceAttributeRequest {
-	return ApiGetResourceAttributeRequest{
-		ApiService:  a,
-		ctx:         ctx,
-		projId:      projId,
-		envId:       envId,
-		resourceId:  resourceId,
-		attributeId: attributeId,
+func (a *APIKeysApiService) GetApiKey(ctx context.Context, apiKeyId string) ApiGetApiKeyRequest {
+	return ApiGetApiKeyRequest{
+		ApiService: a,
+		ctx:        ctx,
+		apiKeyId:   apiKeyId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceAttributeRead
-func (a *ResourceAttributesApiService) GetResourceAttributeExecute(r ApiGetResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
+//  @return APIKeyRead
+func (a *APIKeysApiService) GetApiKeyExecute(r ApiGetApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceAttributeRead
+		localVarReturnValue *models.APIKeyRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.GetResourceAttribute")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.GetApiKey")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"attribute_id"+"}", url.PathEscape(parameterToString(r.attributeId, "")), -1)
+	localVarPath := localBasePath + "/v2/api-key/{api_key_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"api_key_id"+"}", url.PathEscape(parameterToString(r.apiKeyId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -417,72 +358,282 @@ func (a *ResourceAttributesApiService) GetResourceAttributeExecute(r ApiGetResou
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListResourceAttributesRequest struct {
+type ApiGetApiKeyScopeRequest struct {
 	ctx        context.Context
-	ApiService *ResourceAttributesApiService
+	ApiService *APIKeysApiService
+}
+
+func (r ApiGetApiKeyScopeRequest) Execute() (*models.APIKeyScopeRead, *http.Response, error) {
+	return r.ApiService.GetApiKeyScopeExecute(r)
+}
+
+/*
+GetApiKeyScope Get Api Key Scope
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiGetApiKeyScopeRequest
+*/
+func (a *APIKeysApiService) GetApiKeyScope(ctx context.Context) ApiGetApiKeyScopeRequest {
+	return ApiGetApiKeyScopeRequest{
+		ApiService: a,
+		ctx:        ctx,
+	}
+}
+
+// Execute executes the request
+//  @return APIKeyScopeRead
+func (a *APIKeysApiService) GetApiKeyScopeExecute(r ApiGetApiKeyScopeRequest) (*models.APIKeyScopeRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.APIKeyScopeRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.GetApiKeyScope")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/api-key/scope"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiGetEnvironmentApiKeyRequest struct {
+	ctx        context.Context
+	ApiService *APIKeysApiService
 	projId     string
 	envId      string
-	resourceId string
+}
+
+func (r ApiGetEnvironmentApiKeyRequest) Execute() (*models.APIKeyRead, *http.Response, error) {
+	return r.ApiService.GetEnvironmentApiKeyExecute(r)
+}
+
+/*
+GetEnvironmentApiKey Get Environment Api Key
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiGetEnvironmentApiKeyRequest
+*/
+func (a *APIKeysApiService) GetEnvironmentApiKey(ctx context.Context, projId string, envId string) ApiGetEnvironmentApiKeyRequest {
+	return ApiGetEnvironmentApiKeyRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+	}
+}
+
+// Execute executes the request
+//  @return APIKeyRead
+func (a *APIKeysApiService) GetEnvironmentApiKeyExecute(r ApiGetEnvironmentApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.APIKeyRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.GetEnvironmentApiKey")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/api-key/{proj_id}/{env_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiListApiKeysRequest struct {
+	ctx        context.Context
+	ApiService *APIKeysApiService
 	page       *int32
 	perPage    *int32
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListResourceAttributesRequest) Page(page int32) ApiListResourceAttributesRequest {
+func (r ApiListApiKeysRequest) Page(page int32) ApiListApiKeysRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListResourceAttributesRequest) PerPage(perPage int32) ApiListResourceAttributesRequest {
+func (r ApiListApiKeysRequest) PerPage(perPage int32) ApiListApiKeysRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListResourceAttributesRequest) Execute() ([]models.ResourceAttributeRead, *http.Response, error) {
-	return r.ApiService.ListResourceAttributesExecute(r)
+func (r ApiListApiKeysRequest) Execute() (*models.PaginatedResultAPIKeyRead, *http.Response, error) {
+	return r.ApiService.ListApiKeysExecute(r)
 }
 
 /*
-ListResourceAttributes List Resource Attributes
+ListApiKeys List Api Keys
 
-Lists all the attributes defined on the resource.
+Lists all the api_keys under the active organization.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiListResourceAttributesRequest
+ @return ApiListApiKeysRequest
 */
-func (a *ResourceAttributesApiService) ListResourceAttributes(ctx context.Context, projId string, envId string, resourceId string) ApiListResourceAttributesRequest {
-	return ApiListResourceAttributesRequest{
+func (a *APIKeysApiService) ListApiKeys(ctx context.Context) ApiListApiKeysRequest {
+	return ApiListApiKeysRequest{
 		ApiService: a,
 		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return []ResourceAttributeRead
-func (a *ResourceAttributesApiService) ListResourceAttributesExecute(r ApiListResourceAttributesRequest) ([]models.ResourceAttributeRead, *http.Response, error) {
+//  @return PaginatedResultAPIKeyRead
+func (a *APIKeysApiService) ListApiKeysExecute(r ApiListApiKeysRequest) (*models.PaginatedResultAPIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.ResourceAttributeRead
+		localVarReturnValue *models.PaginatedResultAPIKeyRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.ListResourceAttributes")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "APIKeysApiService.ListApiKeys")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
+	localVarPath := localBasePath + "/v2/api-key"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -511,143 +662,6 @@ func (a *ResourceAttributesApiService) ListResourceAttributesExecute(r ApiListRe
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUpdateResourceAttributeRequest struct {
-	ctx                     context.Context
-	ApiService              *ResourceAttributesApiService
-	projId                  string
-	envId                   string
-	resourceId              string
-	attributeId             string
-	resourceAttributeUpdate *models.ResourceAttributeUpdate
-}
-
-func (r ApiUpdateResourceAttributeRequest) ResourceAttributeUpdate(resourceAttributeUpdate models.ResourceAttributeUpdate) ApiUpdateResourceAttributeRequest {
-	r.resourceAttributeUpdate = &resourceAttributeUpdate
-	return r
-}
-
-func (r ApiUpdateResourceAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
-	return r.ApiService.UpdateResourceAttributeExecute(r)
-}
-
-/*
-UpdateResourceAttribute Update Resource Attribute
-
-Partially updates the attribute defined on a resource.
-Fields that will be provided will be completely overwritten.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
- @return ApiUpdateResourceAttributeRequest
-*/
-func (a *ResourceAttributesApiService) UpdateResourceAttribute(ctx context.Context, projId string, envId string, resourceId string, attributeId string) ApiUpdateResourceAttributeRequest {
-	return ApiUpdateResourceAttributeRequest{
-		ApiService:  a,
-		ctx:         ctx,
-		projId:      projId,
-		envId:       envId,
-		resourceId:  resourceId,
-		attributeId: attributeId,
-	}
-}
-
-// Execute executes the request
-//  @return ResourceAttributeRead
-func (a *ResourceAttributesApiService) UpdateResourceAttributeExecute(r ApiUpdateResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPatch
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.ResourceAttributeRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceAttributesApiService.UpdateResourceAttribute")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterToString(r.resourceId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"attribute_id"+"}", url.PathEscape(parameterToString(r.attributeId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.resourceAttributeUpdate == nil {
-		return localVarReturnValue, nil, reportError("resourceAttributeUpdate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.resourceAttributeUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

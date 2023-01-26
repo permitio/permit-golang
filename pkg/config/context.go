@@ -2,8 +2,8 @@ package config
 
 import (
 	"context"
-	"github.com/permitio/permit-golang/openapi"
 	PermitErrors "github.com/permitio/permit-golang/pkg/errors"
+	"github.com/permitio/permit-golang/pkg/openapi"
 	"strings"
 )
 

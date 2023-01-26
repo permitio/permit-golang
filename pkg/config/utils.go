@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 )
 
 type APIKeyLevel int

@@ -13,216 +13,79 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// RolesApiService RolesApi service
-type RolesApiService service
+// TenantsApiService TenantsApi service
+type TenantsApiService service
 
-type ApiAddParentRoleRequest struct {
+type ApiCreateTenantRequest struct {
 	ctx          context.Context
-	ApiService   *RolesApiService
+	ApiService   *TenantsApiService
 	projId       string
 	envId        string
-	roleId       string
-	parentRoleId string
+	tenantCreate *models.TenantCreate
 }
 
-func (r ApiAddParentRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
-	return r.ApiService.AddParentRoleExecute(r)
-}
-
-/*
-AddParentRole Add Parent Role
-
-This endpoint is part of the role hierarchy feature.
-
-Makes role with id `role_id` extend the role with id `parent_role_id`.
-In other words, `role_id` will automatically be assigned any permissions
-that are granted to `parent_role_id`.
-
-We can say the `role_id` **extends** `parent_role_id` or **inherits** from `parent_role_id`.
-
-If `role_id` is already an ancestor of `parent_role_id`,
-the request will fail with HTTP 400 to prevent a cycle in the role hierarchy.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
- @return ApiAddParentRoleRequest
-*/
-func (a *RolesApiService) AddParentRole(ctx context.Context, projId string, envId string, roleId string, parentRoleId string) ApiAddParentRoleRequest {
-	return ApiAddParentRoleRequest{
-		ApiService:   a,
-		ctx:          ctx,
-		projId:       projId,
-		envId:        envId,
-		roleId:       roleId,
-		parentRoleId: parentRoleId,
-	}
-}
-
-// Execute executes the request
-//  @return RoleRead
-func (a *RolesApiService) AddParentRoleExecute(r ApiAddParentRoleRequest) (*models.RoleRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPut
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.RoleRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.AddParentRole")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"parent_role_id"+"}", url.PathEscape(parameterToString(r.parentRoleId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiAssignPermissionsToRoleRequest struct {
-	ctx                context.Context
-	ApiService         *RolesApiService
-	projId             string
-	envId              string
-	roleId             string
-	addRolePermissions *models.AddRolePermissions
-}
-
-func (r ApiAssignPermissionsToRoleRequest) AddRolePermissions(addRolePermissions models.AddRolePermissions) ApiAssignPermissionsToRoleRequest {
-	r.addRolePermissions = &addRolePermissions
+func (r ApiCreateTenantRequest) TenantCreate(tenantCreate models.TenantCreate) ApiCreateTenantRequest {
+	r.tenantCreate = &tenantCreate
 	return r
 }
 
-func (r ApiAssignPermissionsToRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
-	return r.ApiService.AssignPermissionsToRoleExecute(r)
+func (r ApiCreateTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
+	return r.ApiService.CreateTenantExecute(r)
 }
 
 /*
-AssignPermissionsToRole Assign Permissions To Role
+CreateTenant Create Tenant
 
-Assign permissions to role.
+Creates a new tenant inside the Permit.io system.
 
-If some of the permissions specified are already unassigned, will skip them.
+If the tenant is already created: will return 200 instead of 201,
+and will return the existing tenant object in the response body.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiAssignPermissionsToRoleRequest
+ @return ApiCreateTenantRequest
 */
-func (a *RolesApiService) AssignPermissionsToRole(ctx context.Context, projId string, envId string, roleId string) ApiAssignPermissionsToRoleRequest {
-	return ApiAssignPermissionsToRoleRequest{
+func (a *TenantsApiService) CreateTenant(ctx context.Context, projId string, envId string) ApiCreateTenantRequest {
+	return ApiCreateTenantRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		roleId:     roleId,
 	}
 }
 
 // Execute executes the request
-//  @return RoleRead
-func (a *RolesApiService) AssignPermissionsToRoleExecute(r ApiAssignPermissionsToRoleRequest) (*models.RoleRead, *http.Response, error) {
+//  @return TenantRead
+func (a *TenantsApiService) CreateTenantExecute(r ApiCreateTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.RoleRead
+		localVarReturnValue *models.TenantRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.AssignPermissionsToRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.CreateTenant")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.addRolePermissions == nil {
-		return localVarReturnValue, nil, reportError("addRolePermissions is required and must be specified")
+	if r.tenantCreate == nil {
+		return localVarReturnValue, nil, reportError("tenantCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -243,7 +106,7 @@ func (a *RolesApiService) AssignPermissionsToRoleExecute(r ApiAssignPermissionsT
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.addRolePermissions
+	localVarPostBody = r.tenantCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -291,185 +154,56 @@ func (a *RolesApiService) AssignPermissionsToRoleExecute(r ApiAssignPermissionsT
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiCreateRoleRequest struct {
+type ApiDeleteTenantRequest struct {
 	ctx        context.Context
-	ApiService *RolesApiService
+	ApiService *TenantsApiService
 	projId     string
 	envId      string
-	roleCreate *models.RoleCreate
+	tenantId   string
 }
 
-func (r ApiCreateRoleRequest) RoleCreate(roleCreate models.RoleCreate) ApiCreateRoleRequest {
-	r.roleCreate = &roleCreate
-	return r
-}
-
-func (r ApiCreateRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
-	return r.ApiService.CreateRoleExecute(r)
+func (r ApiDeleteTenantRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteTenantExecute(r)
 }
 
 /*
-CreateRole Create Role
+DeleteTenant Delete Tenant
 
-Creates a new tenant role.
+Deletes the tenant and all its related data.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateRoleRequest
+ @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+ @return ApiDeleteTenantRequest
 */
-func (a *RolesApiService) CreateRole(ctx context.Context, projId string, envId string) ApiCreateRoleRequest {
-	return ApiCreateRoleRequest{
+func (a *TenantsApiService) DeleteTenant(ctx context.Context, projId string, envId string, tenantId string) ApiDeleteTenantRequest {
+	return ApiDeleteTenantRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
+		tenantId:   tenantId,
 	}
 }
 
 // Execute executes the request
-//  @return RoleRead
-func (a *RolesApiService) CreateRoleExecute(r ApiCreateRoleRequest) (*models.RoleRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPost
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.RoleRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.CreateRole")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.roleCreate == nil {
-		return localVarReturnValue, nil, reportError("roleCreate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.roleCreate
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiDeleteRoleRequest struct {
-	ctx        context.Context
-	ApiService *RolesApiService
-	projId     string
-	envId      string
-	roleId     string
-}
-
-func (r ApiDeleteRoleRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteRoleExecute(r)
-}
-
-/*
-DeleteRole Delete Role
-
-Deletes a tenant role and all its related data.
-This includes any permissions granted to said role.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiDeleteRoleRequest
-*/
-func (a *RolesApiService) DeleteRole(ctx context.Context, projId string, envId string, roleId string) ApiDeleteRoleRequest {
-	return ApiDeleteRoleRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		roleId:     roleId,
-	}
-}
-
-// Execute executes the request
-func (a *RolesApiService) DeleteRoleExecute(r ApiDeleteRoleRequest) (*http.Response, error) {
+func (a *TenantsApiService) DeleteTenantExecute(r ApiDeleteTenantRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.DeleteRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.DeleteTenant")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -530,58 +264,172 @@ func (a *RolesApiService) DeleteRoleExecute(r ApiDeleteRoleRequest) (*http.Respo
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetRoleRequest struct {
+type ApiDeleteTenantUserRequest struct {
 	ctx        context.Context
-	ApiService *RolesApiService
+	ApiService *TenantsApiService
 	projId     string
 	envId      string
-	roleId     string
+	tenantId   string
+	userId     string
 }
 
-func (r ApiGetRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
-	return r.ApiService.GetRoleExecute(r)
+func (r ApiDeleteTenantUserRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteTenantUserExecute(r)
 }
 
 /*
-GetRole Get Role
+DeleteTenantUser Delete Tenant User
 
-Gets a single tenant role, if such role exists.
+Deletes a user under a tenant.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiGetRoleRequest
+ @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+ @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+ @return ApiDeleteTenantUserRequest
 */
-func (a *RolesApiService) GetRole(ctx context.Context, projId string, envId string, roleId string) ApiGetRoleRequest {
-	return ApiGetRoleRequest{
+func (a *TenantsApiService) DeleteTenantUser(ctx context.Context, projId string, envId string, tenantId string, userId string) ApiDeleteTenantUserRequest {
+	return ApiDeleteTenantUserRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		roleId:     roleId,
+		tenantId:   tenantId,
+		userId:     userId,
 	}
 }
 
 // Execute executes the request
-//  @return RoleRead
-func (a *RolesApiService) GetRoleExecute(r ApiGetRoleRequest) (*models.RoleRead, *http.Response, error) {
+func (a *TenantsApiService) DeleteTenantUserExecute(r ApiDeleteTenantUserRequest) (*http.Response, error) {
+	var (
+		localVarHTTPMethod = http.MethodDelete
+		localVarPostBody   interface{}
+		formFiles          []formFile
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.DeleteTenantUser")
+	if err != nil {
+		return nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarHTTPResponse, newErr
+	}
+
+	return localVarHTTPResponse, nil
+}
+
+type ApiGetTenantRequest struct {
+	ctx        context.Context
+	ApiService *TenantsApiService
+	projId     string
+	envId      string
+	tenantId   string
+}
+
+func (r ApiGetTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
+	return r.ApiService.GetTenantExecute(r)
+}
+
+/*
+GetTenant Get Tenant
+
+Gets a tenant, if such tenant exists. Otherwise returns 404.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+ @return ApiGetTenantRequest
+*/
+func (a *TenantsApiService) GetTenant(ctx context.Context, projId string, envId string, tenantId string) ApiGetTenantRequest {
+	return ApiGetTenantRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		tenantId:   tenantId,
+	}
+}
+
+// Execute executes the request
+//  @return TenantRead
+func (a *TenantsApiService) GetTenantExecute(r ApiGetTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.RoleRead
+		localVarReturnValue *models.TenantRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.GetRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.GetTenant")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -651,73 +499,85 @@ func (a *RolesApiService) GetRoleExecute(r ApiGetRoleRequest) (*models.RoleRead,
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListRolesRequest struct {
+type ApiListTenantUsersRequest struct {
 	ctx        context.Context
-	ApiService *RolesApiService
+	ApiService *TenantsApiService
 	projId     string
+	tenantId   string
 	envId      string
+	search     *string
 	page       *int32
 	perPage    *int32
 }
 
+// Text search for the email field
+func (r ApiListTenantUsersRequest) Search(search string) ApiListTenantUsersRequest {
+	r.search = &search
+	return r
+}
+
 // Page number of the results to fetch, starting at 1.
-func (r ApiListRolesRequest) Page(page int32) ApiListRolesRequest {
+func (r ApiListTenantUsersRequest) Page(page int32) ApiListTenantUsersRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListRolesRequest) PerPage(perPage int32) ApiListRolesRequest {
+func (r ApiListTenantUsersRequest) PerPage(perPage int32) ApiListTenantUsersRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListRolesRequest) Execute() ([]models.RoleRead, *http.Response, error) {
-	return r.ApiService.ListRolesExecute(r)
+func (r ApiListTenantUsersRequest) Execute() (*models.PaginatedResultUserRead, *http.Response, error) {
+	return r.ApiService.ListTenantUsersExecute(r)
 }
 
 /*
-ListRoles List Roles
-
-Lists all tenant roles.
+ListTenantUsers List Tenant Users
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListRolesRequest
+ @return ApiListTenantUsersRequest
 */
-func (a *RolesApiService) ListRoles(ctx context.Context, projId string, envId string) ApiListRolesRequest {
-	return ApiListRolesRequest{
+func (a *TenantsApiService) ListTenantUsers(ctx context.Context, projId string, tenantId string, envId string) ApiListTenantUsersRequest {
+	return ApiListTenantUsersRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
+		tenantId:   tenantId,
 		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return []RoleRead
-func (a *RolesApiService) ListRolesExecute(r ApiListRolesRequest) ([]models.RoleRead, *http.Response, error) {
+//  @return PaginatedResultUserRead
+func (a *TenantsApiService) ListTenantUsersExecute(r ApiListTenantUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.RoleRead
+		localVarReturnValue *models.PaginatedResultUserRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.ListRoles")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.ListTenantUsers")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.search != nil {
+		localVarQueryParams.Add("search", parameterToString(*r.search, ""))
+	}
 	if r.page != nil {
 		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
 	}
@@ -788,73 +648,89 @@ func (a *RolesApiService) ListRolesExecute(r ApiListRolesRequest) ([]models.Role
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiRemoveParentRoleRequest struct {
-	ctx          context.Context
-	ApiService   *RolesApiService
-	projId       string
-	envId        string
-	roleId       string
-	parentRoleId string
+type ApiListTenantsRequest struct {
+	ctx        context.Context
+	ApiService *TenantsApiService
+	projId     string
+	envId      string
+	search     *string
+	page       *int32
+	perPage    *int32
 }
 
-func (r ApiRemoveParentRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
-	return r.ApiService.RemoveParentRoleExecute(r)
+// Text search for the tenant name or key
+func (r ApiListTenantsRequest) Search(search string) ApiListTenantsRequest {
+	r.search = &search
+	return r
+}
+
+// Page number of the results to fetch, starting at 1.
+func (r ApiListTenantsRequest) Page(page int32) ApiListTenantsRequest {
+	r.page = &page
+	return r
+}
+
+// The number of results per page (max 100).
+func (r ApiListTenantsRequest) PerPage(perPage int32) ApiListTenantsRequest {
+	r.perPage = &perPage
+	return r
+}
+
+func (r ApiListTenantsRequest) Execute() ([]models.TenantRead, *http.Response, error) {
+	return r.ApiService.ListTenantsExecute(r)
 }
 
 /*
-RemoveParentRole Remove Parent Role
+ListTenants List Tenants
 
-This endpoint is part of the role hierarchy feature.
-
-Removes `parent_role_id` from the list of parent roles of role with id `role_id`.
-In other words, `role_id` will no longer be automatically assigned permissions
-that are granted to `parent_role_id`.
-
-We can say the `role_id` **not longer extends** `parent_role_id` or **no longer inherits** from `parent_role_id`.
+Lists all the tenants defined within an environment.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
- @return ApiRemoveParentRoleRequest
+ @return ApiListTenantsRequest
 */
-func (a *RolesApiService) RemoveParentRole(ctx context.Context, projId string, envId string, roleId string, parentRoleId string) ApiRemoveParentRoleRequest {
-	return ApiRemoveParentRoleRequest{
-		ApiService:   a,
-		ctx:          ctx,
-		projId:       projId,
-		envId:        envId,
-		roleId:       roleId,
-		parentRoleId: parentRoleId,
+func (a *TenantsApiService) ListTenants(ctx context.Context, projId string, envId string) ApiListTenantsRequest {
+	return ApiListTenantsRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return RoleRead
-func (a *RolesApiService) RemoveParentRoleExecute(r ApiRemoveParentRoleRequest) (*models.RoleRead, *http.Response, error) {
+//  @return []TenantRead
+func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]models.TenantRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodDelete
+		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.RoleRead
+		localVarReturnValue []models.TenantRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.RemoveParentRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.ListTenants")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id}"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"parent_role_id"+"}", url.PathEscape(parameterToString(r.parentRoleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.search != nil {
+		localVarQueryParams.Add("search", parameterToString(*r.search, ""))
+	}
+	if r.page != nil {
+		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
+	}
+	if r.perPage != nil {
+		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -919,205 +795,71 @@ func (a *RolesApiService) RemoveParentRoleExecute(r ApiRemoveParentRoleRequest) 
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiRemovePermissionsFromRoleRequest struct {
-	ctx                   context.Context
-	ApiService            *RolesApiService
-	projId                string
-	envId                 string
-	roleId                string
-	removeRolePermissions *models.RemoveRolePermissions
+type ApiUpdateTenantRequest struct {
+	ctx          context.Context
+	ApiService   *TenantsApiService
+	projId       string
+	envId        string
+	tenantId     string
+	tenantUpdate *models.TenantUpdate
 }
 
-func (r ApiRemovePermissionsFromRoleRequest) RemoveRolePermissions(removeRolePermissions models.RemoveRolePermissions) ApiRemovePermissionsFromRoleRequest {
-	r.removeRolePermissions = &removeRolePermissions
+func (r ApiUpdateTenantRequest) TenantUpdate(tenantUpdate models.TenantUpdate) ApiUpdateTenantRequest {
+	r.tenantUpdate = &tenantUpdate
 	return r
 }
 
-func (r ApiRemovePermissionsFromRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
-	return r.ApiService.RemovePermissionsFromRoleExecute(r)
+func (r ApiUpdateTenantRequest) Execute() (*models.TenantRead, *http.Response, error) {
+	return r.ApiService.UpdateTenantExecute(r)
 }
 
 /*
-RemovePermissionsFromRole Remove Permissions From Role
+UpdateTenant Update Tenant
 
-Remove permissions from role.
-
-If some of the permissions specified are already unassigned, will skip them.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiRemovePermissionsFromRoleRequest
-*/
-func (a *RolesApiService) RemovePermissionsFromRole(ctx context.Context, projId string, envId string, roleId string) ApiRemovePermissionsFromRoleRequest {
-	return ApiRemovePermissionsFromRoleRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-		envId:      envId,
-		roleId:     roleId,
-	}
-}
-
-// Execute executes the request
-//  @return RoleRead
-func (a *RolesApiService) RemovePermissionsFromRoleExecute(r ApiRemovePermissionsFromRoleRequest) (*models.RoleRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodDelete
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.RoleRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.RemovePermissionsFromRole")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.removeRolePermissions == nil {
-		return localVarReturnValue, nil, reportError("removeRolePermissions is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.removeRolePermissions
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUpdateRoleRequest struct {
-	ctx        context.Context
-	ApiService *RolesApiService
-	projId     string
-	envId      string
-	roleId     string
-	roleUpdate *models.RoleUpdate
-}
-
-func (r ApiUpdateRoleRequest) RoleUpdate(roleUpdate models.RoleUpdate) ApiUpdateRoleRequest {
-	r.roleUpdate = &roleUpdate
-	return r
-}
-
-func (r ApiUpdateRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
-	return r.ApiService.UpdateRoleExecute(r)
-}
-
-/*
-UpdateRole Update Role
-
-Partially updates a tenant role.
+Partially updates the tenant definition.
 Fields that will be provided will be completely overwritten.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiUpdateRoleRequest
+ @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+ @return ApiUpdateTenantRequest
 */
-func (a *RolesApiService) UpdateRole(ctx context.Context, projId string, envId string, roleId string) ApiUpdateRoleRequest {
-	return ApiUpdateRoleRequest{
+func (a *TenantsApiService) UpdateTenant(ctx context.Context, projId string, envId string, tenantId string) ApiUpdateTenantRequest {
+	return ApiUpdateTenantRequest{
 		ApiService: a,
 		ctx:        ctx,
 		projId:     projId,
 		envId:      envId,
-		roleId:     roleId,
+		tenantId:   tenantId,
 	}
 }
 
 // Execute executes the request
-//  @return RoleRead
-func (a *RolesApiService) UpdateRoleExecute(r ApiUpdateRoleRequest) (*models.RoleRead, *http.Response, error) {
+//  @return TenantRead
+func (a *TenantsApiService) UpdateTenantExecute(r ApiUpdateTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.RoleRead
+		localVarReturnValue *models.TenantRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.UpdateRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.UpdateTenant")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"tenant_id"+"}", url.PathEscape(parameterToString(r.tenantId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.roleUpdate == nil {
-		return localVarReturnValue, nil, reportError("roleUpdate is required and must be specified")
+	if r.tenantUpdate == nil {
+		return localVarReturnValue, nil, reportError("tenantUpdate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1138,7 +880,7 @@ func (a *RolesApiService) UpdateRoleExecute(r ApiUpdateRoleRequest) (*models.Rol
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.roleUpdate
+	localVarPostBody = r.tenantUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

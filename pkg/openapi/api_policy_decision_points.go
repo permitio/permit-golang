@@ -13,80 +13,195 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// OPALDataApiService OPALDataApi service
-type OPALDataApiService service
+// PolicyDecisionPointsApiService PolicyDecisionPointsApi service
+type PolicyDecisionPointsApiService service
 
-type ApiGetAllDataRequest struct {
-	ctx                 context.Context
-	ApiService          *OPALDataApiService
-	orgId               string
-	projId              string
-	envId               string
-	internalUpdateCache *bool
+type ApiGetAuthenticatingPdpConfigValuesRequest struct {
+	ctx            context.Context
+	ApiService     *PolicyDecisionPointsApiService
+	pDPStateUpdate *models.PDPStateUpdate
 }
 
-func (r ApiGetAllDataRequest) InternalUpdateCache(internalUpdateCache bool) ApiGetAllDataRequest {
-	r.internalUpdateCache = &internalUpdateCache
+func (r ApiGetAuthenticatingPdpConfigValuesRequest) PDPStateUpdate(pDPStateUpdate models.PDPStateUpdate) ApiGetAuthenticatingPdpConfigValuesRequest {
+	r.pDPStateUpdate = &pDPStateUpdate
 	return r
 }
 
-func (r ApiGetAllDataRequest) Execute() (*models.FullData, *http.Response, error) {
-	return r.ApiService.GetAllDataExecute(r)
+func (r ApiGetAuthenticatingPdpConfigValuesRequest) Execute() (*models.RemoteConfig, *http.Response, error) {
+	return r.ApiService.GetAuthenticatingPdpConfigValuesExecute(r)
 }
 
 /*
-GetAllData Get All Data
+GetAuthenticatingPdpConfigValues Get connected PDP configuration and push state
+
+Gets the configuration values for the currently authenticated PDP container.
+
+The PDP authenticates with an API key scoped to a given Permit.io environment.
+The system identifies the PDP via its API key and then returns all the configuration
+values required for the container to run correctly.
+
+The config values returned are considered "overrides", meaning they are overriding
+any default values given to the container by the user.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiGetAllDataRequest
+ @return ApiGetAuthenticatingPdpConfigValuesRequest
 */
-func (a *OPALDataApiService) GetAllData(ctx context.Context, orgId string, projId string, envId string) ApiGetAllDataRequest {
-	return ApiGetAllDataRequest{
+func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValues(ctx context.Context) ApiGetAuthenticatingPdpConfigValuesRequest {
+	return ApiGetAuthenticatingPdpConfigValuesRequest{
 		ApiService: a,
 		ctx:        ctx,
-		orgId:      orgId,
-		projId:     projId,
-		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return FullData
-func (a *OPALDataApiService) GetAllDataExecute(r ApiGetAllDataRequest) (*models.FullData, *http.Response, error) {
+//  @return RemoteConfig
+func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesExecute(r ApiGetAuthenticatingPdpConfigValuesRequest) (*models.RemoteConfig, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodGet
+		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.FullData
+		localVarReturnValue *models.RemoteConfig
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OPALDataApiService.GetAllData")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValues")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/internal/opal_data/{org_id}/{proj_id}/{env_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath := localBasePath + "/v2/pdps/me/config"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.pDPStateUpdate == nil {
+		return localVarReturnValue, nil, reportError("pDPStateUpdate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.pDPStateUpdate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiGetAuthenticatingPdpConfigValuesLegacyRequest struct {
+	ctx        context.Context
+	ApiService *PolicyDecisionPointsApiService
+}
+
+func (r ApiGetAuthenticatingPdpConfigValuesLegacyRequest) Execute() (*models.RemoteConfig, *http.Response, error) {
+	return r.ApiService.GetAuthenticatingPdpConfigValuesLegacyExecute(r)
+}
+
+/*
+GetAuthenticatingPdpConfigValuesLegacy Get connected PDP configuration
+
+Gets the configuration values for the currently authenticated PDP container.
+
+The PDP authenticates with an API key scoped to a given Permit.io environment.
+The system identifies the PDP via its API key and then returns all the configuration
+values required for the container to run correctly.
+
+The config values returned are considered "overrides", meaning they are overriding
+any default values given to the container by the user.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiGetAuthenticatingPdpConfigValuesLegacyRequest
+*/
+func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacy(ctx context.Context) ApiGetAuthenticatingPdpConfigValuesLegacyRequest {
+	return ApiGetAuthenticatingPdpConfigValuesLegacyRequest{
+		ApiService: a,
+		ctx:        ctx,
+	}
+}
+
+// Execute executes the request
+//  @return RemoteConfig
+func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacyExecute(r ApiGetAuthenticatingPdpConfigValuesLegacyRequest) (*models.RemoteConfig, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RemoteConfig
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValuesLegacy")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/pdps/me/config"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.internalUpdateCache != nil {
-		localVarQueryParams.Add("__internal_update_cache", parameterToString(*r.internalUpdateCache, ""))
-	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -151,60 +266,61 @@ func (a *OPALDataApiService) GetAllDataExecute(r ApiGetAllDataRequest) (*models.
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiGetDataForRoleRequest struct {
+type ApiGetPdpConfigValuesRequest struct {
 	ctx        context.Context
-	ApiService *OPALDataApiService
-	orgId      string
+	ApiService *PolicyDecisionPointsApiService
 	projId     string
 	envId      string
-	roleId     string
+	pdpId      string
 }
 
-func (r ApiGetDataForRoleRequest) Execute() (*models.RoleData, *http.Response, error) {
-	return r.ApiService.GetDataForRoleExecute(r)
+func (r ApiGetPdpConfigValuesRequest) Execute() (*models.RemoteConfig, *http.Response, error) {
+	return r.ApiService.GetPdpConfigValuesExecute(r)
 }
 
 /*
-GetDataForRole Get Data For Role
+GetPdpConfigValues Get PDP configuration
+
+Gets the configuration values for the PDP container with id `pdp_id`.
+
+The config values returned are considered "overrides", meaning they are overriding
+any default values given to the container by the user.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId
- @return ApiGetDataForRoleRequest
+ @param pdpId The unique id of the pdp
+ @return ApiGetPdpConfigValuesRequest
 */
-func (a *OPALDataApiService) GetDataForRole(ctx context.Context, orgId string, projId string, envId string, roleId string) ApiGetDataForRoleRequest {
-	return ApiGetDataForRoleRequest{
+func (a *PolicyDecisionPointsApiService) GetPdpConfigValues(ctx context.Context, projId string, envId string, pdpId string) ApiGetPdpConfigValuesRequest {
+	return ApiGetPdpConfigValuesRequest{
 		ApiService: a,
 		ctx:        ctx,
-		orgId:      orgId,
 		projId:     projId,
 		envId:      envId,
-		roleId:     roleId,
+		pdpId:      pdpId,
 	}
 }
 
 // Execute executes the request
-//  @return RoleData
-func (a *OPALDataApiService) GetDataForRoleExecute(r ApiGetDataForRoleRequest) (*models.RoleData, *http.Response, error) {
+//  @return RemoteConfig
+func (a *PolicyDecisionPointsApiService) GetPdpConfigValuesExecute(r ApiGetPdpConfigValuesRequest) (*models.RemoteConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.RoleData
+		localVarReturnValue *models.RemoteConfig
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OPALDataApiService.GetDataForRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.GetPdpConfigValues")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/roles/{role_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
+	localVarPath := localBasePath + "/v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/values"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"pdp_id"+"}", url.PathEscape(parameterToString(r.pdpId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -274,189 +390,195 @@ func (a *OPALDataApiService) GetDataForRoleExecute(r ApiGetDataForRoleRequest) (
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiGetDataForSetRuleRequest struct {
-	ctx           context.Context
-	ApiService    *OPALDataApiService
-	orgId         string
-	projId        string
-	envId         string
-	userSetId     string
-	resourceSetId string
-}
-
-func (r ApiGetDataForSetRuleRequest) Execute() (*map[string][]string, *http.Response, error) {
-	return r.ApiService.GetDataForSetRuleExecute(r)
-}
-
-/*
-GetDataForSetRule Get Data For Set Rule
-
-return permission assignment data between user sets and resource sets (i.e: condition set rules data)
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userSetId
- @param resourceSetId
- @return ApiGetDataForSetRuleRequest
-*/
-func (a *OPALDataApiService) GetDataForSetRule(ctx context.Context, orgId string, projId string, envId string, userSetId string, resourceSetId string) ApiGetDataForSetRuleRequest {
-	return ApiGetDataForSetRuleRequest{
-		ApiService:    a,
-		ctx:           ctx,
-		orgId:         orgId,
-		projId:        projId,
-		envId:         envId,
-		userSetId:     userSetId,
-		resourceSetId: resourceSetId,
-	}
-}
-
-// Execute executes the request
-//  @return map[string][]string
-func (a *OPALDataApiService) GetDataForSetRuleExecute(r ApiGetDataForSetRuleRequest) (*map[string][]string, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *map[string][]string
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OPALDataApiService.GetDataForSetRule")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/condition_set_rules/{user_set_id}/{resource_set_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_set_id"+"}", url.PathEscape(parameterToString(r.userSetId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"resource_set_id"+"}", url.PathEscape(parameterToString(r.resourceSetId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiGetDataForUserRequest struct {
+type ApiListPdpConfigsRequest struct {
 	ctx        context.Context
-	ApiService *OPALDataApiService
-	orgId      string
+	ApiService *PolicyDecisionPointsApiService
 	projId     string
 	envId      string
-	userId     string
+	page       *int32
+	perPage    *int32
 }
 
-func (r ApiGetDataForUserRequest) Execute() (*models.UserData, *http.Response, error) {
-	return r.ApiService.GetDataForUserExecute(r)
+// Page number of the results to fetch, starting at 1.
+func (r ApiListPdpConfigsRequest) Page(page int32) ApiListPdpConfigsRequest {
+	r.page = &page
+	return r
+}
+
+// The number of results per page (max 100).
+func (r ApiListPdpConfigsRequest) PerPage(perPage int32) ApiListPdpConfigsRequest {
+	r.perPage = &perPage
+	return r
+}
+
+func (r ApiListPdpConfigsRequest) Execute() ([]models.PDPConfigRead, *http.Response, error) {
+	return r.ApiService.ListPdpConfigsExecute(r)
 }
 
 /*
-GetDataForUser Get Data For User
+ListPdpConfigs List PDP configurations
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId
- @return ApiGetDataForUserRequest
+ @return ApiListPdpConfigsRequest
 */
-func (a *OPALDataApiService) GetDataForUser(ctx context.Context, orgId string, projId string, envId string, userId string) ApiGetDataForUserRequest {
-	return ApiGetDataForUserRequest{
+func (a *PolicyDecisionPointsApiService) ListPdpConfigs(ctx context.Context, projId string, envId string) ApiListPdpConfigsRequest {
+	return ApiListPdpConfigsRequest{
 		ApiService: a,
 		ctx:        ctx,
-		orgId:      orgId,
 		projId:     projId,
 		envId:      envId,
-		userId:     userId,
 	}
 }
 
 // Execute executes the request
-//  @return UserData
-func (a *OPALDataApiService) GetDataForUserExecute(r ApiGetDataForUserRequest) (*models.UserData, *http.Response, error) {
+//  @return []PDPConfigRead
+func (a *PolicyDecisionPointsApiService) ListPdpConfigsExecute(r ApiListPdpConfigsRequest) ([]models.PDPConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.UserData
+		localVarReturnValue []models.PDPConfigRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OPALDataApiService.GetDataForUser")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.ListPdpConfigs")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/users/{user_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
+	localVarPath := localBasePath + "/v2/pdps/{proj_id}/{env_id}/configs"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"user_id"+"}", url.PathEscape(parameterToString(r.userId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.page != nil {
+		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
+	}
+	if r.perPage != nil {
+		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiRotatePdpApiKeyRequest struct {
+	ctx        context.Context
+	ApiService *PolicyDecisionPointsApiService
+	projId     string
+	envId      string
+	pdpId      string
+}
+
+func (r ApiRotatePdpApiKeyRequest) Execute() (*models.PDPConfigRead, *http.Response, error) {
+	return r.ApiService.RotatePdpApiKeyExecute(r)
+}
+
+/*
+RotatePdpApiKey Rotate PDP API Key
+
+Rotates the API key of the PDP container with id `pdp_id`.
+
+The rotation of the API key revokes the old API key and issues a new API key to the PDP.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param pdpId The unique id of the pdp
+ @return ApiRotatePdpApiKeyRequest
+*/
+func (a *PolicyDecisionPointsApiService) RotatePdpApiKey(ctx context.Context, projId string, envId string, pdpId string) ApiRotatePdpApiKeyRequest {
+	return ApiRotatePdpApiKeyRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		pdpId:      pdpId,
+	}
+}
+
+// Execute executes the request
+//  @return PDPConfigRead
+func (a *PolicyDecisionPointsApiService) RotatePdpApiKeyExecute(r ApiRotatePdpApiKeyRequest) (*models.PDPConfigRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.PDPConfigRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "PolicyDecisionPointsApiService.RotatePdpApiKey")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/rotate-api-key"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"pdp_id"+"}", url.PathEscape(parameterToString(r.pdpId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}

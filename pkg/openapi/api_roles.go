@@ -13,645 +13,218 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/models"
+	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// OrganizationsApiService OrganizationsApi service
-type OrganizationsApiService service
+// RolesApiService RolesApi service
+type RolesApiService service
 
-type ApiCancelInviteRequest struct {
-	ctx        context.Context
-	ApiService *OrganizationsApiService
-	orgId      string
-	inviteId   string
-}
-
-func (r ApiCancelInviteRequest) Execute() (*http.Response, error) {
-	return r.ApiService.CancelInviteExecute(r)
-}
-
-/*
-CancelInvite Cancel Invite
-
-Cancels an invite that was sent to a new member.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @param inviteId Id of the invite to cancel
- @return ApiCancelInviteRequest
-*/
-func (a *OrganizationsApiService) CancelInvite(ctx context.Context, orgId string, inviteId string) ApiCancelInviteRequest {
-	return ApiCancelInviteRequest{
-		ApiService: a,
-		ctx:        ctx,
-		orgId:      orgId,
-		inviteId:   inviteId,
-	}
-}
-
-// Execute executes the request
-func (a *OrganizationsApiService) CancelInviteExecute(r ApiCancelInviteRequest) (*http.Response, error) {
-	var (
-		localVarHTTPMethod = http.MethodDelete
-		localVarPostBody   interface{}
-		formFiles          []formFile
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.CancelInvite")
-	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/orgs/{org_id}/invites/{invite_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"invite_id"+"}", url.PathEscape(parameterToString(r.inviteId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarHTTPResponse, newErr
-	}
-
-	return localVarHTTPResponse, nil
-}
-
-type ApiCreateOrganizationRequest struct {
-	ctx                context.Context
-	ApiService         *OrganizationsApiService
-	organizationCreate *models.OrganizationCreate
-}
-
-func (r ApiCreateOrganizationRequest) OrganizationCreate(organizationCreate models.OrganizationCreate) ApiCreateOrganizationRequest {
-	r.organizationCreate = &organizationCreate
-	return r
-}
-
-func (r ApiCreateOrganizationRequest) Execute() (*models.OrganizationReadWithAPIKey, *http.Response, error) {
-	return r.ApiService.CreateOrganizationExecute(r)
-}
-
-/*
-CreateOrganization Create Organization
-
-Creates a new organization that will be owned by the
-authenticated actor (i.e: human team member or api key).
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateOrganizationRequest
-*/
-func (a *OrganizationsApiService) CreateOrganization(ctx context.Context) ApiCreateOrganizationRequest {
-	return ApiCreateOrganizationRequest{
-		ApiService: a,
-		ctx:        ctx,
-	}
-}
-
-// Execute executes the request
-//  @return OrganizationReadWithAPIKey
-func (a *OrganizationsApiService) CreateOrganizationExecute(r ApiCreateOrganizationRequest) (*models.OrganizationReadWithAPIKey, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPost
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.OrganizationReadWithAPIKey
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.CreateOrganization")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/orgs"
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.organizationCreate == nil {
-		return localVarReturnValue, nil, reportError("organizationCreate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.organizationCreate
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiDeleteOrganizationRequest struct {
-	ctx        context.Context
-	ApiService *OrganizationsApiService
-	orgId      string
-}
-
-func (r ApiDeleteOrganizationRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteOrganizationExecute(r)
-}
-
-/*
-DeleteOrganization Delete Organization
-
-Deletes an organization (Permit.io account) and all its related data.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiDeleteOrganizationRequest
-*/
-func (a *OrganizationsApiService) DeleteOrganization(ctx context.Context, orgId string) ApiDeleteOrganizationRequest {
-	return ApiDeleteOrganizationRequest{
-		ApiService: a,
-		ctx:        ctx,
-		orgId:      orgId,
-	}
-}
-
-// Execute executes the request
-func (a *OrganizationsApiService) DeleteOrganizationExecute(r ApiDeleteOrganizationRequest) (*http.Response, error) {
-	var (
-		localVarHTTPMethod = http.MethodDelete
-		localVarPostBody   interface{}
-		formFiles          []formFile
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.DeleteOrganization")
-	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/orgs/{org_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarHTTPResponse, newErr
-	}
-
-	return localVarHTTPResponse, nil
-}
-
-type ApiGetActiveOrganizationRequest struct {
-	ctx        context.Context
-	ApiService *OrganizationsApiService
-}
-
-func (r ApiGetActiveOrganizationRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
-	return r.ApiService.GetActiveOrganizationExecute(r)
-}
-
-/*
-GetActiveOrganization Get Active Organization
-
-Gets a single organization (Permit.io account) matching the given org_id,
-if such org exists and can be accessed by the authenticated actor.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetActiveOrganizationRequest
-*/
-func (a *OrganizationsApiService) GetActiveOrganization(ctx context.Context) ApiGetActiveOrganizationRequest {
-	return ApiGetActiveOrganizationRequest{
-		ApiService: a,
-		ctx:        ctx,
-	}
-}
-
-// Execute executes the request
-//  @return OrganizationRead
-func (a *OrganizationsApiService) GetActiveOrganizationExecute(r ApiGetActiveOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.OrganizationRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.GetActiveOrganization")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/orgs/active/org"
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiGetOrganizationRequest struct {
-	ctx        context.Context
-	ApiService *OrganizationsApiService
-	orgId      string
-}
-
-func (r ApiGetOrganizationRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
-	return r.ApiService.GetOrganizationExecute(r)
-}
-
-/*
-GetOrganization Get Organization
-
-Gets a single organization (Permit.io account) matching the given org_id,
-if such org exists and can be accessed by the authenticated actor.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiGetOrganizationRequest
-*/
-func (a *OrganizationsApiService) GetOrganization(ctx context.Context, orgId string) ApiGetOrganizationRequest {
-	return ApiGetOrganizationRequest{
-		ApiService: a,
-		ctx:        ctx,
-		orgId:      orgId,
-	}
-}
-
-// Execute executes the request
-//  @return OrganizationRead
-func (a *OrganizationsApiService) GetOrganizationExecute(r ApiGetOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.OrganizationRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.GetOrganization")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/orgs/{org_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiInviteMembersToOrganizationRequest struct {
+type ApiAddParentRoleRequest struct {
 	ctx          context.Context
-	ApiService   *OrganizationsApiService
-	orgId        string
-	inviteCreate *[]models.InviteCreate
-	inviterName  *string
-	inviterEmail *string
+	ApiService   *RolesApiService
+	projId       string
+	envId        string
+	roleId       string
+	parentRoleId string
 }
 
-func (r ApiInviteMembersToOrganizationRequest) InviteCreate(inviteCreate []models.InviteCreate) ApiInviteMembersToOrganizationRequest {
-	r.inviteCreate = &inviteCreate
-	return r
-}
-
-func (r ApiInviteMembersToOrganizationRequest) InviterName(inviterName string) ApiInviteMembersToOrganizationRequest {
-	r.inviterName = &inviterName
-	return r
-}
-
-func (r ApiInviteMembersToOrganizationRequest) InviterEmail(inviterEmail string) ApiInviteMembersToOrganizationRequest {
-	r.inviterEmail = &inviterEmail
-	return r
-}
-
-func (r ApiInviteMembersToOrganizationRequest) Execute() (*models.MultiInviteResult, *http.Response, error) {
-	return r.ApiService.InviteMembersToOrganizationExecute(r)
+func (r ApiAddParentRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
+	return r.ApiService.AddParentRoleExecute(r)
 }
 
 /*
-InviteMembersToOrganization Invite Members To Organization
+AddParentRole Add Parent Role
 
-Invite new members into the organization.
+This endpoint is part of the role hierarchy feature.
+
+Makes role with id `role_id` extend the role with id `parent_role_id`.
+In other words, `role_id` will automatically be assigned any permissions
+that are granted to `parent_role_id`.
+
+We can say the `role_id` **extends** `parent_role_id` or **inherits** from `parent_role_id`.
+
+If `role_id` is already an ancestor of `parent_role_id`,
+the request will fail with HTTP 400 to prevent a cycle in the role hierarchy.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiInviteMembersToOrganizationRequest
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
+ @return ApiAddParentRoleRequest
 */
-func (a *OrganizationsApiService) InviteMembersToOrganization(ctx context.Context, orgId string) ApiInviteMembersToOrganizationRequest {
-	return ApiInviteMembersToOrganizationRequest{
-		ApiService: a,
-		ctx:        ctx,
-		orgId:      orgId,
+func (a *RolesApiService) AddParentRole(ctx context.Context, projId string, envId string, roleId string, parentRoleId string) ApiAddParentRoleRequest {
+	return ApiAddParentRoleRequest{
+		ApiService:   a,
+		ctx:          ctx,
+		projId:       projId,
+		envId:        envId,
+		roleId:       roleId,
+		parentRoleId: parentRoleId,
 	}
 }
 
 // Execute executes the request
-//  @return MultiInviteResult
-func (a *OrganizationsApiService) InviteMembersToOrganizationExecute(r ApiInviteMembersToOrganizationRequest) (*models.MultiInviteResult, *http.Response, error) {
+//  @return RoleRead
+func (a *RolesApiService) AddParentRoleExecute(r ApiAddParentRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodPost
+		localVarHTTPMethod  = http.MethodPut
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.MultiInviteResult
+		localVarReturnValue *models.RoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.InviteMembersToOrganization")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.AddParentRole")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/orgs/{org_id}/invites"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"parent_role_id"+"}", url.PathEscape(parameterToString(r.parentRoleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.inviteCreate == nil {
-		return localVarReturnValue, nil, reportError("inviteCreate is required and must be specified")
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
 	}
 
-	if r.inviterName != nil {
-		localVarQueryParams.Add("inviter_name", parameterToString(*r.inviterName, ""))
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
-	if r.inviterEmail != nil {
-		localVarQueryParams.Add("inviter_email", parameterToString(*r.inviterEmail, ""))
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
 	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiAssignPermissionsToRoleRequest struct {
+	ctx                context.Context
+	ApiService         *RolesApiService
+	projId             string
+	envId              string
+	roleId             string
+	addRolePermissions *models.AddRolePermissions
+}
+
+func (r ApiAssignPermissionsToRoleRequest) AddRolePermissions(addRolePermissions models.AddRolePermissions) ApiAssignPermissionsToRoleRequest {
+	r.addRolePermissions = &addRolePermissions
+	return r
+}
+
+func (r ApiAssignPermissionsToRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
+	return r.ApiService.AssignPermissionsToRoleExecute(r)
+}
+
+/*
+AssignPermissionsToRole Assign Permissions To Role
+
+Assign permissions to role.
+
+If some of the permissions specified are already unassigned, will skip them.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiAssignPermissionsToRoleRequest
+*/
+func (a *RolesApiService) AssignPermissionsToRole(ctx context.Context, projId string, envId string, roleId string) ApiAssignPermissionsToRoleRequest {
+	return ApiAssignPermissionsToRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		roleId:     roleId,
+	}
+}
+
+// Execute executes the request
+//  @return RoleRead
+func (a *RolesApiService) AssignPermissionsToRoleExecute(r ApiAssignPermissionsToRoleRequest) (*models.RoleRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RoleRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.AssignPermissionsToRole")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.addRolePermissions == nil {
+		return localVarReturnValue, nil, reportError("addRolePermissions is required and must be specified")
+	}
+
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{"application/json"}
 
@@ -670,7 +243,7 @@ func (a *OrganizationsApiService) InviteMembersToOrganizationExecute(r ApiInvite
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.inviteCreate
+	localVarPostBody = r.addRolePermissions
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -718,64 +291,428 @@ func (a *OrganizationsApiService) InviteMembersToOrganizationExecute(r ApiInvite
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListOrganizationInvitesRequest struct {
+type ApiCreateRoleRequest struct {
 	ctx        context.Context
-	ApiService *OrganizationsApiService
-	orgId      string
+	ApiService *RolesApiService
+	projId     string
+	envId      string
+	roleCreate *models.RoleCreate
+}
+
+func (r ApiCreateRoleRequest) RoleCreate(roleCreate models.RoleCreate) ApiCreateRoleRequest {
+	r.roleCreate = &roleCreate
+	return r
+}
+
+func (r ApiCreateRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
+	return r.ApiService.CreateRoleExecute(r)
+}
+
+/*
+CreateRole Create Role
+
+Creates a new tenant role.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiCreateRoleRequest
+*/
+func (a *RolesApiService) CreateRole(ctx context.Context, projId string, envId string) ApiCreateRoleRequest {
+	return ApiCreateRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+	}
+}
+
+// Execute executes the request
+//  @return RoleRead
+func (a *RolesApiService) CreateRoleExecute(r ApiCreateRoleRequest) (*models.RoleRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RoleRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.CreateRole")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.roleCreate == nil {
+		return localVarReturnValue, nil, reportError("roleCreate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.roleCreate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiDeleteRoleRequest struct {
+	ctx        context.Context
+	ApiService *RolesApiService
+	projId     string
+	envId      string
+	roleId     string
+}
+
+func (r ApiDeleteRoleRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteRoleExecute(r)
+}
+
+/*
+DeleteRole Delete Role
+
+Deletes a tenant role and all its related data.
+This includes any permissions granted to said role.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiDeleteRoleRequest
+*/
+func (a *RolesApiService) DeleteRole(ctx context.Context, projId string, envId string, roleId string) ApiDeleteRoleRequest {
+	return ApiDeleteRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		roleId:     roleId,
+	}
+}
+
+// Execute executes the request
+func (a *RolesApiService) DeleteRoleExecute(r ApiDeleteRoleRequest) (*http.Response, error) {
+	var (
+		localVarHTTPMethod = http.MethodDelete
+		localVarPostBody   interface{}
+		formFiles          []formFile
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.DeleteRole")
+	if err != nil {
+		return nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarHTTPResponse, newErr
+	}
+
+	return localVarHTTPResponse, nil
+}
+
+type ApiGetRoleRequest struct {
+	ctx        context.Context
+	ApiService *RolesApiService
+	projId     string
+	envId      string
+	roleId     string
+}
+
+func (r ApiGetRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
+	return r.ApiService.GetRoleExecute(r)
+}
+
+/*
+GetRole Get Role
+
+Gets a single tenant role, if such role exists.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiGetRoleRequest
+*/
+func (a *RolesApiService) GetRole(ctx context.Context, projId string, envId string, roleId string) ApiGetRoleRequest {
+	return ApiGetRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		roleId:     roleId,
+	}
+}
+
+// Execute executes the request
+//  @return RoleRead
+func (a *RolesApiService) GetRoleExecute(r ApiGetRoleRequest) (*models.RoleRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RoleRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.GetRole")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiListRolesRequest struct {
+	ctx        context.Context
+	ApiService *RolesApiService
+	projId     string
+	envId      string
 	page       *int32
 	perPage    *int32
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListOrganizationInvitesRequest) Page(page int32) ApiListOrganizationInvitesRequest {
+func (r ApiListRolesRequest) Page(page int32) ApiListRolesRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListOrganizationInvitesRequest) PerPage(perPage int32) ApiListOrganizationInvitesRequest {
+func (r ApiListRolesRequest) PerPage(perPage int32) ApiListRolesRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListOrganizationInvitesRequest) Execute() ([]models.InviteRead, *http.Response, error) {
-	return r.ApiService.ListOrganizationInvitesExecute(r)
+func (r ApiListRolesRequest) Execute() ([]models.RoleRead, *http.Response, error) {
+	return r.ApiService.ListRolesExecute(r)
 }
 
 /*
-ListOrganizationInvites List Organization Invites
+ListRoles List Roles
 
-Lists pending organization invites
+Lists all tenant roles.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiListOrganizationInvitesRequest
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiListRolesRequest
 */
-func (a *OrganizationsApiService) ListOrganizationInvites(ctx context.Context, orgId string) ApiListOrganizationInvitesRequest {
-	return ApiListOrganizationInvitesRequest{
+func (a *RolesApiService) ListRoles(ctx context.Context, projId string, envId string) ApiListRolesRequest {
+	return ApiListRolesRequest{
 		ApiService: a,
 		ctx:        ctx,
-		orgId:      orgId,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return []InviteRead
-func (a *OrganizationsApiService) ListOrganizationInvitesExecute(r ApiListOrganizationInvitesRequest) ([]models.InviteRead, *http.Response, error) {
+//  @return []RoleRead
+func (a *RolesApiService) ListRolesExecute(r ApiListRolesRequest) ([]models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.InviteRead
+		localVarReturnValue []models.RoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.ListOrganizationInvites")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.ListRoles")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/orgs/{org_id}/invites"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -851,72 +788,73 @@ func (a *OrganizationsApiService) ListOrganizationInvitesExecute(r ApiListOrgani
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListOrganizationsRequest struct {
-	ctx        context.Context
-	ApiService *OrganizationsApiService
-	page       *int32
-	perPage    *int32
+type ApiRemoveParentRoleRequest struct {
+	ctx          context.Context
+	ApiService   *RolesApiService
+	projId       string
+	envId        string
+	roleId       string
+	parentRoleId string
 }
 
-// Page number of the results to fetch, starting at 1.
-func (r ApiListOrganizationsRequest) Page(page int32) ApiListOrganizationsRequest {
-	r.page = &page
-	return r
-}
-
-// The number of results per page (max 100).
-func (r ApiListOrganizationsRequest) PerPage(perPage int32) ApiListOrganizationsRequest {
-	r.perPage = &perPage
-	return r
-}
-
-func (r ApiListOrganizationsRequest) Execute() ([]models.OrganizationRead, *http.Response, error) {
-	return r.ApiService.ListOrganizationsExecute(r)
+func (r ApiRemoveParentRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
+	return r.ApiService.RemoveParentRoleExecute(r)
 }
 
 /*
-ListOrganizations List Organizations
+RemoveParentRole Remove Parent Role
 
-Lists all the organizations that can be accessed by the
-authenticated actor (i.e: human team member or api key).
+This endpoint is part of the role hierarchy feature.
+
+Removes `parent_role_id` from the list of parent roles of role with id `role_id`.
+In other words, `role_id` will no longer be automatically assigned permissions
+that are granted to `parent_role_id`.
+
+We can say the `role_id` **not longer extends** `parent_role_id` or **no longer inherits** from `parent_role_id`.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListOrganizationsRequest
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
+ @return ApiRemoveParentRoleRequest
 */
-func (a *OrganizationsApiService) ListOrganizations(ctx context.Context) ApiListOrganizationsRequest {
-	return ApiListOrganizationsRequest{
-		ApiService: a,
-		ctx:        ctx,
+func (a *RolesApiService) RemoveParentRole(ctx context.Context, projId string, envId string, roleId string, parentRoleId string) ApiRemoveParentRoleRequest {
+	return ApiRemoveParentRoleRequest{
+		ApiService:   a,
+		ctx:          ctx,
+		projId:       projId,
+		envId:        envId,
+		roleId:       roleId,
+		parentRoleId: parentRoleId,
 	}
 }
 
 // Execute executes the request
-//  @return []OrganizationRead
-func (a *OrganizationsApiService) ListOrganizationsExecute(r ApiListOrganizationsRequest) ([]models.OrganizationRead, *http.Response, error) {
+//  @return RoleRead
+func (a *RolesApiService) RemoveParentRoleExecute(r ApiRemoveParentRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodGet
+		localVarHTTPMethod  = http.MethodDelete
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.OrganizationRead
+		localVarReturnValue *models.RoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.ListOrganizations")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.RemoveParentRole")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/orgs"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"parent_role_id"+"}", url.PathEscape(parameterToString(r.parentRoleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.page != nil {
-		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
-	}
-	if r.perPage != nil {
-		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
-	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -981,62 +919,205 @@ func (a *OrganizationsApiService) ListOrganizationsExecute(r ApiListOrganization
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiUpdateOrganizationRequest struct {
-	ctx                context.Context
-	ApiService         *OrganizationsApiService
-	orgId              string
-	organizationUpdate *models.OrganizationUpdate
+type ApiRemovePermissionsFromRoleRequest struct {
+	ctx                   context.Context
+	ApiService            *RolesApiService
+	projId                string
+	envId                 string
+	roleId                string
+	removeRolePermissions *models.RemoveRolePermissions
 }
 
-func (r ApiUpdateOrganizationRequest) OrganizationUpdate(organizationUpdate models.OrganizationUpdate) ApiUpdateOrganizationRequest {
-	r.organizationUpdate = &organizationUpdate
+func (r ApiRemovePermissionsFromRoleRequest) RemoveRolePermissions(removeRolePermissions models.RemoveRolePermissions) ApiRemovePermissionsFromRoleRequest {
+	r.removeRolePermissions = &removeRolePermissions
 	return r
 }
 
-func (r ApiUpdateOrganizationRequest) Execute() (*models.OrganizationRead, *http.Response, error) {
-	return r.ApiService.UpdateOrganizationExecute(r)
+func (r ApiRemovePermissionsFromRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
+	return r.ApiService.RemovePermissionsFromRoleExecute(r)
 }
 
 /*
-UpdateOrganization Update Organization
+RemovePermissionsFromRole Remove Permissions From Role
 
-Updates the organization's profile.
+Remove permissions from role.
+
+If some of the permissions specified are already unassigned, will skip them.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiUpdateOrganizationRequest
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiRemovePermissionsFromRoleRequest
 */
-func (a *OrganizationsApiService) UpdateOrganization(ctx context.Context, orgId string) ApiUpdateOrganizationRequest {
-	return ApiUpdateOrganizationRequest{
+func (a *RolesApiService) RemovePermissionsFromRole(ctx context.Context, projId string, envId string, roleId string) ApiRemovePermissionsFromRoleRequest {
+	return ApiRemovePermissionsFromRoleRequest{
 		ApiService: a,
 		ctx:        ctx,
-		orgId:      orgId,
+		projId:     projId,
+		envId:      envId,
+		roleId:     roleId,
 	}
 }
 
 // Execute executes the request
-//  @return OrganizationRead
-func (a *OrganizationsApiService) UpdateOrganizationExecute(r ApiUpdateOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
+//  @return RoleRead
+func (a *RolesApiService) RemovePermissionsFromRoleExecute(r ApiRemovePermissionsFromRoleRequest) (*models.RoleRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodDelete
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RoleRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.RemovePermissionsFromRole")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.removeRolePermissions == nil {
+		return localVarReturnValue, nil, reportError("removeRolePermissions is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.removeRolePermissions
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiUpdateRoleRequest struct {
+	ctx        context.Context
+	ApiService *RolesApiService
+	projId     string
+	envId      string
+	roleId     string
+	roleUpdate *models.RoleUpdate
+}
+
+func (r ApiUpdateRoleRequest) RoleUpdate(roleUpdate models.RoleUpdate) ApiUpdateRoleRequest {
+	r.roleUpdate = &roleUpdate
+	return r
+}
+
+func (r ApiUpdateRoleRequest) Execute() (*models.RoleRead, *http.Response, error) {
+	return r.ApiService.UpdateRoleExecute(r)
+}
+
+/*
+UpdateRole Update Role
+
+Partially updates a tenant role.
+Fields that will be provided will be completely overwritten.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+ @return ApiUpdateRoleRequest
+*/
+func (a *RolesApiService) UpdateRole(ctx context.Context, projId string, envId string, roleId string) ApiUpdateRoleRequest {
+	return ApiUpdateRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		roleId:     roleId,
+	}
+}
+
+// Execute executes the request
+//  @return RoleRead
+func (a *RolesApiService) UpdateRoleExecute(r ApiUpdateRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.OrganizationRead
+		localVarReturnValue *models.RoleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OrganizationsApiService.UpdateOrganization")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.UpdateRole")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/orgs/{org_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"org_id"+"}", url.PathEscape(parameterToString(r.orgId, "")), -1)
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/roles/{role_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"role_id"+"}", url.PathEscape(parameterToString(r.roleId, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.organizationUpdate == nil {
-		return localVarReturnValue, nil, reportError("organizationUpdate is required and must be specified")
+	if r.roleUpdate == nil {
+		return localVarReturnValue, nil, reportError("roleUpdate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -1057,7 +1138,7 @@ func (a *OrganizationsApiService) UpdateOrganizationExecute(r ApiUpdateOrganizat
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.organizationUpdate
+	localVarPostBody = r.roleUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

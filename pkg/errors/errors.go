@@ -59,23 +59,23 @@ func NewPermitError(errorMessage ErrorMessage, errorCode ErrorCode, errorType Er
 func NewPermitNotFoundError(err error) *PermitNotFoundError {
 	if err == nil {
 		return &PermitNotFoundError{
-			NewPermitError(NotFoundMessage, NotFound, GENERAL_ERROR),
+			NewPermitError(NotFoundMessage, NotFound, API_ERROR),
 		}
 	}
 	return &PermitNotFoundError{
-		NewPermitError(ErrorMessage(err.Error()), NotFound, GENERAL_ERROR),
+		NewPermitError(ErrorMessage(err.Error()), NotFound, API_ERROR),
 	}
 }
 
 func NewPermitConflictError() *PermitNotFoundError {
 	return &PermitNotFoundError{
-		NewPermitError(ConflictMessage, Conflict, GENERAL_ERROR),
+		NewPermitError(ConflictMessage, Conflict, API_ERROR),
 	}
 }
 
 func NewPermitPaginationError() *PermitPaginationError {
 	return &PermitPaginationError{
-		NewPermitError(PaginationMessage, PaginationError, GENERAL_ERROR),
+		NewPermitError(PaginationMessage, PaginationError, API_ERROR),
 	}
 }
 
@@ -88,19 +88,19 @@ func NewPermitUnprocessableEntityError(err error) *PermitUnprocessableEntityErro
 		errorMessage = "Email is not valid"
 	}
 	return &PermitUnprocessableEntityError{
-		NewPermitError(errorMessage, UnprocessableEntityError, GENERAL_ERROR),
+		NewPermitError(errorMessage, UnprocessableEntityError, API_ERROR),
 	}
 }
 
 func NewPermitForbiddenError() *PermitForbiddenError {
 	return &PermitForbiddenError{
-		NewPermitError(ForbiddenMessage, ForbiddenAccess, GENERAL_ERROR),
+		NewPermitError(ForbiddenMessage, ForbiddenAccess, API_ERROR),
 	}
 }
 
 func NewPermitUnauthorizedError() *PermitUnauthorizedError {
 	return &PermitUnauthorizedError{
-		NewPermitError(UnauthorizedMessage, Unauthorized, GENERAL_ERROR),
+		NewPermitError(UnauthorizedMessage, Unauthorized, API_ERROR),
 	}
 }
 
@@ -113,11 +113,11 @@ func NewPermitContextError(additionalMessage ErrorMessage) *PermitContextError {
 func NewPermitDuplicateEntityError(err error) *PermitDuplicateEntityError {
 	if err == nil {
 		return &PermitDuplicateEntityError{
-			NewPermitError(DuplicateEntityMessage, DuplicateEntity, GENERAL_ERROR),
+			NewPermitError(DuplicateEntityMessage, DuplicateEntity, API_ERROR),
 		}
 	}
 	return &PermitDuplicateEntityError{
-		NewPermitError(ErrorMessage(err.Error()), DuplicateEntity, GENERAL_ERROR),
+		NewPermitError(ErrorMessage(err.Error()), DuplicateEntity, API_ERROR),
 	}
 }
 func NewPermitConnectionError(err error) *PermitDuplicateEntityError {

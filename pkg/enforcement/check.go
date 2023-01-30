@@ -30,7 +30,7 @@ func NewCheckRequest(user User, action Action, resource Resource, context map[st
 	}
 }
 
-func (e *PermitEnforcer) Check(user User, action Action, resource Resource, context ...map[string]string) (bool, error) {
+func (e *PermitEnforcer) Check(user User, action Action, resource Resource, additionalContext ...map[string]string) (bool, error) {
 	const (
 		reqMethod           = "POST"
 		reqContentTypeKey   = "Content-Type"
@@ -41,12 +41,12 @@ func (e *PermitEnforcer) Check(user User, action Action, resource Resource, cont
 	reqAuthValue := "Bearer " + e.config.GetToken()
 	reqEndpoint := e.config.GetPdpUrl() + "/allowed"
 
-	if context == nil {
-		context = make([]map[string]string, 0)
-		context = append(context, make(map[string]string))
+	if additionalContext == nil {
+		additionalContext = make([]map[string]string, 0)
+		additionalContext = append(additionalContext, make(map[string]string))
 	}
 
-	checkReq := NewCheckRequest(user, action, resource, context[0])
+	checkReq := NewCheckRequest(user, action, resource, additionalContext[0])
 	jsonCheckReq, err := json.Marshal(checkReq)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err)

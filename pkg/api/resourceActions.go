@@ -26,7 +26,8 @@ func NewResourceActionsApi(client *openapi.APIClient, config *config.PermitConfi
 
 // List all resource actions of a resource by resource key.
 // Usage Example:
-//  `resourceActions, err := PermitClient.Api.ResourceActions.List(ctx, "resource-key", 1, 10)`
+//
+//	`resourceActions, err := PermitClient.Api.ResourceActions.List(ctx, "resource-key", 1, 10)`
 func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceActionRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
@@ -34,7 +35,7 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 		a.logger.Error("error listing resource actions - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +49,10 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 
 // Get a resource action by resource key and action key.
 // Usage Example:
-//  `resourceAction, err := PermitClient.Api.ResourceActions.Get(ctx, "resource-key", "action-key")`
+//
+//	`resourceAction, err := PermitClient.Api.ResourceActions.Get(ctx, "resource-key", "action-key")`
 func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,14 +66,16 @@ func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey
 
 // GetByKey gets a resource action by resource key and action key.
 // Usage Example:
-//  `resourceAction, err := PermitClient.Api.ResourceActions.GetByKey(ctx, "resource-key", "action-key")`
+//
+//	`resourceAction, err := PermitClient.Api.ResourceActions.GetByKey(ctx, "resource-key", "action-key")`
 func (a *ResourceActions) GetByKey(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
 	return a.Get(ctx, resourceKey, actionKey)
 }
 
 // GetById gets a resource action by resource ID and action ID.
 // Usage Example:
-//  `resourceAction, err := PermitClient.Api.ResourceActions.GetById(ctx, uuid.New(), uuid.New())`
+//
+//	`resourceAction, err := PermitClient.Api.ResourceActions.GetById(ctx, uuid.New(), uuid.New())`
 func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, actionKey uuid.UUID) (*models.ResourceActionRead, error) {
 	return a.Get(ctx, resourceKey.String(), actionKey.String())
 }
@@ -79,11 +83,13 @@ func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, ac
 // Create a resource action by resource key.
 // Usage Example:
 // ```
-//  resourceActionCreate := models.NewResourceActionCreate("action-key", "action-name")
-//  resourceAction, err := PermitClient.Api.ResourceActions.Create(ctx, "resource-key", resourceActionCreate)
+//
+//	resourceActionCreate := models.NewResourceActionCreate("action-key", "action-name")
+//	resourceAction, err := PermitClient.Api.ResourceActions.Create(ctx, "resource-key", resourceActionCreate)
+//
 // ```
 func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resourceActionCreate models.ResourceActionCreate) (*models.ResourceActionRead, error) {
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +104,14 @@ func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resour
 // Update a resource action by resource key and action key.
 // Usage Example:
 // ```
-//  resourceActionUpdate := models.NewResourceActionUpdate()
-//  resourceActionUpdate.SetName("new-action-name")
-//  resourceAction, err := PermitClient.Api.ResourceActions.Update(ctx, "resource-key", "action-key", resourceActionUpdate)
+//
+//	resourceActionUpdate := models.NewResourceActionUpdate()
+//	resourceActionUpdate.SetName("new-action-name")
+//	resourceAction, err := PermitClient.Api.ResourceActions.Update(ctx, "resource-key", "action-key", resourceActionUpdate)
+//
 // ```
 func (a *ResourceActions) Update(ctx context.Context, resourceKey string, actionKey string, resourceActionUpdate models.ResourceActionUpdate) (*models.ResourceActionRead, error) {
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +125,10 @@ func (a *ResourceActions) Update(ctx context.Context, resourceKey string, action
 
 // Delete a resource action by resource key and action key.
 // Usage Example:
-//  `err := PermitClient.Api.ResourceActions.Delete(ctx, "resource-key", "action-key")`
+//
+//	`err := PermitClient.Api.ResourceActions.Delete(ctx, "resource-key", "action-key")`
 func (a *ResourceActions) Delete(ctx context.Context, resourceKey string, actionKey string) error {
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return err
 	}

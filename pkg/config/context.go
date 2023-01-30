@@ -24,7 +24,6 @@ func (p *PermitContext) SetContext(project string, environment string, apiKeyLev
 	p.ProjectId = project
 	p.EnvironmentId = environment
 	p.APIKeyLevel = apiKeyLevel
-
 }
 
 func (p *PermitContext) GetContext() *PermitContext {

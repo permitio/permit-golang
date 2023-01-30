@@ -38,7 +38,7 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -56,7 +56,7 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 // Usage Example:
 // `role, err := PermitClient.Api.Roles.Get(ctx, "role-key")`
 func (r *Roles) Get(ctx context.Context, roleKey string) (*models.RoleRead, error) {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -92,7 +92,7 @@ func (r *Roles) GetById(ctx context.Context, roleKey uuid.UUID) (*models.RoleRea
 // role, err := PermitClient.Api.Roles.Create(ctx, roleCreate)
 // ```
 func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*models.RoleRead, error) {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -114,7 +114,7 @@ func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*mode
 // role, err := PermitClient.Api.Roles.Update(ctx, "role-key", roleUpdate)
 // ```
 func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.RoleUpdate) (*models.RoleRead, error) {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -132,7 +132,7 @@ func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.Ro
 // Usage Example:
 // `err := PermitClient.Api.Roles.Delete(ctx, "role-key")`
 func (r *Roles) Delete(ctx context.Context, roleKey string) error {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err
@@ -152,7 +152,7 @@ func (r *Roles) Delete(ctx context.Context, roleKey string) error {
 // Usage Example:
 // `err := PermitClient.Api.Roles.AssignPermissions(ctx, "role-key", []string{"document:read", "document:write"})`
 func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissions []string) error {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err
@@ -173,7 +173,7 @@ func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissio
 // Usage Example:
 // `err := PermitClient.Api.Roles.RemovePermissions(ctx, "role-key", []string{"document:read", "document:write"})`
 func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissions []string) error {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err
@@ -195,7 +195,7 @@ func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissio
 // Usage Example:
 // `err := PermitClient.Api.Roles.AddParentRole(ctx, "role-key", "parent-role-key")`
 func (r *Roles) AddParentRole(ctx context.Context, roleKey string, parentRoleKey string) error {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err
@@ -213,7 +213,7 @@ func (r *Roles) AddParentRole(ctx context.Context, roleKey string, parentRoleKey
 // Usage Example:
 // `err := PermitClient.Api.Roles.RemoveParentRole(ctx, "role-key", "parent-role-key")`
 func (r *Roles) RemoveParentRole(ctx context.Context, roleKey string, parentRoleKey string) error {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err

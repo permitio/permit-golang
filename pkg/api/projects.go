@@ -34,7 +34,7 @@ func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.Pr
 		p.logger.Error("error listing projects - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
+	err := p.lazyLoadPermitContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return nil, err
@@ -53,7 +53,7 @@ func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.Pr
 // Usage Example:
 // `project, err := PermitClient.Api.Projects.Get(ctx, "project-key")`
 func (p *Projects) Get(ctx context.Context, projectKey string) (*models.ProjectRead, error) {
-	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
+	err := p.lazyLoadPermitContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return nil, err
@@ -88,7 +88,7 @@ func (p *Projects) GetById(ctx context.Context, projectId uuid.UUID) (*models.Pr
 // project, err := PermitClient.Api.Projects.Create(ctx, projectCreate)
 // ```
 func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreate) (*models.ProjectRead, error) {
-	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
+	err := p.lazyLoadPermitContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return nil, err
@@ -110,7 +110,7 @@ func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreat
 // project, err := PermitClient.Api.Projects.Update(ctx, "project-key", projectUpdate)
 // ```
 func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate models.ProjectUpdate) (*models.ProjectRead, error) {
-	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
+	err := p.lazyLoadPermitContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return nil, err
@@ -128,7 +128,7 @@ func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate 
 // Usage Example:
 // `err := PermitClient.Api.Projects.Delete(ctx, "project-key")`
 func (p *Projects) Delete(ctx context.Context, projectKey string) error {
-	err := p.lazyLoadContext(ctx, config.ProjectAPIKeyLevel)
+	err := p.lazyLoadPermitContext(ctx, config.ProjectAPIKeyLevel)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 		return err

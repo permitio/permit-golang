@@ -30,7 +30,7 @@ func NewElementsApi(client *openapi.APIClient, config *config.PermitConfig) *Ele
 // embeddedLoginRequestOutput, err := PermitClient.Api.Elements.LoginAs(ctx, userLogin)
 // ```
 func (e *Elements) LoginAs(ctx context.Context, userLogin models.UserLoginRequestInput) (*models.EmbeddedLoginRequestOutput, error) {
-	err := e.lazyLoadContext(ctx)
+	err := e.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}

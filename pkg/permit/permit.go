@@ -45,7 +45,6 @@ func (c *Client) Check(user enforcement.User, action enforcement.Action, resourc
 }
 
 type PermitInterface interface {
-	Check() bool
-	SyncUser() models.UserRead
-	SyncResources() []models.ResourceRead
+	Check(user enforcement.User, action enforcement.Action, resource enforcement.Resource) (bool, error)
+	SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
 }

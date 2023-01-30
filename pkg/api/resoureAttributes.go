@@ -26,7 +26,8 @@ func NewResourceAttributesApi(client *openapi.APIClient, config *config.PermitCo
 
 // List all resource attributes of a resource, by resource key.
 // Usage Example:
-//  `resourceAttributes, err := PermitClient.Api.ResourceAttributes.List(ctx, "resource-key", 1, 10)`
+//
+//	`resourceAttributes, err := PermitClient.Api.ResourceAttributes.List(ctx, "resource-key", 1, 10)`
 func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceAttributeRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
@@ -34,7 +35,7 @@ func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page 
 		a.logger.Error("error listing resource attributes - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +49,10 @@ func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page 
 
 // Get a resource attribute by resource key and attribute key.
 // Usage Example:
-//  `resourceAttribute, err := PermitClient.Api.ResourceAttributes.Get(ctx, "resource-key", "attribute-key")`
+//
+//	`resourceAttribute, err := PermitClient.Api.ResourceAttributes.Get(ctx, "resource-key", "attribute-key")`
 func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error) {
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,14 +66,16 @@ func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attrib
 
 // GetByKey gets a resource attribute by resource key and attribute key.
 // Usage Example:
-//  `resourceAttribute, err := PermitClient.Api.ResourceAttributes.GetByKey(ctx, "resource-key", "attribute-key")`
+//
+//	`resourceAttribute, err := PermitClient.Api.ResourceAttributes.GetByKey(ctx, "resource-key", "attribute-key")`
 func (a *ResourceAttributes) GetByKey(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error) {
 	return a.Get(ctx, resourceKey, attributeKey)
 }
 
 // GetById gets a resource attribute by resource ID and attribute ID.
 // Usage Example:
-//  `resourceAttribute, err := PermitClient.Api.ResourceAttributes.GetById(ctx, uuid.New(), uuid.New())`
+//
+//	`resourceAttribute, err := PermitClient.Api.ResourceAttributes.GetById(ctx, uuid.New(), uuid.New())`
 func (a *ResourceAttributes) GetById(ctx context.Context, resourceKey uuid.UUID, attributeKey uuid.UUID) (*models.ResourceAttributeRead, error) {
 	return a.Get(ctx, resourceKey.String(), attributeKey.String())
 }
@@ -79,11 +83,13 @@ func (a *ResourceAttributes) GetById(ctx context.Context, resourceKey uuid.UUID,
 // Create a resource attribute by resource key.
 // Usage Example:
 // ```
-//  resourceAttributeCreate := models.NewResourceAttributeCreate("attribute-key", models.AttributeType("string"))
-//  resourceAttribute, err := PermitClient.Api.ResourceAttributes.Create(ctx, "resource-key", resourceAttributeCreate)
+//
+//	resourceAttributeCreate := models.NewResourceAttributeCreate("attribute-key", models.AttributeType("string"))
+//	resourceAttribute, err := PermitClient.Api.ResourceAttributes.Create(ctx, "resource-key", resourceAttributeCreate)
+//
 // ```
 func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, resourceAttributeCreate models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error) {
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +104,14 @@ func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, res
 // Update a resource attribute by resource key and attribute key.
 // Usage Example:
 // ```
-//  resourceAttributeUpdate := models.NewResourceAttributeUpdate()
-//  resourceAttributeUpdate.SetType("bool")
-//  resourceAttribute, err := PermitClient.Api.ResourceAttributes.Update(ctx, "resource-key", "attribute-key", resourceAttributeUpdate)
+//
+//	resourceAttributeUpdate := models.NewResourceAttributeUpdate()
+//	resourceAttributeUpdate.SetType("bool")
+//	resourceAttribute, err := PermitClient.Api.ResourceAttributes.Update(ctx, "resource-key", "attribute-key", resourceAttributeUpdate)
+//
 // ```
 func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, attributeKey string, resourceAttributeUpdate models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error) {
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +125,10 @@ func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, att
 
 // Delete a resource attribute by resource key and attribute key.
 // Usage Example:
-//  `err := PermitClient.Api.ResourceAttributes.Delete(ctx, "resource-key", "attribute-key")`
+//
+//	`err := PermitClient.Api.ResourceAttributes.Delete(ctx, "resource-key", "attribute-key")`
 func (a *ResourceAttributes) Delete(ctx context.Context, resourceKey string, attributeKey string) error {
-	err := a.lazyLoadContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return err
 	}

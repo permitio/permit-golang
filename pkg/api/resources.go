@@ -26,7 +26,8 @@ func NewResourcesApi(client *openapi.APIClient, config *config.PermitConfig) *Re
 
 // List all the resources in the current environment.
 // Usage Example:
-//  `resources, err := PermitClient.Api.Resources.List(ctx, 1, 10)`
+//
+//	`resources, err := PermitClient.Api.Resources.List(ctx, 1, 10)`
 func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.ResourceRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
@@ -34,7 +35,7 @@ func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.R
 		r.logger.Error("error listing resources - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -50,9 +51,10 @@ func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.R
 
 // Get a resource by its key.
 // Usage Example:
-//  `resource, err := PermitClient.Api.Resources.Get(ctx, "my-resource")`
+//
+//	`resource, err := PermitClient.Api.Resources.Get(ctx, "my-resource")`
 func (r *Resources) Get(ctx context.Context, resourceKey string) (*models.ResourceRead, error) {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -68,14 +70,16 @@ func (r *Resources) Get(ctx context.Context, resourceKey string) (*models.Resour
 
 // GetByKey gets a resource by its key.
 // Usage Example:
-//  `resource, err := PermitClient.Api.Resources.GetByKey(ctx, "my-resource")`
+//
+//	`resource, err := PermitClient.Api.Resources.GetByKey(ctx, "my-resource")`
 func (r *Resources) GetByKey(ctx context.Context, resourceKey string) (*models.ResourceRead, error) {
 	return r.Get(ctx, resourceKey)
 }
 
 // GetById gets a resource by its ID.
 // Usage Example:
-//  `resource, err := PermitClient.Api.Resources.GetById(ctx, uuid.New())`
+//
+//	`resource, err := PermitClient.Api.Resources.GetById(ctx, uuid.New())`
 func (r *Resources) GetById(ctx context.Context, resourceId uuid.UUID) (*models.ResourceRead, error) {
 	return r.Get(ctx, resourceId.String())
 }
@@ -83,11 +87,13 @@ func (r *Resources) GetById(ctx context.Context, resourceId uuid.UUID) (*models.
 // Create a new resource.
 // Usage Example:
 // ```
-//  resourceCreate := models.NewResourceCreate("document", "Document", map[string]models.ActionBlockEditable{"read": {}, "write": {}}
-//  resource, err := PermitClient.Api.Resources.Create(ctx, resourceCreate)
+//
+//	resourceCreate := models.NewResourceCreate("document", "Document", map[string]models.ActionBlockEditable{"read": {}, "write": {}}
+//	resource, err := PermitClient.Api.Resources.Create(ctx, resourceCreate)
+//
 // ```
 func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCreate) (*models.ResourceRead, error) {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -104,12 +110,14 @@ func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCr
 // Update a resource.
 // Usage Example:
 // ```
-//  resourceUpdate := models.NewResourceUpdate()
-//  resourceUpdate.SetActions(map[string]models.ActionBlockEditable{"read": {}, "write": {}}
-//  resource, err := PermitClient.Api.Resources.Update(ctx, "my-resource", resourceUpdate)
+//
+//	resourceUpdate := models.NewResourceUpdate()
+//	resourceUpdate.SetActions(map[string]models.ActionBlockEditable{"read": {}, "write": {}}
+//	resource, err := PermitClient.Api.Resources.Update(ctx, "my-resource", resourceUpdate)
+//
 // ```
 func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpdate models.ResourceUpdate) (*models.ResourceRead, error) {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return nil, err
@@ -125,9 +133,10 @@ func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpda
 
 // Delete a resource.
 // Usage Example:
-//  `err := PermitClient.Api.Resources.Delete(ctx, "my-resource")`
+//
+//	`err := PermitClient.Api.Resources.Delete(ctx, "my-resource")`
 func (r *Resources) Delete(ctx context.Context, resourceKey string) error {
-	err := r.lazyLoadContext(ctx)
+	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
 		r.logger.Error("", zap.Error(err))
 		return err

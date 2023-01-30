@@ -27,7 +27,8 @@ func NewUsersApi(client *openapi.APIClient, config *config.PermitConfig) *Users 
 
 // List the users from your context's environment.
 // Usage Example:
-//  `users, err := PermitClient.Api.Users.List(ctx, 1, 10)`
+//
+//	`users, err := PermitClient.Api.Users.List(ctx, 1, 10)`
 func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
@@ -35,7 +36,7 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 		u.logger.Error("error listing users - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -51,9 +52,10 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 
 // Get a user from your context's environment.
 // Usage Example:
-//  `user, err := PermitClient.Api.Users.Get(ctx, "user-key")`
+//
+//	`user, err := PermitClient.Api.Users.Get(ctx, "user-key")`
 func (u *Users) Get(ctx context.Context, userKey string) (*models.UserRead, error) {
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -69,14 +71,16 @@ func (u *Users) Get(ctx context.Context, userKey string) (*models.UserRead, erro
 
 // GetByKey gets a user by key from your context's environment.
 // Usage Example:
-//  `user, err := PermitClient.Api.Users.GetByKey(ctx, "user-key")`
+//
+//	`user, err := PermitClient.Api.Users.GetByKey(ctx, "user-key")`
 func (u *Users) GetByKey(ctx context.Context, userKey string) (*models.UserRead, error) {
 	return u.Get(ctx, userKey)
 }
 
 // GetById gets a user by id from your context's environment.
 // Usage Example:
-//  `user, err := PermitClient.Api.Users.GetById(ctx, uuid.New())`
+//
+//	`user, err := PermitClient.Api.Users.GetById(ctx, uuid.New())`
 func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead, error) {
 	return u.Get(ctx, userId.String())
 }
@@ -84,14 +88,16 @@ func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead
 // Create a user in your context's environment.
 // Usage Example:
 // ```
-//  userCreate := models.NewUserCreate("user-key")
-//  userCreate.SetEmail("user-email@mail.com")
-//  userCreate.SetFirstName("user-first-name")
-//  userCreate.SetLastName("user-last-name")
-//  user, err := PermitClient.Api.Users.Create(ctx, userCreate)
+//
+//	userCreate := models.NewUserCreate("user-key")
+//	userCreate.SetEmail("user-email@mail.com")
+//	userCreate.SetFirstName("user-first-name")
+//	userCreate.SetLastName("user-last-name")
+//	user, err := PermitClient.Api.Users.Create(ctx, userCreate)
+//
 // ```
 func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*models.UserRead, error) {
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -108,14 +114,16 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 // Update a user in your context's environment.
 // Usage Example:
 // ```
-//  userUpdate := models.NewUserUpdate()
-//  userUpdate.SetEmail("new@email.com")
-//  userUpdate.SetFirstName("new-first-name")
-//  userUpdate.SetLastName("new-last-name")
-//  user, err := PermitClient.Api.Users.Update(ctx, "user-key", userUpdate)
+//
+//	userUpdate := models.NewUserUpdate()
+//	userUpdate.SetEmail("new@email.com")
+//	userUpdate.SetFirstName("new-first-name")
+//	userUpdate.SetLastName("new-last-name")
+//	user, err := PermitClient.Api.Users.Update(ctx, "user-key", userUpdate)
+//
 // ```
 func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.UserUpdate) (*models.UserRead, error) {
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -131,9 +139,10 @@ func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.Us
 
 // Delete a user from your context's environment.
 // Usage Example:
-//  `err := PermitClient.Api.Users.Delete(ctx, "user-key")`
+//
+//	`err := PermitClient.Api.Users.Delete(ctx, "user-key")`
 func (u *Users) Delete(ctx context.Context, userKey string) error {
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return err
@@ -151,7 +160,7 @@ func (u *Users) Delete(ctx context.Context, userKey string) error {
 // Usage Example:
 // `roleAssignment, err := PermitClient.Api.Users.AssignRole(ctx, "user-key", "role-key", "default")`
 func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.RoleAssignmentRead, error) {
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -170,7 +179,7 @@ func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, 
 // Usage Example:
 // `err := PermitClient.Api.Users.UnassignRole(ctx, "user-key", "role-key", "default")`
 func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.UserRead, error) {
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -188,7 +197,8 @@ func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string
 // GetAssignedRoles lists all roles assigned to a user in your context's environment, by user key, tenant key and pagination options.
 // Usage Example:
 // ```
-//  `roleAssignmentList, err := PermitClient.Api.Users.GetAssignedRoles(ctx, "user-key", "default", 1, 10)`
+//
+//	`roleAssignmentList, err := PermitClient.Api.Users.GetAssignedRoles(ctx, "user-key", "default", 1, 10)`
 func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey string, page int, perPage int) ([]models.RoleAssignmentRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
@@ -196,7 +206,7 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 		u.logger.Error("error listing users - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
@@ -223,7 +233,7 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 // user, err := PermitClient.Api.Users.SyncUser(ctx, userCreate)
 // ```
 func (u *Users) SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error) {
-	err := u.lazyLoadContext(ctx)
+	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err

@@ -55,8 +55,8 @@ import "github.com/permitio/permit-golang/pkg/config"
 import "github.com/permitio/permit-golang/pkg/enforcement"
 
 func main() {
-	PermitConfig := config.NewConfigBuilder("<YOUR_API_TOKEN>").Build()
-	Permit := permit.New(PermitConfig)
+	permitConfig := config.NewConfigBuilder("<YOUR_API_TOKEN>").Build()
+	Permit := permit.New(permitConfig)
 
 	user := enforcement.UserBuilder("user_id").Build()
 	resource := enforcement.ResourceBuilder("resource_id").Build()
@@ -82,7 +82,7 @@ Follow the example below:
 package main
 
 import (
-	"context"
+	"additionalContext"
 	"fmt"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/models"
@@ -90,7 +90,7 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx := additionalContext.Background()
 	PermitConfig := config.NewConfigBuilder("<YOUR_API_TOKEN>").Build()
 	Permit := permit.New(PermitConfig)
 

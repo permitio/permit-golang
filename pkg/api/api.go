@@ -15,10 +15,10 @@ type permitBaseApi struct {
 }
 
 type IPermitBaseApi interface {
-	lazyLoadContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
+	lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
 }
 
-func (a *permitBaseApi) lazyLoadContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
+func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
 	var methodApiLevel config.APIKeyLevel
 	permitContext := a.config.Context.GetContext()
 	if permitContext == nil {

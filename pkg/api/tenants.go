@@ -34,7 +34,7 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := t.lazyLoadContext(ctx)
+	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return nil, err
@@ -51,7 +51,7 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 // Usage Example:
 // `tenant, err := PermitClient.Api.Tenants.Get(ctx, "tenant-key")`
 func (t *Tenants) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error) {
-	err := t.lazyLoadContext(ctx)
+	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return nil, err
@@ -87,7 +87,7 @@ func (t *Tenants) GetById(ctx context.Context, tenantId uuid.UUID) (*models.Tena
 // tenant, err := PermitClient.Api.Tenants.Create(ctx, tenantCreate)
 // ```
 func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) (*models.TenantRead, error) {
-	err := t.lazyLoadContext(ctx)
+	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return nil, err
@@ -109,7 +109,7 @@ func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) 
 // tenant, err := PermitClient.Api.Tenants.Update(ctx, "tenant-key", tenantUpdate)
 // ```
 func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate models.TenantUpdate) (*models.TenantRead, error) {
-	err := t.lazyLoadContext(ctx)
+	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return nil, err
@@ -127,7 +127,7 @@ func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate mod
 // Usage Example:
 // `err := PermitClient.Api.Tenants.Delete(ctx, "tenant-key")`
 func (t *Tenants) Delete(ctx context.Context, tenantKey string) error {
-	err := t.lazyLoadContext(ctx)
+	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
 		t.logger.Error("", zap.Error(err))
 		return err

@@ -37,7 +37,6 @@ type ErrorMessage string
 
 const (
 	EmptyErrorMessage          ErrorMessage = ""
-	SeperatorErrorMessage      ErrorMessage = " - "
 	PaginationMessage          ErrorMessage = "The pagination page and size per page are invalid"
 	ConflictMessage            ErrorMessage = "The resource already exists"
 	NotFoundMessage            ErrorMessage = "The resource was not found"

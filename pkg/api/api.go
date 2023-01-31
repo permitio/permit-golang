@@ -40,21 +40,20 @@ func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLeve
 			"but you haven't set the current project in your client's context yet," +
 			"or you are using an organization level API key." +
 			"Please set the context to a specific" +
-			"project using `PermitClient.SetContext()` method.")
+			"project using `PermitClient.SetPermitContext()` method.")
 	}
 	if methodApiLevel == config.EnvironmentAPIKeyLevel && a.config.GetContext().GetProject() == "" && a.config.GetContext().GetEnvironment() == "" {
 		return errors.NewPermitContextError("You're trying to use an SDK method that's specific to an environment," +
 			"but you haven't set the current environment in your client's context yet," +
 			"or you are using an organization/project level API key." +
 			"Please set the context to a specific" +
-			"environment using `PermitClient.SetContext()` method.")
+			"environment using `PermitClient.SetPermitContext()` method.")
 	}
 	return nil
 
 }
 
 type PermitApiClient struct {
-	ctx                context.Context
 	config             *config.PermitConfig
 	logger             *zap.Logger
 	client             *openapi.APIClient
@@ -69,8 +68,8 @@ type PermitApiClient struct {
 	Elements           *Elements
 }
 
-func (p *PermitApiClient) SetContext(project string, environment string) {
-	permitContext, err := config.PermitContextFactory(p.ctx, p.client, project, environment, true)
+func (p *PermitApiClient) SetContext(ctx context.Context, project string, environment string) {
+	permitContext, err := config.PermitContextFactory(ctx, p.client, project, environment, true)
 	if err != nil {
 		p.logger.Error("", zap.Error(err))
 	}
@@ -86,7 +85,6 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 	userApi := NewUsersApi(client, config)
 	return &PermitApiClient{
 		config:             config,
-		ctx:                ctx,
 		logger:             config.Logger,
 		Tenants:            NewTenantsApi(client, config),
 		Environments:       NewEnvironmentsApi(client, config),

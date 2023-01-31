@@ -106,7 +106,7 @@ func NewPermitUnauthorizedError() *PermitUnauthorizedError {
 
 func NewPermitContextError(additionalMessage ErrorMessage) *PermitContextError {
 	return &PermitContextError{
-		NewPermitError(ContextMessage+SeperatorErrorMessage+additionalMessage, ContextError, GENERAL_ERROR),
+		NewPermitError(ContextMessage+" - "+additionalMessage, ContextError, GENERAL_ERROR),
 	}
 }
 

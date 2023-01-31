@@ -10,7 +10,6 @@ import (
 )
 
 type Client struct {
-	ctx         context.Context
 	config      config.PermitConfig
 	logger      *zap.Logger
 	Api         *api.PermitApiClient
@@ -31,7 +30,6 @@ func NewPermit(config config.PermitConfig) *Client {
 	return &Client{
 		config:      config,
 		logger:      logger,
-		ctx:         context.Background(),
 		Api:         apiClient,
 		Elements:    apiClient.Elements,
 		enforcement: enforcerClient,

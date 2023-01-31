@@ -14,13 +14,13 @@ type PermitContext struct {
 }
 
 type PermitContextInterface interface {
-	GetProjectId() string
-	GetEnvironmentId() string
-	SetContext(project string, environment string)
+	SetPermitContext(project string, environment string, apiKeyLevel APIKeyLevel)
+	GetProject() string
+	GetEnvironment() string
 	GetContext() *PermitContext
 }
 
-func (p *PermitContext) SetContext(project string, environment string, apiKeyLevel APIKeyLevel) {
+func (p *PermitContext) SetPermitContext(project string, environment string, apiKeyLevel APIKeyLevel) {
 	p.ProjectId = project
 	p.EnvironmentId = environment
 	p.APIKeyLevel = apiKeyLevel
@@ -41,14 +41,15 @@ func (p *PermitContext) GetProject() string {
 func PermitContextFactory(ctx context.Context, client *openapi.APIClient, project string, environment string, isUserInput bool) (*PermitContext, error) {
 	apiKeysScopeRead, httpRes, err := client.APIKeysApi.GetApiKeyScope(ctx).Execute()
 	err = PermitErrors.HttpErrorHandle(err, httpRes)
+	additionalErrorMessage := PermitErrors.EmptyErrorMessage
 	if err != nil {
 		if strings.Contains(err.Error(), string(PermitErrors.ForbiddenMessage)) {
-			return nil, PermitErrors.NewPermitContextError(PermitErrors.ForbiddenMessage)
+			additionalErrorMessage = PermitErrors.ForbiddenMessage
 		}
 		if strings.Contains(err.Error(), string(PermitErrors.UnauthorizedMessage)) {
-			return nil, PermitErrors.NewPermitContextError(PermitErrors.UnauthorizedMessage)
+			additionalErrorMessage = PermitErrors.UnauthorizedMessage
 		}
-		return nil, PermitErrors.NewPermitContextError(PermitErrors.EmptyErrorMessage)
+		return nil, PermitErrors.NewPermitContextError(additionalErrorMessage)
 	}
 	apiKeyLevel := GetApiKeyLevel(apiKeysScopeRead)
 	if isUserInput {
@@ -66,7 +67,7 @@ func PermitContextFactory(ctx context.Context, client *openapi.APIClient, projec
 					"please set a context with the API key related project")
 			}
 		}
-		return NewPermitContext(apiKeyLevel, *apiKeysScopeRead.ProjectId, *apiKeysScopeRead.EnvironmentId), nil
+		return NewPermitContext(apiKeyLevel, project, environment), nil
 	}
 	return NewPermitContext(apiKeyLevel, *apiKeysScopeRead.ProjectId, *apiKeysScopeRead.EnvironmentId), nil
 }

@@ -40,6 +40,7 @@ const (
 	PaginationMessage          ErrorMessage = "The pagination page and size per page are invalid"
 	ConflictMessage            ErrorMessage = "The resource already exists"
 	NotFoundMessage            ErrorMessage = "The resource was not found"
+	UnexpectedErrorMessage     ErrorMessage = "An unexpected error happened."
 	ForbiddenMessage           ErrorMessage = "The access for this object is forbidden using the provided API key"
 	ContextMessage             ErrorMessage = "The context is missing or invalid"
 	ContextUnexpectedMessage   ErrorMessage = "The context is missing or invalid"

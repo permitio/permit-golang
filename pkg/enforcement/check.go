@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+var (
+	client *http.Client = &http.Client{
+		Timeout: DefaultTimeout * time.Second,
+	}
+)
+
 type Action string
 
 type CheckRequest struct {
@@ -62,9 +68,12 @@ func (e *PermitEnforcer) Check(user User, action Action, resource Resource, addi
 	}
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
 	httpRequest.Header.Set(reqAuthKey, reqAuthValue)
+	/*
+	// client does not need to be initialized each request (thread safe). This will cause a huge latency and not good for concurrent requests.
 	client := &http.Client{
 		Timeout: DefaultTimeout * time.Second,
 	}
+	*/
 	res, err := client.Do(httpRequest)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err)

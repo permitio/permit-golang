@@ -6,6 +6,7 @@ type PermitConfig struct {
 	apiUrl  string
 	token   string
 	pdpUrl  string
+	opaUrl  string
 	debug   bool
 	Context *PermitContext
 	Logger  *zap.Logger
@@ -15,6 +16,7 @@ type IPermitConfig interface {
 	GetApiUrl() string
 	GetToken() string
 	GetPdpUrl() string
+	GetOpaUrl() string
 	GetDebug() bool
 	GetContext() *PermitContext
 	GetLogger() *zap.Logger
@@ -41,6 +43,10 @@ func (c *PermitConfig) GetToken() string {
 
 func (c *PermitConfig) GetPdpUrl() string {
 	return c.pdpUrl
+}
+
+func (c *PermitConfig) GetOpaUrl() string {
+	return c.opaUrl
 }
 
 func (c *PermitConfig) GetDebug() bool {

@@ -31,6 +31,11 @@ func (c *PermitConfig) WithPdpUrl(pdpUrl string) *PermitConfig {
 	return c
 }
 
+func (c *PermitConfig) WithOpaUrl(opaUrl string) *PermitConfig {
+	c.opaUrl = opaUrl
+	return c
+}
+
 func (c *PermitConfig) WithDebug(debug bool) *PermitConfig {
 	c.debug = debug
 	return c

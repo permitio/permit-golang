@@ -5,17 +5,14 @@ import (
 	"encoding/json"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"time"
 )
 
 type Action string
 
-type opaCheckRequest struct {
-	Input *CheckRequest `json:"input"`
-}
-
-type AuthorizationResult struct {
+type CheckResponse struct {
 	Allow  bool                   `json:"allow"`
 	Query  map[string]interface{} `json:"query"`
 	Debug  map[string]interface{} `json:"debug"`
@@ -40,16 +37,13 @@ func NewCheckRequest(user User, action Action, resource Resource, context map[st
 
 func newJsonCheckRequest(opaUrl string, user User, action Action, resource Resource, context map[string]string) ([]byte, error) {
 	checkReq := NewCheckRequest(user, action, resource, context)
-	var jsonCheckReq []byte
-	var err error
+	var genericCheckReq interface{} = checkReq
 	if opaUrl != "" {
-		opaCheckReq := &opaCheckRequest{
-			checkReq,
-		}
-		jsonCheckReq, err = json.Marshal(opaCheckReq)
-	} else {
-		jsonCheckReq, err = json.Marshal(checkReq)
+		genericCheckReq = &struct {
+			Input *CheckRequest `json:"input"`
+		}{checkReq}
 	}
+	jsonCheckReq, err := json.Marshal(genericCheckReq)
 	if err != nil {
 		return nil, err
 	}
@@ -64,40 +58,37 @@ func (e *PermitEnforcer) getCheckEndpoint() string {
 	}
 }
 
-func (e *PermitEnforcer) parseResponse(res *http.Response) (*AuthorizationResult, error) {
-	var result AuthorizationResult
-	var resMap map[string]interface{}
-	err := json.NewDecoder(res.Body).Decode(&resMap)
+func (e *PermitEnforcer) parseResponse(res *http.Response) (*CheckResponse, error) {
+	var result CheckResponse
+	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err)
-		e.logger.Error("error decoding Permit.Check() response from PDP", zap.Error(permitError))
-		return nil, permitError
-	}
-	resBytes, err := json.Marshal(resMap)
-	if err != nil {
-		permitError := errors.NewPermitUnexpectedError(err)
-		e.logger.Error("error marshalling Permit.Check() response from PDP", zap.Error(permitError))
+		e.logger.Error("error reading Permit.Check() response from PDP", zap.Error(permitError))
 		return nil, permitError
 	}
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
-		e.logger.Error(string(resBytes), zap.Error(err))
+		e.logger.Error(string(bodyBytes), zap.Error(err))
 		return nil, err
 	}
-	resultBytes := resBytes
 	if e.config.GetOpaUrl() != "" {
-		resultBytes, err = json.Marshal(resMap[resultKey])
-		if err != nil {
+		opaStruct := &struct {
+			Result *CheckResponse `json:"result"`
+		}{&result}
+
+		if err := json.Unmarshal(bodyBytes, opaStruct); err != nil {
 			permitError := errors.NewPermitUnexpectedError(err)
-			e.logger.Error("error marshalling Permit.Check() response from PDP", zap.Error(permitError))
+			e.logger.Error("error unmarshalling Permit.Check() response from OPA", zap.Error(permitError))
 			return nil, err
 		}
+	} else {
+		if err := json.Unmarshal(bodyBytes, &result); err != nil {
+			permitError := errors.NewPermitUnexpectedError(err)
+			e.logger.Error("error unmarshalling Permit.Check response from PDP", zap.Error(permitError))
+			return nil, permitError
+		}
 	}
-	if err := json.Unmarshal(resultBytes, &result); err != nil {
-		permitError := errors.NewPermitUnexpectedError(err)
-		e.logger.Error("error unmarshalling Permit.Check response from PDP", zap.Error(permitError))
-		return nil, permitError
-	}
+
 	return &result, nil
 }
 

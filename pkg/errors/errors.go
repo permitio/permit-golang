@@ -49,6 +49,11 @@ type PermitConnectionError struct {
 }
 
 func NewPermitUnexpectedError(err error) *PermitUnexpectedError {
+	if err == nil {
+		return &PermitUnexpectedError{
+			NewPermitError(UnexpectedErrorMessage, UnexpectedError, GENERAL_ERROR),
+		}
+	}
 	return &PermitUnexpectedError{NewPermitError(ErrorMessage(err.Error()), UnexpectedError, GENERAL_ERROR)}
 }
 

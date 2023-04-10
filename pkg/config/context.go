@@ -69,7 +69,7 @@ func PermitContextFactory(ctx context.Context, client *openapi.APIClient, projec
 		}
 		return NewPermitContext(apiKeyLevel, project, environment), nil
 	}
-	return NewPermitContext(apiKeyLevel, *apiKeysScopeRead.ProjectId, *apiKeysScopeRead.EnvironmentId), nil
+	return NewPermitContext(apiKeyLevel, apiKeysScopeRead.GetProjectId(), apiKeysScopeRead.GetEnvironmentId()), nil
 }
 
 func NewPermitContext(apiKeyLevel APIKeyLevel, project string, environment string) *PermitContext {

@@ -86,6 +86,7 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 	return &PermitApiClient{
 		config:             config,
 		logger:             config.Logger,
+		client:             client,
 		Tenants:            NewTenantsApi(client, config),
 		Environments:       NewEnvironmentsApi(client, config),
 		Projects:           NewProjectsApi(client, config),

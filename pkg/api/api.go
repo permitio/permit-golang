@@ -28,7 +28,7 @@ func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLeve
 		}
 		a.config.Context = newPermitContext
 	} else {
-		a.logger.Info("Context already loaded")
+		a.logger.Debug("Context already loaded")
 	}
 	if len(methodApiLevelArg) == 0 {
 		methodApiLevel = config.EnvironmentAPIKeyLevel

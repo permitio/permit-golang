@@ -50,12 +50,12 @@ We can say the `role_id` **extends** `parent_role_id` or **inherits** from `pare
 If `role_id` is already an ancestor of `parent_role_id`,
 the request will fail with HTTP 400 to prevent a cycle in the role hierarchy.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
- @return ApiAddParentRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
+	@return ApiAddParentRoleRequest
 */
 func (a *RolesApiService) AddParentRole(ctx context.Context, projId string, envId string, roleId string, parentRoleId string) ApiAddParentRoleRequest {
 	return ApiAddParentRoleRequest{
@@ -69,7 +69,8 @@ func (a *RolesApiService) AddParentRole(ctx context.Context, projId string, envI
 }
 
 // Execute executes the request
-//  @return RoleRead
+//
+//	@return RoleRead
 func (a *RolesApiService) AddParentRoleExecute(r ApiAddParentRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
@@ -182,11 +183,11 @@ Assign permissions to role.
 
 If some of the permissions specified are already unassigned, will skip them.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiAssignPermissionsToRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@return ApiAssignPermissionsToRoleRequest
 */
 func (a *RolesApiService) AssignPermissionsToRole(ctx context.Context, projId string, envId string, roleId string) ApiAssignPermissionsToRoleRequest {
 	return ApiAssignPermissionsToRoleRequest{
@@ -199,7 +200,8 @@ func (a *RolesApiService) AssignPermissionsToRole(ctx context.Context, projId st
 }
 
 // Execute executes the request
-//  @return RoleRead
+//
+//	@return RoleRead
 func (a *RolesApiService) AssignPermissionsToRoleExecute(r ApiAssignPermissionsToRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -313,10 +315,10 @@ CreateRole Create Role
 
 Creates a new tenant role.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCreateRoleRequest
 */
 func (a *RolesApiService) CreateRole(ctx context.Context, projId string, envId string) ApiCreateRoleRequest {
 	return ApiCreateRoleRequest{
@@ -328,7 +330,8 @@ func (a *RolesApiService) CreateRole(ctx context.Context, projId string, envId s
 }
 
 // Execute executes the request
-//  @return RoleRead
+//
+//	@return RoleRead
 func (a *RolesApiService) CreateRoleExecute(r ApiCreateRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -437,11 +440,11 @@ DeleteRole Delete Role
 Deletes a tenant role and all its related data.
 This includes any permissions granted to said role.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiDeleteRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@return ApiDeleteRoleRequest
 */
 func (a *RolesApiService) DeleteRole(ctx context.Context, projId string, envId string, roleId string) ApiDeleteRoleRequest {
 	return ApiDeleteRoleRequest{
@@ -547,11 +550,11 @@ GetRole Get Role
 
 Gets a single tenant role, if such role exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiGetRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@return ApiGetRoleRequest
 */
 func (a *RolesApiService) GetRole(ctx context.Context, projId string, envId string, roleId string) ApiGetRoleRequest {
 	return ApiGetRoleRequest{
@@ -564,7 +567,8 @@ func (a *RolesApiService) GetRole(ctx context.Context, projId string, envId stri
 }
 
 // Execute executes the request
-//  @return RoleRead
+//
+//	@return RoleRead
 func (a *RolesApiService) GetRoleExecute(r ApiGetRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -652,17 +656,24 @@ func (a *RolesApiService) GetRoleExecute(r ApiGetRoleRequest) (*models.RoleRead,
 }
 
 type ApiListRolesRequest struct {
-	ctx        context.Context
-	ApiService *RolesApiService
-	projId     string
-	envId      string
-	page       *int32
-	perPage    *int32
+	ctx              context.Context
+	ApiService       *RolesApiService
+	projId           string
+	envId            string
+	attributesFilter map[string]interface{}
+	page             *int32
+	perPage          *int32
 }
 
 // Page number of the results to fetch, starting at 1.
 func (r ApiListRolesRequest) Page(page int32) ApiListRolesRequest {
 	r.page = &page
+	return r
+}
+
+// AttributeFilters on the result of the tenant list
+func (r ApiListRolesRequest) AttributesFilter(attributesFilter map[string]interface{}) ApiListRolesRequest {
+	r.attributesFilter = attributesFilter
 	return r
 }
 
@@ -681,10 +692,10 @@ ListRoles List Roles
 
 Lists all tenant roles.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListRolesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListRolesRequest
 */
 func (a *RolesApiService) ListRoles(ctx context.Context, projId string, envId string) ApiListRolesRequest {
 	return ApiListRolesRequest{
@@ -696,7 +707,8 @@ func (a *RolesApiService) ListRoles(ctx context.Context, projId string, envId st
 }
 
 // Execute executes the request
-//  @return []RoleRead
+//
+//	@return []RoleRead
 func (a *RolesApiService) ListRolesExecute(r ApiListRolesRequest) ([]models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -704,6 +716,7 @@ func (a *RolesApiService) ListRolesExecute(r ApiListRolesRequest) ([]models.Role
 		formFiles           []formFile
 		localVarReturnValue []models.RoleRead
 	)
+	const attributeFilterPrefix = "attr_"
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RolesApiService.ListRoles")
 	if err != nil {
@@ -718,6 +731,11 @@ func (a *RolesApiService) ListRolesExecute(r ApiListRolesRequest) ([]models.Role
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.attributesFilter != nil {
+		for k, v := range r.attributesFilter {
+			localVarQueryParams.Add(attributeFilterPrefix+k, parameterToString(v, ""))
+		}
+	}
 	if r.page != nil {
 		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
 	}
@@ -812,12 +830,12 @@ that are granted to `parent_role_id`.
 
 We can say the `role_id` **not longer extends** `parent_role_id` or **no longer inherits** from `parent_role_id`.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
- @return ApiRemoveParentRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@param parentRoleId Either the unique id of the parent role, or the URL-friendly key of the parent role (i.e: the \"slug\").
+	@return ApiRemoveParentRoleRequest
 */
 func (a *RolesApiService) RemoveParentRole(ctx context.Context, projId string, envId string, roleId string, parentRoleId string) ApiRemoveParentRoleRequest {
 	return ApiRemoveParentRoleRequest{
@@ -831,7 +849,8 @@ func (a *RolesApiService) RemoveParentRole(ctx context.Context, projId string, e
 }
 
 // Execute executes the request
-//  @return RoleRead
+//
+//	@return RoleRead
 func (a *RolesApiService) RemoveParentRoleExecute(r ApiRemoveParentRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodDelete
@@ -944,11 +963,11 @@ Remove permissions from role.
 
 If some of the permissions specified are already unassigned, will skip them.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiRemovePermissionsFromRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@return ApiRemovePermissionsFromRoleRequest
 */
 func (a *RolesApiService) RemovePermissionsFromRole(ctx context.Context, projId string, envId string, roleId string) ApiRemovePermissionsFromRoleRequest {
 	return ApiRemovePermissionsFromRoleRequest{
@@ -961,7 +980,8 @@ func (a *RolesApiService) RemovePermissionsFromRole(ctx context.Context, projId 
 }
 
 // Execute executes the request
-//  @return RoleRead
+//
+//	@return RoleRead
 func (a *RolesApiService) RemovePermissionsFromRoleExecute(r ApiRemovePermissionsFromRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodDelete
@@ -1077,11 +1097,11 @@ UpdateRole Update Role
 Partially updates a tenant role.
 Fields that will be provided will be completely overwritten.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiUpdateRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@return ApiUpdateRoleRequest
 */
 func (a *RolesApiService) UpdateRole(ctx context.Context, projId string, envId string, roleId string) ApiUpdateRoleRequest {
 	return ApiUpdateRoleRequest{
@@ -1094,7 +1114,8 @@ func (a *RolesApiService) UpdateRole(ctx context.Context, projId string, envId s
 }
 
 // Execute executes the request
-//  @return RoleRead
+//
+//	@return RoleRead
 func (a *RolesApiService) UpdateRoleExecute(r ApiUpdateRoleRequest) (*models.RoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

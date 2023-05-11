@@ -25,6 +25,8 @@ type RoleRead struct {
 	Permissions []string `json:"permissions,omitempty"`
 	// list of role keys that define what roles this role extends. In other words: this role will automatically inherit all the permissions of the given roles in this list.
 	Extends []string `json:"extends,omitempty"`
+	// optional dictionary of key-value pairs that can be used to store arbitrary metadata about this role. This metadata can be used to filter role using query parameters with attr_ prefix, currently supports only 'equals' operator
+	Attributes map[string]string `json:"attributes,omitempty"`
 	// A URL-friendly name of the role (i.e: slug). You will be able to query later using this key instead of the id (UUID) of the role.
 	Key string `json:"key"`
 	// Unique id of the role
@@ -97,6 +99,13 @@ func (o *RoleRead) GetDescription() string {
 		return ret
 	}
 	return *o.Description
+}
+func (o *RoleRead) GetAttributes() map[string]string {
+	if o == nil || IsNil(o.Attributes) {
+		var ret map[string]string
+		return ret
+	}
+	return o.Attributes
 }
 
 // GetDescriptionOk returns a tuple with the Description field value if set, nil otherwise

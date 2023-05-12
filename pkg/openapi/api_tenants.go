@@ -48,10 +48,10 @@ Creates a new tenant inside the Permit.io system.
 If the tenant is already created: will return 200 instead of 201,
 and will return the existing tenant object in the response body.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateTenantRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCreateTenantRequest
 */
 func (a *TenantsApiService) CreateTenant(ctx context.Context, projId string, envId string) ApiCreateTenantRequest {
 	return ApiCreateTenantRequest{
@@ -63,7 +63,8 @@ func (a *TenantsApiService) CreateTenant(ctx context.Context, projId string, env
 }
 
 // Execute executes the request
-//  @return TenantRead
+//
+//	@return TenantRead
 func (a *TenantsApiService) CreateTenantExecute(r ApiCreateTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -171,11 +172,11 @@ DeleteTenant Delete Tenant
 
 Deletes the tenant and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @return ApiDeleteTenantRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+	@return ApiDeleteTenantRequest
 */
 func (a *TenantsApiService) DeleteTenant(ctx context.Context, projId string, envId string, tenantId string) ApiDeleteTenantRequest {
 	return ApiDeleteTenantRequest{
@@ -282,12 +283,12 @@ DeleteTenantUser Delete Tenant User
 
 Deletes a user under a tenant.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiDeleteTenantUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiDeleteTenantUserRequest
 */
 func (a *TenantsApiService) DeleteTenantUser(ctx context.Context, projId string, envId string, tenantId string, userId string) ApiDeleteTenantUserRequest {
 	return ApiDeleteTenantUserRequest{
@@ -395,11 +396,11 @@ GetTenant Get Tenant
 
 Gets a tenant, if such tenant exists. Otherwise returns 404.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @return ApiGetTenantRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+	@return ApiGetTenantRequest
 */
 func (a *TenantsApiService) GetTenant(ctx context.Context, projId string, envId string, tenantId string) ApiGetTenantRequest {
 	return ApiGetTenantRequest{
@@ -412,7 +413,8 @@ func (a *TenantsApiService) GetTenant(ctx context.Context, projId string, envId 
 }
 
 // Execute executes the request
-//  @return TenantRead
+//
+//	@return TenantRead
 func (a *TenantsApiService) GetTenantExecute(r ApiGetTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -535,11 +537,11 @@ func (r ApiListTenantUsersRequest) Execute() (*models.PaginatedResultUserRead, *
 /*
 ListTenantUsers List Tenant Users
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListTenantUsersRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListTenantUsersRequest
 */
 func (a *TenantsApiService) ListTenantUsers(ctx context.Context, projId string, tenantId string, envId string) ApiListTenantUsersRequest {
 	return ApiListTenantUsersRequest{
@@ -552,7 +554,8 @@ func (a *TenantsApiService) ListTenantUsers(ctx context.Context, projId string, 
 }
 
 // Execute executes the request
-//  @return PaginatedResultUserRead
+//
+//	@return PaginatedResultUserRead
 func (a *TenantsApiService) ListTenantUsersExecute(r ApiListTenantUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -649,18 +652,25 @@ func (a *TenantsApiService) ListTenantUsersExecute(r ApiListTenantUsersRequest) 
 }
 
 type ApiListTenantsRequest struct {
-	ctx        context.Context
-	ApiService *TenantsApiService
-	projId     string
-	envId      string
-	search     *string
-	page       *int32
-	perPage    *int32
+	ctx              context.Context
+	ApiService       *TenantsApiService
+	projId           string
+	envId            string
+	search           *string
+	attributesFilter map[string]interface{}
+	page             *int32
+	perPage          *int32
 }
 
 // Text search for the tenant name or key
 func (r ApiListTenantsRequest) Search(search string) ApiListTenantsRequest {
 	r.search = &search
+	return r
+}
+
+// Filter for tenant with specific attributes
+func (r ApiListTenantsRequest) AttributeFilter(attributesFilter map[string]interface{}) ApiListTenantsRequest {
+	r.attributesFilter = attributesFilter
 	return r
 }
 
@@ -685,10 +695,10 @@ ListTenants List Tenants
 
 Lists all the tenants defined within an environment.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListTenantsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListTenantsRequest
 */
 func (a *TenantsApiService) ListTenants(ctx context.Context, projId string, envId string) ApiListTenantsRequest {
 	return ApiListTenantsRequest{
@@ -700,7 +710,8 @@ func (a *TenantsApiService) ListTenants(ctx context.Context, projId string, envI
 }
 
 // Execute executes the request
-//  @return []TenantRead
+//
+//	@return []TenantRead
 func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -708,6 +719,7 @@ func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]model
 		formFiles           []formFile
 		localVarReturnValue []models.TenantRead
 	)
+	const attributeFilterPrefix = "attr_"
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "TenantsApiService.ListTenants")
 	if err != nil {
@@ -721,7 +733,11 @@ func (a *TenantsApiService) ListTenantsExecute(r ApiListTenantsRequest) ([]model
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-
+	if r.attributesFilter != nil {
+		for k, v := range r.attributesFilter {
+			localVarQueryParams.Add(attributeFilterPrefix+k, parameterToString(v, ""))
+		}
+	}
 	if r.search != nil {
 		localVarQueryParams.Add("search", parameterToString(*r.search, ""))
 	}
@@ -819,11 +835,11 @@ UpdateTenant Update Tenant
 Partially updates the tenant definition.
 Fields that will be provided will be completely overwritten.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
- @return ApiUpdateTenantRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param tenantId Either the unique id of the tenant, or the URL-friendly key of the tenant (i.e: the \"slug\").
+	@return ApiUpdateTenantRequest
 */
 func (a *TenantsApiService) UpdateTenant(ctx context.Context, projId string, envId string, tenantId string) ApiUpdateTenantRequest {
 	return ApiUpdateTenantRequest{
@@ -836,7 +852,8 @@ func (a *TenantsApiService) UpdateTenant(ctx context.Context, projId string, env
 }
 
 // Execute executes the request
-//  @return TenantRead
+//
+//	@return TenantRead
 func (a *TenantsApiService) UpdateTenantExecute(r ApiUpdateTenantRequest) (*models.TenantRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

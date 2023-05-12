@@ -39,12 +39,36 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 		t.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	tenants, httpRes, err := t.client.TenantsApi.ListTenants(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId).Page(int32(page)).PerPage(int32(page)).Execute()
+	tenants, httpRes, err := t.client.TenantsApi.ListTenants(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		t.logger.Error("error listing tenants", zap.Error(err))
 	}
 	return tenants, nil
+}
+
+// ListTenantsByAttributes gets tenants under the context's environment - by a given attributes.
+// Usage Example:
+// `tenants, err := PermitClient.Api.Tenants.ListTenantsByAttributes(ctx, map[string]string{"key": "value"})`
+func (t *Tenants) ListByAttributes(ctx context.Context, attributes map[string]interface{}, page int, perPage int) ([]models.TenantRead, error) {
+	perPageLimit := int32(DefaultPerPageLimit)
+	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
+		err := errors.NewPermitPaginationError()
+		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), zap.Error(err))
+		return nil, err
+	}
+	err := t.lazyLoadPermitContext(ctx)
+	if err != nil {
+		t.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	tenants, httpRes, err := t.client.TenantsApi.ListTenants(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId).Page(int32(page)).PerPage(int32(perPage)).AttributeFilter(attributes).Execute()
+	err = errors.HttpErrorHandle(err, httpRes)
+	if err != nil {
+		t.logger.Error("error listing tenants", zap.Error(err))
+	}
+	return tenants, nil
+
 }
 
 // Get a tenant under the context's environment - by a given tenant key.

@@ -52,6 +52,30 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 	return roles, nil
 }
 
+// List all roles in the current environment by attributes filter
+// Usage Example:
+// `roles, err := PermitClient.Api.Roles.List(ctx,1, 10, map[string]string{"attribute": "xyz"})`
+func (r *Roles) ListByAttributes(ctx context.Context, page int, perPage int, attributesFilter map[string]interface{}) ([]models.RoleRead, error) {
+	perPageLimit := int32(DefaultPerPageLimit)
+	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
+		err := errors.NewPermitPaginationError()
+		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		return nil, err
+	}
+	err := r.lazyLoadPermitContext(ctx)
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	roles, httpRes, err := r.client.RolesApi.ListRoles(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).Page(int32(page)).PerPage(int32(perPage)).AttributesFilter(attributesFilter).Execute()
+	err = errors.HttpErrorHandle(err, httpRes)
+	if err != nil {
+		r.logger.Error("error listing roles", zap.Error(err))
+		return nil, err
+	}
+	return roles, nil
+}
+
 // Get a role by key.
 // Usage Example:
 // `role, err := PermitClient.Api.Roles.Get(ctx, "role-key")`

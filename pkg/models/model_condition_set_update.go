@@ -14,6 +14,9 @@ import (
 	"encoding/json"
 )
 
+// checks if the ConditionSetUpdate type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ConditionSetUpdate{}
+
 // ConditionSetUpdate struct for ConditionSetUpdate
 type ConditionSetUpdate struct {
 	// A descriptive name for the set, i.e: 'US based employees' or 'Users behind VPN'
@@ -22,6 +25,7 @@ type ConditionSetUpdate struct {
 	Description *string `json:"description,omitempty"`
 	// a boolean expression that consists of multiple conditions, with and/or logic.
 	Conditions map[string]interface{} `json:"conditions,omitempty"`
+	ParentId   *ParentId              `json:"parent_id,omitempty"`
 }
 
 // NewConditionSetUpdate instantiates a new ConditionSetUpdate object
@@ -137,7 +141,47 @@ func (o *ConditionSetUpdate) SetConditions(v map[string]interface{}) {
 	o.Conditions = v
 }
 
+// GetParentId returns the ParentId field value if set, zero value otherwise.
+func (o *ConditionSetUpdate) GetParentId() ParentId {
+	if o == nil || IsNil(o.ParentId) {
+		var ret ParentId
+		return ret
+	}
+	return *o.ParentId
+}
+
+// GetParentIdOk returns a tuple with the ParentId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ConditionSetUpdate) GetParentIdOk() (*ParentId, bool) {
+	if o == nil || IsNil(o.ParentId) {
+		return nil, false
+	}
+	return o.ParentId, true
+}
+
+// HasParentId returns a boolean if a field has been set.
+func (o *ConditionSetUpdate) HasParentId() bool {
+	if o != nil && !IsNil(o.ParentId) {
+		return true
+	}
+
+	return false
+}
+
+// SetParentId gets a reference to the given ParentId and assigns it to the ParentId field.
+func (o *ConditionSetUpdate) SetParentId(v ParentId) {
+	o.ParentId = &v
+}
+
 func (o ConditionSetUpdate) MarshalJSON() ([]byte, error) {
+	toSerialize, err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o ConditionSetUpdate) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
@@ -148,7 +192,10 @@ func (o ConditionSetUpdate) MarshalJSON() ([]byte, error) {
 	if !IsNil(o.Conditions) {
 		toSerialize["conditions"] = o.Conditions
 	}
-	return json.Marshal(toSerialize)
+	if !IsNil(o.ParentId) {
+		toSerialize["parent_id"] = o.ParentId
+	}
+	return toSerialize, nil
 }
 
 type NullableConditionSetUpdate struct {

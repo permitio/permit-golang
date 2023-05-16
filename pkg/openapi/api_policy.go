@@ -40,8 +40,8 @@ func (r ApiGetOpalDataSourcesRequest) Execute() (*models.DataSourceConfig, *http
 /*
 GetOpalDataSources Get Opal Data Sources
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetOpalDataSourcesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetOpalDataSourcesRequest
 */
 func (a *PolicyApiService) GetOpalDataSources(ctx context.Context) ApiGetOpalDataSourcesRequest {
 	return ApiGetOpalDataSourcesRequest{
@@ -51,7 +51,8 @@ func (a *PolicyApiService) GetOpalDataSources(ctx context.Context) ApiGetOpalDat
 }
 
 // Execute executes the request
-//  @return DataSourceConfig
+//
+//	@return DataSourceConfig
 func (a *PolicyApiService) GetOpalDataSourcesExecute(r ApiGetOpalDataSourcesRequest) (*models.DataSourceConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -156,8 +157,8 @@ func (r ApiGetOpalDataSourcesOpalDataConfigGetRequest) Execute() (*models.DataSo
 /*
 GetOpalDataSourcesOpalDataConfigGet Get Opal Data Sources
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetOpalDataSourcesOpalDataConfigGetRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetOpalDataSourcesOpalDataConfigGetRequest
 */
 func (a *PolicyApiService) GetOpalDataSourcesOpalDataConfigGet(ctx context.Context) ApiGetOpalDataSourcesOpalDataConfigGetRequest {
 	return ApiGetOpalDataSourcesOpalDataConfigGetRequest{
@@ -167,7 +168,8 @@ func (a *PolicyApiService) GetOpalDataSourcesOpalDataConfigGet(ctx context.Conte
 }
 
 // Execute executes the request
-//  @return DataSourceConfig
+//
+//	@return DataSourceConfig
 func (a *PolicyApiService) GetOpalDataSourcesOpalDataConfigGetExecute(r ApiGetOpalDataSourcesOpalDataConfigGetRequest) (*models.DataSourceConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet

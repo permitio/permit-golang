@@ -45,10 +45,10 @@ CreateElementsConfig Create Elements Config
 
 Creates a new elements_config under the active organization.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateElementsConfigRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCreateElementsConfigRequest
 */
 func (a *ElementsConfigsApiService) CreateElementsConfig(ctx context.Context, projId string, envId string) ApiCreateElementsConfigRequest {
 	return ApiCreateElementsConfigRequest{
@@ -60,7 +60,8 @@ func (a *ElementsConfigsApiService) CreateElementsConfig(ctx context.Context, pr
 }
 
 // Execute executes the request
-//  @return ElementsConfigRead
+//
+//	@return ElementsConfigRead
 func (a *ElementsConfigsApiService) CreateElementsConfigExecute(r ApiCreateElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -168,11 +169,11 @@ DeleteElementsConfig Delete Elements Config
 
 Deletes the elements_config and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiDeleteElementsConfigRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiDeleteElementsConfigRequest
 */
 func (a *ElementsConfigsApiService) DeleteElementsConfig(ctx context.Context, elementsConfigId string, projId string, envId string) ApiDeleteElementsConfigRequest {
 	return ApiDeleteElementsConfigRequest{
@@ -278,11 +279,11 @@ GetElementsConfig Get Elements Config
 
 Gets a single elements_config matching the given elements_config_id, if such elements_config exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @return ApiGetElementsConfigRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@return ApiGetElementsConfigRequest
 */
 func (a *ElementsConfigsApiService) GetElementsConfig(ctx context.Context, projId string, envId string, elementsConfigId string) ApiGetElementsConfigRequest {
 	return ApiGetElementsConfigRequest{
@@ -295,7 +296,8 @@ func (a *ElementsConfigsApiService) GetElementsConfig(ctx context.Context, projI
 }
 
 // Execute executes the request
-//  @return ElementsConfigRead
+//
+//	@return ElementsConfigRead
 func (a *ElementsConfigsApiService) GetElementsConfigExecute(r ApiGetElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -396,10 +398,10 @@ func (r ApiGetEnvConfigRequest) Execute() (*models.ElementsEnvRead, *http.Respon
 /*
 GetEnvConfig Get Env Config
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiGetEnvConfigRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiGetEnvConfigRequest
 */
 func (a *ElementsConfigsApiService) GetEnvConfig(ctx context.Context, projId string, envId string) ApiGetEnvConfigRequest {
 	return ApiGetEnvConfigRequest{
@@ -411,7 +413,8 @@ func (a *ElementsConfigsApiService) GetEnvConfig(ctx context.Context, projId str
 }
 
 // Execute executes the request
-//  @return ElementsEnvRead
+//
+//	@return ElementsEnvRead
 func (a *ElementsConfigsApiService) GetEnvConfigExecute(r ApiGetEnvConfigRequest) (*models.ElementsEnvRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -527,10 +530,10 @@ ListElementsConfigs List Elements Configs
 
 Lists all the elements_configs under the active organization.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListElementsConfigsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListElementsConfigsRequest
 */
 func (a *ElementsConfigsApiService) ListElementsConfigs(ctx context.Context, projId string, envId string) ApiListElementsConfigsRequest {
 	return ApiListElementsConfigsRequest{
@@ -542,7 +545,8 @@ func (a *ElementsConfigsApiService) ListElementsConfigs(ctx context.Context, pro
 }
 
 // Execute executes the request
-//  @return PaginatedResultElementsConfigRead
+//
+//	@return PaginatedResultElementsConfigRead
 func (a *ElementsConfigsApiService) ListElementsConfigsExecute(r ApiListElementsConfigsRequest) (*models.PaginatedResultElementsConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -657,11 +661,11 @@ UpdateElementsConfig Update Elements Config
 
 Updates the elements_config.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUpdateElementsConfigRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiUpdateElementsConfigRequest
 */
 func (a *ElementsConfigsApiService) UpdateElementsConfig(ctx context.Context, elementsConfigId string, projId string, envId string) ApiUpdateElementsConfigRequest {
 	return ApiUpdateElementsConfigRequest{
@@ -674,7 +678,8 @@ func (a *ElementsConfigsApiService) UpdateElementsConfig(ctx context.Context, el
 }
 
 // Execute executes the request
-//  @return ElementsConfigRead
+//
+//	@return ElementsConfigRead
 func (a *ElementsConfigsApiService) UpdateElementsConfigExecute(r ApiUpdateElementsConfigRequest) (*models.ElementsConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
@@ -786,10 +791,10 @@ func (r ApiUpdateElementsEnvRequest) Execute() (*models.ElementsEnvRead, *http.R
 /*
 UpdateElementsEnv Update Elements Env
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUpdateElementsEnvRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiUpdateElementsEnvRequest
 */
 func (a *ElementsConfigsApiService) UpdateElementsEnv(ctx context.Context, projId string, envId string) ApiUpdateElementsEnvRequest {
 	return ApiUpdateElementsEnvRequest{
@@ -801,7 +806,8 @@ func (a *ElementsConfigsApiService) UpdateElementsEnv(ctx context.Context, projI
 }
 
 // Execute executes the request
-//  @return ElementsEnvRead
+//
+//	@return ElementsEnvRead
 func (a *ElementsConfigsApiService) UpdateElementsEnvExecute(r ApiUpdateElementsEnvRequest) (*models.ElementsEnvRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

@@ -39,10 +39,10 @@ CancelInvite Cancel Invite
 
 Cancels an invite that was sent to a new member.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @param inviteId Id of the invite to cancel
- @return ApiCancelInviteRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@param inviteId Id of the invite to cancel
+	@return ApiCancelInviteRequest
 */
 func (a *OrganizationsApiService) CancelInvite(ctx context.Context, orgId string, inviteId string) ApiCancelInviteRequest {
 	return ApiCancelInviteRequest{
@@ -150,8 +150,8 @@ CreateOrganization Create Organization
 Creates a new organization that will be owned by the
 authenticated actor (i.e: human team member or api key).
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateOrganizationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiCreateOrganizationRequest
 */
 func (a *OrganizationsApiService) CreateOrganization(ctx context.Context) ApiCreateOrganizationRequest {
 	return ApiCreateOrganizationRequest{
@@ -161,7 +161,8 @@ func (a *OrganizationsApiService) CreateOrganization(ctx context.Context) ApiCre
 }
 
 // Execute executes the request
-//  @return OrganizationReadWithAPIKey
+//
+//	@return OrganizationReadWithAPIKey
 func (a *OrganizationsApiService) CreateOrganizationExecute(r ApiCreateOrganizationRequest) (*models.OrganizationReadWithAPIKey, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -265,9 +266,9 @@ DeleteOrganization Delete Organization
 
 Deletes an organization (Permit.io account) and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiDeleteOrganizationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@return ApiDeleteOrganizationRequest
 */
 func (a *OrganizationsApiService) DeleteOrganization(ctx context.Context, orgId string) ApiDeleteOrganizationRequest {
 	return ApiDeleteOrganizationRequest{
@@ -367,8 +368,8 @@ GetActiveOrganization Get Active Organization
 Gets a single organization (Permit.io account) matching the given org_id,
 if such org exists and can be accessed by the authenticated actor.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetActiveOrganizationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetActiveOrganizationRequest
 */
 func (a *OrganizationsApiService) GetActiveOrganization(ctx context.Context) ApiGetActiveOrganizationRequest {
 	return ApiGetActiveOrganizationRequest{
@@ -378,7 +379,8 @@ func (a *OrganizationsApiService) GetActiveOrganization(ctx context.Context) Api
 }
 
 // Execute executes the request
-//  @return OrganizationRead
+//
+//	@return OrganizationRead
 func (a *OrganizationsApiService) GetActiveOrganizationExecute(r ApiGetActiveOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -478,9 +480,9 @@ GetOrganization Get Organization
 Gets a single organization (Permit.io account) matching the given org_id,
 if such org exists and can be accessed by the authenticated actor.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiGetOrganizationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@return ApiGetOrganizationRequest
 */
 func (a *OrganizationsApiService) GetOrganization(ctx context.Context, orgId string) ApiGetOrganizationRequest {
 	return ApiGetOrganizationRequest{
@@ -491,7 +493,8 @@ func (a *OrganizationsApiService) GetOrganization(ctx context.Context, orgId str
 }
 
 // Execute executes the request
-//  @return OrganizationRead
+//
+//	@return OrganizationRead
 func (a *OrganizationsApiService) GetOrganizationExecute(r ApiGetOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -609,9 +612,9 @@ InviteMembersToOrganization Invite Members To Organization
 
 Invite new members into the organization.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiInviteMembersToOrganizationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@return ApiInviteMembersToOrganizationRequest
 */
 func (a *OrganizationsApiService) InviteMembersToOrganization(ctx context.Context, orgId string) ApiInviteMembersToOrganizationRequest {
 	return ApiInviteMembersToOrganizationRequest{
@@ -622,7 +625,8 @@ func (a *OrganizationsApiService) InviteMembersToOrganization(ctx context.Contex
 }
 
 // Execute executes the request
-//  @return MultiInviteResult
+//
+//	@return MultiInviteResult
 func (a *OrganizationsApiService) InviteMembersToOrganizationExecute(r ApiInviteMembersToOrganizationRequest) (*models.MultiInviteResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -747,9 +751,9 @@ ListOrganizationInvites List Organization Invites
 
 Lists pending organization invites
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiListOrganizationInvitesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@return ApiListOrganizationInvitesRequest
 */
 func (a *OrganizationsApiService) ListOrganizationInvites(ctx context.Context, orgId string) ApiListOrganizationInvitesRequest {
 	return ApiListOrganizationInvitesRequest{
@@ -760,7 +764,8 @@ func (a *OrganizationsApiService) ListOrganizationInvites(ctx context.Context, o
 }
 
 // Execute executes the request
-//  @return []InviteRead
+//
+//	@return []InviteRead
 func (a *OrganizationsApiService) ListOrganizationInvitesExecute(r ApiListOrganizationInvitesRequest) ([]models.InviteRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -880,8 +885,8 @@ ListOrganizations List Organizations
 Lists all the organizations that can be accessed by the
 authenticated actor (i.e: human team member or api key).
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListOrganizationsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiListOrganizationsRequest
 */
 func (a *OrganizationsApiService) ListOrganizations(ctx context.Context) ApiListOrganizationsRequest {
 	return ApiListOrganizationsRequest{
@@ -891,7 +896,8 @@ func (a *OrganizationsApiService) ListOrganizations(ctx context.Context) ApiList
 }
 
 // Execute executes the request
-//  @return []OrganizationRead
+//
+//	@return []OrganizationRead
 func (a *OrganizationsApiService) ListOrganizationsExecute(r ApiListOrganizationsRequest) ([]models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -1002,9 +1008,9 @@ UpdateOrganization Update Organization
 
 Updates the organization's profile.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @return ApiUpdateOrganizationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@return ApiUpdateOrganizationRequest
 */
 func (a *OrganizationsApiService) UpdateOrganization(ctx context.Context, orgId string) ApiUpdateOrganizationRequest {
 	return ApiUpdateOrganizationRequest{
@@ -1015,7 +1021,8 @@ func (a *OrganizationsApiService) UpdateOrganization(ctx context.Context, orgId 
 }
 
 // Execute executes the request
-//  @return OrganizationRead
+//
+//	@return OrganizationRead
 func (a *OrganizationsApiService) UpdateOrganizationExecute(r ApiUpdateOrganizationRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

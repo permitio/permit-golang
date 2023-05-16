@@ -45,8 +45,8 @@ The dev-login endpoints allows a developer inside permit.io to log in with an em
 
 THIS IS ONLY AVAILABLE IN DEV MODE.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiDevLoginRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiDevLoginRequest
 */
 func (a *AuthenticationApiService) DevLogin(ctx context.Context) ApiDevLoginRequest {
 	return ApiDevLoginRequest{
@@ -152,8 +152,8 @@ func (r ApiElementsLoginAsRequest) Execute() (*models.EmbeddedLoginRequestOutput
 /*
 ElementsLoginAs Elements Login As
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiElementsLoginAsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiElementsLoginAsRequest
 */
 func (a *AuthenticationApiService) ElementsLoginAs(ctx context.Context) ApiElementsLoginAsRequest {
 	return ApiElementsLoginAsRequest{
@@ -163,7 +163,8 @@ func (a *AuthenticationApiService) ElementsLoginAs(ctx context.Context) ApiEleme
 }
 
 // Execute executes the request
-//  @return EmbeddedLoginRequestOutput
+//
+//	@return EmbeddedLoginRequestOutput
 func (a *AuthenticationApiService) ElementsLoginAsExecute(r ApiElementsLoginAsRequest) (*models.EmbeddedLoginRequestOutput, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -274,8 +275,8 @@ Login Login
 The login endpoint allows the frontend app to exchange a user JWT with a user session.
 The user session is stored on an httpOnly + secure cookie.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLoginRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiLoginRequest
 */
 func (a *AuthenticationApiService) Login(ctx context.Context) ApiLoginRequest {
 	return ApiLoginRequest{
@@ -285,7 +286,8 @@ func (a *AuthenticationApiService) Login(ctx context.Context) ApiLoginRequest {
 }
 
 // Execute executes the request
-//  @return LoginResult
+//
+//	@return LoginResult
 func (a *AuthenticationApiService) LoginExecute(r ApiLoginRequest) (*models.LoginResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -393,8 +395,8 @@ LoginElements Login Elements
 The login endpoint allows the frontend app to exchange a user JWT with a user session.
 The user session is stored on an httpOnly + secure cookie.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLoginElementsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiLoginElementsRequest
 */
 func (a *AuthenticationApiService) LoginElements(ctx context.Context) ApiLoginElementsRequest {
 	return ApiLoginElementsRequest{
@@ -404,7 +406,8 @@ func (a *AuthenticationApiService) LoginElements(ctx context.Context) ApiLoginEl
 }
 
 // Execute executes the request
-//  @return LoginResult
+//
+//	@return LoginResult
 func (a *AuthenticationApiService) LoginElementsExecute(r ApiLoginElementsRequest) (*models.LoginResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -506,8 +509,8 @@ LogoutGet Logout Get
 
 The logout endpoint deletes the session cookie of a logged in user and invalidates cached VCs.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLogoutGetRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiLogoutGetRequest
 */
 func (a *AuthenticationApiService) LogoutGet(ctx context.Context) ApiLogoutGetRequest {
 	return ApiLogoutGetRequest{
@@ -604,8 +607,8 @@ LogoutPost Logout Post
 
 The logout endpoint deletes the session cookie of a logged in user and invalidates cached VCs.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiLogoutPostRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiLogoutPostRequest
 */
 func (a *AuthenticationApiService) LogoutPost(ctx context.Context) ApiLogoutPostRequest {
 	return ApiLogoutPostRequest{
@@ -700,8 +703,8 @@ func (r ApiMeRequest) Execute() (*models.AuthnMeRead, *http.Response, error) {
 /*
 Me Me
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiMeRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiMeRequest
 */
 func (a *AuthenticationApiService) Me(ctx context.Context) ApiMeRequest {
 	return ApiMeRequest{
@@ -711,7 +714,8 @@ func (a *AuthenticationApiService) Me(ctx context.Context) ApiMeRequest {
 }
 
 // Execute executes the request
-//  @return AuthnMeRead
+//
+//	@return AuthnMeRead
 func (a *AuthenticationApiService) MeExecute(r ApiMeRequest) (*models.AuthnMeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -812,9 +816,9 @@ Allows the user to switch his active organization (manipulates the user's login 
 
 This route will return a new login cookie to the user.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId the organization id the user wishes to switch to as the active org on the session
- @return ApiSwitchOrganizationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId the organization id the user wishes to switch to as the active org on the session
+	@return ApiSwitchOrganizationRequest
 */
 func (a *AuthenticationApiService) SwitchOrganization(ctx context.Context, orgId string) ApiSwitchOrganizationRequest {
 	return ApiSwitchOrganizationRequest{
@@ -825,7 +829,8 @@ func (a *AuthenticationApiService) SwitchOrganization(ctx context.Context, orgId
 }
 
 // Execute executes the request
-//  @return LoginResult
+//
+//	@return LoginResult
 func (a *AuthenticationApiService) SwitchOrganizationExecute(r ApiSwitchOrganizationRequest) (*models.LoginResult, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost

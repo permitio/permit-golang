@@ -48,11 +48,11 @@ Assigns a role to the user within the tenant.
 
 The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiAssignRoleToUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiAssignRoleToUserRequest
 */
 func (a *UsersApiService) AssignRoleToUser(ctx context.Context, projId string, envId string, userId string) ApiAssignRoleToUserRequest {
 	return ApiAssignRoleToUserRequest{
@@ -65,7 +65,8 @@ func (a *UsersApiService) AssignRoleToUser(ctx context.Context, projId string, e
 }
 
 // Execute executes the request
-//  @return RoleAssignmentRead
+//
+//	@return RoleAssignmentRead
 func (a *UsersApiService) AssignRoleToUserExecute(r ApiAssignRoleToUserRequest) (*models.RoleAssignmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -183,10 +184,10 @@ you may run permission checks on that user.
 If the user is already created: will return 200 instead of 201,
 and will return the existing user object in the response body.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCreateUserRequest
 */
 func (a *UsersApiService) CreateUser(ctx context.Context, projId string, envId string) ApiCreateUserRequest {
 	return ApiCreateUserRequest{
@@ -198,7 +199,8 @@ func (a *UsersApiService) CreateUser(ctx context.Context, projId string, envId s
 }
 
 // Execute executes the request
-//  @return UserRead
+//
+//	@return UserRead
 func (a *UsersApiService) CreateUserExecute(r ApiCreateUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -306,11 +308,11 @@ DeleteUser Delete User
 
 Deletes the user and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiDeleteUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiDeleteUserRequest
 */
 func (a *UsersApiService) DeleteUser(ctx context.Context, projId string, envId string, userId string) ApiDeleteUserRequest {
 	return ApiDeleteUserRequest{
@@ -416,11 +418,11 @@ GetUser Get User
 
 Gets a user, if such user exists. Otherwise returns 404.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiGetUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiGetUserRequest
 */
 func (a *UsersApiService) GetUser(ctx context.Context, projId string, envId string, userId string) ApiGetUserRequest {
 	return ApiGetUserRequest{
@@ -433,7 +435,8 @@ func (a *UsersApiService) GetUser(ctx context.Context, projId string, envId stri
 }
 
 // Execute executes the request
-//  @return UserRead
+//
+//	@return UserRead
 func (a *UsersApiService) GetUserExecute(r ApiGetUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -557,10 +560,10 @@ ListUsers List Users
 
 Lists all the users defined within an environment.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListUsersRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListUsersRequest
 */
 func (a *UsersApiService) ListUsers(ctx context.Context, projId string, envId string) ApiListUsersRequest {
 	return ApiListUsersRequest{
@@ -572,7 +575,8 @@ func (a *UsersApiService) ListUsers(ctx context.Context, projId string, envId st
 }
 
 // Execute executes the request
-//  @return PaginatedResultUserRead
+//
+//	@return PaginatedResultUserRead
 func (a *UsersApiService) ListUsersExecute(r ApiListUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -688,11 +692,11 @@ func (r ApiReplaceUserRequest) Execute() (*models.UserRead, *http.Response, erro
 /*
 ReplaceUser Replace User
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiReplaceUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiReplaceUserRequest
 */
 func (a *UsersApiService) ReplaceUser(ctx context.Context, projId string, envId string, userId string) ApiReplaceUserRequest {
 	return ApiReplaceUserRequest{
@@ -705,7 +709,8 @@ func (a *UsersApiService) ReplaceUser(ctx context.Context, projId string, envId 
 }
 
 // Execute executes the request
-//  @return UserRead
+//
+//	@return UserRead
 func (a *UsersApiService) ReplaceUserExecute(r ApiReplaceUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
@@ -824,11 +829,11 @@ The tenant defines the scope of the assignment. In other words, the role is effe
 
 If the role is not actually assigned, will return 404.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiUnassignRoleFromUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiUnassignRoleFromUserRequest
 */
 func (a *UsersApiService) UnassignRoleFromUser(ctx context.Context, projId string, envId string, userId string) ApiUnassignRoleFromUserRequest {
 	return ApiUnassignRoleFromUserRequest{
@@ -841,7 +846,8 @@ func (a *UsersApiService) UnassignRoleFromUser(ctx context.Context, projId strin
 }
 
 // Execute executes the request
-//  @return UserRead
+//
+//	@return UserRead
 func (a *UsersApiService) UnassignRoleFromUserExecute(r ApiUnassignRoleFromUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodDelete
@@ -957,11 +963,11 @@ UpdateUser Update User
 Partially updates the user definition.
 Fields that will be provided will be completely overwritten.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiUpdateUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiUpdateUserRequest
 */
 func (a *UsersApiService) UpdateUser(ctx context.Context, projId string, envId string, userId string) ApiUpdateUserRequest {
 	return ApiUpdateUserRequest{
@@ -974,7 +980,8 @@ func (a *UsersApiService) UpdateUser(ctx context.Context, projId string, envId s
 }
 
 // Execute executes the request
-//  @return UserRead
+//
+//	@return UserRead
 func (a *UsersApiService) UpdateUserExecute(r ApiUpdateUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

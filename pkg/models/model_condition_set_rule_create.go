@@ -14,6 +14,9 @@ import (
 	"encoding/json"
 )
 
+// checks if the ConditionSetRuleCreate type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ConditionSetRuleCreate{}
+
 // ConditionSetRuleCreate struct for ConditionSetRuleCreate
 type ConditionSetRuleCreate struct {
 	// The userset that will be given permission, i.e: all the users matching this rule will be given the specified permission
@@ -193,23 +196,25 @@ func (o *ConditionSetRuleCreate) SetIsResource(v bool) {
 }
 
 func (o ConditionSetRuleCreate) MarshalJSON() ([]byte, error) {
+	toSerialize, err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o ConditionSetRuleCreate) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if true {
-		toSerialize["user_set"] = o.UserSet
-	}
-	if true {
-		toSerialize["permission"] = o.Permission
-	}
-	if true {
-		toSerialize["resource_set"] = o.ResourceSet
-	}
+	toSerialize["user_set"] = o.UserSet
+	toSerialize["permission"] = o.Permission
+	toSerialize["resource_set"] = o.ResourceSet
 	if !IsNil(o.IsRole) {
 		toSerialize["is_role"] = o.IsRole
 	}
 	if !IsNil(o.IsResource) {
 		toSerialize["is_resource"] = o.IsResource
 	}
-	return json.Marshal(toSerialize)
+	return toSerialize, nil
 }
 
 type NullableConditionSetRuleCreate struct {

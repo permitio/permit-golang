@@ -50,8 +50,8 @@ values required for the container to run correctly.
 The config values returned are considered "overrides", meaning they are overriding
 any default values given to the container by the user.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetAuthenticatingPdpConfigValuesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetAuthenticatingPdpConfigValuesRequest
 */
 func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValues(ctx context.Context) ApiGetAuthenticatingPdpConfigValuesRequest {
 	return ApiGetAuthenticatingPdpConfigValuesRequest{
@@ -61,7 +61,8 @@ func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValues(ctx co
 }
 
 // Execute executes the request
-//  @return RemoteConfig
+//
+//	@return RemoteConfig
 func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesExecute(r ApiGetAuthenticatingPdpConfigValuesRequest) (*models.RemoteConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -171,8 +172,8 @@ values required for the container to run correctly.
 The config values returned are considered "overrides", meaning they are overriding
 any default values given to the container by the user.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetAuthenticatingPdpConfigValuesLegacyRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetAuthenticatingPdpConfigValuesLegacyRequest
 */
 func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacy(ctx context.Context) ApiGetAuthenticatingPdpConfigValuesLegacyRequest {
 	return ApiGetAuthenticatingPdpConfigValuesLegacyRequest{
@@ -182,7 +183,8 @@ func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacy(
 }
 
 // Execute executes the request
-//  @return RemoteConfig
+//
+//	@return RemoteConfig
 func (a *PolicyDecisionPointsApiService) GetAuthenticatingPdpConfigValuesLegacyExecute(r ApiGetAuthenticatingPdpConfigValuesLegacyRequest) (*models.RemoteConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -286,11 +288,11 @@ Gets the configuration values for the PDP container with id `pdp_id`.
 The config values returned are considered "overrides", meaning they are overriding
 any default values given to the container by the user.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param pdpId The unique id of the pdp
- @return ApiGetPdpConfigValuesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param pdpId The unique id of the pdp
+	@return ApiGetPdpConfigValuesRequest
 */
 func (a *PolicyDecisionPointsApiService) GetPdpConfigValues(ctx context.Context, projId string, envId string, pdpId string) ApiGetPdpConfigValuesRequest {
 	return ApiGetPdpConfigValuesRequest{
@@ -303,7 +305,8 @@ func (a *PolicyDecisionPointsApiService) GetPdpConfigValues(ctx context.Context,
 }
 
 // Execute executes the request
-//  @return RemoteConfig
+//
+//	@return RemoteConfig
 func (a *PolicyDecisionPointsApiService) GetPdpConfigValuesExecute(r ApiGetPdpConfigValuesRequest) (*models.RemoteConfig, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -418,10 +421,10 @@ func (r ApiListPdpConfigsRequest) Execute() ([]models.PDPConfigRead, *http.Respo
 /*
 ListPdpConfigs List PDP configurations
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListPdpConfigsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListPdpConfigsRequest
 */
 func (a *PolicyDecisionPointsApiService) ListPdpConfigs(ctx context.Context, projId string, envId string) ApiListPdpConfigsRequest {
 	return ApiListPdpConfigsRequest{
@@ -433,7 +436,8 @@ func (a *PolicyDecisionPointsApiService) ListPdpConfigs(ctx context.Context, pro
 }
 
 // Execute executes the request
-//  @return []PDPConfigRead
+//
+//	@return []PDPConfigRead
 func (a *PolicyDecisionPointsApiService) ListPdpConfigsExecute(r ApiListPdpConfigsRequest) ([]models.PDPConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -544,11 +548,11 @@ Rotates the API key of the PDP container with id `pdp_id`.
 
 The rotation of the API key revokes the old API key and issues a new API key to the PDP.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param pdpId The unique id of the pdp
- @return ApiRotatePdpApiKeyRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param pdpId The unique id of the pdp
+	@return ApiRotatePdpApiKeyRequest
 */
 func (a *PolicyDecisionPointsApiService) RotatePdpApiKey(ctx context.Context, projId string, envId string, pdpId string) ApiRotatePdpApiKeyRequest {
 	return ApiRotatePdpApiKeyRequest{
@@ -561,7 +565,8 @@ func (a *PolicyDecisionPointsApiService) RotatePdpApiKey(ctx context.Context, pr
 }
 
 // Execute executes the request
-//  @return PDPConfigRead
+//
+//	@return PDPConfigRead
 func (a *PolicyDecisionPointsApiService) RotatePdpApiKeyExecute(r ApiRotatePdpApiKeyRequest) (*models.PDPConfigRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost

@@ -44,11 +44,11 @@ func (r ApiGetAllDataRequest) Execute() (*models.FullData, *http.Response, error
 /*
 GetAllData Get All Data
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiGetAllDataRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiGetAllDataRequest
 */
 func (a *OPALDataApiService) GetAllData(ctx context.Context, orgId string, projId string, envId string) ApiGetAllDataRequest {
 	return ApiGetAllDataRequest{
@@ -61,7 +61,8 @@ func (a *OPALDataApiService) GetAllData(ctx context.Context, orgId string, projI
 }
 
 // Execute executes the request
-//  @return FullData
+//
+//	@return FullData
 func (a *OPALDataApiService) GetAllDataExecute(r ApiGetAllDataRequest) (*models.FullData, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -167,12 +168,12 @@ func (r ApiGetDataForRoleRequest) Execute() (*models.RoleData, *http.Response, e
 /*
 GetDataForRole Get Data For Role
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId
- @return ApiGetDataForRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId
+	@return ApiGetDataForRoleRequest
 */
 func (a *OPALDataApiService) GetDataForRole(ctx context.Context, orgId string, projId string, envId string, roleId string) ApiGetDataForRoleRequest {
 	return ApiGetDataForRoleRequest{
@@ -186,7 +187,8 @@ func (a *OPALDataApiService) GetDataForRole(ctx context.Context, orgId string, p
 }
 
 // Execute executes the request
-//  @return RoleData
+//
+//	@return RoleData
 func (a *OPALDataApiService) GetDataForRoleExecute(r ApiGetDataForRoleRequest) (*models.RoleData, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -293,13 +295,13 @@ GetDataForSetRule Get Data For Set Rule
 
 return permission assignment data between user sets and resource sets (i.e: condition set rules data)
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userSetId
- @param resourceSetId
- @return ApiGetDataForSetRuleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param userSetId
+	@param resourceSetId
+	@return ApiGetDataForSetRuleRequest
 */
 func (a *OPALDataApiService) GetDataForSetRule(ctx context.Context, orgId string, projId string, envId string, userSetId string, resourceSetId string) ApiGetDataForSetRuleRequest {
 	return ApiGetDataForSetRuleRequest{
@@ -314,7 +316,8 @@ func (a *OPALDataApiService) GetDataForSetRule(ctx context.Context, orgId string
 }
 
 // Execute executes the request
-//  @return map[string][]string
+//
+//	@return map[string][]string
 func (a *OPALDataApiService) GetDataForSetRuleExecute(r ApiGetDataForSetRuleRequest) (*map[string][]string, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -419,12 +422,12 @@ func (r ApiGetDataForUserRequest) Execute() (*models.UserData, *http.Response, e
 /*
 GetDataForUser Get Data For User
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param userId
- @return ApiGetDataForUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param orgId Either the unique id of the organization, or the URL-friendly key of the organization (i.e: the \"slug\").
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param userId
+	@return ApiGetDataForUserRequest
 */
 func (a *OPALDataApiService) GetDataForUser(ctx context.Context, orgId string, projId string, envId string, userId string) ApiGetDataForUserRequest {
 	return ApiGetDataForUserRequest{
@@ -438,7 +441,8 @@ func (a *OPALDataApiService) GetDataForUser(ctx context.Context, orgId string, p
 }
 
 // Execute executes the request
-//  @return UserData
+//
+//	@return UserData
 func (a *OPALDataApiService) GetDataForUserExecute(r ApiGetDataForUserRequest) (*models.UserData, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet

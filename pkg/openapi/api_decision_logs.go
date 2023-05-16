@@ -88,11 +88,11 @@ func (r ApiListPdpDecisionLogsRequest) Execute() (*models.PaginatedResultOPADeci
 /*
 ListPdpDecisionLogs List PDP Decisions
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param pdpId The unique id of the pdp
- @return ApiListPdpDecisionLogsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param pdpId The unique id of the pdp
+	@return ApiListPdpDecisionLogsRequest
 */
 func (a *DecisionLogsApiService) ListPdpDecisionLogs(ctx context.Context, projId string, envId string, pdpId string) ApiListPdpDecisionLogsRequest {
 	return ApiListPdpDecisionLogsRequest{
@@ -105,7 +105,8 @@ func (a *DecisionLogsApiService) ListPdpDecisionLogs(ctx context.Context, projId
 }
 
 // Execute executes the request
-//  @return PaginatedResultOPADecisionLog
+//
+//	@return PaginatedResultOPADecisionLog
 func (a *DecisionLogsApiService) ListPdpDecisionLogsExecute(r ApiListPdpDecisionLogsRequest) (*models.PaginatedResultOPADecisionLog, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet

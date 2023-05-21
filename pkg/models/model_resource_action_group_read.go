@@ -15,47 +15,45 @@ import (
 	"time"
 )
 
-// checks if the ResourceActionRead type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &ResourceActionRead{}
+// checks if the ResourceActionGroupRead type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ResourceActionGroupRead{}
 
-// ResourceActionRead struct for ResourceActionRead
-type ResourceActionRead struct {
-	// The name of the action
+// ResourceActionGroupRead struct for ResourceActionGroupRead
+type ResourceActionGroupRead struct {
+	// The name of the action group
 	Name string `json:"name"`
-	// An optional longer description of what this action respresents in your system
+	// An optional longer description of what this action group represents in your system
 	Description *string `json:"description,omitempty"`
-	// optional dictionary of key-value pairs that can be used to store arbitrary metadata about this action. This metadata can be used to filter actions using query parameters with attr_ prefix
+	// optional dictionary of key-value pairs that can be used to store arbitrary metadata about this action group. This metadata can be used to filter action groups using query parameters with attr_ prefix
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
-	// A URL-friendly name of the action (i.e: slug). You will be able to query later using this key instead of the id (UUID) of the action.
+	Actions    []string               `json:"actions,omitempty"`
+	// A URL-friendly name of the action group (i.e: slug). You will be able to query later using this key instead of the id (UUID) of the action group.
 	Key string `json:"key"`
-	// Unique id of the action
+	// Unique id of the action group
 	Id string `json:"id"`
-	// The name of the action, prefixed by the resource the action is acting upon.
-	PermissionName string `json:"permission_name"`
-	// Unique id of the organization that the action belongs to.
+	// Unique id of the organization that the action group belongs to.
 	OrganizationId string `json:"organization_id"`
-	// Unique id of the project that the action belongs to.
+	// Unique id of the project that the action group belongs to.
 	ProjectId string `json:"project_id"`
-	// Unique id of the environment that the action belongs to.
+	// Unique id of the environment that the action group belongs to.
 	EnvironmentId string `json:"environment_id"`
-	// Unique id of the resource that the action belongs to.
+	// Unique id of the resource that the action group belongs to.
 	ResourceId string `json:"resource_id"`
-	// Date and time when the action was created (ISO_8601 format).
+	// Date and time when the action group was created (ISO_8601 format).
 	CreatedAt time.Time `json:"created_at"`
-	// Date and time when the action was last updated/modified (ISO_8601 format).
+	// Date and time when the action group was last updated/modified (ISO_8601 format).
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// NewResourceActionRead instantiates a new ResourceActionRead object
+// NewResourceActionGroupRead instantiates a new ResourceActionGroupRead object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewResourceActionRead(name string, key string, id string, permissionName string, organizationId string, projectId string, environmentId string, resourceId string, createdAt time.Time, updatedAt time.Time) *ResourceActionRead {
-	this := ResourceActionRead{}
+func NewResourceActionGroupRead(name string, key string, id string, organizationId string, projectId string, environmentId string, resourceId string, createdAt time.Time, updatedAt time.Time) *ResourceActionGroupRead {
+	this := ResourceActionGroupRead{}
 	this.Name = name
 	this.Key = key
 	this.Id = id
-	this.PermissionName = permissionName
 	this.OrganizationId = organizationId
 	this.ProjectId = projectId
 	this.EnvironmentId = environmentId
@@ -65,16 +63,16 @@ func NewResourceActionRead(name string, key string, id string, permissionName st
 	return &this
 }
 
-// NewResourceActionReadWithDefaults instantiates a new ResourceActionRead object
+// NewResourceActionGroupReadWithDefaults instantiates a new ResourceActionGroupRead object
 // This constructor will only assign default values to properties that have it defined,
 // but it doesn't guarantee that properties required by API are set
-func NewResourceActionReadWithDefaults() *ResourceActionRead {
-	this := ResourceActionRead{}
+func NewResourceActionGroupReadWithDefaults() *ResourceActionGroupRead {
+	this := ResourceActionGroupRead{}
 	return &this
 }
 
 // GetName returns the Name field value
-func (o *ResourceActionRead) GetName() string {
+func (o *ResourceActionGroupRead) GetName() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -85,7 +83,7 @@ func (o *ResourceActionRead) GetName() string {
 
 // GetNameOk returns a tuple with the Name field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetNameOk() (*string, bool) {
+func (o *ResourceActionGroupRead) GetNameOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -93,12 +91,12 @@ func (o *ResourceActionRead) GetNameOk() (*string, bool) {
 }
 
 // SetName sets field value
-func (o *ResourceActionRead) SetName(v string) {
+func (o *ResourceActionGroupRead) SetName(v string) {
 	o.Name = v
 }
 
 // GetDescription returns the Description field value if set, zero value otherwise.
-func (o *ResourceActionRead) GetDescription() string {
+func (o *ResourceActionGroupRead) GetDescription() string {
 	if o == nil || IsNil(o.Description) {
 		var ret string
 		return ret
@@ -108,7 +106,7 @@ func (o *ResourceActionRead) GetDescription() string {
 
 // GetDescriptionOk returns a tuple with the Description field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetDescriptionOk() (*string, bool) {
+func (o *ResourceActionGroupRead) GetDescriptionOk() (*string, bool) {
 	if o == nil || IsNil(o.Description) {
 		return nil, false
 	}
@@ -116,7 +114,7 @@ func (o *ResourceActionRead) GetDescriptionOk() (*string, bool) {
 }
 
 // HasDescription returns a boolean if a field has been set.
-func (o *ResourceActionRead) HasDescription() bool {
+func (o *ResourceActionGroupRead) HasDescription() bool {
 	if o != nil && !IsNil(o.Description) {
 		return true
 	}
@@ -125,12 +123,12 @@ func (o *ResourceActionRead) HasDescription() bool {
 }
 
 // SetDescription gets a reference to the given string and assigns it to the Description field.
-func (o *ResourceActionRead) SetDescription(v string) {
+func (o *ResourceActionGroupRead) SetDescription(v string) {
 	o.Description = &v
 }
 
 // GetAttributes returns the Attributes field value if set, zero value otherwise.
-func (o *ResourceActionRead) GetAttributes() map[string]interface{} {
+func (o *ResourceActionGroupRead) GetAttributes() map[string]interface{} {
 	if o == nil || IsNil(o.Attributes) {
 		var ret map[string]interface{}
 		return ret
@@ -140,7 +138,7 @@ func (o *ResourceActionRead) GetAttributes() map[string]interface{} {
 
 // GetAttributesOk returns a tuple with the Attributes field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetAttributesOk() (map[string]interface{}, bool) {
+func (o *ResourceActionGroupRead) GetAttributesOk() (map[string]interface{}, bool) {
 	if o == nil || IsNil(o.Attributes) {
 		return map[string]interface{}{}, false
 	}
@@ -148,7 +146,7 @@ func (o *ResourceActionRead) GetAttributesOk() (map[string]interface{}, bool) {
 }
 
 // HasAttributes returns a boolean if a field has been set.
-func (o *ResourceActionRead) HasAttributes() bool {
+func (o *ResourceActionGroupRead) HasAttributes() bool {
 	if o != nil && !IsNil(o.Attributes) {
 		return true
 	}
@@ -157,12 +155,44 @@ func (o *ResourceActionRead) HasAttributes() bool {
 }
 
 // SetAttributes gets a reference to the given map[string]interface{} and assigns it to the Attributes field.
-func (o *ResourceActionRead) SetAttributes(v map[string]interface{}) {
+func (o *ResourceActionGroupRead) SetAttributes(v map[string]interface{}) {
 	o.Attributes = v
 }
 
+// GetActions returns the Actions field value if set, zero value otherwise.
+func (o *ResourceActionGroupRead) GetActions() []string {
+	if o == nil || IsNil(o.Actions) {
+		var ret []string
+		return ret
+	}
+	return o.Actions
+}
+
+// GetActionsOk returns a tuple with the Actions field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ResourceActionGroupRead) GetActionsOk() ([]string, bool) {
+	if o == nil || IsNil(o.Actions) {
+		return nil, false
+	}
+	return o.Actions, true
+}
+
+// HasActions returns a boolean if a field has been set.
+func (o *ResourceActionGroupRead) HasActions() bool {
+	if o != nil && !IsNil(o.Actions) {
+		return true
+	}
+
+	return false
+}
+
+// SetActions gets a reference to the given []string and assigns it to the Actions field.
+func (o *ResourceActionGroupRead) SetActions(v []string) {
+	o.Actions = v
+}
+
 // GetKey returns the Key field value
-func (o *ResourceActionRead) GetKey() string {
+func (o *ResourceActionGroupRead) GetKey() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -173,7 +203,7 @@ func (o *ResourceActionRead) GetKey() string {
 
 // GetKeyOk returns a tuple with the Key field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetKeyOk() (*string, bool) {
+func (o *ResourceActionGroupRead) GetKeyOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -181,12 +211,12 @@ func (o *ResourceActionRead) GetKeyOk() (*string, bool) {
 }
 
 // SetKey sets field value
-func (o *ResourceActionRead) SetKey(v string) {
+func (o *ResourceActionGroupRead) SetKey(v string) {
 	o.Key = v
 }
 
 // GetId returns the Id field value
-func (o *ResourceActionRead) GetId() string {
+func (o *ResourceActionGroupRead) GetId() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -197,7 +227,7 @@ func (o *ResourceActionRead) GetId() string {
 
 // GetIdOk returns a tuple with the Id field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetIdOk() (*string, bool) {
+func (o *ResourceActionGroupRead) GetIdOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -205,36 +235,12 @@ func (o *ResourceActionRead) GetIdOk() (*string, bool) {
 }
 
 // SetId sets field value
-func (o *ResourceActionRead) SetId(v string) {
+func (o *ResourceActionGroupRead) SetId(v string) {
 	o.Id = v
 }
 
-// GetPermissionName returns the PermissionName field value
-func (o *ResourceActionRead) GetPermissionName() string {
-	if o == nil {
-		var ret string
-		return ret
-	}
-
-	return o.PermissionName
-}
-
-// GetPermissionNameOk returns a tuple with the PermissionName field value
-// and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetPermissionNameOk() (*string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return &o.PermissionName, true
-}
-
-// SetPermissionName sets field value
-func (o *ResourceActionRead) SetPermissionName(v string) {
-	o.PermissionName = v
-}
-
 // GetOrganizationId returns the OrganizationId field value
-func (o *ResourceActionRead) GetOrganizationId() string {
+func (o *ResourceActionGroupRead) GetOrganizationId() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -245,7 +251,7 @@ func (o *ResourceActionRead) GetOrganizationId() string {
 
 // GetOrganizationIdOk returns a tuple with the OrganizationId field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetOrganizationIdOk() (*string, bool) {
+func (o *ResourceActionGroupRead) GetOrganizationIdOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -253,12 +259,12 @@ func (o *ResourceActionRead) GetOrganizationIdOk() (*string, bool) {
 }
 
 // SetOrganizationId sets field value
-func (o *ResourceActionRead) SetOrganizationId(v string) {
+func (o *ResourceActionGroupRead) SetOrganizationId(v string) {
 	o.OrganizationId = v
 }
 
 // GetProjectId returns the ProjectId field value
-func (o *ResourceActionRead) GetProjectId() string {
+func (o *ResourceActionGroupRead) GetProjectId() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -269,7 +275,7 @@ func (o *ResourceActionRead) GetProjectId() string {
 
 // GetProjectIdOk returns a tuple with the ProjectId field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetProjectIdOk() (*string, bool) {
+func (o *ResourceActionGroupRead) GetProjectIdOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -277,12 +283,12 @@ func (o *ResourceActionRead) GetProjectIdOk() (*string, bool) {
 }
 
 // SetProjectId sets field value
-func (o *ResourceActionRead) SetProjectId(v string) {
+func (o *ResourceActionGroupRead) SetProjectId(v string) {
 	o.ProjectId = v
 }
 
 // GetEnvironmentId returns the EnvironmentId field value
-func (o *ResourceActionRead) GetEnvironmentId() string {
+func (o *ResourceActionGroupRead) GetEnvironmentId() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -293,7 +299,7 @@ func (o *ResourceActionRead) GetEnvironmentId() string {
 
 // GetEnvironmentIdOk returns a tuple with the EnvironmentId field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetEnvironmentIdOk() (*string, bool) {
+func (o *ResourceActionGroupRead) GetEnvironmentIdOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -301,12 +307,12 @@ func (o *ResourceActionRead) GetEnvironmentIdOk() (*string, bool) {
 }
 
 // SetEnvironmentId sets field value
-func (o *ResourceActionRead) SetEnvironmentId(v string) {
+func (o *ResourceActionGroupRead) SetEnvironmentId(v string) {
 	o.EnvironmentId = v
 }
 
 // GetResourceId returns the ResourceId field value
-func (o *ResourceActionRead) GetResourceId() string {
+func (o *ResourceActionGroupRead) GetResourceId() string {
 	if o == nil {
 		var ret string
 		return ret
@@ -317,7 +323,7 @@ func (o *ResourceActionRead) GetResourceId() string {
 
 // GetResourceIdOk returns a tuple with the ResourceId field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetResourceIdOk() (*string, bool) {
+func (o *ResourceActionGroupRead) GetResourceIdOk() (*string, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -325,12 +331,12 @@ func (o *ResourceActionRead) GetResourceIdOk() (*string, bool) {
 }
 
 // SetResourceId sets field value
-func (o *ResourceActionRead) SetResourceId(v string) {
+func (o *ResourceActionGroupRead) SetResourceId(v string) {
 	o.ResourceId = v
 }
 
 // GetCreatedAt returns the CreatedAt field value
-func (o *ResourceActionRead) GetCreatedAt() time.Time {
+func (o *ResourceActionGroupRead) GetCreatedAt() time.Time {
 	if o == nil {
 		var ret time.Time
 		return ret
@@ -341,7 +347,7 @@ func (o *ResourceActionRead) GetCreatedAt() time.Time {
 
 // GetCreatedAtOk returns a tuple with the CreatedAt field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetCreatedAtOk() (*time.Time, bool) {
+func (o *ResourceActionGroupRead) GetCreatedAtOk() (*time.Time, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -349,12 +355,12 @@ func (o *ResourceActionRead) GetCreatedAtOk() (*time.Time, bool) {
 }
 
 // SetCreatedAt sets field value
-func (o *ResourceActionRead) SetCreatedAt(v time.Time) {
+func (o *ResourceActionGroupRead) SetCreatedAt(v time.Time) {
 	o.CreatedAt = v
 }
 
 // GetUpdatedAt returns the UpdatedAt field value
-func (o *ResourceActionRead) GetUpdatedAt() time.Time {
+func (o *ResourceActionGroupRead) GetUpdatedAt() time.Time {
 	if o == nil {
 		var ret time.Time
 		return ret
@@ -365,7 +371,7 @@ func (o *ResourceActionRead) GetUpdatedAt() time.Time {
 
 // GetUpdatedAtOk returns a tuple with the UpdatedAt field value
 // and a boolean to check if the value has been set.
-func (o *ResourceActionRead) GetUpdatedAtOk() (*time.Time, bool) {
+func (o *ResourceActionGroupRead) GetUpdatedAtOk() (*time.Time, bool) {
 	if o == nil {
 		return nil, false
 	}
@@ -373,19 +379,19 @@ func (o *ResourceActionRead) GetUpdatedAtOk() (*time.Time, bool) {
 }
 
 // SetUpdatedAt sets field value
-func (o *ResourceActionRead) SetUpdatedAt(v time.Time) {
+func (o *ResourceActionGroupRead) SetUpdatedAt(v time.Time) {
 	o.UpdatedAt = v
 }
 
-func (o ResourceActionRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+func (o ResourceActionGroupRead) MarshalJSON() ([]byte, error) {
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}
 	return json.Marshal(toSerialize)
 }
 
-func (o ResourceActionRead) ToMap() (map[string]interface{}, error) {
+func (o ResourceActionGroupRead) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["name"] = o.Name
 	if !IsNil(o.Description) {
@@ -394,9 +400,11 @@ func (o ResourceActionRead) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.Attributes) {
 		toSerialize["attributes"] = o.Attributes
 	}
+	if !IsNil(o.Actions) {
+		toSerialize["actions"] = o.Actions
+	}
 	toSerialize["key"] = o.Key
 	toSerialize["id"] = o.Id
-	toSerialize["permission_name"] = o.PermissionName
 	toSerialize["organization_id"] = o.OrganizationId
 	toSerialize["project_id"] = o.ProjectId
 	toSerialize["environment_id"] = o.EnvironmentId
@@ -406,38 +414,38 @@ func (o ResourceActionRead) ToMap() (map[string]interface{}, error) {
 	return toSerialize, nil
 }
 
-type NullableResourceActionRead struct {
-	value *ResourceActionRead
+type NullableResourceActionGroupRead struct {
+	value *ResourceActionGroupRead
 	isSet bool
 }
 
-func (v NullableResourceActionRead) Get() *ResourceActionRead {
+func (v NullableResourceActionGroupRead) Get() *ResourceActionGroupRead {
 	return v.value
 }
 
-func (v *NullableResourceActionRead) Set(val *ResourceActionRead) {
+func (v *NullableResourceActionGroupRead) Set(val *ResourceActionGroupRead) {
 	v.value = val
 	v.isSet = true
 }
 
-func (v NullableResourceActionRead) IsSet() bool {
+func (v NullableResourceActionGroupRead) IsSet() bool {
 	return v.isSet
 }
 
-func (v *NullableResourceActionRead) Unset() {
+func (v *NullableResourceActionGroupRead) Unset() {
 	v.value = nil
 	v.isSet = false
 }
 
-func NewNullableResourceActionRead(val *ResourceActionRead) *NullableResourceActionRead {
-	return &NullableResourceActionRead{value: val, isSet: true}
+func NewNullableResourceActionGroupRead(val *ResourceActionGroupRead) *NullableResourceActionGroupRead {
+	return &NullableResourceActionGroupRead{value: val, isSet: true}
 }
 
-func (v NullableResourceActionRead) MarshalJSON() ([]byte, error) {
+func (v NullableResourceActionGroupRead) MarshalJSON() ([]byte, error) {
 	return json.Marshal(v.value)
 }
 
-func (v *NullableResourceActionRead) UnmarshalJSON(src []byte) error {
+func (v *NullableResourceActionGroupRead) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }

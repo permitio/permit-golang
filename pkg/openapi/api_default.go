@@ -34,8 +34,8 @@ func (r ApiDummyRequest) Execute() (interface{}, *http.Response, error) {
 /*
 Dummy Dummy
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiDummyRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiDummyRequest
 */
 func (a *DefaultApiService) Dummy(ctx context.Context) ApiDummyRequest {
 	return ApiDummyRequest{
@@ -45,7 +45,8 @@ func (a *DefaultApiService) Dummy(ctx context.Context) ApiDummyRequest {
 }
 
 // Execute executes the request
-//  @return interface{}
+//
+//	@return interface{}
 func (a *DefaultApiService) DummyExecute(r ApiDummyRequest) (interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -131,8 +132,8 @@ func (r ApiDummyDbRequest) Execute() (interface{}, *http.Response, error) {
 /*
 DummyDb Dummy Db
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiDummyDbRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiDummyDbRequest
 */
 func (a *DefaultApiService) DummyDb(ctx context.Context) ApiDummyDbRequest {
 	return ApiDummyDbRequest{
@@ -142,7 +143,8 @@ func (a *DefaultApiService) DummyDb(ctx context.Context) ApiDummyDbRequest {
 }
 
 // Execute executes the request
-//  @return interface{}
+//
+//	@return interface{}
 func (a *DefaultApiService) DummyDbExecute(r ApiDummyDbRequest) (interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -228,8 +230,8 @@ func (r ApiGetOrganizationV2StressDbOrganizationGetRequest) Execute() (*models.O
 /*
 GetOrganizationV2StressDbOrganizationGet Get Organization
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetOrganizationV2StressDbOrganizationGetRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetOrganizationV2StressDbOrganizationGetRequest
 */
 func (a *DefaultApiService) GetOrganizationV2StressDbOrganizationGet(ctx context.Context) ApiGetOrganizationV2StressDbOrganizationGetRequest {
 	return ApiGetOrganizationV2StressDbOrganizationGetRequest{
@@ -239,7 +241,8 @@ func (a *DefaultApiService) GetOrganizationV2StressDbOrganizationGet(ctx context
 }
 
 // Execute executes the request
-//  @return OrganizationRead
+//
+//	@return OrganizationRead
 func (a *DefaultApiService) GetOrganizationV2StressDbOrganizationGetExecute(r ApiGetOrganizationV2StressDbOrganizationGetRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -325,8 +328,8 @@ func (r ApiGetOrganizationWithAuthnRequest) Execute() (*models.OrganizationRead,
 /*
 GetOrganizationWithAuthn Get Organization With Authn
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetOrganizationWithAuthnRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetOrganizationWithAuthnRequest
 */
 func (a *DefaultApiService) GetOrganizationWithAuthn(ctx context.Context) ApiGetOrganizationWithAuthnRequest {
 	return ApiGetOrganizationWithAuthnRequest{
@@ -336,7 +339,8 @@ func (a *DefaultApiService) GetOrganizationWithAuthn(ctx context.Context) ApiGet
 }
 
 // Execute executes the request
-//  @return OrganizationRead
+//
+//	@return OrganizationRead
 func (a *DefaultApiService) GetOrganizationWithAuthnExecute(r ApiGetOrganizationWithAuthnRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -432,8 +436,8 @@ func (r ApiGetOrganizationWithAuthzRequest) Execute() (*models.OrganizationRead,
 /*
 GetOrganizationWithAuthz Get Organization With Authz
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetOrganizationWithAuthzRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetOrganizationWithAuthzRequest
 */
 func (a *DefaultApiService) GetOrganizationWithAuthz(ctx context.Context) ApiGetOrganizationWithAuthzRequest {
 	return ApiGetOrganizationWithAuthzRequest{
@@ -443,7 +447,8 @@ func (a *DefaultApiService) GetOrganizationWithAuthz(ctx context.Context) ApiGet
 }
 
 // Execute executes the request
-//  @return OrganizationRead
+//
+//	@return OrganizationRead
 func (a *DefaultApiService) GetOrganizationWithAuthzExecute(r ApiGetOrganizationWithAuthzRequest) (*models.OrganizationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet

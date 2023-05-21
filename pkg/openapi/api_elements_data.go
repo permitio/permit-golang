@@ -49,12 +49,12 @@ Assigns a role to the user within the tenant.
 
 The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiElementsAssignRoleToUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiElementsAssignRoleToUserRequest
 */
 func (a *ElementsDataApiService) ElementsAssignRoleToUser(ctx context.Context, projId string, envId string, elementsConfigId string, userId string) ApiElementsAssignRoleToUserRequest {
 	return ApiElementsAssignRoleToUserRequest{
@@ -68,7 +68,8 @@ func (a *ElementsDataApiService) ElementsAssignRoleToUser(ctx context.Context, p
 }
 
 // Execute executes the request
-//  @return RoleAssignmentRead
+//
+//	@return RoleAssignmentRead
 func (a *ElementsDataApiService) ElementsAssignRoleToUserExecute(r ApiElementsAssignRoleToUserRequest) (*models.RoleAssignmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -188,11 +189,11 @@ you may run permission checks on that user.
 If the user is already created: will return 200 instead of 201,
 and will return the existing user object in the response body.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @return ApiElementsCreateUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@return ApiElementsCreateUserRequest
 */
 func (a *ElementsDataApiService) ElementsCreateUser(ctx context.Context, projId string, envId string, elementsConfigId string) ApiElementsCreateUserRequest {
 	return ApiElementsCreateUserRequest{
@@ -205,7 +206,8 @@ func (a *ElementsDataApiService) ElementsCreateUser(ctx context.Context, projId 
 }
 
 // Execute executes the request
-//  @return UserRead
+//
+//	@return UserRead
 func (a *ElementsDataApiService) ElementsCreateUserExecute(r ApiElementsCreateUserRequest) (*models.UserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -313,12 +315,12 @@ func (r ApiElementsDeleteUserRequest) Execute() (*http.Response, error) {
 /*
 ElementsDeleteUser Delete user
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiElementsDeleteUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiElementsDeleteUserRequest
 */
 func (a *ElementsDataApiService) ElementsDeleteUser(ctx context.Context, projId string, envId string, elementsConfigId string, userId string) ApiElementsDeleteUserRequest {
 	return ApiElementsDeleteUserRequest{
@@ -447,11 +449,11 @@ ElementsListRoles List roles
 
 Lists all the users defined within an environment.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @return ApiElementsListRolesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@return ApiElementsListRolesRequest
 */
 func (a *ElementsDataApiService) ElementsListRoles(ctx context.Context, projId string, envId string, elementsConfigId string) ApiElementsListRolesRequest {
 	return ApiElementsListRolesRequest{
@@ -464,7 +466,8 @@ func (a *ElementsDataApiService) ElementsListRoles(ctx context.Context, projId s
 }
 
 // Execute executes the request
-//  @return []ElementsRoleRead
+//
+//	@return []ElementsRoleRead
 func (a *ElementsDataApiService) ElementsListRolesExecute(r ApiElementsListRolesRequest) ([]models.ElementsRoleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -598,11 +601,11 @@ ElementsListUsers List users
 
 Lists all the users defined within an environment.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @return ApiElementsListUsersRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@return ApiElementsListUsersRequest
 */
 func (a *ElementsDataApiService) ElementsListUsers(ctx context.Context, projId string, envId string, elementsConfigId string) ApiElementsListUsersRequest {
 	return ApiElementsListUsersRequest{
@@ -615,7 +618,8 @@ func (a *ElementsDataApiService) ElementsListUsers(ctx context.Context, projId s
 }
 
 // Execute executes the request
-//  @return PaginatedResultUserRead
+//
+//	@return PaginatedResultUserRead
 func (a *ElementsDataApiService) ElementsListUsersExecute(r ApiElementsListUsersRequest) (*models.PaginatedResultUserRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -739,12 +743,12 @@ The tenant defines the scope of the assignment. In other words, the role is effe
 
 If the role is not actually assigned, will return 404.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
- @return ApiElementsUnassignRoleFromUserRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@param userId Either the unique id of the user, or the URL-friendly key of the user (i.e: the \"slug\").
+	@return ApiElementsUnassignRoleFromUserRequest
 */
 func (a *ElementsDataApiService) ElementsUnassignRoleFromUser(ctx context.Context, projId string, envId string, elementsConfigId string, userId string) ApiElementsUnassignRoleFromUserRequest {
 	return ApiElementsUnassignRoleFromUserRequest{
@@ -857,11 +861,11 @@ SetConfigActive Set Config Active
 
 Updates the embed_config.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiSetConfigActiveRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param elementsConfigId Either the unique id of the elements_config, or the URL-friendly key of the elements_config (i.e: the \"slug\").
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiSetConfigActiveRequest
 */
 func (a *ElementsDataApiService) SetConfigActive(ctx context.Context, elementsConfigId string, projId string, envId string) ApiSetConfigActiveRequest {
 	return ApiSetConfigActiveRequest{

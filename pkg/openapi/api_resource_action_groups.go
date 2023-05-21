@@ -14,68 +14,80 @@ import (
 	"bytes"
 	"context"
 	"github.com/permitio/permit-golang/pkg/models"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// ProjectsApiService ProjectsApi service
-type ProjectsApiService service
+// ResourceActionGroupsApiService ResourceActionGroupsApi service
+type ResourceActionGroupsApiService service
 
-type ApiCreateProjectRequest struct {
-	ctx           context.Context
-	ApiService    *ProjectsApiService
-	projectCreate *models.ProjectCreate
+type ApiCreateResourceActionGroupRequest struct {
+	ctx                       context.Context
+	ApiService                *ResourceActionGroupsApiService
+	projId                    string
+	envId                     string
+	resourceId                string
+	resourceActionGroupCreate *models.ResourceActionGroupCreate
 }
 
-func (r ApiCreateProjectRequest) ProjectCreate(projectCreate models.ProjectCreate) ApiCreateProjectRequest {
-	r.projectCreate = &projectCreate
+func (r ApiCreateResourceActionGroupRequest) ResourceActionGroupCreate(resourceActionGroupCreate models.ResourceActionGroupCreate) ApiCreateResourceActionGroupRequest {
+	r.resourceActionGroupCreate = &resourceActionGroupCreate
 	return r
 }
 
-func (r ApiCreateProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
-	return r.ApiService.CreateProjectExecute(r)
+func (r ApiCreateResourceActionGroupRequest) Execute() (*models.ResourceActionGroupRead, *http.Response, error) {
+	return r.ApiService.CreateResourceActionGroupExecute(r)
 }
 
 /*
-CreateProject Create Project
+CreateResourceActionGroup Create Resource Action Group
 
-Creates a new project under the active organization.
+Creates a new action group that can affect the resource.
 
 	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
-	@return ApiCreateProjectRequest
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiCreateResourceActionGroupRequest
 */
-func (a *ProjectsApiService) CreateProject(ctx context.Context) ApiCreateProjectRequest {
-	return ApiCreateProjectRequest{
+func (a *ResourceActionGroupsApiService) CreateResourceActionGroup(ctx context.Context, projId string, envId string, resourceId string) ApiCreateResourceActionGroupRequest {
+	return ApiCreateResourceActionGroupRequest{
 		ApiService: a,
 		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
 //
-//	@return ProjectRead
-func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*models.ProjectRead, *http.Response, error) {
+//	@return ResourceActionGroupRead
+func (a *ResourceActionGroupsApiService) CreateResourceActionGroupExecute(r ApiCreateResourceActionGroupRequest) (*models.ResourceActionGroupRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ProjectRead
+		localVarReturnValue *models.ResourceActionGroupRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.CreateProject")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionGroupsApiService.CreateResourceActionGroup")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/projects"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterValueToString(r.resourceId, "resourceId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.projectCreate == nil {
-		return localVarReturnValue, nil, reportError("projectCreate is required and must be specified")
+	if r.resourceActionGroupCreate == nil {
+		return localVarReturnValue, nil, reportError("resourceActionGroupCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -96,7 +108,7 @@ func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*m
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.projectCreate
+	localVarPostBody = r.resourceActionGroupCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -107,9 +119,9 @@ func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*m
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -144,48 +156,61 @@ func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*m
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteProjectRequest struct {
-	ctx        context.Context
-	ApiService *ProjectsApiService
-	projId     string
+type ApiDeleteResourceActionGroupRequest struct {
+	ctx           context.Context
+	ApiService    *ResourceActionGroupsApiService
+	projId        string
+	envId         string
+	resourceId    string
+	actionGroupId string
 }
 
-func (r ApiDeleteProjectRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteProjectExecute(r)
+func (r ApiDeleteResourceActionGroupRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteResourceActionGroupExecute(r)
 }
 
 /*
-DeleteProject Delete Project
+DeleteResourceActionGroup Delete Resource Action Group
 
-Deletes the project and all its related data.
+Deletes the action and all its related data.
+This includes any permissions granted to perform the action.
 
 	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
 	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
-	@return ApiDeleteProjectRequest
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param actionGroupId Either the unique id of the action group, or the URL-friendly key of the action group (i.e: the \"slug\").
+	@return ApiDeleteResourceActionGroupRequest
 */
-func (a *ProjectsApiService) DeleteProject(ctx context.Context, projId string) ApiDeleteProjectRequest {
-	return ApiDeleteProjectRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
+func (a *ResourceActionGroupsApiService) DeleteResourceActionGroup(ctx context.Context, projId string, envId string, resourceId string, actionGroupId string) ApiDeleteResourceActionGroupRequest {
+	return ApiDeleteResourceActionGroupRequest{
+		ApiService:    a,
+		ctx:           ctx,
+		projId:        projId,
+		envId:         envId,
+		resourceId:    resourceId,
+		actionGroupId: actionGroupId,
 	}
 }
 
 // Execute executes the request
-func (a *ProjectsApiService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*http.Response, error) {
+func (a *ResourceActionGroupsApiService) DeleteResourceActionGroupExecute(r ApiDeleteResourceActionGroupRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod = http.MethodDelete
 		localVarPostBody   interface{}
 		formFiles          []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.DeleteProject")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionGroupsApiService.DeleteResourceActionGroup")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/projects/{proj_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterValueToString(r.resourceId, "resourceId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"action_group_id"+"}", url.PathEscape(parameterValueToString(r.actionGroupId, "actionGroupId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -218,9 +243,9 @@ func (a *ProjectsApiService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 		return localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarHTTPResponse, err
 	}
@@ -246,51 +271,63 @@ func (a *ProjectsApiService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetProjectRequest struct {
-	ctx        context.Context
-	ApiService *ProjectsApiService
-	projId     string
+type ApiGetResourceActionGroupRequest struct {
+	ctx           context.Context
+	ApiService    *ResourceActionGroupsApiService
+	projId        string
+	envId         string
+	resourceId    string
+	actionGroupId string
 }
 
-func (r ApiGetProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
-	return r.ApiService.GetProjectExecute(r)
+func (r ApiGetResourceActionGroupRequest) Execute() (*models.ResourceActionGroupRead, *http.Response, error) {
+	return r.ApiService.GetResourceActionGroupExecute(r)
 }
 
 /*
-GetProject Get Project
+GetResourceActionGroup Get Resource Action Group
 
-Gets a single project matching the given proj_id, if such project exists.
+Gets a single action group defined on the resource, if such action exists.
 
 	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
 	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
-	@return ApiGetProjectRequest
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param actionGroupId Either the unique id of the action group, or the URL-friendly key of the action group (i.e: the \"slug\").
+	@return ApiGetResourceActionGroupRequest
 */
-func (a *ProjectsApiService) GetProject(ctx context.Context, projId string) ApiGetProjectRequest {
-	return ApiGetProjectRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
+func (a *ResourceActionGroupsApiService) GetResourceActionGroup(ctx context.Context, projId string, envId string, resourceId string, actionGroupId string) ApiGetResourceActionGroupRequest {
+	return ApiGetResourceActionGroupRequest{
+		ApiService:    a,
+		ctx:           ctx,
+		projId:        projId,
+		envId:         envId,
+		resourceId:    resourceId,
+		actionGroupId: actionGroupId,
 	}
 }
 
 // Execute executes the request
 //
-//	@return ProjectRead
-func (a *ProjectsApiService) GetProjectExecute(r ApiGetProjectRequest) (*models.ProjectRead, *http.Response, error) {
+//	@return ResourceActionGroupRead
+func (a *ResourceActionGroupsApiService) GetResourceActionGroupExecute(r ApiGetResourceActionGroupRequest) (*models.ResourceActionGroupRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ProjectRead
+		localVarReturnValue *models.ResourceActionGroupRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.GetProject")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionGroupsApiService.GetResourceActionGroup")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/projects/{proj_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterValueToString(r.resourceId, "resourceId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"action_group_id"+"}", url.PathEscape(parameterValueToString(r.actionGroupId, "actionGroupId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -323,9 +360,9 @@ func (a *ProjectsApiService) GetProjectExecute(r ApiGetProjectRequest) (*models.
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -360,71 +397,90 @@ func (a *ProjectsApiService) GetProjectExecute(r ApiGetProjectRequest) (*models.
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListProjectsRequest struct {
+type ApiListResourceActionGroupsRequest struct {
 	ctx        context.Context
-	ApiService *ProjectsApiService
+	ApiService *ResourceActionGroupsApiService
+	projId     string
+	envId      string
+	resourceId string
 	page       *int32
 	perPage    *int32
+	attributesFilter map[string]interface{}
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListProjectsRequest) Page(page int32) ApiListProjectsRequest {
+func (r ApiListResourceActionGroupsRequest) Page(page int32) ApiListResourceActionGroupsRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListProjectsRequest) PerPage(perPage int32) ApiListProjectsRequest {
+func (r ApiListResourceActionGroupsRequest) PerPage(perPage int32) ApiListResourceActionGroupsRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListProjectsRequest) Execute() ([]models.ProjectRead, *http.Response, error) {
-	return r.ApiService.ListProjectsExecute(r)
+// AttributeFilters on the result of the actions list
+func (r ApiListResourceActionGroupsRequest) AttributesFilter(attributesFilter map[string]interface{}) ApiListResourceActionGroupsRequest {
+	r.attributesFilter = attributesFilter
+	return r
+}
+
+func (r ApiListResourceActionGroupsRequest) Execute() ([]models.ResourceActionGroupRead, *http.Response, error) {
+	return r.ApiService.ListResourceActionGroupsExecute(r)
 }
 
 /*
-ListProjects List Projects
+ListResourceActionGroups List Resource Action Groups
 
-Lists all the projects under the active organization.
+Lists all the action groups defined on the resource.
 
 	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
-	@return ApiListProjectsRequest
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiListResourceActionGroupsRequest
 */
-func (a *ProjectsApiService) ListProjects(ctx context.Context) ApiListProjectsRequest {
-	return ApiListProjectsRequest{
+func (a *ResourceActionGroupsApiService) ListResourceActionGroups(ctx context.Context, projId string, envId string, resourceId string) ApiListResourceActionGroupsRequest {
+	return ApiListResourceActionGroupsRequest{
 		ApiService: a,
 		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
 //
-//	@return []ProjectRead
-func (a *ProjectsApiService) ListProjectsExecute(r ApiListProjectsRequest) ([]models.ProjectRead, *http.Response, error) {
+//	@return []ResourceActionGroupRead
+func (a *ResourceActionGroupsApiService) ListResourceActionGroupsExecute(r ApiListResourceActionGroupsRequest) ([]models.ResourceActionGroupRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.ProjectRead
+		localVarReturnValue []models.ResourceActionGroupRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.ListProjects")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionGroupsApiService.ListResourceActionGroups")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/projects"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterValueToString(r.resourceId, "resourceId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
 	if r.page != nil {
-		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")
 	}
 	if r.perPage != nil {
-		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "per_page", r.perPage, "")
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
@@ -453,134 +509,9 @@ func (a *ProjectsApiService) ListProjectsExecute(r ApiListProjectsRequest) ([]mo
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-			newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUpdateProjectRequest struct {
-	ctx           context.Context
-	ApiService    *ProjectsApiService
-	projId        string
-	projectUpdate *models.ProjectUpdate
-}
-
-func (r ApiUpdateProjectRequest) ProjectUpdate(projectUpdate models.ProjectUpdate) ApiUpdateProjectRequest {
-	r.projectUpdate = &projectUpdate
-	return r
-}
-
-func (r ApiUpdateProjectRequest) Execute() (*models.ProjectRead, *http.Response, error) {
-	return r.ApiService.UpdateProjectExecute(r)
-}
-
-/*
-UpdateProject Update Project
-
-Updates the project.
-
-	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
-	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
-	@return ApiUpdateProjectRequest
-*/
-func (a *ProjectsApiService) UpdateProject(ctx context.Context, projId string) ApiUpdateProjectRequest {
-	return ApiUpdateProjectRequest{
-		ApiService: a,
-		ctx:        ctx,
-		projId:     projId,
-	}
-}
-
-// Execute executes the request
-//
-//	@return ProjectRead
-func (a *ProjectsApiService) UpdateProjectExecute(r ApiUpdateProjectRequest) (*models.ProjectRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod  = http.MethodPatch
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue *models.ProjectRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ProjectsApiService.UpdateProject")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/projects/{proj_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.projectUpdate == nil {
-		return localVarReturnValue, nil, reportError("projectUpdate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.projectUpdate
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}

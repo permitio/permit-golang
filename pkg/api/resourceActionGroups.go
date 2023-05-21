@@ -10,12 +10,12 @@ import (
 	"go.uber.org/zap"
 )
 
-type ResourceActions struct {
+type ResourceActionGroups struct {
 	permitBaseApi
 }
 
-func NewResourceActionsApi(client *openapi.APIClient, config *config.PermitConfig) *ResourceActions {
-	return &ResourceActions{
+func NewResourceActionGroupsApi(client *openapi.APIClient, config *config.PermitConfig) *ResourceActionGroups {
+	return &ResourceActionGroups{
 		permitBaseApi{
 			client: client,
 			config: config,
@@ -24,11 +24,11 @@ func NewResourceActionsApi(client *openapi.APIClient, config *config.PermitConfi
 	}
 }
 
-// List all resource actions of a resource by resource key.
+// List all resource action groups of a resource by resource key.
 // Usage Example:
 //
 //	`resourceActions, err := PermitClient.Api.ResourceActions.List(ctx, "resource-key", 1, 10)`
-func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceActionRead, error) {
+func (a *ResourceActionGroups) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceActionGroupRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
@@ -39,66 +39,64 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	if err != nil {
 		return nil, err
 	}
-	resourceActions, _, err := a.client.ResourceActionsApi.ListResourceActions(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).Page(int32(page)).PerPage(int32(perPage)).Execute()
+	resourceActionGroups, _, err := a.client.ResourceActionGroupsApi.ListResourceActionGroups(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	if err != nil {
-		a.logger.Error("error listing resource actions for resource: "+resourceKey, zap.Error(err))
+		a.logger.Error("error listing resource action groups for resource: "+resourceKey, zap.Error(err))
 		return nil, err
 	}
-	return resourceActions, nil
+	return resourceActionGroups, nil
 }
 
-// List all actions in the current environment by attributes filter
-// Usage Example:
-// `actions, err := PermitClient.Api.ResourceActions.List(ctx,1, 10, map[string]string{"attribute": "xyz"})`
-func (r *ResourceActions) ListByAttributes(ctx context.Context, resourceKey string, page int, perPage int, attributesFilter map[string]interface{}) ([]models.ResourceActionRead, error) {
+// ListByAttributes lists all action groups in the current environment by attributes filter
+func (a *ResourceActionGroups) ListByAttributes(ctx context.Context, resourceKey string, page int, perPage int, attributesFilter map[string]interface{}) ([]models.ResourceActionGroupRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		a.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
 		return nil, err
 	}
-	err := r.lazyLoadPermitContext(ctx)
+	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		a.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	actions, httpRes, err := r.client.ResourceActionsApi.ListResourceActions(
+	actionGroups, httpRes, err := a.client.ResourceActionGroupsApi.ListResourceActionGroups(
 		ctx,
-		r.config.Context.GetProject(),
-		r.config.Context.GetEnvironment(),
+		a.config.Context.GetProject(),
+		a.config.Context.GetEnvironment(),
 		resourceKey,
 	).Page(int32(page)).PerPage(int32(perPage)).AttributesFilter(attributesFilter).Execute()
 
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error listing roles", zap.Error(err))
+		a.logger.Error("error listing action groups", zap.Error(err))
 		return nil, err
 	}
-	return actions, nil
+	return actionGroups, nil
 }
 
 // Get a resource action by resource key and action key.
 // Usage Example:
 //
 //	`resourceAction, err := PermitClient.Api.ResourceActions.Get(ctx, "resource-key", "action-key")`
-func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
+func (a *ResourceActionGroups) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionGroupRead, error) {
 	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	resourceActions, _, err := a.client.ResourceActionsApi.GetResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
+	resourceActionsGroups, _, err := a.client.ResourceActionGroupsApi.GetResourceActionGroup(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
 	if err != nil {
 		a.logger.Error("error getting resource action: "+resourceKey+":"+actionKey, zap.Error(err))
 		return nil, err
 	}
-	return resourceActions, nil
+	return resourceActionsGroups, nil
 }
 
 // GetByKey gets a resource action by resource key and action key.
 // Usage Example:
 //
 //	`resourceAction, err := PermitClient.Api.ResourceActions.GetByKey(ctx, "resource-key", "action-key")`
-func (a *ResourceActions) GetByKey(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error) {
+func (a *ResourceActionGroups) GetByKey(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionGroupRead, error) {
 	return a.Get(ctx, resourceKey, actionKey)
 }
 
@@ -106,7 +104,7 @@ func (a *ResourceActions) GetByKey(ctx context.Context, resourceKey string, acti
 // Usage Example:
 //
 //	`resourceAction, err := PermitClient.Api.ResourceActions.GetById(ctx, uuid.New(), uuid.New())`
-func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, actionKey uuid.UUID) (*models.ResourceActionRead, error) {
+func (a *ResourceActionGroups) GetById(ctx context.Context, resourceKey uuid.UUID, actionKey uuid.UUID) (*models.ResourceActionGroupRead, error) {
 	return a.Get(ctx, resourceKey.String(), actionKey.String())
 }
 
@@ -118,17 +116,17 @@ func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, ac
 //	resourceAction, err := PermitClient.Api.ResourceActions.Create(ctx, "resource-key", resourceActionCreate)
 //
 // ```
-func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resourceActionCreate models.ResourceActionCreate) (*models.ResourceActionRead, error) {
+func (a *ResourceActionGroups) Create(ctx context.Context, resourceKey string, resourceActionCreate models.ResourceActionGroupCreate) (*models.ResourceActionGroupRead, error) {
 	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	resourceAction, _, err := a.client.ResourceActionsApi.CreateResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).ResourceActionCreate(resourceActionCreate).Execute()
+	resourceActionGroup, _, err := a.client.ResourceActionGroupsApi.CreateResourceActionGroup(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).ResourceActionGroupCreate(resourceActionCreate).Execute()
 	if err != nil {
 		a.logger.Error("error creating resource action: "+resourceKey+":"+resourceActionCreate.GetKey(), zap.Error(err))
 		return nil, err
 	}
-	return resourceAction, nil
+	return resourceActionGroup, nil
 }
 
 // Update a resource action by resource key and action key.
@@ -140,24 +138,24 @@ func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resour
 //	resourceAction, err := PermitClient.Api.ResourceActions.Update(ctx, "resource-key", "action-key", resourceActionUpdate)
 //
 // ```
-func (a *ResourceActions) Update(ctx context.Context, resourceKey string, actionKey string, resourceActionUpdate models.ResourceActionUpdate) (*models.ResourceActionRead, error) {
-	err := a.lazyLoadPermitContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	resourceAction, _, err := a.client.ResourceActionsApi.UpdateResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).ResourceActionUpdate(resourceActionUpdate).Execute()
-	if err != nil {
-		a.logger.Error("error updating resource action: "+resourceKey+":"+actionKey, zap.Error(err))
-		return nil, err
-	}
-	return resourceAction, nil
-}
+//func (a *ResourceActionGroups) Update(ctx context.Context, resourceKey string, actionKey string, resourceActionUpdate models.ResourceActionGroupUpdate) (*models.ResourceActionRead, error) {
+//	err := a.lazyLoadPermitContext(ctx)
+//	if err != nil {
+//		return nil, err
+//	}
+//	resourceAction, _, err := a.client.ResourceActionsApi.UpdateResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).ResourceActionUpdate(resourceActionUpdate).Execute()
+//	if err != nil {
+//		a.logger.Error("error updating resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+//		return nil, err
+//	}
+//	return resourceAction, nil
+//}
 
 // Delete a resource action by resource key and action key.
 // Usage Example:
 //
 //	`err := PermitClient.Api.ResourceActions.Delete(ctx, "resource-key", "action-key")`
-func (a *ResourceActions) Delete(ctx context.Context, resourceKey string, actionKey string) error {
+func (a *ResourceActionGroups) Delete(ctx context.Context, resourceKey string, actionKey string) error {
 	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return err

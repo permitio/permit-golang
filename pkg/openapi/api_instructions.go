@@ -39,10 +39,10 @@ ListLanguageInstructions List Language Instructions
 
 Lists pending organization invites
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListLanguageInstructionsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListLanguageInstructionsRequest
 */
 func (a *InstructionsApiService) ListLanguageInstructions(ctx context.Context, projId string, envId string) ApiListLanguageInstructionsRequest {
 	return ApiListLanguageInstructionsRequest{
@@ -54,7 +54,8 @@ func (a *InstructionsApiService) ListLanguageInstructions(ctx context.Context, p
 }
 
 // Execute executes the request
-//  @return []LanguageInstructions
+//
+//	@return []LanguageInstructions
 func (a *InstructionsApiService) ListLanguageInstructionsExecute(r ApiListLanguageInstructionsRequest) ([]models.LanguageInstructions, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet

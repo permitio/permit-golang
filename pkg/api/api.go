@@ -54,18 +54,19 @@ func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLeve
 }
 
 type PermitApiClient struct {
-	config             *config.PermitConfig
-	logger             *zap.Logger
-	client             *openapi.APIClient
-	Tenants            *Tenants
-	Environments       *Environments
-	Projects           *Projects
-	ResourceActions    *ResourceActions
-	ResourceAttributes *ResourceAttributes
-	Resources          *Resources
-	Roles              *Roles
-	Users              *Users
-	Elements           *Elements
+	config               *config.PermitConfig
+	logger               *zap.Logger
+	client               *openapi.APIClient
+	Tenants              *Tenants
+	Environments         *Environments
+	Projects             *Projects
+	ResourceActions      *ResourceActions
+	ResourceActionGroups *ResourceActionGroups
+	ResourceAttributes   *ResourceAttributes
+	Resources            *Resources
+	Roles                *Roles
+	Users                *Users
+	Elements             *Elements
 }
 
 func (p *PermitApiClient) SetContext(ctx context.Context, project string, environment string) {
@@ -84,17 +85,18 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 	client := openapi.NewAPIClient(clientConfig)
 	userApi := NewUsersApi(client, config)
 	return &PermitApiClient{
-		config:             config,
-		logger:             config.Logger,
-		client:             client,
-		Tenants:            NewTenantsApi(client, config),
-		Environments:       NewEnvironmentsApi(client, config),
-		Projects:           NewProjectsApi(client, config),
-		ResourceActions:    NewResourceActionsApi(client, config),
-		ResourceAttributes: NewResourceAttributesApi(client, config),
-		Resources:          NewResourcesApi(client, config),
-		Roles:              NewRolesApi(client, config),
-		Users:              userApi,
-		Elements:           NewElementsApi(client, config),
+		config:               config,
+		logger:               config.Logger,
+		client:               client,
+		Tenants:              NewTenantsApi(client, config),
+		Environments:         NewEnvironmentsApi(client, config),
+		Projects:             NewProjectsApi(client, config),
+		ResourceActions:      NewResourceActionsApi(client, config),
+		ResourceActionGroups: NewResourceActionGroupsApi(client, config),
+		ResourceAttributes:   NewResourceAttributesApi(client, config),
+		Resources:            NewResourcesApi(client, config),
+		Roles:                NewRolesApi(client, config),
+		Users:                userApi,
+		Elements:             NewElementsApi(client, config),
 	}
 }

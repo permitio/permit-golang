@@ -14,12 +14,17 @@ import (
 	"encoding/json"
 )
 
+// checks if the ResourceActionUpdate type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ResourceActionUpdate{}
+
 // ResourceActionUpdate struct for ResourceActionUpdate
 type ResourceActionUpdate struct {
 	// The name of the action
 	Name *string `json:"name,omitempty"`
 	// An optional longer description of what this action respresents in your system
 	Description *string `json:"description,omitempty"`
+	// optional dictionary of key-value pairs that can be used to store arbitrary metadata about this action. This metadata can be used to filter actions using query parameters with attr_ prefix
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 // NewResourceActionUpdate instantiates a new ResourceActionUpdate object
@@ -103,7 +108,47 @@ func (o *ResourceActionUpdate) SetDescription(v string) {
 	o.Description = &v
 }
 
+// GetAttributes returns the Attributes field value if set, zero value otherwise.
+func (o *ResourceActionUpdate) GetAttributes() map[string]interface{} {
+	if o == nil || IsNil(o.Attributes) {
+		var ret map[string]interface{}
+		return ret
+	}
+	return o.Attributes
+}
+
+// GetAttributesOk returns a tuple with the Attributes field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ResourceActionUpdate) GetAttributesOk() (map[string]interface{}, bool) {
+	if o == nil || IsNil(o.Attributes) {
+		return map[string]interface{}{}, false
+	}
+	return o.Attributes, true
+}
+
+// HasAttributes returns a boolean if a field has been set.
+func (o *ResourceActionUpdate) HasAttributes() bool {
+	if o != nil && !IsNil(o.Attributes) {
+		return true
+	}
+
+	return false
+}
+
+// SetAttributes gets a reference to the given map[string]interface{} and assigns it to the Attributes field.
+func (o *ResourceActionUpdate) SetAttributes(v map[string]interface{}) {
+	o.Attributes = v
+}
+
 func (o ResourceActionUpdate) MarshalJSON() ([]byte, error) {
+	toSerialize,err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o ResourceActionUpdate) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
@@ -111,7 +156,10 @@ func (o ResourceActionUpdate) MarshalJSON() ([]byte, error) {
 	if !IsNil(o.Description) {
 		toSerialize["description"] = o.Description
 	}
-	return json.Marshal(toSerialize)
+	if !IsNil(o.Attributes) {
+		toSerialize["attributes"] = o.Attributes
+	}
+	return toSerialize, nil
 }
 
 type NullableResourceActionUpdate struct {

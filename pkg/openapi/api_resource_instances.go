@@ -48,10 +48,10 @@ Creates a new instance inside the Permit.io system.
 If the instance is already created: will return 200 instead of 201,
 and will return the existing instance object in the response body.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateResourceInstanceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCreateResourceInstanceRequest
 */
 func (a *ResourceInstancesApiService) CreateResourceInstance(ctx context.Context, projId string, envId string) ApiCreateResourceInstanceRequest {
 	return ApiCreateResourceInstanceRequest{
@@ -63,7 +63,8 @@ func (a *ResourceInstancesApiService) CreateResourceInstance(ctx context.Context
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
+//
+//	@return ResourceInstanceRead
 func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -171,11 +172,11 @@ DeleteResourceInstance Delete Resource Instance
 
 Deletes the instance and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiDeleteResourceInstanceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
+	@return ApiDeleteResourceInstanceRequest
 */
 func (a *ResourceInstancesApiService) DeleteResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiDeleteResourceInstanceRequest {
 	return ApiDeleteResourceInstanceRequest{
@@ -281,11 +282,11 @@ GetResourceInstance Get Resource Instance
 
 Gets a instance, if such instance exists. Otherwise returns 404.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiGetResourceInstanceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
+	@return ApiGetResourceInstanceRequest
 */
 func (a *ResourceInstancesApiService) GetResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiGetResourceInstanceRequest {
 	return ApiGetResourceInstanceRequest{
@@ -298,7 +299,8 @@ func (a *ResourceInstancesApiService) GetResourceInstance(ctx context.Context, p
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
+//
+//	@return ResourceInstanceRead
 func (a *ResourceInstancesApiService) GetResourceInstanceExecute(r ApiGetResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -415,10 +417,10 @@ ListResourceInstances List Resource Instances
 
 Lists all the resource instances defined within an environment.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListResourceInstancesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListResourceInstancesRequest
 */
 func (a *ResourceInstancesApiService) ListResourceInstances(ctx context.Context, projId string, envId string) ApiListResourceInstancesRequest {
 	return ApiListResourceInstancesRequest{
@@ -430,7 +432,8 @@ func (a *ResourceInstancesApiService) ListResourceInstances(ctx context.Context,
 }
 
 // Execute executes the request
-//  @return []ResourceInstanceRead
+//
+//	@return []ResourceInstanceRead
 func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListResourceInstancesRequest) ([]models.ResourceInstanceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -546,11 +549,11 @@ UpdateResourceInstance Update Resource Instance
 Partially updates the instance definition.
 Fields that will be provided will be completely overwritten.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiUpdateResourceInstanceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
+	@return ApiUpdateResourceInstanceRequest
 */
 func (a *ResourceInstancesApiService) UpdateResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiUpdateResourceInstanceRequest {
 	return ApiUpdateResourceInstanceRequest{
@@ -563,7 +566,8 @@ func (a *ResourceInstancesApiService) UpdateResourceInstance(ctx context.Context
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
+//
+//	@return ResourceInstanceRead
 func (a *ResourceInstancesApiService) UpdateResourceInstanceExecute(r ApiUpdateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

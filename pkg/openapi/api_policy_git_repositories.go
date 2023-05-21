@@ -40,10 +40,10 @@ ActivatePolicyRepo Activate Policy Repo
 Disable the currently active policy repo, this action means to turn off the gitops feature.
 If there is no active policy repo, this action will do nothing.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
- @return ApiActivatePolicyRepoRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
+	@return ApiActivatePolicyRepoRequest
 */
 func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepo(ctx context.Context, projId string, repoId string) ApiActivatePolicyRepoRequest {
 	return ApiActivatePolicyRepoRequest{
@@ -55,7 +55,8 @@ func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepo(ctx context.Context
 }
 
 // Execute executes the request
-//  @return ProjectRead
+//
+//	@return ProjectRead
 func (a *PolicyGitRepositoriesApiService) ActivatePolicyRepoExecute(r ApiActivatePolicyRepoRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
@@ -165,9 +166,9 @@ The given repository is created with status 'pending', it will be changed and us
 the policy only after a successful attempt to use it.
 The repository main branch must be present in the remote.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiCreatePolicyRepoRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiCreatePolicyRepoRequest
 */
 func (a *PolicyGitRepositoriesApiService) CreatePolicyRepo(ctx context.Context, projId string) ApiCreatePolicyRepoRequest {
 	return ApiCreatePolicyRepoRequest{
@@ -178,7 +179,8 @@ func (a *PolicyGitRepositoriesApiService) CreatePolicyRepo(ctx context.Context, 
 }
 
 // Execute executes the request
-//  @return PolicyRepoRead
+//
+//	@return PolicyRepoRead
 func (a *PolicyGitRepositoriesApiService) CreatePolicyRepoExecute(r ApiCreatePolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -284,10 +286,10 @@ DeletePolicyRepo Delete Policy Repo
 
 Deletes an environment and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
- @return ApiDeletePolicyRepoRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
+	@return ApiDeletePolicyRepoRequest
 */
 func (a *PolicyGitRepositoriesApiService) DeletePolicyRepo(ctx context.Context, projId string, repoId string) ApiDeletePolicyRepoRequest {
 	return ApiDeletePolicyRepoRequest{
@@ -390,9 +392,9 @@ DisableActivePolicyRepo Disable Active Policy Repo
 Disable the currently active policy repo, this action means to turn off the gitops feature.
 If there is no active policy repo, this action will do nothing.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiDisableActivePolicyRepoRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiDisableActivePolicyRepoRequest
 */
 func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepo(ctx context.Context, projId string) ApiDisableActivePolicyRepoRequest {
 	return ApiDisableActivePolicyRepoRequest{
@@ -403,7 +405,8 @@ func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepo(ctx context.Co
 }
 
 // Execute executes the request
-//  @return ProjectRead
+//
+//	@return ProjectRead
 func (a *PolicyGitRepositoriesApiService) DisableActivePolicyRepoExecute(r ApiDisableActivePolicyRepoRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
@@ -503,9 +506,9 @@ GetActivePolicyRepo Get Active Policy Repo
 
 Gets the currently active repository, if such repository exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiGetActivePolicyRepoRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiGetActivePolicyRepoRequest
 */
 func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepo(ctx context.Context, projId string) ApiGetActivePolicyRepoRequest {
 	return ApiGetActivePolicyRepoRequest{
@@ -516,7 +519,8 @@ func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepo(ctx context.Contex
 }
 
 // Execute executes the request
-//  @return PolicyRepoRead
+//
+//	@return PolicyRepoRead
 func (a *PolicyGitRepositoriesApiService) GetActivePolicyRepoExecute(r ApiGetActivePolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -617,10 +621,10 @@ GetPolicyRepo Get Policy Repo
 
 Gets a single repository matching the given repo_id, if such repository exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
- @return ApiGetPolicyRepoRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param repoId Either the unique id of the policy repo, or the URL-friendly key of the policy repo (i.e: the \"slug\").
+	@return ApiGetPolicyRepoRequest
 */
 func (a *PolicyGitRepositoriesApiService) GetPolicyRepo(ctx context.Context, projId string, repoId string) ApiGetPolicyRepoRequest {
 	return ApiGetPolicyRepoRequest{
@@ -632,7 +636,8 @@ func (a *PolicyGitRepositoriesApiService) GetPolicyRepo(ctx context.Context, pro
 }
 
 // Execute executes the request
-//  @return PolicyRepoRead
+//
+//	@return PolicyRepoRead
 func (a *PolicyGitRepositoriesApiService) GetPolicyRepoExecute(r ApiGetPolicyRepoRequest) (*models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -747,9 +752,9 @@ ListPolicyRepos List Policy Repos
 
 Lists all the policy repositories under a given project.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiListPolicyReposRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiListPolicyReposRequest
 */
 func (a *PolicyGitRepositoriesApiService) ListPolicyRepos(ctx context.Context, projId string) ApiListPolicyReposRequest {
 	return ApiListPolicyReposRequest{
@@ -760,7 +765,8 @@ func (a *PolicyGitRepositoriesApiService) ListPolicyRepos(ctx context.Context, p
 }
 
 // Execute executes the request
-//  @return []PolicyRepoRead
+//
+//	@return []PolicyRepoRead
 func (a *PolicyGitRepositoriesApiService) ListPolicyReposExecute(r ApiListPolicyReposRequest) ([]models.PolicyRepoRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet

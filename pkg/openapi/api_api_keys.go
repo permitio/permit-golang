@@ -43,8 +43,8 @@ CreateApiKey Create Api Key
 
 Creates a new api_key under the active organization.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateApiKeyRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiCreateApiKeyRequest
 */
 func (a *APIKeysApiService) CreateApiKey(ctx context.Context) ApiCreateApiKeyRequest {
 	return ApiCreateApiKeyRequest{
@@ -54,7 +54,8 @@ func (a *APIKeysApiService) CreateApiKey(ctx context.Context) ApiCreateApiKeyReq
 }
 
 // Execute executes the request
-//  @return APIKeyRead
+//
+//	@return APIKeyRead
 func (a *APIKeysApiService) CreateApiKeyExecute(r ApiCreateApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -158,9 +159,9 @@ DeleteApiKey Delete Api Key
 
 Deletes the api_key and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param apiKeyId The unique id of the API key
- @return ApiDeleteApiKeyRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param apiKeyId The unique id of the API key
+	@return ApiDeleteApiKeyRequest
 */
 func (a *APIKeysApiService) DeleteApiKey(ctx context.Context, apiKeyId string) ApiDeleteApiKeyRequest {
 	return ApiDeleteApiKeyRequest{
@@ -260,9 +261,9 @@ GetApiKey Get Api Key
 
 Gets a single api_key matching the given api_key_id, if such api_key exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param apiKeyId The unique id of the API key
- @return ApiGetApiKeyRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param apiKeyId The unique id of the API key
+	@return ApiGetApiKeyRequest
 */
 func (a *APIKeysApiService) GetApiKey(ctx context.Context, apiKeyId string) ApiGetApiKeyRequest {
 	return ApiGetApiKeyRequest{
@@ -273,7 +274,8 @@ func (a *APIKeysApiService) GetApiKey(ctx context.Context, apiKeyId string) ApiG
 }
 
 // Execute executes the request
-//  @return APIKeyRead
+//
+//	@return APIKeyRead
 func (a *APIKeysApiService) GetApiKeyExecute(r ApiGetApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -370,8 +372,8 @@ func (r ApiGetApiKeyScopeRequest) Execute() (*models.APIKeyScopeRead, *http.Resp
 /*
 GetApiKeyScope Get Api Key Scope
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetApiKeyScopeRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetApiKeyScopeRequest
 */
 func (a *APIKeysApiService) GetApiKeyScope(ctx context.Context) ApiGetApiKeyScopeRequest {
 	return ApiGetApiKeyScopeRequest{
@@ -381,7 +383,8 @@ func (a *APIKeysApiService) GetApiKeyScope(ctx context.Context) ApiGetApiKeyScop
 }
 
 // Execute executes the request
-//  @return APIKeyScopeRead
+//
+//	@return APIKeyScopeRead
 func (a *APIKeysApiService) GetApiKeyScopeExecute(r ApiGetApiKeyScopeRequest) (*models.APIKeyScopeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -479,10 +482,10 @@ func (r ApiGetEnvironmentApiKeyRequest) Execute() (*models.APIKeyRead, *http.Res
 /*
 GetEnvironmentApiKey Get Environment Api Key
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiGetEnvironmentApiKeyRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiGetEnvironmentApiKeyRequest
 */
 func (a *APIKeysApiService) GetEnvironmentApiKey(ctx context.Context, projId string, envId string) ApiGetEnvironmentApiKeyRequest {
 	return ApiGetEnvironmentApiKeyRequest{
@@ -494,7 +497,8 @@ func (a *APIKeysApiService) GetEnvironmentApiKey(ctx context.Context, projId str
 }
 
 // Execute executes the request
-//  @return APIKeyRead
+//
+//	@return APIKeyRead
 func (a *APIKeysApiService) GetEnvironmentApiKeyExecute(r ApiGetEnvironmentApiKeyRequest) (*models.APIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -608,8 +612,8 @@ ListApiKeys List Api Keys
 
 Lists all the api_keys under the active organization.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListApiKeysRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiListApiKeysRequest
 */
 func (a *APIKeysApiService) ListApiKeys(ctx context.Context) ApiListApiKeysRequest {
 	return ApiListApiKeysRequest{
@@ -619,7 +623,8 @@ func (a *APIKeysApiService) ListApiKeys(ctx context.Context) ApiListApiKeysReque
 }
 
 // Execute executes the request
-//  @return PaginatedResultAPIKeyRead
+//
+//	@return PaginatedResultAPIKeyRead
 func (a *APIKeysApiService) ListApiKeysExecute(r ApiListApiKeysRequest) (*models.PaginatedResultAPIKeyRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/enforcement"
+	PermitErrors "github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/permit"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +41,7 @@ func TestIntegration(t *testing.T) {
 	actionGroupKey := randKey("actiongroup")
 
 	const token = ""
-	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "default-project", "staging")
+	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "default-project", "golang-test")
 	permitClient := permit.New(config.NewConfigBuilder(token).WithContext(permitContext).WithLogger(logger).Build())
 
 	// Create a user
@@ -50,6 +51,14 @@ func TestIntegration(t *testing.T) {
 	userCreate.SetEmail("john@example.com")
 	_, err := permitClient.Api.Users.Create(ctx, userCreate)
 	assert.NoError(t, err)
+
+	// Check error codes when creating a user with existing name
+	_, err = permitClient.Api.Users.Create(ctx, userCreate)
+	assert.Error(t, err)
+	permitError := err.(PermitErrors.PermitError)
+	assert.Equal(t, 409, permitError.StatusCode)
+	assert.Equal(t, PermitErrors.Conflict, permitError.ErrorCode)
+	assert.Equal(t, PermitErrors.API_ERROR, permitError.ErrorType)
 
 	// Create a resource
 	resourceCreate := *models.NewResourceCreate(resourceKey, resourceKey, map[string]models.ActionBlockEditable{"read": {}, "write": {}})
@@ -118,5 +127,4 @@ func TestIntegration(t *testing.T) {
 	allowed, err := permitClient.Check(userCheck, "read", resourceCheck)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
-
 }

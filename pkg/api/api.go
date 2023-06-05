@@ -21,15 +21,15 @@ type IPermitBaseApi interface {
 func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
 	var methodApiLevel config.APIKeyLevel
 	permitContext := a.config.Context.GetContext()
+
 	if permitContext == nil {
 		newPermitContext, err := config.PermitContextFactory(ctx, a.client, "", "", false)
 		if err != nil {
 			return err
 		}
 		a.config.Context = newPermitContext
-	} else {
-		a.logger.Debug("Context already loaded")
 	}
+
 	if len(methodApiLevelArg) == 0 {
 		methodApiLevel = config.EnvironmentAPIKeyLevel
 	} else {

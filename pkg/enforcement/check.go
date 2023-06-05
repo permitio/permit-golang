@@ -69,7 +69,7 @@ func (e *PermitEnforcer) parseResponse(res *http.Response) (*CheckResponse, erro
 	var result CheckResponse
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		permitError := errors.NewPermitUnexpectedError(err)
+		permitError := errors.NewPermitUnexpectedError(err, res)
 		e.logger.Error("error reading Permit.Check() response from PDP", zap.Error(permitError))
 		return nil, permitError
 	}
@@ -84,13 +84,13 @@ func (e *PermitEnforcer) parseResponse(res *http.Response) (*CheckResponse, erro
 		}{&result}
 
 		if err := json.Unmarshal(bodyBytes, opaStruct); err != nil {
-			permitError := errors.NewPermitUnexpectedError(err)
+			permitError := errors.NewPermitUnexpectedError(err, res)
 			e.logger.Error("error unmarshalling Permit.Check() response from OPA", zap.Error(permitError))
 			return nil, err
 		}
 	} else {
 		if err := json.Unmarshal(bodyBytes, &result); err != nil {
-			permitError := errors.NewPermitUnexpectedError(err)
+			permitError := errors.NewPermitUnexpectedError(err, res)
 			e.logger.Error("error unmarshalling Permit.Check response from PDP", zap.Error(permitError))
 			return nil, permitError
 		}
@@ -114,14 +114,14 @@ func (e *PermitEnforcer) Check(user User, action Action, resource Resource, addi
 	}
 	jsonCheckReq, err := newJsonCheckRequest(e.config.GetOpaUrl(), user, action, resource, additionalContext[0])
 	if err != nil {
-		permitError := errors.NewPermitUnexpectedError(err)
+		permitError := errors.NewPermitUnexpectedError(err, nil)
 		e.logger.Error("error marshalling Permit.Check() request", zap.Error(permitError))
 		return false, permitError
 	}
 	reqBody := bytes.NewBuffer(jsonCheckReq)
 	httpRequest, err := http.NewRequest(reqMethod, e.getCheckEndpoint(), reqBody)
 	if err != nil {
-		permitError := errors.NewPermitUnexpectedError(err)
+		permitError := errors.NewPermitUnexpectedError(err, nil)
 		e.logger.Error("error creating Permit.Check() request", zap.Error(permitError))
 		return false, permitError
 	}
@@ -129,7 +129,7 @@ func (e *PermitEnforcer) Check(user User, action Action, resource Resource, addi
 	httpRequest.Header.Set(reqAuthKey, reqAuthValue)
 	res, err := client.Do(httpRequest)
 	if err != nil {
-		permitError := errors.NewPermitUnexpectedError(err)
+		permitError := errors.NewPermitUnexpectedError(err, res)
 		e.logger.Error("error sending Permit.Check() request to PDP", zap.Error(permitError))
 		return false, permitError
 	}

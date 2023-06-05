@@ -131,6 +131,38 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, "default")
 	assert.NoError(t, err)
 
+	// Bulk (un)assignments
+	var users []*models.UserCreate
+	var bulkAssignments []models.RoleAssignmentCreate
+	var bulkUnAssignments []models.RoleAssignmentRemove
+
+	for i := 0; i < 3; i++ {
+		bulkUserKey := randKey("user")
+		bulkUserCreate := models.NewUserCreate(bulkUserKey)
+		users = append(users, models.NewUserCreate(bulkUserKey))
+		bulkAssignments = append(bulkAssignments, *models.NewRoleAssignmentCreate(roleKey, tenantKey, bulkUserKey))
+		bulkUnAssignments = append(bulkUnAssignments, *models.NewRoleAssignmentRemove(roleKey, tenantKey, bulkUserKey))
+
+		_, err := permitClient.Api.Users.Create(ctx, *bulkUserCreate)
+		assert.NoError(t, err)
+	}
+
+	assignReport, err := permitClient.Api.Roles.BulkAssignRole(ctx, bulkAssignments)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, *assignReport.AssignmentsCreated)
+
+	for _, u := range users {
+		assigned, err := permitClient.Api.Users.GetAssignedRoles(ctx, u.Key, tenantKey, 1, 100)
+		assert.NoError(t, err)
+
+		assert.Equal(t, tenantKey, assigned[0].Tenant)
+		assert.Equal(t, roleKey, assigned[0].Role)
+	}
+
+	unassignReport, err := permitClient.Api.Roles.BulkUnAssignRole(ctx, bulkUnAssignments)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, *unassignReport.AssignmentsRemoved)
+
 	// Check if user has permission
 	time.Sleep(6 * time.Second)
 

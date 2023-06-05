@@ -1,15 +1,19 @@
 package config
 
-import "go.uber.org/zap"
+import (
+	"go.uber.org/zap"
+	"net/http"
+)
 
 type PermitConfig struct {
-	apiUrl  string
-	token   string
-	pdpUrl  string
-	opaUrl  string
-	debug   bool
-	Context *PermitContext
-	Logger  *zap.Logger
+	apiUrl     string
+	token      string
+	pdpUrl     string
+	opaUrl     string
+	debug      bool
+	Context    *PermitContext
+	Logger     *zap.Logger
+	httpClient *http.Client
 }
 
 type IPermitConfig interface {
@@ -59,4 +63,8 @@ func (c *PermitConfig) GetContext() *PermitContext {
 
 func (c *PermitConfig) GetLogger() *zap.Logger {
 	return c.Logger
+}
+
+func (c *PermitConfig) GetHTTPClient() *http.Client {
+	return c.httpClient
 }

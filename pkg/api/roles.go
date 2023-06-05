@@ -212,6 +212,46 @@ func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissio
 	return nil
 }
 
+func (r *Roles) BulkAssignRole(ctx context.Context, assignments []models.RoleAssignmentCreate) (*models.BulkRoleAssignmentReport, error) {
+	err := r.lazyLoadPermitContext(ctx)
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+
+	req := r.client.RoleAssignmentsApi.BulkAssignRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).RoleAssignmentCreate(assignments)
+	report, resp, err := req.Execute()
+
+	err = errors.HttpErrorHandle(err, resp)
+
+	if err != nil {
+		r.logger.Error("failed assigning roles in bulk", zap.Error(err), zap.Int("count", len(assignments)))
+		return nil, err
+	}
+
+	return report, nil
+}
+
+func (r *Roles) BulkUnAssignRole(ctx context.Context, unassignments []models.RoleAssignmentRemove) (*models.BulkRoleUnAssignmentReport, error) {
+	err := r.lazyLoadPermitContext(ctx)
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+
+	req := r.client.RoleAssignmentsApi.BulkUnassignRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).RoleAssignmentRemove(unassignments)
+	report, resp, err := req.Execute()
+
+	err = errors.HttpErrorHandle(err, resp)
+
+	if err != nil {
+		r.logger.Error("failed assigning roles in bulk", zap.Error(err), zap.Int("count", len(unassignments)))
+		return nil, err
+	}
+
+	return report, nil
+}
+
 // AddParentRole add a parent role to a role, by role key and parent role key.
 // Makes a role extend the parent role.
 // In other words, a role will automatically be assigned any permissions that are granted to the parent role.

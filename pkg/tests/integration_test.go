@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/enforcement"
+	PermitErrors "github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/permit"
 	"github.com/stretchr/testify/assert"
@@ -38,9 +39,10 @@ func TestIntegration(t *testing.T) {
 	marker := randKey("marker")
 	actionKey := randKey("action")
 	actionGroupKey := randKey("actiongroup")
+	tenantKey := randKey("tenant")
 
 	const token = ""
-	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "default-project", "staging")
+	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "default-project", "golang-test")
 	permitClient := permit.New(config.NewConfigBuilder(token).WithContext(permitContext).WithLogger(logger).Build())
 
 	// Create a user
@@ -50,6 +52,14 @@ func TestIntegration(t *testing.T) {
 	userCreate.SetEmail("john@example.com")
 	_, err := permitClient.Api.Users.Create(ctx, userCreate)
 	assert.NoError(t, err)
+
+	// Check error codes when creating a user with existing name
+	_, err = permitClient.Api.Users.Create(ctx, userCreate)
+	assert.Error(t, err)
+	permitError := err.(PermitErrors.PermitError)
+	assert.Equal(t, 409, permitError.StatusCode)
+	assert.Equal(t, PermitErrors.Conflict, permitError.ErrorCode)
+	assert.Equal(t, PermitErrors.API_ERROR, permitError.ErrorType)
 
 	// Create a resource
 	resourceCreate := *models.NewResourceCreate(resourceKey, resourceKey, map[string]models.ActionBlockEditable{"read": {}, "write": {}})
@@ -76,7 +86,7 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.ResourceActionGroups.Create(ctx, resourceKey, actionGroupCreate)
 	assert.NoError(t, err)
 
-	actionGroups, err := permitClient.Api.ResourceActions.ListByAttributes(ctx, resourceKey, 1, 100, map[string]interface{}{
+	actionGroups, err := permitClient.Api.ResourceActionGroups.ListByAttributes(ctx, resourceKey, 1, 100, map[string]interface{}{
 		"marker": marker,
 	})
 	assert.NoError(t, err)
@@ -106,9 +116,52 @@ func TestIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, roles, 1)
 
+	tenantCreate := models.NewTenantCreate(tenantKey, tenantKey)
+	tenantCreate.SetAttributes(map[string]interface{}{"marker": marker})
+	_, err = permitClient.Api.Tenants.Create(ctx, *tenantCreate)
+	assert.NoError(t, err)
+
+	tenants, err := permitClient.Api.Tenants.ListByAttributes(ctx, map[string]interface{}{
+		"marker": marker,
+	}, 1, 100)
+	assert.NoError(t, err)
+	assert.Len(t, tenants, 1)
+
 	// Assign role to user
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, "default")
 	assert.NoError(t, err)
+
+	// Bulk (un)assignments
+	var users []*models.UserCreate
+	var bulkAssignments []models.RoleAssignmentCreate
+	var bulkUnAssignments []models.RoleAssignmentRemove
+
+	for i := 0; i < 3; i++ {
+		bulkUserKey := randKey("user")
+		bulkUserCreate := models.NewUserCreate(bulkUserKey)
+		users = append(users, models.NewUserCreate(bulkUserKey))
+		bulkAssignments = append(bulkAssignments, *models.NewRoleAssignmentCreate(roleKey, tenantKey, bulkUserKey))
+		bulkUnAssignments = append(bulkUnAssignments, *models.NewRoleAssignmentRemove(roleKey, tenantKey, bulkUserKey))
+
+		_, err := permitClient.Api.Users.Create(ctx, *bulkUserCreate)
+		assert.NoError(t, err)
+	}
+
+	assignReport, err := permitClient.Api.Roles.BulkAssignRole(ctx, bulkAssignments)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, *assignReport.AssignmentsCreated)
+
+	for _, u := range users {
+		assigned, err := permitClient.Api.Users.GetAssignedRoles(ctx, u.Key, tenantKey, 1, 100)
+		assert.NoError(t, err)
+
+		assert.Equal(t, tenantKey, assigned[0].Tenant)
+		assert.Equal(t, roleKey, assigned[0].Role)
+	}
+
+	unassignReport, err := permitClient.Api.Roles.BulkUnAssignRole(ctx, bulkUnAssignments)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, *unassignReport.AssignmentsRemoved)
 
 	// Check if user has permission
 	time.Sleep(6 * time.Second)
@@ -118,5 +171,4 @@ func TestIntegration(t *testing.T) {
 	allowed, err := permitClient.Check(userCheck, "read", resourceCheck)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
-
 }

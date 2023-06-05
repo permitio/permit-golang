@@ -82,6 +82,7 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 	clientConfig.Host = getHostFromUrl(config.GetApiUrl())
 	clientConfig.Scheme = getSchemaFromUrl(config.GetApiUrl())
 	clientConfig.AddDefaultHeader("Authorization", "Bearer "+config.GetToken())
+	clientConfig.HTTPClient = config.GetHTTPClient()
 	client := openapi.NewAPIClient(clientConfig)
 	userApi := NewUsersApi(client, config)
 	return &PermitApiClient{

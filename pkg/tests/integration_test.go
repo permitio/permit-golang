@@ -39,6 +39,7 @@ func TestIntegration(t *testing.T) {
 	marker := randKey("marker")
 	actionKey := randKey("action")
 	actionGroupKey := randKey("actiongroup")
+	tenantKey := randKey("tenant")
 
 	const token = ""
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "default-project", "golang-test")
@@ -85,7 +86,7 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.ResourceActionGroups.Create(ctx, resourceKey, actionGroupCreate)
 	assert.NoError(t, err)
 
-	actionGroups, err := permitClient.Api.ResourceActions.ListByAttributes(ctx, resourceKey, 1, 100, map[string]interface{}{
+	actionGroups, err := permitClient.Api.ResourceActionGroups.ListByAttributes(ctx, resourceKey, 1, 100, map[string]interface{}{
 		"marker": marker,
 	})
 	assert.NoError(t, err)
@@ -114,6 +115,17 @@ func TestIntegration(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, roles, 1)
+
+	tenantCreate := models.NewTenantCreate(tenantKey, tenantKey)
+	tenantCreate.SetAttributes(map[string]interface{}{"marker": marker})
+	_, err = permitClient.Api.Tenants.Create(ctx, *tenantCreate)
+	assert.NoError(t, err)
+
+	tenants, err := permitClient.Api.Tenants.ListByAttributes(ctx, map[string]interface{}{
+		"marker": marker,
+	}, 1, 100)
+	assert.NoError(t, err)
+	assert.Len(t, tenants, 1)
 
 	// Assign role to user
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, "default")

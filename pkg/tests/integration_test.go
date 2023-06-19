@@ -62,7 +62,11 @@ func TestIntegration(t *testing.T) {
 	assert.Equal(t, PermitErrors.API_ERROR, permitError.ErrorType)
 
 	// Create a resource
-	resourceCreate := *models.NewResourceCreate(resourceKey, resourceKey, map[string]models.ActionBlockEditable{"read": {}, "write": {}})
+	resourceCreate := *models.NewResourceCreate(resourceKey, resourceKey,
+		map[string]models.ActionBlockEditable{
+			"read":  {Attributes: map[string]interface{}{"marker": marker}},
+			"write": {Attributes: map[string]interface{}{"marker": marker}},
+		})
 	_, err = permitClient.Api.Resources.Create(ctx, resourceCreate)
 	assert.NoError(t, err)
 
@@ -77,7 +81,11 @@ func TestIntegration(t *testing.T) {
 		"marker": marker,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
+	assert.Len(t, actions, 3)
+
+	for _, action := range actions {
+		assert.Equal(t, action.Attributes["marker"], marker)
+	}
 
 	actionGroupCreate := *models.NewResourceActionGroupCreate(actionGroupKey, actionGroupKey)
 	actionGroupCreate.SetAttributes(map[string]interface{}{

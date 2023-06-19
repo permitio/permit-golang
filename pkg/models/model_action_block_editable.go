@@ -14,12 +14,16 @@ import (
 	"encoding/json"
 )
 
+// checks if the ActionBlockEditable type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ActionBlockEditable{}
+
 // ActionBlockEditable struct for ActionBlockEditable
 type ActionBlockEditable struct {
 	// a more descriptive name for the action
 	Name *string `json:"name,omitempty"`
 	// optional description string explaining what this action represents in your system
 	Description *string `json:"description,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 // NewActionBlockEditable instantiates a new ActionBlockEditable object
@@ -103,7 +107,47 @@ func (o *ActionBlockEditable) SetDescription(v string) {
 	o.Description = &v
 }
 
+// GetAttributes returns the Attributes field value if set, zero value otherwise.
+func (o *ActionBlockEditable) GetAttributes() map[string]interface{} {
+	if o == nil || IsNil(o.Attributes) {
+		var ret map[string]interface{}
+		return ret
+	}
+	return o.Attributes
+}
+
+// GetAttributesOk returns a tuple with the Attributes field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ActionBlockEditable) GetAttributesOk() (map[string]interface{}, bool) {
+	if o == nil || IsNil(o.Attributes) {
+		return map[string]interface{}{}, false
+	}
+	return o.Attributes, true
+}
+
+// HasAttributes returns a boolean if a field has been set.
+func (o *ActionBlockEditable) HasAttributes() bool {
+	if o != nil && !IsNil(o.Attributes) {
+		return true
+	}
+
+	return false
+}
+
+// SetAttributes gets a reference to the given map[string]interface{} and assigns it to the Attributes field.
+func (o *ActionBlockEditable) SetAttributes(v map[string]interface{}) {
+	o.Attributes = v
+}
+
 func (o ActionBlockEditable) MarshalJSON() ([]byte, error) {
+	toSerialize,err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o ActionBlockEditable) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
@@ -111,7 +155,10 @@ func (o ActionBlockEditable) MarshalJSON() ([]byte, error) {
 	if !IsNil(o.Description) {
 		toSerialize["description"] = o.Description
 	}
-	return json.Marshal(toSerialize)
+	if !IsNil(o.Attributes) {
+		toSerialize["attributes"] = o.Attributes
+	}
+	return toSerialize, nil
 }
 
 type NullableActionBlockEditable struct {

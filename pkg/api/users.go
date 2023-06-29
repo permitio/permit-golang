@@ -229,7 +229,7 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 		u.logger.Error("error listing roles for user:"+userKey, zap.Error(err))
 		return nil, err
 	}
-	return roleAssignments, nil
+	return *roleAssignments.RoleAssignmentRead, nil
 }
 
 // SyncUser syncs a user in your context's environment, by user.

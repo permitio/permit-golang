@@ -111,6 +111,7 @@ func TestIntegration(t *testing.T) {
 	assert.NoError(t, err)
 
 	privateRoleCreate := models.NewRoleCreate(roleKey+"-private", roleKey+"-private")
+	privateRoleCreate.SetExtends([]string{roleCreate.Key})
 	privateRoleCreate.SetPermissions(permissions)
 	privateRoleCreate.SetAttributes(map[string]string{
 		"marker": marker,
@@ -123,6 +124,7 @@ func TestIntegration(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, roles, 1)
+	assert.Equal(t, []string{roleCreate.Key}, roles[0].Extends)
 
 	tenantCreate := models.NewTenantCreate(tenantKey, tenantKey)
 	tenantCreate.SetAttributes(map[string]interface{}{"marker": marker})
@@ -136,8 +138,12 @@ func TestIntegration(t *testing.T) {
 	assert.Len(t, tenants, 1)
 
 	// Assign role to user
-	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, "default")
+	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, tenantKey)
 	assert.NoError(t, err)
+
+	detailedRAs, err := permitClient.Api.RoleAssignments.ListDetailed(ctx, 1, 100, userKey, roleKey, tenantKey)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(*detailedRAs))
 
 	// Bulk (un)assignments
 	var users []*models.UserCreate
@@ -175,7 +181,7 @@ func TestIntegration(t *testing.T) {
 	time.Sleep(6 * time.Second)
 
 	userCheck := enforcement.UserBuilder(userKey).Build()
-	resourceCheck := enforcement.ResourceBuilder(resourceKey).WithTenant("default").Build()
+	resourceCheck := enforcement.ResourceBuilder(resourceKey).WithTenant(tenantKey).Build()
 	allowed, err := permitClient.Check(userCheck, "read", resourceCheck)
 	assert.NoError(t, err)
 	assert.True(t, allowed)

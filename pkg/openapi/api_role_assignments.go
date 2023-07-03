@@ -416,6 +416,7 @@ type ApiListRoleAssignmentsRequest struct {
 	user       *string
 	role       *string
 	tenant     *string
+	detailed   *bool
 	page       *int32
 	perPage    *int32
 }
@@ -438,6 +439,12 @@ func (r ApiListRoleAssignmentsRequest) Tenant(tenant string) ApiListRoleAssignme
 	return r
 }
 
+// Whether to return full details about the user, tenant and role
+func (r ApiListRoleAssignmentsRequest) Detailed(detailed bool) ApiListRoleAssignmentsRequest {
+	r.detailed = &detailed
+	return r
+}
+
 // Page number of the results to fetch, starting at 1.
 func (r ApiListRoleAssignmentsRequest) Page(page int32) ApiListRoleAssignmentsRequest {
 	r.page = &page
@@ -450,7 +457,7 @@ func (r ApiListRoleAssignmentsRequest) PerPage(perPage int32) ApiListRoleAssignm
 	return r
 }
 
-func (r ApiListRoleAssignmentsRequest) Execute() ([]models.RoleAssignmentRead, *http.Response, error) {
+func (r ApiListRoleAssignmentsRequest) Execute() (*models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet, *http.Response, error) {
 	return r.ApiService.ListRoleAssignmentsExecute(r)
 }
 
@@ -478,14 +485,13 @@ func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, pro
 }
 
 // Execute executes the request
-//
-//	@return []RoleAssignmentRead
-func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) ([]models.RoleAssignmentRead, *http.Response, error) {
+//  @return ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
+func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) (*models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue []models.RoleAssignmentRead
+		localVarHTTPMethod   = http.MethodGet
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.ListRoleAssignments")
@@ -509,6 +515,9 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 	}
 	if r.tenant != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "tenant", r.tenant, "")
+	}
+	if r.detailed != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "detailed", r.detailed, "")
 	}
 	if r.page != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")

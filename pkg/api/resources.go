@@ -49,6 +49,42 @@ func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.R
 	return resources, nil
 }
 
+// Search for resources by key or name.
+// Usage Example:
+//
+//	`resources, err := PermitClient.Api.Resources.List(ctx, 1, 10)`
+func (r *Resources) Search(ctx context.Context, page int, perPage int, query string) ([]models.ResourceRead, error) {
+	perPageLimit := int32(DefaultPerPageLimit)
+
+	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
+		err := errors.NewPermitPaginationError()
+		r.logger.Error("error listing resources - max per page: "+string(perPageLimit), zap.Error(err))
+		return nil, err
+	}
+
+	err := r.lazyLoadPermitContext(ctx)
+
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+
+	resources, httpRes, err := r.client.ResourcesApi.ListResources(
+		ctx,
+		r.config.Context.GetProject(),
+		r.config.Context.GetEnvironment(),
+	).Page(int32(page)).PerPage(int32(perPage)).Search(query).Execute()
+
+	err = errors.HttpErrorHandle(err, httpRes)
+
+	if err != nil {
+		r.logger.Error("error listing resources", zap.Error(err))
+		return nil, err
+	}
+
+	return resources, nil
+}
+
 // Get a resource by its key.
 // Usage Example:
 //

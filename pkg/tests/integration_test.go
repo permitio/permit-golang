@@ -27,7 +27,7 @@ func randKey(prefix string) string {
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
-	return fmt.Sprintf("%s-%s", string(b), prefix)
+	return fmt.Sprintf("%s-%s", prefix, string(b))
 }
 
 func TestIntegration(t *testing.T) {
@@ -61,7 +61,7 @@ func TestIntegration(t *testing.T) {
 	assert.Equal(t, PermitErrors.Conflict, permitError.ErrorCode)
 	assert.Equal(t, PermitErrors.API_ERROR, permitError.ErrorType)
 
-	// Create a resource
+	// Create resources
 	resourceCreate := *models.NewResourceCreate(resourceKey, resourceKey,
 		map[string]models.ActionBlockEditable{
 			"read":  {Attributes: map[string]interface{}{"marker": marker}},
@@ -69,6 +69,30 @@ func TestIntegration(t *testing.T) {
 		})
 	_, err = permitClient.Api.Resources.Create(ctx, resourceCreate)
 	assert.NoError(t, err)
+
+	resourceCreate = *models.NewResourceCreate(resourceKey+"-2", resourceKey+"-2",
+		map[string]models.ActionBlockEditable{
+			"read":  {Attributes: map[string]interface{}{"marker": marker}},
+			"write": {Attributes: map[string]interface{}{"marker": marker}},
+		})
+	_, err = permitClient.Api.Resources.Create(ctx, resourceCreate)
+	assert.NoError(t, err)
+
+	list, err := permitClient.Api.Resources.Search(ctx, 1, 100, resourceKey)
+	assert.NoError(t, err)
+	assert.Len(t, list, 2)
+
+	list, err = permitClient.Api.Resources.Search(ctx, 1, 100, resourceKey+"*")
+	assert.NoError(t, err)
+	assert.Len(t, list, 2)
+
+	list, err = permitClient.Api.Resources.Search(ctx, 1, 100, resourceKey+"-*")
+	assert.NoError(t, err)
+	assert.Len(t, list, 1)
+
+	list, err = permitClient.Api.Resources.Search(ctx, 1, 100, resourceKey+"_*")
+	assert.NoError(t, err)
+	assert.Len(t, list, 0)
 
 	actionCreate := *models.NewResourceActionCreate(actionKey, actionKey)
 	actionCreate.SetAttributes(map[string]interface{}{

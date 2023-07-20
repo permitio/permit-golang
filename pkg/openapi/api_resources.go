@@ -389,9 +389,16 @@ type ApiListResourcesRequest struct {
 	ApiService     *ResourcesApiService
 	projId         string
 	envId          string
+	search *string
 	includeBuiltIn *bool
 	page           *int32
 	perPage        *int32
+}
+
+// Text search for the object name or key
+func (r ApiListResourcesRequest) Search(search string) ApiListResourcesRequest {
+	r.search = &search
+	return r
 }
 
 // Whether to include or exclude built-in resources, default is False
@@ -459,6 +466,9 @@ func (a *ResourcesApiService) ListResourcesExecute(r ApiListResourcesRequest) ([
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.search != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "search", r.search, "")
+	}
 	if r.includeBuiltIn != nil {
 		localVarQueryParams.Add("include_built_in", parameterToString(*r.includeBuiltIn, ""))
 	}

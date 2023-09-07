@@ -100,6 +100,7 @@ func TestIntegration(t *testing.T) {
 	actionKey := randKey("action")
 	actionGroupKey := randKey("actiongroup")
 	tenantKey := randKey("tenant")
+	secondTenantKey := randKey("tenant")
 
 	token := os.Getenv("PDP_API_KEY")
 	if token == "" {
@@ -218,6 +219,11 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.Tenants.Create(ctx, *tenantCreate)
 	assert.NoError(t, err)
 
+	secondTenantCreate := models.NewTenantCreate(secondTenantKey, secondTenantKey)
+	secondTenantCreate.SetAttributes(map[string]interface{}{"isSecond": true})
+	_, err = permitClient.Api.Tenants.Create(ctx, *secondTenantCreate)
+	assert.NoError(t, err)
+
 	tenants, err := permitClient.Api.Tenants.ListByAttributes(ctx, map[string]interface{}{
 		"marker": marker,
 	}, 1, 100)
@@ -240,4 +246,13 @@ func TestIntegration(t *testing.T) {
 	allowed, err := permitClient.Check(userCheck, "read", resourceCheck)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
+
+	allowedTenants, err := permitClient.AllTenantsCheck(
+		userCheck,
+		"read",
+		resourceCheck.WithTenant("").Build(),
+	)
+	assert.Len(t, allowedTenants, 1)
+	assert.Equal(t, tenantKey, allowedTenants[0].Key)
+	assert.True(t, assert.ObjectsAreEqualValues(allowedTenants[0].Attributes, tenantCreate.Attributes))
 }

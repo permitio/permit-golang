@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 )
@@ -30,6 +31,65 @@ func randKey(prefix string) string {
 	return fmt.Sprintf("%s-%s", prefix, string(b))
 }
 
+func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, roleKey, tenantKey, resourceKey, actionKey string) {
+	// Bulk (un)assignments
+	var users []*models.UserCreate
+	var bulkAssignments []models.RoleAssignmentCreate
+	var bulkUnAssignments []models.RoleAssignmentRemove
+
+	for i := 0; i < 3; i++ {
+		bulkUserKey := randKey("user")
+		bulkUserCreate := models.NewUserCreate(bulkUserKey)
+		users = append(users, models.NewUserCreate(bulkUserKey))
+		bulkAssignments = append(bulkAssignments, *models.NewRoleAssignmentCreate(roleKey, tenantKey, bulkUserKey))
+		bulkUnAssignments = append(bulkUnAssignments, *models.NewRoleAssignmentRemove(roleKey, tenantKey, bulkUserKey))
+
+		_, err := permitClient.Api.Users.Create(ctx, *bulkUserCreate)
+		assert.NoError(t, err)
+	}
+
+	assignReport, err := permitClient.Api.Roles.BulkAssignRole(ctx, bulkAssignments)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, *assignReport.AssignmentsCreated)
+
+	for _, u := range users {
+		assigned, err := permitClient.Api.Users.GetAssignedRoles(ctx, u.Key, tenantKey, 1, 100)
+		assert.NoError(t, err)
+
+		assert.Equal(t, tenantKey, assigned[0].Tenant)
+		assert.Equal(t, roleKey, assigned[0].Role)
+	}
+
+	time.Sleep(6 * time.Second)
+	requests := make([]enforcement.CheckRequest, len(bulkAssignments)+1)
+	for i, assignment := range bulkAssignments {
+		requests[i] = enforcement.CheckRequest{
+			User:     enforcement.UserBuilder(assignment.User).Build(),
+			Action:   enforcement.Action(actionKey),
+			Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(assignment.Tenant).Build(),
+			Context:  nil,
+		}
+	}
+	requests[len(bulkAssignments)] = enforcement.CheckRequest{
+		User:     enforcement.UserBuilder(users[0].Key).Build(),
+		Action:   "non-existing-action",
+		Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(tenantKey).Build(),
+		Context:  nil,
+	}
+	results, _ := permitClient.BulkCheck(requests...)
+	assert.Len(t, results, len(bulkAssignments)+1)
+	for i := 0; i <= len(bulkAssignments); i++ {
+		if i == len(bulkAssignments) {
+			assert.False(t, results[i])
+		} else {
+			assert.True(t, results[i])
+		}
+	}
+	unassignReport, err := permitClient.Api.Roles.BulkUnAssignRole(ctx, bulkUnAssignments)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, *unassignReport.AssignmentsRemoved)
+}
+
 func TestIntegration(t *testing.T) {
 	logger := zap.NewExample()
 	ctx := context.Background()
@@ -41,7 +101,10 @@ func TestIntegration(t *testing.T) {
 	actionGroupKey := randKey("actiongroup")
 	tenantKey := randKey("tenant")
 
-	const token = ""
+	token := os.Getenv("PDP_API_KEY")
+	if token == "" {
+		t.Fatal("PDP_API_KEY is not set")
+	}
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "default-project", "golang-test")
 	permitClient := permit.New(config.NewConfigBuilder(token).WithContext(permitContext).WithLogger(logger).Build())
 
@@ -168,39 +231,7 @@ func TestIntegration(t *testing.T) {
 	detailedRAs, err := permitClient.Api.RoleAssignments.ListDetailed(ctx, 1, 100, userKey, roleKey, tenantKey)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(*detailedRAs))
-
-	// Bulk (un)assignments
-	var users []*models.UserCreate
-	var bulkAssignments []models.RoleAssignmentCreate
-	var bulkUnAssignments []models.RoleAssignmentRemove
-
-	for i := 0; i < 3; i++ {
-		bulkUserKey := randKey("user")
-		bulkUserCreate := models.NewUserCreate(bulkUserKey)
-		users = append(users, models.NewUserCreate(bulkUserKey))
-		bulkAssignments = append(bulkAssignments, *models.NewRoleAssignmentCreate(roleKey, tenantKey, bulkUserKey))
-		bulkUnAssignments = append(bulkUnAssignments, *models.NewRoleAssignmentRemove(roleKey, tenantKey, bulkUserKey))
-
-		_, err := permitClient.Api.Users.Create(ctx, *bulkUserCreate)
-		assert.NoError(t, err)
-	}
-
-	assignReport, err := permitClient.Api.Roles.BulkAssignRole(ctx, bulkAssignments)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, *assignReport.AssignmentsCreated)
-
-	for _, u := range users {
-		assigned, err := permitClient.Api.Users.GetAssignedRoles(ctx, u.Key, tenantKey, 1, 100)
-		assert.NoError(t, err)
-
-		assert.Equal(t, tenantKey, assigned[0].Tenant)
-		assert.Equal(t, roleKey, assigned[0].Role)
-	}
-
-	unassignReport, err := permitClient.Api.Roles.BulkUnAssignRole(ctx, bulkUnAssignments)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, *unassignReport.AssignmentsRemoved)
-
+	checkBulk(ctx, t, permitClient, roleKey, tenantKey, resourceKey, "read")
 	// Check if user has permission
 	time.Sleep(6 * time.Second)
 

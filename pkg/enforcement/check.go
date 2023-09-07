@@ -58,11 +58,7 @@ func newJsonCheckRequest(opaUrl string, user User, action Action, resource Resou
 }
 
 func (e *PermitEnforcer) getCheckEndpoint() string {
-	if opaUrl := e.config.GetOpaUrl(); opaUrl != "" {
-		return opaUrl + "/v1/data/" + mainPolicyPath
-	} else {
-		return e.config.GetPdpUrl() + "/allowed"
-	}
+	return e.getEndpointByPolicyPackage(mainPolicyPackage)
 }
 
 func (e *PermitEnforcer) parseResponse(res *http.Response) (*CheckResponse, error) {
@@ -100,12 +96,6 @@ func (e *PermitEnforcer) parseResponse(res *http.Response) (*CheckResponse, erro
 }
 
 func (e *PermitEnforcer) Check(user User, action Action, resource Resource, additionalContext ...map[string]string) (bool, error) {
-	const (
-		reqMethod           = "POST"
-		reqContentTypeKey   = "Content-Type"
-		reqContentTypeValue = "application/json"
-		reqAuthKey          = "Authorization"
-	)
 	reqAuthValue := "Bearer " + e.config.GetToken()
 
 	if additionalContext == nil {

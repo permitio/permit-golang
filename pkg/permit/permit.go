@@ -36,7 +36,12 @@ func (c *Client) Check(user enforcement.User, action enforcement.Action, resourc
 	return c.enforcement.Check(user, action, resource)
 }
 
+func (c *Client) BulkCheck(requests ...enforcement.CheckRequest) ([]bool, error) {
+	return c.enforcement.BulkCheck(requests...)
+}
+
 type PermitInterface interface {
 	Check(user enforcement.User, action enforcement.Action, resource enforcement.Resource) (bool, error)
+	BulkCheck(requests ...enforcement.CheckRequest) ([]bool, error)
 	SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
 }

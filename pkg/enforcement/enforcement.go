@@ -22,3 +22,12 @@ func NewPermitEnforcerClient(config *config.PermitConfig) *PermitEnforcer {
 		},
 	}
 }
+
+func (e *PermitEnforcer) getEndpointByPolicyPackage(name packageName) string {
+	operationConfig := policyMap[name]
+	if e.config.GetOpaUrl() != "" {
+		return e.config.GetOpaUrl() + "/v1/data/" + operationConfig.opaPath
+	} else {
+		return e.config.GetPdpUrl() + string(operationConfig.sidecarPath)
+	}
+}

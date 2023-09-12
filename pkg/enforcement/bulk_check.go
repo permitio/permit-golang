@@ -131,3 +131,32 @@ func (e *PermitEnforcer) BulkCheck(requests ...CheckRequest) ([]bool, error) {
 	}
 	return allowResults, nil
 }
+
+func (e *PermitEnforcer) FilterObjects(user User, action Action, context map[string]string, resources ...ResourceI) ([]ResourceI, error) {
+	requests := make([]CheckRequest, len(resources))
+	for i, resource := range resources {
+		permitResource := ResourceBuilder(resource.GetType()).
+			WithID(resource.GetID()).
+			WithContext(resource.GetContext()).
+			WithAttributes(resource.GetAttributes()).
+			WithTenant(resource.GetTenant()).
+			Build()
+		requests[i] = *NewCheckRequest(user,
+			action,
+			permitResource,
+			context,
+		)
+	}
+	results, err := e.BulkCheck(requests...)
+	if err != nil {
+		return nil, err
+	}
+	filteredResources := make([]ResourceI, 0)
+	for i, result := range results {
+		if result {
+			filteredResources = append(filteredResources, resources[i])
+		}
+	}
+
+	return filteredResources, nil
+}

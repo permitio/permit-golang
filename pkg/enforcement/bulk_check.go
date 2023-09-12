@@ -95,6 +95,48 @@ func (e *PermitEnforcer) parseBulkResponse(res *http.Response) ([]CheckResponse,
 }
 
 func (e *PermitEnforcer) BulkCheck(requests ...CheckRequest) ([]bool, error) {
+	tenantRequestsMap := make(map[string][]CheckRequest)
+	requestsOrder := make(map[string]map[int]int)
+
+	for i, request := range requests {
+		// Create a map of tenant key to requests for that tenant
+		tenantRequests := tenantRequestsMap[request.Resource.GetTenant()]
+		if tenantRequests == nil {
+			tenantRequests = []CheckRequest{
+				request,
+			}
+		} else {
+			tenantRequests = append(tenantRequests, request)
+		}
+		tenantRequestsMap[request.Resource.GetTenant()] = tenantRequests
+		// keep a mapping between the index in the tenant slice to the original requests slice
+		// so we can return the results in the same order as the original requests
+		if requestsOrder[request.Resource.GetTenant()] == nil {
+			requestsOrder[request.Resource.GetTenant()] = map[int]int{
+				len(tenantRequests) - 1: i,
+			}
+		} else {
+			requestsOrder[request.Resource.GetTenant()][len(tenantRequests)-1] = i
+		}
+	}
+	results := make([]bool, len(requests))
+	for tenant, tenantRequests := range tenantRequestsMap {
+		tenantResults, err := e.bulkCheck(tenantRequests...)
+		if err != nil {
+			return nil, err
+		}
+		for i := range tenantRequests {
+			// i represents the index in the tenant slice
+			// put the result in the original index in the results slice
+			// so we can return the results in the same order as the original requests
+			originalRequestIndex := requestsOrder[tenant][i]
+			results[originalRequestIndex] = tenantResults[i]
+		}
+	}
+	return results, nil
+}
+
+func (e *PermitEnforcer) bulkCheck(requests ...CheckRequest) ([]bool, error) {
 	reqAuthValue := "Bearer " + e.config.GetToken()
 
 	jsonCheckReq, err := newJsonBulkCheckRequest(e.config.GetOpaUrl(), requests...)

@@ -95,29 +95,35 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 	}
 
 	time.Sleep(6 * time.Second)
-	requests := make([]enforcement.CheckRequest, len(bulkAssignments)+1)
+	requests := make([]enforcement.CheckRequest, len(bulkAssignments))
 	for i, assignment := range bulkAssignments {
+		var tenant string
+		if i%2 == 0 {
+			tenant = assignment.Tenant
+		} else {
+			tenant = "non-existing-tenant"
+		}
 		requests[i] = enforcement.CheckRequest{
 			User:     enforcement.UserBuilder(assignment.User).Build(),
 			Action:   enforcement.Action(actionKey),
-			Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(assignment.Tenant).Build(),
+			Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(tenant).Build(),
 			Context:  nil,
 		}
 	}
-	requests[len(bulkAssignments)] = enforcement.CheckRequest{
-		User:     enforcement.UserBuilder(users[0].Key).Build(),
-		Action:   "non-existing-action",
-		Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(tenantKey).Build(),
-		Context:  nil,
-	}
+	//requests[len(bulkAssignments)] = enforcement.CheckRequest{
+	//	User:     enforcement.UserBuilder(users[0].Key).Build(),
+	//	Action:   "non-existing-action",
+	//	Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(tenantKey).Build(),
+	//	Context:  nil,
+	//}
 	results, err := permitClient.BulkCheck(requests...)
 	assert.NoError(t, err)
-	assert.Len(t, results, len(bulkAssignments)+1)
-	for i := 0; i <= len(bulkAssignments); i++ {
-		if i == len(bulkAssignments) {
-			assert.False(t, results[i])
-		} else {
+	assert.Len(t, results, len(bulkAssignments))
+	for i := 0; i < len(bulkAssignments); i++ {
+		if i%2 == 0 {
 			assert.True(t, results[i])
+		} else {
+			assert.False(t, results[i])
 		}
 	}
 	unassignReport, err := permitClient.Api.Roles.BulkUnAssignRole(ctx, bulkUnAssignments)

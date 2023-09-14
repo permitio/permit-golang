@@ -16,19 +16,26 @@ import (
 	"time"
 )
 
+var runId = randId()
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
+	println("Run ID: ", runId)
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func randKey(prefix string) string {
+func randId() string {
 	const n = 10
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
-	return fmt.Sprintf("%s-%s", prefix, string(b))
+	return string(b)
+}
+
+func randKey(postfix string) string {
+	return runId + "-" + postfix
 }
 
 func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, roleKey, tenantKey, resourceKey, actionKey string) {
@@ -38,7 +45,7 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 	var bulkUnAssignments []models.RoleAssignmentRemove
 
 	for i := 0; i < 3; i++ {
-		bulkUserKey := randKey("user")
+		bulkUserKey := randKey(fmt.Sprintf("bulkuser-%d", i))
 		bulkUserCreate := models.NewUserCreate(bulkUserKey)
 		users = append(users, models.NewUserCreate(bulkUserKey))
 		bulkAssignments = append(bulkAssignments, *models.NewRoleAssignmentCreate(roleKey, tenantKey, bulkUserKey))
@@ -100,10 +107,10 @@ func TestIntegration(t *testing.T) {
 	marker := randKey("marker")
 	actionKey := randKey("action")
 	actionGroupKey := randKey("actiongroup")
-	tenantKey := randKey("tenant")
-	secondTenantKey := randKey("tenant")
+	tenantKey := randKey("tenant-1")
+	secondTenantKey := randKey("tenant-2")
 	resourceSetKey := randKey("resourceset")
-	userSetKey := randKey("usetset")
+	userSetKey := randKey("userset")
 
 	token := os.Getenv("PDP_API_KEY")
 	if token == "" {

@@ -110,12 +110,7 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 			Context:  nil,
 		}
 	}
-	//requests[len(bulkAssignments)] = enforcement.CheckRequest{
-	//	User:     enforcement.UserBuilder(users[0].Key).Build(),
-	//	Action:   "non-existing-action",
-	//	Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(tenantKey).Build(),
-	//	Context:  nil,
-	//}
+
 	results, err := permitClient.BulkCheck(requests...)
 	assert.NoError(t, err)
 	assert.Len(t, results, len(bulkAssignments))

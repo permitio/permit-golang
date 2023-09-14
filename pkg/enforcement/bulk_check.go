@@ -100,8 +100,8 @@ func (e *PermitEnforcer) BulkCheck(requests ...CheckRequest) ([]bool, error) {
 
 	for i, request := range requests {
 		// Create a map of tenant key to requests for that tenant
-		tenantRequests := tenantRequestsMap[request.Resource.GetTenant()]
-		if tenantRequests == nil {
+		tenantRequests, found := tenantRequestsMap[request.Resource.GetTenant()]
+		if !found || tenantRequests == nil {
 			tenantRequests = []CheckRequest{
 				request,
 			}

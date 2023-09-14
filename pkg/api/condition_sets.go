@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -174,6 +175,56 @@ func (c *ConditionSets) Delete(ctx context.Context, conditionSetKey string) erro
 
 	if err != nil {
 		c.logger.Error("error deleting condition set: "+conditionSetKey, zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (c *ConditionSets) AssignSetPermissions(ctx context.Context, userSetKey string, permission string, resourceSetKey string) ([]models.ConditionSetRuleRead, error) {
+	err := c.lazyLoadPermitContext(ctx)
+
+	if err != nil {
+		c.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+
+	rule, httpRes, err := c.client.ConditionSetRulesApi.AssignSetPermissions(
+		ctx,
+		c.config.Context.GetProject(),
+		c.config.Context.GetEnvironment(),
+	).ConditionSetRuleCreate(*models.NewConditionSetRuleCreate(userSetKey, permission, resourceSetKey)).Execute()
+
+	err = errors.HttpErrorHandle(err, httpRes)
+
+	if err != nil {
+		errString := fmt.Sprintf("error creating condition set rule %s, %s, %s", userSetKey, permission, resourceSetKey)
+		c.logger.Error("error creating condition set rule: "+errString, zap.Error(err))
+		return nil, err
+	}
+
+	return rule, nil
+}
+
+func (c *ConditionSets) UnassignSetPermissions(ctx context.Context, userSetKey string, permission string, resourceSetKey string) error {
+	err := c.lazyLoadPermitContext(ctx)
+
+	if err != nil {
+		c.logger.Error("", zap.Error(err))
+		return err
+	}
+
+	httpRes, err := c.client.ConditionSetRulesApi.UnassignSetPermissions(
+		ctx,
+		c.config.Context.GetProject(),
+		c.config.Context.GetEnvironment(),
+	).ConditionSetRuleRemove(*models.NewConditionSetRuleRemove(userSetKey, permission, resourceSetKey)).Execute()
+
+	err = errors.HttpErrorHandle(err, httpRes)
+
+	if err != nil {
+		errString := fmt.Sprintf("error creating condition set rule %s, %s, %s", userSetKey, permission, resourceSetKey)
+		c.logger.Error("error creating condition set rule: "+errString, zap.Error(err))
 		return err
 	}
 

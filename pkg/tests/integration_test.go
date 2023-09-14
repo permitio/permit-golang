@@ -102,6 +102,8 @@ func TestIntegration(t *testing.T) {
 	actionGroupKey := randKey("actiongroup")
 	tenantKey := randKey("tenant")
 	secondTenantKey := randKey("tenant")
+	resourceSetKey := randKey("resourceset")
+	userSetKey := randKey("usetset")
 
 	token := os.Getenv("PDP_API_KEY")
 	if token == "" {
@@ -135,7 +137,7 @@ func TestIntegration(t *testing.T) {
 	resourceCreate.SetAttributes(map[string]models.AttributeBlockEditable{
 		"secret": *models.NewAttributeBlockEditable(models.BOOL),
 	})
-	_, err = permitClient.Api.Resources.Create(ctx, resourceCreate)
+	resourceRead, err := permitClient.Api.Resources.Create(ctx, resourceCreate)
 	assert.NoError(t, err)
 
 	resourceCreate = *models.NewResourceCreate(resourceKey+"-2", resourceKey+"-2",
@@ -243,28 +245,49 @@ func TestIntegration(t *testing.T) {
 	assert.Equal(t, 1, len(*detailedRAs))
 	checkBulk(ctx, t, permitClient, roleKey, tenantKey, resourceKey, "read")
 
-	resource, err := permitClient.Api.Resources.GetByKey(ctx, resourceKey)
-	assert.NoError(t, err)
-
-	csCreate := *models.NewConditionSetCreate(csKey, csKey)
-	csCreate.SetType(models.RESOURCESET)
-	csCreate.SetResourceId(models.ResourceId{String: &resource.Id})
-	csCreate.SetConditions(map[string]interface{}{
+	userSetCreate := *models.NewConditionSetCreate(userSetKey, userSetKey)
+	userSetCreate.SetType(models.USERSET)
+	userSetCreate.SetConditions(map[string]interface{}{
 		"allOf": []map[string]interface{}{
-			{"resource.secret": map[string]interface{}{
-				"equals": true,
-			}},
+			{
+				"allOf": []map[string]interface{}{
+					{"subject.email": map[string]interface{}{
+						"contains": "@admin",
+					}},
+				},
+			},
 		},
 	})
 
-	_, err = permitClient.Api.ConditionSets.Create(ctx, csCreate)
+	_, err = permitClient.Api.ConditionSets.Create(ctx, userSetCreate)
+	assert.NoError(t, err)
+
+	resourceSet := *models.NewConditionSetCreate(resourceSetKey, resourceSetKey)
+	resourceSet.SetType(models.RESOURCESET)
+	resourceSet.SetResourceId(models.ResourceId{String: &resourceRead.Id})
+	resourceSet.SetConditions(map[string]interface{}{
+		"allOf": []map[string]interface{}{
+			{
+				"allOf": []map[string]interface{}{
+					{"resource.secret": map[string]interface{}{
+						"equals": true,
+					}},
+				},
+			},
+		},
+	})
+
+	_, err = permitClient.Api.ConditionSets.Create(ctx, resourceSet)
 	assert.NoError(t, err)
 
 	csUpdate := *models.NewConditionSetUpdate()
 	csUpdate.SetDescription("Top Secrets")
-	cs, err := permitClient.Api.ConditionSets.Update(ctx, csKey, csUpdate)
+	cs, err := permitClient.Api.ConditionSets.Update(ctx, resourceSetKey, csUpdate)
 	assert.NoError(t, err)
 	assert.Equal(t, "Top Secrets", *cs.Description)
+
+	_, err = permitClient.Api.ConditionSets.AssignSetPermissions(ctx, userSetKey, resourceKey+":"+actionKey, resourceSetKey)
+	assert.NoError(t, err)
 
 	//// Check if user has permission
 	time.Sleep(6 * time.Second)

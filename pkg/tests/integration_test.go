@@ -93,6 +93,7 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 func TestIntegration(t *testing.T) {
 	logger := zap.NewExample()
 	ctx := context.Background()
+
 	userKey := randKey("user")
 	resourceKey := randKey("resource")
 	roleKey := randKey("role")
@@ -131,6 +132,9 @@ func TestIntegration(t *testing.T) {
 			"read":  {Attributes: map[string]interface{}{"marker": marker}},
 			"write": {Attributes: map[string]interface{}{"marker": marker}},
 		})
+	resourceCreate.SetAttributes(map[string]models.AttributeBlockEditable{
+		"secret": *models.NewAttributeBlockEditable(models.BOOL),
+	})
 	_, err = permitClient.Api.Resources.Create(ctx, resourceCreate)
 	assert.NoError(t, err)
 
@@ -238,7 +242,31 @@ func TestIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(*detailedRAs))
 	checkBulk(ctx, t, permitClient, roleKey, tenantKey, resourceKey, "read")
-	// Check if user has permission
+
+	resource, err := permitClient.Api.Resources.GetByKey(ctx, resourceKey)
+	assert.NoError(t, err)
+
+	csCreate := *models.NewConditionSetCreate(csKey, csKey)
+	csCreate.SetType(models.RESOURCESET)
+	csCreate.SetResourceId(models.ResourceId{String: &resource.Id})
+	csCreate.SetConditions(map[string]interface{}{
+		"allOf": []map[string]interface{}{
+			{"resource.secret": map[string]interface{}{
+				"equals": true,
+			}},
+		},
+	})
+
+	_, err = permitClient.Api.ConditionSets.Create(ctx, csCreate)
+	assert.NoError(t, err)
+
+	csUpdate := *models.NewConditionSetUpdate()
+	csUpdate.SetDescription("Top Secrets")
+	cs, err := permitClient.Api.ConditionSets.Update(ctx, csKey, csUpdate)
+	assert.NoError(t, err)
+	assert.Equal(t, "Top Secrets", *cs.Description)
+
+	//// Check if user has permission
 	time.Sleep(6 * time.Second)
 
 	userCheck := enforcement.UserBuilder(userKey).Build()

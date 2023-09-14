@@ -12,12 +12,46 @@ import (
 	"go.uber.org/zap"
 	"math/rand"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+type MyResource struct {
+	UniqueID     string
+	Type         string
+	Organization string
+}
+
+func (m MyResource) GetID() string {
+	return m.UniqueID
+}
+
+func (m MyResource) GetType() string {
+	if m.Type != "" {
+		return m.Type
+	}
+	if t := reflect.TypeOf(m); t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	} else {
+		return t.Name()
+	}
+}
+
+func (m MyResource) GetTenant() string {
+	return m.Organization
+}
+
+func (m MyResource) GetAttributes() map[string]string {
+	return make(map[string]string)
+}
+
+func (m MyResource) GetContext() map[string]string {
+	return make(map[string]string)
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -61,28 +95,30 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 	}
 
 	time.Sleep(6 * time.Second)
-	requests := make([]enforcement.CheckRequest, len(bulkAssignments)+1)
+	requests := make([]enforcement.CheckRequest, len(bulkAssignments))
 	for i, assignment := range bulkAssignments {
+		var tenant string
+		if i%2 == 0 {
+			tenant = assignment.Tenant
+		} else {
+			tenant = "non-existing-tenant"
+		}
 		requests[i] = enforcement.CheckRequest{
 			User:     enforcement.UserBuilder(assignment.User).Build(),
 			Action:   enforcement.Action(actionKey),
-			Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(assignment.Tenant).Build(),
+			Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(tenant).Build(),
 			Context:  nil,
 		}
 	}
-	requests[len(bulkAssignments)] = enforcement.CheckRequest{
-		User:     enforcement.UserBuilder(users[0].Key).Build(),
-		Action:   "non-existing-action",
-		Resource: enforcement.ResourceBuilder(resourceKey).WithTenant(tenantKey).Build(),
-		Context:  nil,
-	}
-	results, _ := permitClient.BulkCheck(requests...)
-	assert.Len(t, results, len(bulkAssignments)+1)
-	for i := 0; i <= len(bulkAssignments); i++ {
-		if i == len(bulkAssignments) {
-			assert.False(t, results[i])
-		} else {
+
+	results, err := permitClient.BulkCheck(requests...)
+	assert.NoError(t, err)
+	assert.Len(t, results, len(bulkAssignments))
+	for i := 0; i < len(bulkAssignments); i++ {
+		if i%2 == 0 {
 			assert.True(t, results[i])
+		} else {
+			assert.False(t, results[i])
 		}
 	}
 	unassignReport, err := permitClient.Api.Roles.BulkUnAssignRole(ctx, bulkUnAssignments)
@@ -246,6 +282,22 @@ func TestIntegration(t *testing.T) {
 	allowed, err := permitClient.Check(userCheck, "read", resourceCheck)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
+
+	myResources := []enforcement.ResourceI{
+		MyResource{
+			UniqueID:     "my-random-id",
+			Organization: tenantKey,
+			Type:         resourceKey,
+		},
+		MyResource{
+			UniqueID:     "my-random-id-2",
+			Organization: tenantKey,
+		},
+	}
+	filteredResources, err := permitClient.FilterObjects(userCheck, "read", nil, myResources...)
+	assert.NoError(t, err)
+	assert.Len(t, filteredResources, 1)
+	assert.True(t, assert.ObjectsAreEqual(&filteredResources[0], &myResources[0]))
 
 	allowedTenants, err := permitClient.AllTenantsCheck(
 		userCheck,

@@ -19,7 +19,7 @@ func NewConfigBuilder(token string) *PermitBuilder {
 			debug:      DefaultDebugMode,
 			Context:    nil,
 			Logger:     nil,
-			httpClient: &http.Client{Timeout: time.Second * 3},
+			httpClient: &http.Client{Timeout: time.Second * 5},
 		},
 	}
 }

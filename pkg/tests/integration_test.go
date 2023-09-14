@@ -17,8 +17,11 @@ import (
 	"time"
 )
 
+var runId = randId()
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
+	println("Run ID: ", runId)
 }
 
 type MyResource struct {
@@ -56,13 +59,17 @@ func (m MyResource) GetContext() map[string]string {
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func randKey(prefix string) string {
+func randId() string {
 	const n = 10
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
-	return fmt.Sprintf("%s-%s", prefix, string(b))
+	return string(b)
+}
+
+func randKey(postfix string) string {
+	return runId + "-" + postfix
 }
 
 func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, roleKey, tenantKey, resourceKey, actionKey string) {
@@ -72,7 +79,7 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 	var bulkUnAssignments []models.RoleAssignmentRemove
 
 	for i := 0; i < 3; i++ {
-		bulkUserKey := randKey("user")
+		bulkUserKey := randKey(fmt.Sprintf("bulkuser-%d", i))
 		bulkUserCreate := models.NewUserCreate(bulkUserKey)
 		users = append(users, models.NewUserCreate(bulkUserKey))
 		bulkAssignments = append(bulkAssignments, *models.NewRoleAssignmentCreate(roleKey, tenantKey, bulkUserKey))
@@ -129,14 +136,17 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 func TestIntegration(t *testing.T) {
 	logger := zap.NewExample()
 	ctx := context.Background()
+
 	userKey := randKey("user")
 	resourceKey := randKey("resource")
 	roleKey := randKey("role")
 	marker := randKey("marker")
 	actionKey := randKey("action")
 	actionGroupKey := randKey("actiongroup")
-	tenantKey := randKey("tenant")
-	secondTenantKey := randKey("tenant")
+	tenantKey := randKey("tenant-1")
+	secondTenantKey := randKey("tenant-2")
+	resourceSetKey := randKey("resourceset")
+	userSetKey := randKey("userset")
 
 	token := os.Getenv("PDP_API_KEY")
 	if token == "" {
@@ -167,7 +177,10 @@ func TestIntegration(t *testing.T) {
 			"read":  {Attributes: map[string]interface{}{"marker": marker}},
 			"write": {Attributes: map[string]interface{}{"marker": marker}},
 		})
-	_, err = permitClient.Api.Resources.Create(ctx, resourceCreate)
+	resourceCreate.SetAttributes(map[string]models.AttributeBlockEditable{
+		"secret": *models.NewAttributeBlockEditable(models.BOOL),
+	})
+	resourceRead, err := permitClient.Api.Resources.Create(ctx, resourceCreate)
 	assert.NoError(t, err)
 
 	resourceCreate = *models.NewResourceCreate(resourceKey+"-2", resourceKey+"-2",
@@ -274,7 +287,52 @@ func TestIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(*detailedRAs))
 	checkBulk(ctx, t, permitClient, roleKey, tenantKey, resourceKey, "read")
-	// Check if user has permission
+
+	userSetCreate := *models.NewConditionSetCreate(userSetKey, userSetKey)
+	userSetCreate.SetType(models.USERSET)
+	userSetCreate.SetConditions(map[string]interface{}{
+		"allOf": []map[string]interface{}{
+			{
+				"allOf": []map[string]interface{}{
+					{"subject.email": map[string]interface{}{
+						"contains": "@admin",
+					}},
+				},
+			},
+		},
+	})
+
+	_, err = permitClient.Api.ConditionSets.Create(ctx, userSetCreate)
+	assert.NoError(t, err)
+
+	resourceSet := *models.NewConditionSetCreate(resourceSetKey, resourceSetKey)
+	resourceSet.SetType(models.RESOURCESET)
+	resourceSet.SetResourceId(models.ResourceId{String: &resourceRead.Id})
+	resourceSet.SetConditions(map[string]interface{}{
+		"allOf": []map[string]interface{}{
+			{
+				"allOf": []map[string]interface{}{
+					{"resource.secret": map[string]interface{}{
+						"equals": true,
+					}},
+				},
+			},
+		},
+	})
+
+	_, err = permitClient.Api.ConditionSets.Create(ctx, resourceSet)
+	assert.NoError(t, err)
+
+	csUpdate := *models.NewConditionSetUpdate()
+	csUpdate.SetDescription("Top Secrets")
+	cs, err := permitClient.Api.ConditionSets.Update(ctx, resourceSetKey, csUpdate)
+	assert.NoError(t, err)
+	assert.Equal(t, "Top Secrets", *cs.Description)
+
+	_, err = permitClient.Api.ConditionSets.AssignSetPermissions(ctx, userSetKey, resourceKey+":"+actionKey, resourceSetKey)
+	assert.NoError(t, err)
+
+	//// Check if user has permission
 	time.Sleep(6 * time.Second)
 
 	userCheck := enforcement.UserBuilder(userKey).Build()

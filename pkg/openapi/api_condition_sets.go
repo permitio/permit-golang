@@ -858,7 +858,6 @@ Lists all condition sets matching a filter.
 	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
 	@return ApiListConditionSetsRequest
 
-Deprecated
 */
 func (a *ConditionSetsApiService) ListConditionSets(ctx context.Context, projId string, envId string) ApiListConditionSetsRequest {
 	return ApiListConditionSetsRequest{

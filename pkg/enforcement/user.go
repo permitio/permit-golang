@@ -6,12 +6,12 @@ type AssignedRole struct {
 }
 
 type User struct {
-	Key        string            `json:"key,omitempty"`
-	FirstName  string            `json:"first_name,omitempty"`
-	LastName   string            `json:"last_name,omitempty"`
-	Email      string            `json:"email,omitempty"`
-	Roles      []AssignedRole    `json:"roles,omitempty"`
-	Attributes map[string]string `json:"attributes,omitempty"`
+	Key        string                 `json:"key,omitempty"`
+	FirstName  string                 `json:"first_name,omitempty"`
+	LastName   string                 `json:"last_name,omitempty"`
+	Email      string                 `json:"email,omitempty"`
+	Roles      []AssignedRole         `json:"roles,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 func UserBuilder(key string) *User {
@@ -40,7 +40,7 @@ func (u *User) WithRoles(roles []AssignedRole) *User {
 	return u
 }
 
-func (u *User) WithAttributes(attributes map[string]string) *User {
+func (u *User) WithAttributes(attributes map[string]interface{}) *User {
 	u.Attributes = attributes
 	return u
 }

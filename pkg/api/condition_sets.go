@@ -224,9 +224,34 @@ func (c *ConditionSets) UnassignSetPermissions(ctx context.Context, userSetKey s
 
 	if err != nil {
 		errString := fmt.Sprintf("error creating condition set rule %s, %s, %s", userSetKey, permission, resourceSetKey)
-		c.logger.Error("error creating condition set rule: "+errString, zap.Error(err))
+		c.logger.Error(errString, zap.Error(err))
 		return err
 	}
 
 	return nil
+}
+
+func (c *ConditionSets) ListSetPermissions(ctx context.Context, userSetKey string, permission string, resourceSetKey string) ([]models.ConditionSetRuleRead, error) {
+	err := c.lazyLoadPermitContext(ctx)
+
+	if err != nil {
+		c.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+
+	rules, httpRes, err := c.client.ConditionSetRulesApi.ListSetPermissions(
+		ctx,
+		c.config.Context.GetProject(),
+		c.config.Context.GetEnvironment(),
+	).UserSet(userSetKey).Permission(permission).ResourceSet(resourceSetKey).Execute()
+
+	err = errors.HttpErrorHandle(err, httpRes)
+
+	if err != nil {
+		errString := fmt.Sprintf("error listing rules condition set rule %s, %s, %s", userSetKey, permission, resourceSetKey)
+		c.logger.Error(errString, zap.Error(err))
+		return nil, err
+	}
+
+	return rules, nil
 }

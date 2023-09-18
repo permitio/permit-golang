@@ -332,6 +332,10 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.ConditionSets.AssignSetPermissions(ctx, userSetKey, resourceKey+":"+actionKey, resourceSetKey)
 	assert.NoError(t, err)
 
+	rules, err := permitClient.Api.ConditionSets.ListSetPermissions(ctx, userSetKey, actionKey, resourceSetKey)
+	assert.NoError(t, err)
+	assert.Len(t, rules, 1)
+
 	//// Check if user has permission
 	time.Sleep(6 * time.Second)
 

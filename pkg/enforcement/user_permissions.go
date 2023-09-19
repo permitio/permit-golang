@@ -25,7 +25,7 @@ type opaUserPermissionsResponse struct {
 }
 
 func (e *PermitEnforcer) getUserPermissionsEndpoint() string {
-	return e.getEndpointByPolicyPackage(allTenantsPolicyPackage)
+	return e.getEndpointByPolicyPackage(userPermissionsPackage)
 }
 
 func (e *PermitEnforcer) parseUserPermissionsResponse(res *http.Response) (UserPermissions, error) {

@@ -22,12 +22,14 @@ const (
 	mainPolicyPackage       packageName = "permit.root"
 	bulkPolicyPackage       packageName = "permit.bulk"
 	allTenantsPolicyPackage packageName = "permit.all_tenants"
+	userPermissionsPackage  packageName = "permit.user_permissions"
 )
 
 const (
 	mainPolicy       sidecarPath = "/allowed"
 	bulkPolicy       sidecarPath = "/allowed/bulk"
 	allTenantsPolicy sidecarPath = "/allowed/all-tenants"
+	userPermissions  sidecarPath = "/user-permissions"
 )
 
 type checkOperationConfig struct {
@@ -47,5 +49,9 @@ var policyMap = map[packageName]checkOperationConfig{
 	allTenantsPolicyPackage: {
 		sidecarPath: allTenantsPolicy,
 		opaPath:     strings.Replace(string(allTenantsPolicyPackage), ".", "/", -1),
+	},
+	userPermissionsPackage: {
+		sidecarPath: userPermissions,
+		opaPath:     strings.Replace(string(userPermissionsPackage), ".", "/", -1),
 	},
 }

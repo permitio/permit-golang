@@ -283,6 +283,14 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, tenantKey)
 	assert.NoError(t, err)
 
+	userPermissions, err := permitClient.GetUserPermissions(enforcement.UserBuilder(userKey).Build())
+	assert.NoError(t, err)
+	userPermissionsInTenant, found := userPermissions[tenantKey]
+	assert.True(t, found)
+	assert.Equal(t, tenantKey, userPermissionsInTenant.Tenant.Key)
+	assert.True(t, assert.ObjectsAreEqual(tenantCreate.Attributes, userPermissionsInTenant.Tenant.Attributes))
+	assert.ElementsMatch(t, userPermissionsInTenant.Permissions, permissions)
+
 	detailedRAs, err := permitClient.Api.RoleAssignments.ListDetailed(ctx, 1, 100, userKey, roleKey, tenantKey)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(*detailedRAs))

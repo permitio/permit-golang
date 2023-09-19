@@ -48,10 +48,15 @@ func (c *Client) AllTenantsCheck(user enforcement.User, action enforcement.Actio
 	return c.enforcement.AllTenantsCheck(user, action, resource)
 }
 
+func (c *Client) GetUserPermissions(user enforcement.User, tenants ...string) (enforcement.UserPermissions, error) {
+	return c.enforcement.GetUserPermissions(user, tenants...)
+}
+
 type PermitInterface interface {
 	Check(user enforcement.User, action enforcement.Action, resource enforcement.Resource) (bool, error)
 	BulkCheck(requests ...enforcement.CheckRequest) ([]bool, error)
 	FilterObjects(user enforcement.User, action enforcement.Action, context map[string]string, resources ...enforcement.ResourceI) ([]enforcement.ResourceI, error)
 	AllTenantsCheck(request enforcement.CheckRequest) ([]enforcement.TenantDetails, error)
+	GetUserPermissions(user enforcement.User, tenants ...string) (enforcement.UserPermissions, error)
 	SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
 }

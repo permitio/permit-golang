@@ -49,8 +49,8 @@ func (m MyResource) GetTenant() string {
 	return m.Organization
 }
 
-func (m MyResource) GetAttributes() map[string]string {
-	return make(map[string]string)
+func (m MyResource) GetAttributes() map[string]interface{} {
+	return make(map[string]interface{})
 }
 
 func (m MyResource) GetContext() map[string]string {

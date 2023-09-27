@@ -84,7 +84,7 @@ func (p *ProxyConfigs) GetById(ctx context.Context, ProxyConfigId uuid.UUID) (*m
 // Create a new proxy config, requires Environment level API key, or higher.
 // Usage Example:
 // ```
-// proxyConfigCreate := models.NewProxyConfigCreate(models.NewNullableSecret(), "proxyConfigKey", "proxyConfigName")
+// proxyConfigCreate := models.NewProxyConfigCreate("user:pass", "proxyConfigKey", "proxyConfigName")
 // proxyConfig, err := PermitClient.Api.ProxyConfigs.Create(ctx, proxyConfigCreate)
 // ```
 func (p *ProxyConfigs) Create(ctx context.Context, proxyConfigCreate models.ProxyConfigCreate) (*models.ProxyConfigRead, error) {

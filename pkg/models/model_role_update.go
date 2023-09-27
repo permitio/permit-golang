@@ -22,6 +22,8 @@ type RoleUpdate struct {
 	Description *string `json:"description,omitempty"`
 	// list of action keys that define what actions this resource role is permitted to do
 	Permissions []string `json:"permissions,omitempty"`
+	// optional dictionary of key-value pairs that can be used to store arbitrary metadata about this role. This metadata can be used to filter role using query parameters with attr_ prefix, currently supports only 'equals' operator
+	Attributes map[string]string `json:"attributes,omitempty"`
 	// list of role keys that define what roles this role extends. In other words: this role will automatically inherit all the permissions of the given roles in this list.
 	Extends []string `json:"extends,omitempty"`
 }
@@ -116,6 +118,20 @@ func (o *RoleUpdate) GetPermissions() []string {
 	return o.Permissions
 }
 
+// SetAttributes gets a reference to the given map and assigns it to the Attributes field.
+func (o *RoleUpdate) SetAttributes(v map[string]string) {
+	o.Attributes = v
+}
+
+// GetAttributes returns the Attributes field value.
+func (o *RoleUpdate) GetAttributes() map[string]string {
+	if o == nil || IsNil(o.Attributes) {
+		var ret map[string]string
+		return ret
+	}
+	return o.Attributes
+}
+
 // GetPermissionsOk returns a tuple with the Permissions field value if set, nil otherwise
 // and a boolean to check if the value has been set.
 func (o *RoleUpdate) GetPermissionsOk() ([]string, bool) {
@@ -184,6 +200,9 @@ func (o RoleUpdate) MarshalJSON() ([]byte, error) {
 	}
 	if !IsNil(o.Extends) {
 		toSerialize["extends"] = o.Extends
+	}
+	if !IsNil(o.Attributes) {
+		toSerialize["attributes"] = o.Attributes
 	}
 	return json.Marshal(toSerialize)
 }

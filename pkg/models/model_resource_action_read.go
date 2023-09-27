@@ -15,12 +15,17 @@ import (
 	"time"
 )
 
+// checks if the ResourceActionRead type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ResourceActionRead{}
+
 // ResourceActionRead struct for ResourceActionRead
 type ResourceActionRead struct {
 	// The name of the action
 	Name string `json:"name"`
 	// An optional longer description of what this action respresents in your system
 	Description *string `json:"description,omitempty"`
+	// optional dictionary of key-value pairs that can be used to store arbitrary metadata about this action. This metadata can be used to filter actions using query parameters with attr_ prefix
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 	// A URL-friendly name of the action (i.e: slug). You will be able to query later using this key instead of the id (UUID) of the action.
 	Key string `json:"key"`
 	// Unique id of the action
@@ -122,6 +127,38 @@ func (o *ResourceActionRead) HasDescription() bool {
 // SetDescription gets a reference to the given string and assigns it to the Description field.
 func (o *ResourceActionRead) SetDescription(v string) {
 	o.Description = &v
+}
+
+// GetAttributes returns the Attributes field value if set, zero value otherwise.
+func (o *ResourceActionRead) GetAttributes() map[string]interface{} {
+	if o == nil || IsNil(o.Attributes) {
+		var ret map[string]interface{}
+		return ret
+	}
+	return o.Attributes
+}
+
+// GetAttributesOk returns a tuple with the Attributes field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ResourceActionRead) GetAttributesOk() (map[string]interface{}, bool) {
+	if o == nil || IsNil(o.Attributes) {
+		return map[string]interface{}{}, false
+	}
+	return o.Attributes, true
+}
+
+// HasAttributes returns a boolean if a field has been set.
+func (o *ResourceActionRead) HasAttributes() bool {
+	if o != nil && !IsNil(o.Attributes) {
+		return true
+	}
+
+	return false
+}
+
+// SetAttributes gets a reference to the given map[string]interface{} and assigns it to the Attributes field.
+func (o *ResourceActionRead) SetAttributes(v map[string]interface{}) {
+	o.Attributes = v
 }
 
 // GetKey returns the Key field value
@@ -341,41 +378,32 @@ func (o *ResourceActionRead) SetUpdatedAt(v time.Time) {
 }
 
 func (o ResourceActionRead) MarshalJSON() ([]byte, error) {
-	toSerialize := map[string]interface{}{}
-	if true {
-		toSerialize["name"] = o.Name
+	toSerialize,err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
 	}
+	return json.Marshal(toSerialize)
+}
+
+func (o ResourceActionRead) ToMap() (map[string]interface{}, error) {
+	toSerialize := map[string]interface{}{}
+	toSerialize["name"] = o.Name
 	if !IsNil(o.Description) {
 		toSerialize["description"] = o.Description
 	}
-	if true {
-		toSerialize["key"] = o.Key
+	if !IsNil(o.Attributes) {
+		toSerialize["attributes"] = o.Attributes
 	}
-	if true {
-		toSerialize["id"] = o.Id
-	}
-	if true {
-		toSerialize["permission_name"] = o.PermissionName
-	}
-	if true {
-		toSerialize["organization_id"] = o.OrganizationId
-	}
-	if true {
-		toSerialize["project_id"] = o.ProjectId
-	}
-	if true {
-		toSerialize["environment_id"] = o.EnvironmentId
-	}
-	if true {
-		toSerialize["resource_id"] = o.ResourceId
-	}
-	if true {
-		toSerialize["created_at"] = o.CreatedAt
-	}
-	if true {
-		toSerialize["updated_at"] = o.UpdatedAt
-	}
-	return json.Marshal(toSerialize)
+	toSerialize["key"] = o.Key
+	toSerialize["id"] = o.Id
+	toSerialize["permission_name"] = o.PermissionName
+	toSerialize["organization_id"] = o.OrganizationId
+	toSerialize["project_id"] = o.ProjectId
+	toSerialize["environment_id"] = o.EnvironmentId
+	toSerialize["resource_id"] = o.ResourceId
+	toSerialize["created_at"] = o.CreatedAt
+	toSerialize["updated_at"] = o.UpdatedAt
+	return toSerialize, nil
 }
 
 type NullableResourceActionRead struct {

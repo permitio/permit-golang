@@ -47,6 +47,36 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	return resourceActions, nil
 }
 
+// List all actions in the current environment by attributes filter
+// Usage Example:
+// `actions, err := PermitClient.Api.ResourceActions.List(ctx,1, 10, map[string]string{"attribute": "xyz"})`
+func (r *ResourceActions) ListByAttributes(ctx context.Context, resourceKey string, page int, perPage int, attributesFilter map[string]interface{}) ([]models.ResourceActionRead, error) {
+	perPageLimit := int32(DefaultPerPageLimit)
+	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
+		err := errors.NewPermitPaginationError()
+		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		return nil, err
+	}
+	err := r.lazyLoadPermitContext(ctx)
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	actions, httpRes, err := r.client.ResourceActionsApi.ListResourceActions(
+		ctx,
+		r.config.Context.GetProject(),
+		r.config.Context.GetEnvironment(),
+		resourceKey,
+	).Page(int32(page)).PerPage(int32(perPage)).AttributesFilter(attributesFilter).Execute()
+
+	err = errors.HttpErrorHandle(err, httpRes)
+	if err != nil {
+		r.logger.Error("error listing roles", zap.Error(err))
+		return nil, err
+	}
+	return actions, nil
+}
+
 // Get a resource action by resource key and action key.
 // Usage Example:
 //

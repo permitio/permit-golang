@@ -52,6 +52,30 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 	return roles, nil
 }
 
+// List all roles in the current environment by attributes filter
+// Usage Example:
+// `roles, err := PermitClient.Api.Roles.List(ctx,1, 10, map[string]string{"attribute": "xyz"})`
+func (r *Roles) ListByAttributes(ctx context.Context, page int, perPage int, attributesFilter map[string]interface{}) ([]models.RoleRead, error) {
+	perPageLimit := int32(DefaultPerPageLimit)
+	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
+		err := errors.NewPermitPaginationError()
+		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		return nil, err
+	}
+	err := r.lazyLoadPermitContext(ctx)
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	roles, httpRes, err := r.client.RolesApi.ListRoles(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).Page(int32(page)).PerPage(int32(perPage)).AttributesFilter(attributesFilter).Execute()
+	err = errors.HttpErrorHandle(err, httpRes)
+	if err != nil {
+		r.logger.Error("error listing roles", zap.Error(err))
+		return nil, err
+	}
+	return roles, nil
+}
+
 // Get a role by key.
 // Usage Example:
 // `role, err := PermitClient.Api.Roles.Get(ctx, "role-key")`
@@ -186,6 +210,46 @@ func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissio
 		return err
 	}
 	return nil
+}
+
+func (r *Roles) BulkAssignRole(ctx context.Context, assignments []models.RoleAssignmentCreate) (*models.BulkRoleAssignmentReport, error) {
+	err := r.lazyLoadPermitContext(ctx)
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+
+	req := r.client.RoleAssignmentsApi.BulkAssignRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).RoleAssignmentCreate(assignments)
+	report, resp, err := req.Execute()
+
+	err = errors.HttpErrorHandle(err, resp)
+
+	if err != nil {
+		r.logger.Error("failed assigning roles in bulk", zap.Error(err), zap.Int("count", len(assignments)))
+		return nil, err
+	}
+
+	return report, nil
+}
+
+func (r *Roles) BulkUnAssignRole(ctx context.Context, unassignments []models.RoleAssignmentRemove) (*models.BulkRoleUnAssignmentReport, error) {
+	err := r.lazyLoadPermitContext(ctx)
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+
+	req := r.client.RoleAssignmentsApi.BulkUnassignRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).RoleAssignmentRemove(unassignments)
+	report, resp, err := req.Execute()
+
+	err = errors.HttpErrorHandle(err, resp)
+
+	if err != nil {
+		r.logger.Error("failed assigning roles in bulk", zap.Error(err), zap.Int("count", len(unassignments)))
+		return nil, err
+	}
+
+	return report, nil
 }
 
 // AddParentRole add a parent role to a role, by role key and parent role key.

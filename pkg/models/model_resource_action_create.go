@@ -14,6 +14,9 @@ import (
 	"encoding/json"
 )
 
+// checks if the ResourceActionCreate type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ResourceActionCreate{}
+
 // ResourceActionCreate struct for ResourceActionCreate
 type ResourceActionCreate struct {
 	// A URL-friendly name of the action (i.e: slug). You will be able to query later using this key instead of the id (UUID) of the action.
@@ -22,6 +25,8 @@ type ResourceActionCreate struct {
 	Name string `json:"name"`
 	// An optional longer description of what this action respresents in your system
 	Description *string `json:"description,omitempty"`
+	// optional dictionary of key-value pairs that can be used to store arbitrary metadata about this action. This metadata can be used to filter actions using query parameters with attr_ prefix
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 // NewResourceActionCreate instantiates a new ResourceActionCreate object
@@ -123,18 +128,57 @@ func (o *ResourceActionCreate) SetDescription(v string) {
 	o.Description = &v
 }
 
+// GetAttributes returns the Attributes field value if set, zero value otherwise.
+func (o *ResourceActionCreate) GetAttributes() map[string]interface{} {
+	if o == nil || IsNil(o.Attributes) {
+		var ret map[string]interface{}
+		return ret
+	}
+	return o.Attributes
+}
+
+// GetAttributesOk returns a tuple with the Attributes field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ResourceActionCreate) GetAttributesOk() (map[string]interface{}, bool) {
+	if o == nil || IsNil(o.Attributes) {
+		return map[string]interface{}{}, false
+	}
+	return o.Attributes, true
+}
+
+// HasAttributes returns a boolean if a field has been set.
+func (o *ResourceActionCreate) HasAttributes() bool {
+	if o != nil && !IsNil(o.Attributes) {
+		return true
+	}
+
+	return false
+}
+
+// SetAttributes gets a reference to the given map[string]interface{} and assigns it to the Attributes field.
+func (o *ResourceActionCreate) SetAttributes(v map[string]interface{}) {
+	o.Attributes = v
+}
+
 func (o ResourceActionCreate) MarshalJSON() ([]byte, error) {
+	toSerialize,err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o ResourceActionCreate) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
-	if true {
-		toSerialize["key"] = o.Key
-	}
-	if true {
-		toSerialize["name"] = o.Name
-	}
+	toSerialize["key"] = o.Key
+	toSerialize["name"] = o.Name
 	if !IsNil(o.Description) {
 		toSerialize["description"] = o.Description
 	}
-	return json.Marshal(toSerialize)
+	if !IsNil(o.Attributes) {
+		toSerialize["attributes"] = o.Attributes
+	}
+	return toSerialize, nil
 }
 
 type NullableResourceActionCreate struct {

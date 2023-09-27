@@ -45,10 +45,10 @@ CreateResource Create Resource
 
 Creates a new resource (a type of object you may protect with permissions).
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateResourceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCreateResourceRequest
 */
 func (a *ResourcesApiService) CreateResource(ctx context.Context, projId string, envId string) ApiCreateResourceRequest {
 	return ApiCreateResourceRequest{
@@ -60,7 +60,8 @@ func (a *ResourcesApiService) CreateResource(ctx context.Context, projId string,
 }
 
 // Execute executes the request
-//  @return ResourceRead
+//
+//	@return ResourceRead
 func (a *ResourcesApiService) CreateResourceExecute(r ApiCreateResourceRequest) (*models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -168,11 +169,11 @@ DeleteResource Delete Resource
 
 Deletes the resource and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiDeleteResourceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiDeleteResourceRequest
 */
 func (a *ResourcesApiService) DeleteResource(ctx context.Context, projId string, envId string, resourceId string) ApiDeleteResourceRequest {
 	return ApiDeleteResourceRequest{
@@ -278,11 +279,11 @@ GetResource Get Resource
 
 Gets a single resource, if such resource exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiGetResourceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiGetResourceRequest
 */
 func (a *ResourcesApiService) GetResource(ctx context.Context, projId string, envId string, resourceId string) ApiGetResourceRequest {
 	return ApiGetResourceRequest{
@@ -295,7 +296,8 @@ func (a *ResourcesApiService) GetResource(ctx context.Context, projId string, en
 }
 
 // Execute executes the request
-//  @return ResourceRead
+//
+//	@return ResourceRead
 func (a *ResourcesApiService) GetResourceExecute(r ApiGetResourceRequest) (*models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -387,9 +389,16 @@ type ApiListResourcesRequest struct {
 	ApiService     *ResourcesApiService
 	projId         string
 	envId          string
+	search *string
 	includeBuiltIn *bool
 	page           *int32
 	perPage        *int32
+}
+
+// Text search for the object name or key
+func (r ApiListResourcesRequest) Search(search string) ApiListResourcesRequest {
+	r.search = &search
+	return r
 }
 
 // Whether to include or exclude built-in resources, default is False
@@ -419,10 +428,10 @@ ListResources List Resources
 
 Lists all the resources defined in your schema.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListResourcesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListResourcesRequest
 */
 func (a *ResourcesApiService) ListResources(ctx context.Context, projId string, envId string) ApiListResourcesRequest {
 	return ApiListResourcesRequest{
@@ -434,7 +443,8 @@ func (a *ResourcesApiService) ListResources(ctx context.Context, projId string, 
 }
 
 // Execute executes the request
-//  @return []ResourceRead
+//
+//	@return []ResourceRead
 func (a *ResourcesApiService) ListResourcesExecute(r ApiListResourcesRequest) ([]models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -456,6 +466,9 @@ func (a *ResourcesApiService) ListResourcesExecute(r ApiListResourcesRequest) ([
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.search != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "search", r.search, "")
+	}
 	if r.includeBuiltIn != nil {
 		localVarQueryParams.Add("include_built_in", parameterToString(*r.includeBuiltIn, ""))
 	}
@@ -558,11 +571,11 @@ role and permissions assignments for these actions will be revoked.
 
 TODO: we need to decide if we are auto-revoking, or if we are rejecting the PUT completely while there are permissions that can be affected.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiReplaceResourceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiReplaceResourceRequest
 */
 func (a *ResourcesApiService) ReplaceResource(ctx context.Context, projId string, envId string, resourceId string) ApiReplaceResourceRequest {
 	return ApiReplaceResourceRequest{
@@ -575,7 +588,8 @@ func (a *ResourcesApiService) ReplaceResource(ctx context.Context, projId string
 }
 
 // Execute executes the request
-//  @return ResourceRead
+//
+//	@return ResourceRead
 func (a *ResourcesApiService) ReplaceResourceExecute(r ApiReplaceResourceRequest) (*models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPut
@@ -691,11 +705,11 @@ UpdateResource Update Resource
 Partially updates the resource definition.
 Fields that will be provided will be completely overwritten.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiUpdateResourceRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiUpdateResourceRequest
 */
 func (a *ResourcesApiService) UpdateResource(ctx context.Context, projId string, envId string, resourceId string) ApiUpdateResourceRequest {
 	return ApiUpdateResourceRequest{
@@ -708,7 +722,8 @@ func (a *ResourcesApiService) UpdateResource(ctx context.Context, projId string,
 }
 
 // Execute executes the request
-//  @return ResourceRead
+//
+//	@return ResourceRead
 func (a *ResourcesApiService) UpdateResourceExecute(r ApiUpdateResourceRequest) (*models.ResourceRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

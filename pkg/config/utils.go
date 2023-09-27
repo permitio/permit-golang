@@ -14,10 +14,10 @@ const (
 )
 
 func GetApiKeyLevel(scope *models.APIKeyScopeRead) APIKeyLevel {
-	if *scope.EnvironmentId != "" {
+	if scope.HasEnvironmentId() {
 		return EnvironmentAPIKeyLevel
 	}
-	if *scope.ProjectId != "" {
+	if scope.HasProjectId() {
 		return ProjectAPIKeyLevel
 	}
 	return OrganizationAPIKeyLevel

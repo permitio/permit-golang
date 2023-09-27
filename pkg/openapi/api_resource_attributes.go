@@ -46,11 +46,11 @@ CreateResourceAttribute Create Resource Attribute
 
 Creates a new attribute as part of the resource definition.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiCreateResourceAttributeRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiCreateResourceAttributeRequest
 */
 func (a *ResourceAttributesApiService) CreateResourceAttribute(ctx context.Context, projId string, envId string, resourceId string) ApiCreateResourceAttributeRequest {
 	return ApiCreateResourceAttributeRequest{
@@ -63,7 +63,8 @@ func (a *ResourceAttributesApiService) CreateResourceAttribute(ctx context.Conte
 }
 
 // Execute executes the request
-//  @return ResourceAttributeRead
+//
+//	@return ResourceAttributeRead
 func (a *ResourceAttributesApiService) CreateResourceAttributeExecute(r ApiCreateResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -190,12 +191,12 @@ Deletes the attribute and all its related data.
 Note: If the attribute is used by policies, removing it will cause the
 attribute to evaluate as `undefined`.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
- @return ApiDeleteResourceAttributeRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
+	@return ApiDeleteResourceAttributeRequest
 */
 func (a *ResourceAttributesApiService) DeleteResourceAttribute(ctx context.Context, projId string, envId string, resourceId string, attributeId string) ApiDeleteResourceAttributeRequest {
 	return ApiDeleteResourceAttributeRequest{
@@ -310,12 +311,12 @@ GetResourceAttribute Get Resource Attribute
 
 Gets a single attribute defined on the resource, if such attribute exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
- @return ApiGetResourceAttributeRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
+	@return ApiGetResourceAttributeRequest
 */
 func (a *ResourceAttributesApiService) GetResourceAttribute(ctx context.Context, projId string, envId string, resourceId string, attributeId string) ApiGetResourceAttributeRequest {
 	return ApiGetResourceAttributeRequest{
@@ -329,7 +330,8 @@ func (a *ResourceAttributesApiService) GetResourceAttribute(ctx context.Context,
 }
 
 // Execute executes the request
-//  @return ResourceAttributeRead
+//
+//	@return ResourceAttributeRead
 func (a *ResourceAttributesApiService) GetResourceAttributeExecute(r ApiGetResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -448,11 +450,11 @@ ListResourceAttributes List Resource Attributes
 
 Lists all the attributes defined on the resource.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiListResourceAttributesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiListResourceAttributesRequest
 */
 func (a *ResourceAttributesApiService) ListResourceAttributes(ctx context.Context, projId string, envId string, resourceId string) ApiListResourceAttributesRequest {
 	return ApiListResourceAttributesRequest{
@@ -465,7 +467,8 @@ func (a *ResourceAttributesApiService) ListResourceAttributes(ctx context.Contex
 }
 
 // Execute executes the request
-//  @return []ResourceAttributeRead
+//
+//	@return []ResourceAttributeRead
 func (a *ResourceAttributesApiService) ListResourceAttributesExecute(r ApiListResourceAttributesRequest) ([]models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -583,12 +586,12 @@ UpdateResourceAttribute Update Resource Attribute
 Partially updates the attribute defined on a resource.
 Fields that will be provided will be completely overwritten.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
- @return ApiUpdateResourceAttributeRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param attributeId Either the unique id of the attribute, or the URL-friendly key of the attribute (i.e: the \"slug\").
+	@return ApiUpdateResourceAttributeRequest
 */
 func (a *ResourceAttributesApiService) UpdateResourceAttribute(ctx context.Context, projId string, envId string, resourceId string, attributeId string) ApiUpdateResourceAttributeRequest {
 	return ApiUpdateResourceAttributeRequest{
@@ -602,7 +605,8 @@ func (a *ResourceAttributesApiService) UpdateResourceAttribute(ctx context.Conte
 }
 
 // Execute executes the request
-//  @return ResourceAttributeRead
+//
+//	@return ResourceAttributeRead
 func (a *ResourceAttributesApiService) UpdateResourceAttributeExecute(r ApiUpdateResourceAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

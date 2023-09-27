@@ -98,16 +98,25 @@ func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead
 // ```
 func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*models.UserRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
+
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
-	user, httpRes, err := u.client.UsersApi.CreateUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment()).UserCreate(userCreate).Execute()
+
+	user, httpRes, err := u.client.UsersApi.CreateUser(
+		ctx,
+		u.config.Context.GetProject(),
+		u.config.Context.GetEnvironment(),
+	).UserCreate(userCreate).Execute()
+
 	err = errors.HttpErrorHandle(err, httpRes)
+
 	if err != nil {
 		u.logger.Error("error creating user:"+userCreate.GetKey(), zap.Error(err))
 		return nil, err
 	}
+
 	return user, nil
 }
 
@@ -220,7 +229,7 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 		u.logger.Error("error listing roles for user:"+userKey, zap.Error(err))
 		return nil, err
 	}
-	return roleAssignments, nil
+	return *roleAssignments.RoleAssignmentRead, nil
 }
 
 // SyncUser syncs a user in your context's environment, by user.

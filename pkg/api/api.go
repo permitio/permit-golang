@@ -21,15 +21,15 @@ type IPermitBaseApi interface {
 func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
 	var methodApiLevel config.APIKeyLevel
 	permitContext := a.config.Context.GetContext()
+
 	if permitContext == nil {
 		newPermitContext, err := config.PermitContextFactory(ctx, a.client, "", "", false)
 		if err != nil {
 			return err
 		}
 		a.config.Context = newPermitContext
-	} else {
-		a.logger.Info("Context already loaded")
 	}
+
 	if len(methodApiLevelArg) == 0 {
 		methodApiLevel = config.EnvironmentAPIKeyLevel
 	} else {
@@ -54,19 +54,22 @@ func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLeve
 }
 
 type PermitApiClient struct {
-	config             *config.PermitConfig
-	logger             *zap.Logger
-	client             *openapi.APIClient
-	Tenants            *Tenants
-	Environments       *Environments
-	Projects           *Projects
+	config               *config.PermitConfig
+	logger               *zap.Logger
+	client               *openapi.APIClient
+	Tenants              *Tenants
+	Environments         *Environments
+	Projects             *Projects
+	ResourceActions      *ResourceActions
+	ResourceActionGroups *ResourceActionGroups
 	ProxyConfigs       *ProxyConfigs
-	ResourceActions    *ResourceActions
-	ResourceAttributes *ResourceAttributes
-	Resources          *Resources
-	Roles              *Roles
-	Users              *Users
-	Elements           *Elements
+	ResourceAttributes   *ResourceAttributes
+	Resources            *Resources
+	Roles                *Roles
+	Users                *Users
+	Elements             *Elements
+	RoleAssignments      *RoleAssignments
+	ConditionSets        *ConditionSets
 }
 
 func (p *PermitApiClient) SetContext(ctx context.Context, project string, environment string) {
@@ -82,20 +85,25 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 	clientConfig.Host = getHostFromUrl(config.GetApiUrl())
 	clientConfig.Scheme = getSchemaFromUrl(config.GetApiUrl())
 	clientConfig.AddDefaultHeader("Authorization", "Bearer "+config.GetToken())
+	clientConfig.HTTPClient = config.GetHTTPClient()
 	client := openapi.NewAPIClient(clientConfig)
 	userApi := NewUsersApi(client, config)
 	return &PermitApiClient{
-		config:             config,
-		logger:             config.Logger,
-		Tenants:            NewTenantsApi(client, config),
-		Environments:       NewEnvironmentsApi(client, config),
-		Projects:           NewProjectsApi(client, config),
-		ResourceActions:    NewResourceActionsApi(client, config),
+		config:               config,
+		logger:               config.Logger,
+		client:               client,
+		Tenants:              NewTenantsApi(client, config),
+		Environments:         NewEnvironmentsApi(client, config),
+		Projects:             NewProjectsApi(client, config),
+		ResourceActions:      NewResourceActionsApi(client, config),
+		ResourceActionGroups: NewResourceActionGroupsApi(client, config),
+		ResourceAttributes:   NewResourceAttributesApi(client, config),
 		ProxyConfigs:       NewProxyConfigsApi(client, config),
-		ResourceAttributes: NewResourceAttributesApi(client, config),
-		Resources:          NewResourcesApi(client, config),
-		Roles:              NewRolesApi(client, config),
-		Users:              userApi,
-		Elements:           NewElementsApi(client, config),
+		Resources:            NewResourcesApi(client, config),
+		Roles:                NewRolesApi(client, config),
+		Users:                userApi,
+		Elements:             NewElementsApi(client, config),
+		RoleAssignments:      NewRoleAssignmentsApi(client, config),
+		ConditionSets:        NewConditionSetsApi(client, config),
 	}
 }

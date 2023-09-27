@@ -15,6 +15,9 @@ import (
 	"time"
 )
 
+// checks if the ConditionSetRuleRead type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ConditionSetRuleRead{}
+
 // ConditionSetRuleRead struct for ConditionSetRuleRead
 type ConditionSetRuleRead struct {
 	// Unique id of the condition set rule
@@ -307,38 +310,26 @@ func (o *ConditionSetRuleRead) SetUpdatedAt(v time.Time) {
 }
 
 func (o ConditionSetRuleRead) MarshalJSON() ([]byte, error) {
-	toSerialize := map[string]interface{}{}
-	if true {
-		toSerialize["id"] = o.Id
-	}
-	if true {
-		toSerialize["key"] = o.Key
-	}
-	if true {
-		toSerialize["user_set"] = o.UserSet
-	}
-	if true {
-		toSerialize["permission"] = o.Permission
-	}
-	if true {
-		toSerialize["resource_set"] = o.ResourceSet
-	}
-	if true {
-		toSerialize["organization_id"] = o.OrganizationId
-	}
-	if true {
-		toSerialize["project_id"] = o.ProjectId
-	}
-	if true {
-		toSerialize["environment_id"] = o.EnvironmentId
-	}
-	if true {
-		toSerialize["created_at"] = o.CreatedAt
-	}
-	if true {
-		toSerialize["updated_at"] = o.UpdatedAt
+	toSerialize, err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
 	}
 	return json.Marshal(toSerialize)
+}
+
+func (o ConditionSetRuleRead) ToMap() (map[string]interface{}, error) {
+	toSerialize := map[string]interface{}{}
+	toSerialize["id"] = o.Id
+	toSerialize["key"] = o.Key
+	toSerialize["user_set"] = o.UserSet
+	toSerialize["permission"] = o.Permission
+	toSerialize["resource_set"] = o.ResourceSet
+	toSerialize["organization_id"] = o.OrganizationId
+	toSerialize["project_id"] = o.ProjectId
+	toSerialize["environment_id"] = o.EnvironmentId
+	toSerialize["created_at"] = o.CreatedAt
+	toSerialize["updated_at"] = o.UpdatedAt
+	return toSerialize, nil
 }
 
 type NullableConditionSetRuleRead struct {

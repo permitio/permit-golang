@@ -2,136 +2,99 @@ package errors
 
 import (
 	e "errors"
+	"fmt"
+	"net/http"
 	"strings"
 )
 
 type PermitError struct {
 	error
+	StatusCode   int
+	ResponseBody string
+	ErrorCode    ErrorCode
+	ErrorType    ErrorType
 }
 
-type PermitUnexpectedError struct {
-	PermitError
-}
-
-type PermitNotFoundError struct {
-	PermitError
-}
-
-type PermitTeapotError struct {
-	PermitError
-}
-
-type PermitUnprocessableEntityError struct {
-	PermitError
-}
-
-type PermitForbiddenError struct {
-	PermitError
-}
-
-type PermitUnauthorizedError struct {
-	PermitError
-}
-
-type PermitDuplicateEntityError struct {
-	PermitError
-}
-
-type PermitContextError struct {
-	PermitError
-}
-
-type PermitPaginationError struct {
-	PermitError
-}
-type PermitConnectionError struct {
-	PermitError
-}
-
-func NewPermitUnexpectedError(err error) *PermitUnexpectedError {
+func NewPermitUnexpectedError(err error, response *http.Response) PermitError {
 	if err == nil {
-		return &PermitUnexpectedError{
-			NewPermitError(UnexpectedErrorMessage, UnexpectedError, GENERAL_ERROR),
+		return NewPermitError(UnexpectedErrorMessage, UnexpectedError, GENERAL_ERROR, response)
+	}
+	return NewPermitError(ErrorMessage(err.Error()), UnexpectedError, GENERAL_ERROR, response)
+}
+
+func NewPermitError(errorMessage ErrorMessage, errorCode ErrorCode, errorType ErrorType, response *http.Response) PermitError {
+	permitError := e.New(fmt.Sprintf("ErrorCode: %s, ErrorType: %s, Message: %s", errorCode, errorType, errorMessage))
+
+	if response == nil {
+		return PermitError{
+			error:     permitError,
+			ErrorCode: errorCode,
+			ErrorType: errorType,
+		}
+	} else {
+		return PermitError{
+			StatusCode:   response.StatusCode,
+			ResponseBody: getJsonFromHttpResponse(response),
+			error:        permitError,
+			ErrorCode:    errorCode,
+			ErrorType:    errorType,
 		}
 	}
-	return &PermitUnexpectedError{NewPermitError(ErrorMessage(err.Error()), UnexpectedError, GENERAL_ERROR)}
 }
 
-func NewPermitError(errorMessage ErrorMessage, errorCode ErrorCode, errorType ErrorType) PermitError {
-	return PermitError{e.New("ErrorCode: " + string(errorCode) + " ErrorType:" + string(errorType) + " Message:" + string(errorMessage))}
-}
-
-func NewPermitNotFoundError(err error) *PermitNotFoundError {
+func NewPermitNotFoundError(err error, response *http.Response) PermitError {
 	if err == nil {
-		return &PermitNotFoundError{
-			NewPermitError(NotFoundMessage, NotFound, API_ERROR),
-		}
+		return NewPermitError(NotFoundMessage, NotFound, API_ERROR, response)
 	}
-	return &PermitNotFoundError{
-		NewPermitError(ErrorMessage(err.Error()), NotFound, API_ERROR),
-	}
+
+	return NewPermitError(ErrorMessage(err.Error()), NotFound, API_ERROR, response)
 }
 
-func NewPermitConflictError() *PermitNotFoundError {
-	return &PermitNotFoundError{
-		NewPermitError(ConflictMessage, Conflict, API_ERROR),
-	}
+func NewPermitConflictError(response *http.Response) PermitError {
+	return NewPermitError(ConflictMessage, Conflict, API_ERROR, response)
 }
 
-func NewPermitPaginationError() *PermitPaginationError {
-	return &PermitPaginationError{
-		NewPermitError(PaginationMessage, PaginationError, API_ERROR),
-	}
+func NewPermitPaginationError() PermitError {
+	return NewPermitError(PaginationMessage, PaginationError, API_ERROR, nil)
 }
 
-func NewPermitUnprocessableEntityError(err error) *PermitUnprocessableEntityError {
+func NewPermitUnprocessableEntityError(err error, response *http.Response) PermitError {
 	errorMessage := ErrorMessage(err.Error())
+
 	if err == nil {
 		errorMessage = UnprocessableEntityMessage
 	}
+
 	if strings.Contains(err.Error(), "not a valid email address") {
 		errorMessage = "Email is not valid"
 	}
-	return &PermitUnprocessableEntityError{
-		NewPermitError(errorMessage, UnprocessableEntityError, API_ERROR),
-	}
+
+	return NewPermitError(errorMessage, UnprocessableEntityError, API_ERROR, response)
 }
 
-func NewPermitForbiddenError() *PermitForbiddenError {
-	return &PermitForbiddenError{
-		NewPermitError(ForbiddenMessage, ForbiddenAccess, API_ERROR),
-	}
+func NewPermitForbiddenError(response *http.Response) PermitError {
+	return NewPermitError(ForbiddenMessage, ForbiddenAccess, API_ERROR, response)
 }
 
-func NewPermitUnauthorizedError() *PermitUnauthorizedError {
-	return &PermitUnauthorizedError{
-		NewPermitError(UnauthorizedMessage, Unauthorized, API_ERROR),
-	}
+func NewPermitUnauthorizedError(response *http.Response) PermitError {
+	return NewPermitError(UnauthorizedMessage, Unauthorized, API_ERROR, response)
 }
 
-func NewPermitContextError(additionalMessage ErrorMessage) *PermitContextError {
-	return &PermitContextError{
-		NewPermitError(ContextMessage+" - "+additionalMessage, ContextError, GENERAL_ERROR),
-	}
+func NewPermitContextError(additionalMessage ErrorMessage) PermitError {
+	return NewPermitError(ContextMessage+" - "+additionalMessage, ContextError, GENERAL_ERROR, nil)
 }
 
-func NewPermitDuplicateEntityError(err error) *PermitDuplicateEntityError {
+func NewPermitDuplicateEntityError(err error, response *http.Response) PermitError {
 	if err == nil {
-		return &PermitDuplicateEntityError{
-			NewPermitError(DuplicateEntityMessage, DuplicateEntity, API_ERROR),
-		}
+		return NewPermitError(DuplicateEntityMessage, DuplicateEntity, API_ERROR, response)
 	}
-	return &PermitDuplicateEntityError{
-		NewPermitError(ErrorMessage(err.Error()), DuplicateEntity, API_ERROR),
-	}
+	return NewPermitError(ErrorMessage(err.Error()), DuplicateEntity, API_ERROR, response)
 }
-func NewPermitConnectionError(err error) *PermitDuplicateEntityError {
+
+func NewPermitConnectionError(err error) PermitError {
 	if err == nil {
-		return &PermitDuplicateEntityError{
-			NewPermitError(ConnectionErrorMessage, ConnectionError, GENERAL_ERROR),
-		}
+		return NewPermitError(ConnectionErrorMessage, ConnectionError, GENERAL_ERROR, nil)
 	}
-	return &PermitDuplicateEntityError{
-		NewPermitError(ErrorMessage(err.Error()), ConnectionError, GENERAL_ERROR),
-	}
+
+	return NewPermitError(ErrorMessage(err.Error()), ConnectionError, GENERAL_ERROR, nil)
 }

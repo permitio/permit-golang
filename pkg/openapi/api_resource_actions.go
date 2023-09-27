@@ -46,11 +46,11 @@ CreateResourceAction Create Resource Action
 
 Creates a new action that can affect the resource.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiCreateResourceActionRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiCreateResourceActionRequest
 */
 func (a *ResourceActionsApiService) CreateResourceAction(ctx context.Context, projId string, envId string, resourceId string) ApiCreateResourceActionRequest {
 	return ApiCreateResourceActionRequest{
@@ -63,7 +63,8 @@ func (a *ResourceActionsApiService) CreateResourceAction(ctx context.Context, pr
 }
 
 // Execute executes the request
-//  @return ResourceActionRead
+//
+//	@return ResourceActionRead
 func (a *ResourceActionsApiService) CreateResourceActionExecute(r ApiCreateResourceActionRequest) (*models.ResourceActionRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -174,12 +175,12 @@ DeleteResourceAction Delete Resource Action
 Deletes the action and all its related data.
 This includes any permissions granted to perform the action.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
- @return ApiDeleteResourceActionRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
+	@return ApiDeleteResourceActionRequest
 */
 func (a *ResourceActionsApiService) DeleteResourceAction(ctx context.Context, projId string, envId string, resourceId string, actionId string) ApiDeleteResourceActionRequest {
 	return ApiDeleteResourceActionRequest{
@@ -288,12 +289,12 @@ GetResourceAction Get Resource Action
 
 Gets a single action defined on the resource, if such action exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
- @return ApiGetResourceActionRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
+	@return ApiGetResourceActionRequest
 */
 func (a *ResourceActionsApiService) GetResourceAction(ctx context.Context, projId string, envId string, resourceId string, actionId string) ApiGetResourceActionRequest {
 	return ApiGetResourceActionRequest{
@@ -307,7 +308,8 @@ func (a *ResourceActionsApiService) GetResourceAction(ctx context.Context, projI
 }
 
 // Execute executes the request
-//  @return ResourceActionRead
+//
+//	@return ResourceActionRead
 func (a *ResourceActionsApiService) GetResourceActionExecute(r ApiGetResourceActionRequest) (*models.ResourceActionRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -403,6 +405,7 @@ type ApiListResourceActionsRequest struct {
 	resourceId string
 	page       *int32
 	perPage    *int32
+	attributesFilter map[string]interface{}
 }
 
 // Page number of the results to fetch, starting at 1.
@@ -417,6 +420,12 @@ func (r ApiListResourceActionsRequest) PerPage(perPage int32) ApiListResourceAct
 	return r
 }
 
+// AttributeFilters on the result of the actions list
+func (r ApiListResourceActionsRequest) AttributesFilter(attributesFilter map[string]interface{}) ApiListResourceActionsRequest {
+	r.attributesFilter = attributesFilter
+	return r
+}
+
 func (r ApiListResourceActionsRequest) Execute() ([]models.ResourceActionRead, *http.Response, error) {
 	return r.ApiService.ListResourceActionsExecute(r)
 }
@@ -426,11 +435,11 @@ ListResourceActions List Resource Actions
 
 Lists all the actions defined on the resource.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiListResourceActionsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiListResourceActionsRequest
 */
 func (a *ResourceActionsApiService) ListResourceActions(ctx context.Context, projId string, envId string, resourceId string) ApiListResourceActionsRequest {
 	return ApiListResourceActionsRequest{
@@ -443,7 +452,8 @@ func (a *ResourceActionsApiService) ListResourceActions(ctx context.Context, pro
 }
 
 // Execute executes the request
-//  @return []ResourceActionRead
+//
+//	@return []ResourceActionRead
 func (a *ResourceActionsApiService) ListResourceActionsExecute(r ApiListResourceActionsRequest) ([]models.ResourceActionRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -451,6 +461,7 @@ func (a *ResourceActionsApiService) ListResourceActionsExecute(r ApiListResource
 		formFiles           []formFile
 		localVarReturnValue []models.ResourceActionRead
 	)
+	const attributeFilterPrefix = "attr_"
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceActionsApiService.ListResourceActions")
 	if err != nil {
@@ -465,6 +476,12 @@ func (a *ResourceActionsApiService) ListResourceActionsExecute(r ApiListResource
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
+
+	if r.attributesFilter != nil {
+		for k, v := range r.attributesFilter {
+			localVarQueryParams.Add(attributeFilterPrefix+k, parameterToString(v, ""))
+		}
+	}
 
 	if r.page != nil {
 		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
@@ -561,12 +578,12 @@ UpdateResourceAction Update Resource Action
 Partially updates the action defined on a resource.
 Fields that will be provided will be completely overwritten.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
- @return ApiUpdateResourceActionRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param actionId Either the unique id of the action, or the URL-friendly key of the action (i.e: the \"slug\").
+	@return ApiUpdateResourceActionRequest
 */
 func (a *ResourceActionsApiService) UpdateResourceAction(ctx context.Context, projId string, envId string, resourceId string, actionId string) ApiUpdateResourceActionRequest {
 	return ApiUpdateResourceActionRequest{
@@ -580,7 +597,8 @@ func (a *ResourceActionsApiService) UpdateResourceAction(ctx context.Context, pr
 }
 
 // Execute executes the request
-//  @return ResourceActionRead
+//
+//	@return ResourceActionRead
 func (a *ResourceActionsApiService) UpdateResourceActionExecute(r ApiUpdateResourceActionRequest) (*models.ResourceActionRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

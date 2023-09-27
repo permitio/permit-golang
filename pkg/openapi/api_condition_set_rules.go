@@ -47,10 +47,10 @@ Grant permissions to a user set *on* a resource set.
 
 If the permission is already granted, it is skipped.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiAssignSetPermissionsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiAssignSetPermissionsRequest
 */
 func (a *ConditionSetRulesApiService) AssignSetPermissions(ctx context.Context, projId string, envId string) ApiAssignSetPermissionsRequest {
 	return ApiAssignSetPermissionsRequest{
@@ -62,7 +62,8 @@ func (a *ConditionSetRulesApiService) AssignSetPermissions(ctx context.Context, 
 }
 
 // Execute executes the request
-//  @return []ConditionSetRuleRead
+//
+//	@return []ConditionSetRuleRead
 func (a *ConditionSetRulesApiService) AssignSetPermissionsExecute(r ApiAssignSetPermissionsRequest) ([]models.ConditionSetRuleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -207,10 +208,10 @@ Lists the condition set rules matching the filter.
 - If the `permission` filter is present, will only return the permissions sets that equals to the queried permission.
 - If the `resource_set` filter is present, will only return the permissions set of that resource set.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListSetPermissionsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListSetPermissionsRequest
 */
 func (a *ConditionSetRulesApiService) ListSetPermissions(ctx context.Context, projId string, envId string) ApiListSetPermissionsRequest {
 	return ApiListSetPermissionsRequest{
@@ -222,7 +223,8 @@ func (a *ConditionSetRulesApiService) ListSetPermissions(ctx context.Context, pr
 }
 
 // Execute executes the request
-//  @return []ConditionSetRuleRead
+//
+//	@return []ConditionSetRuleRead
 func (a *ConditionSetRulesApiService) ListSetPermissionsExecute(r ApiListSetPermissionsRequest) ([]models.ConditionSetRuleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -347,10 +349,10 @@ Revokes permissions to a user set *on* a resource set.
 
 If the permission is not granted, it is skipped.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUnassignSetPermissionsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiUnassignSetPermissionsRequest
 */
 func (a *ConditionSetRulesApiService) UnassignSetPermissions(ctx context.Context, projId string, envId string) ApiUnassignSetPermissionsRequest {
 	return ApiUnassignSetPermissionsRequest{

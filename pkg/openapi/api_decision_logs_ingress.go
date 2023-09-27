@@ -42,8 +42,8 @@ InsertOpaDecisionLogs OPA Decision Logs Ingress
 
 This ingress endpoint captures OPA decision logs.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiInsertOpaDecisionLogsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiInsertOpaDecisionLogsRequest
 */
 func (a *DecisionLogsIngressApiService) InsertOpaDecisionLogs(ctx context.Context) ApiInsertOpaDecisionLogsRequest {
 	return ApiInsertOpaDecisionLogsRequest{

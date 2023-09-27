@@ -14,7 +14,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/permitio/permit-golang/pkg/models"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -47,10 +47,10 @@ Assigns a role to a user within a tenant.
 
 The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiAssignRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiAssignRoleRequest
 */
 func (a *RoleAssignmentsApiService) AssignRole(ctx context.Context, projId string, envId string) ApiAssignRoleRequest {
 	return ApiAssignRoleRequest{
@@ -62,7 +62,8 @@ func (a *RoleAssignmentsApiService) AssignRole(ctx context.Context, projId strin
 }
 
 // Execute executes the request
-//  @return RoleAssignmentRead
+//
+//	@return RoleAssignmentRead
 func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*models.RoleAssignmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -77,8 +78,8 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 	}
 
 	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -116,9 +117,263 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiBulkAssignRoleRequest struct {
+	ctx                  context.Context
+	ApiService           *RoleAssignmentsApiService
+	projId               string
+	envId                string
+	roleAssignmentCreate *[]models.RoleAssignmentCreate
+}
+
+func (r ApiBulkAssignRoleRequest) RoleAssignmentCreate(roleAssignmentCreate []models.RoleAssignmentCreate) ApiBulkAssignRoleRequest {
+	r.roleAssignmentCreate = &roleAssignmentCreate
+	return r
+}
+
+func (r ApiBulkAssignRoleRequest) Execute() (*models.BulkRoleAssignmentReport, *http.Response, error) {
+	return r.ApiService.BulkAssignRoleExecute(r)
+}
+
+/*
+BulkAssignRole Bulk Assign Role
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiBulkAssignRoleRequest
+*/
+func (a *RoleAssignmentsApiService) BulkAssignRole(ctx context.Context, projId string, envId string) ApiBulkAssignRoleRequest {
+	return ApiBulkAssignRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+	}
+}
+
+// Execute executes the request
+//
+//	@return BulkRoleAssignmentReport
+func (a *RoleAssignmentsApiService) BulkAssignRoleExecute(r ApiBulkAssignRoleRequest) (*models.BulkRoleAssignmentReport, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.BulkRoleAssignmentReport
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.BulkAssignRole")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.roleAssignmentCreate == nil {
+		return localVarReturnValue, nil, reportError("roleAssignmentCreate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.roleAssignmentCreate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiBulkUnassignRoleRequest struct {
+	ctx                  context.Context
+	ApiService           *RoleAssignmentsApiService
+	projId               string
+	envId                string
+	roleAssignmentRemove *[]models.RoleAssignmentRemove
+}
+
+func (r ApiBulkUnassignRoleRequest) RoleAssignmentRemove(roleAssignmentRemove []models.RoleAssignmentRemove) ApiBulkUnassignRoleRequest {
+	r.roleAssignmentRemove = &roleAssignmentRemove
+	return r
+}
+
+func (r ApiBulkUnassignRoleRequest) Execute() (*models.BulkRoleUnAssignmentReport, *http.Response, error) {
+	return r.ApiService.BulkUnassignRoleExecute(r)
+}
+
+/*
+BulkUnassignRole Bulk Unassign Role
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiBulkUnassignRoleRequest
+*/
+func (a *RoleAssignmentsApiService) BulkUnassignRole(ctx context.Context, projId string, envId string) ApiBulkUnassignRoleRequest {
+	return ApiBulkUnassignRoleRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+	}
+}
+
+// Execute executes the request
+//
+//	@return BulkRoleUnAssignmentReport
+func (a *RoleAssignmentsApiService) BulkUnassignRoleExecute(r ApiBulkUnassignRoleRequest) (*models.BulkRoleUnAssignmentReport, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodDelete
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.BulkRoleUnAssignmentReport
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.BulkUnassignRole")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.roleAssignmentRemove == nil {
+		return localVarReturnValue, nil, reportError("roleAssignmentRemove is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.roleAssignmentRemove
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -161,6 +416,7 @@ type ApiListRoleAssignmentsRequest struct {
 	user       *string
 	role       *string
 	tenant     *string
+	detailed   *bool
 	page       *int32
 	perPage    *int32
 }
@@ -183,6 +439,12 @@ func (r ApiListRoleAssignmentsRequest) Tenant(tenant string) ApiListRoleAssignme
 	return r
 }
 
+// Whether to return full details about the user, tenant and role
+func (r ApiListRoleAssignmentsRequest) Detailed(detailed bool) ApiListRoleAssignmentsRequest {
+	r.detailed = &detailed
+	return r
+}
+
 // Page number of the results to fetch, starting at 1.
 func (r ApiListRoleAssignmentsRequest) Page(page int32) ApiListRoleAssignmentsRequest {
 	r.page = &page
@@ -195,7 +457,7 @@ func (r ApiListRoleAssignmentsRequest) PerPage(perPage int32) ApiListRoleAssignm
 	return r
 }
 
-func (r ApiListRoleAssignmentsRequest) Execute() ([]models.RoleAssignmentRead, *http.Response, error) {
+func (r ApiListRoleAssignmentsRequest) Execute() (*models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet, *http.Response, error) {
 	return r.ApiService.ListRoleAssignmentsExecute(r)
 }
 
@@ -208,10 +470,10 @@ Lists the role assignments defined within an environment.
 - If the `tenant` filter is present, will only return the role assignments in that tenant.
 - If the `role` filter is present, will only return role assignments that are granting that role.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListRoleAssignmentsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListRoleAssignmentsRequest
 */
 func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, projId string, envId string) ApiListRoleAssignmentsRequest {
 	return ApiListRoleAssignmentsRequest{
@@ -223,13 +485,13 @@ func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, pro
 }
 
 // Execute executes the request
-//  @return []RoleAssignmentRead
-func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) ([]models.RoleAssignmentRead, *http.Response, error) {
+//  @return ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
+func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) (*models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodGet
-		localVarPostBody    interface{}
-		formFiles           []formFile
-		localVarReturnValue []models.RoleAssignmentRead
+		localVarHTTPMethod   = http.MethodGet
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.ListRoleAssignments")
@@ -238,27 +500,30 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 	}
 
 	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
 	if r.user != nil {
-		localVarQueryParams.Add("user", parameterToString(*r.user, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "user", r.user, "")
 	}
 	if r.role != nil {
-		localVarQueryParams.Add("role", parameterToString(*r.role, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "role", r.role, "")
 	}
 	if r.tenant != nil {
-		localVarQueryParams.Add("tenant", parameterToString(*r.tenant, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "tenant", r.tenant, "")
+	}
+	if r.detailed != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "detailed", r.detailed, "")
 	}
 	if r.page != nil {
-		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")
 	}
 	if r.perPage != nil {
-		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "per_page", r.perPage, "")
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
@@ -287,9 +552,9 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -350,10 +615,10 @@ The tenant defines the scope of the assignment. In other words, the role is effe
 
 If the role is not actually assigned, will return 404.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUnassignRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiUnassignRoleRequest
 */
 func (a *RoleAssignmentsApiService) UnassignRole(ctx context.Context, projId string, envId string) ApiUnassignRoleRequest {
 	return ApiUnassignRoleRequest{
@@ -378,8 +643,8 @@ func (a *RoleAssignmentsApiService) UnassignRoleExecute(r ApiUnassignRoleRequest
 	}
 
 	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -417,9 +682,9 @@ func (a *RoleAssignmentsApiService) UnassignRoleExecute(r ApiUnassignRoleRequest
 		return localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarHTTPResponse, err
 	}

@@ -14,7 +14,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/permitio/permit-golang/pkg/models"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -22,6 +22,149 @@ import (
 
 // EnvironmentsApiService EnvironmentsApi service
 type EnvironmentsApiService service
+
+type ApiCopyEnvironmentRequest struct {
+	ctx             context.Context
+	ApiService      *EnvironmentsApiService
+	projId          string
+	envId           string
+	environmentCopy *models.EnvironmentCopy
+}
+
+func (r ApiCopyEnvironmentRequest) EnvironmentCopy(environmentCopy models.EnvironmentCopy) ApiCopyEnvironmentRequest {
+	r.environmentCopy = &environmentCopy
+	return r
+}
+
+func (r ApiCopyEnvironmentRequest) Execute() (*models.EnvironmentRead, *http.Response, error) {
+	return r.ApiService.CopyEnvironmentExecute(r)
+}
+
+/*
+CopyEnvironment Copy Environment
+
+# Copy environment
+
+This endpoint either duplicates an existing environment to a new environment
+in the same project, or copies from an existing environment to another
+existing environment.
+
+The `scope` object controls which objects will be copied to the target
+environment.
+
+To clone to a new environment, the user must have write permissions
+to the containing project. To clone into an existing environment,
+the user must have write permissions to the target environment.
+
+Copying environments across projects or organizations is not
+allowed.
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCopyEnvironmentRequest
+*/
+func (a *EnvironmentsApiService) CopyEnvironment(ctx context.Context, projId string, envId string) ApiCopyEnvironmentRequest {
+	return ApiCopyEnvironmentRequest{
+		ApiService: a,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+	}
+}
+
+// Execute executes the request
+//
+//	@return EnvironmentRead
+func (a *EnvironmentsApiService) CopyEnvironmentExecute(r ApiCopyEnvironmentRequest) (*models.EnvironmentRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.EnvironmentRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "EnvironmentsApiService.CopyEnvironment")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/projects/{proj_id}/envs/{env_id}/copy"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.environmentCopy == nil {
+		return localVarReturnValue, nil, reportError("environmentCopy is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.environmentCopy
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
 
 type ApiCreateEnvironmentRequest struct {
 	ctx               context.Context
@@ -44,9 +187,9 @@ CreateEnvironment Create Environment
 
 Creates a new environment under a given project.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiCreateEnvironmentRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiCreateEnvironmentRequest
 */
 func (a *EnvironmentsApiService) CreateEnvironment(ctx context.Context, projId string) ApiCreateEnvironmentRequest {
 	return ApiCreateEnvironmentRequest{
@@ -57,7 +200,8 @@ func (a *EnvironmentsApiService) CreateEnvironment(ctx context.Context, projId s
 }
 
 // Execute executes the request
-//  @return EnvironmentRead
+//
+//	@return EnvironmentRead
 func (a *EnvironmentsApiService) CreateEnvironmentExecute(r ApiCreateEnvironmentRequest) (*models.EnvironmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -72,7 +216,7 @@ func (a *EnvironmentsApiService) CreateEnvironmentExecute(r ApiCreateEnvironment
 	}
 
 	localVarPath := localBasePath + "/v2/projects/{proj_id}/envs"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -110,9 +254,9 @@ func (a *EnvironmentsApiService) CreateEnvironmentExecute(r ApiCreateEnvironment
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -163,10 +307,10 @@ DeleteEnvironment Delete Environment
 
 Deletes an environment and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiDeleteEnvironmentRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiDeleteEnvironmentRequest
 */
 func (a *EnvironmentsApiService) DeleteEnvironment(ctx context.Context, projId string, envId string) ApiDeleteEnvironmentRequest {
 	return ApiDeleteEnvironmentRequest{
@@ -191,8 +335,8 @@ func (a *EnvironmentsApiService) DeleteEnvironmentExecute(r ApiDeleteEnvironment
 	}
 
 	localVarPath := localBasePath + "/v2/projects/{proj_id}/envs/{env_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -225,9 +369,9 @@ func (a *EnvironmentsApiService) DeleteEnvironmentExecute(r ApiDeleteEnvironment
 		return localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarHTTPResponse, err
 	}
@@ -269,10 +413,10 @@ GetEnvironment Get Environment
 
 Gets a single environment matching the given env_id, if such environment exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiGetEnvironmentRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiGetEnvironmentRequest
 */
 func (a *EnvironmentsApiService) GetEnvironment(ctx context.Context, projId string, envId string) ApiGetEnvironmentRequest {
 	return ApiGetEnvironmentRequest{
@@ -284,7 +428,8 @@ func (a *EnvironmentsApiService) GetEnvironment(ctx context.Context, projId stri
 }
 
 // Execute executes the request
-//  @return EnvironmentRead
+//
+//	@return EnvironmentRead
 func (a *EnvironmentsApiService) GetEnvironmentExecute(r ApiGetEnvironmentRequest) (*models.EnvironmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -299,8 +444,8 @@ func (a *EnvironmentsApiService) GetEnvironmentExecute(r ApiGetEnvironmentReques
 	}
 
 	localVarPath := localBasePath + "/v2/projects/{proj_id}/envs/{env_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -333,9 +478,9 @@ func (a *EnvironmentsApiService) GetEnvironmentExecute(r ApiGetEnvironmentReques
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -399,9 +544,9 @@ ListEnvironments List Environments
 
 Lists all the environments under a given project.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiListEnvironmentsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiListEnvironmentsRequest
 */
 func (a *EnvironmentsApiService) ListEnvironments(ctx context.Context, projId string) ApiListEnvironmentsRequest {
 	return ApiListEnvironmentsRequest{
@@ -412,7 +557,8 @@ func (a *EnvironmentsApiService) ListEnvironments(ctx context.Context, projId st
 }
 
 // Execute executes the request
-//  @return []EnvironmentRead
+//
+//	@return []EnvironmentRead
 func (a *EnvironmentsApiService) ListEnvironmentsExecute(r ApiListEnvironmentsRequest) ([]models.EnvironmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -427,17 +573,17 @@ func (a *EnvironmentsApiService) ListEnvironmentsExecute(r ApiListEnvironmentsRe
 	}
 
 	localVarPath := localBasePath + "/v2/projects/{proj_id}/envs"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
 	if r.page != nil {
-		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")
 	}
 	if r.perPage != nil {
-		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "per_page", r.perPage, "")
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
@@ -466,9 +612,9 @@ func (a *EnvironmentsApiService) ListEnvironmentsExecute(r ApiListEnvironmentsRe
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -517,10 +663,10 @@ func (r ApiStatsEnvironmentsRequest) Execute() (*models.EnvironmentStats, *http.
 /*
 StatsEnvironments Stats Environments
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiStatsEnvironmentsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiStatsEnvironmentsRequest
 */
 func (a *EnvironmentsApiService) StatsEnvironments(ctx context.Context, projId string, envId string) ApiStatsEnvironmentsRequest {
 	return ApiStatsEnvironmentsRequest{
@@ -532,7 +678,8 @@ func (a *EnvironmentsApiService) StatsEnvironments(ctx context.Context, projId s
 }
 
 // Execute executes the request
-//  @return EnvironmentStats
+//
+//	@return EnvironmentStats
 func (a *EnvironmentsApiService) StatsEnvironmentsExecute(r ApiStatsEnvironmentsRequest) (*models.EnvironmentStats, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -547,8 +694,8 @@ func (a *EnvironmentsApiService) StatsEnvironmentsExecute(r ApiStatsEnvironments
 	}
 
 	localVarPath := localBasePath + "/v2/projects/{proj_id}/envs/{env_id}/stats"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -581,9 +728,9 @@ func (a *EnvironmentsApiService) StatsEnvironmentsExecute(r ApiStatsEnvironments
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -640,10 +787,10 @@ UpdateEnvironment Update Environment
 
 Updates the environment.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUpdateEnvironmentRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiUpdateEnvironmentRequest
 */
 func (a *EnvironmentsApiService) UpdateEnvironment(ctx context.Context, projId string, envId string) ApiUpdateEnvironmentRequest {
 	return ApiUpdateEnvironmentRequest{
@@ -655,7 +802,8 @@ func (a *EnvironmentsApiService) UpdateEnvironment(ctx context.Context, projId s
 }
 
 // Execute executes the request
-//  @return EnvironmentRead
+//
+//	@return EnvironmentRead
 func (a *EnvironmentsApiService) UpdateEnvironmentExecute(r ApiUpdateEnvironmentRequest) (*models.EnvironmentRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
@@ -670,8 +818,8 @@ func (a *EnvironmentsApiService) UpdateEnvironmentExecute(r ApiUpdateEnvironment
 	}
 
 	localVarPath := localBasePath + "/v2/projects/{proj_id}/envs/{env_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -709,9 +857,9 @@ func (a *EnvironmentsApiService) UpdateEnvironmentExecute(r ApiUpdateEnvironment
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}

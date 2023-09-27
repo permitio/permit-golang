@@ -14,7 +14,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/permitio/permit-golang/pkg/models"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -45,10 +45,10 @@ CreateConditionSet Create Condition Set
 
 Creates a new condition set (can be either a user set or a resource set).
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateConditionSetRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCreateConditionSetRequest
 */
 func (a *ConditionSetsApiService) CreateConditionSet(ctx context.Context, projId string, envId string) ApiCreateConditionSetRequest {
 	return ApiCreateConditionSetRequest{
@@ -60,7 +60,8 @@ func (a *ConditionSetsApiService) CreateConditionSet(ctx context.Context, projId
 }
 
 // Execute executes the request
-//  @return ConditionSetRead
+//
+//	@return ConditionSetRead
 func (a *ConditionSetsApiService) CreateConditionSetExecute(r ApiCreateConditionSetRequest) (*models.ConditionSetRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -75,8 +76,8 @@ func (a *ConditionSetsApiService) CreateConditionSetExecute(r ApiCreateCondition
 	}
 
 	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/condition_sets"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -114,9 +115,9 @@ func (a *ConditionSetsApiService) CreateConditionSetExecute(r ApiCreateCondition
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -169,11 +170,11 @@ DeleteConditionSet Delete Condition Set
 Deletes a condition set and all its related data.
 This includes any permissions granted to said condition set (i.e: any matching condition set rules).
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
- @return ApiDeleteConditionSetRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
+	@return ApiDeleteConditionSetRequest
 */
 func (a *ConditionSetsApiService) DeleteConditionSet(ctx context.Context, projId string, envId string, conditionSetId string) ApiDeleteConditionSetRequest {
 	return ApiDeleteConditionSetRequest{
@@ -199,9 +200,9 @@ func (a *ConditionSetsApiService) DeleteConditionSetExecute(r ApiDeleteCondition
 	}
 
 	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterToString(r.conditionSetId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterValueToString(r.conditionSetId, "conditionSetId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -234,9 +235,9 @@ func (a *ConditionSetsApiService) DeleteConditionSetExecute(r ApiDeleteCondition
 		return localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarHTTPResponse, err
 	}
@@ -279,11 +280,11 @@ GetConditionSet Get Condition Set
 
 Gets a single condition set, if such condition set exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
- @return ApiGetConditionSetRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
+	@return ApiGetConditionSetRequest
 */
 func (a *ConditionSetsApiService) GetConditionSet(ctx context.Context, projId string, envId string, conditionSetId string) ApiGetConditionSetRequest {
 	return ApiGetConditionSetRequest{
@@ -296,7 +297,8 @@ func (a *ConditionSetsApiService) GetConditionSet(ctx context.Context, projId st
 }
 
 // Execute executes the request
-//  @return ConditionSetRead
+//
+//	@return ConditionSetRead
 func (a *ConditionSetsApiService) GetConditionSetExecute(r ApiGetConditionSetRequest) (*models.ConditionSetRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -311,9 +313,9 @@ func (a *ConditionSetsApiService) GetConditionSetExecute(r ApiGetConditionSetReq
 	}
 
 	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterToString(r.conditionSetId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterValueToString(r.conditionSetId, "conditionSetId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -346,9 +348,433 @@ func (a *ConditionSetsApiService) GetConditionSetExecute(r ApiGetConditionSetReq
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiGetConditionSetAncestorsRequest struct {
+	ctx            context.Context
+	ApiService     *ConditionSetsApiService
+	projId         string
+	envId          string
+	conditionSetId string
+	page           *int32
+	perPage        *int32
+}
+
+// Page number of the results to fetch, starting at 1.
+func (r ApiGetConditionSetAncestorsRequest) Page(page int32) ApiGetConditionSetAncestorsRequest {
+	r.page = &page
+	return r
+}
+
+// The number of results per page (max 100).
+func (r ApiGetConditionSetAncestorsRequest) PerPage(perPage int32) ApiGetConditionSetAncestorsRequest {
+	r.perPage = &perPage
+	return r
+}
+
+func (r ApiGetConditionSetAncestorsRequest) Execute() ([]models.ConditionSetRead, *http.Response, error) {
+	return r.ApiService.GetConditionSetAncestorsExecute(r)
+}
+
+/*
+GetConditionSetAncestors Get Condition Set Ancestors
+
+Gets all ancestors (parent, parent of parent, and so on)
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
+	@return ApiGetConditionSetAncestorsRequest
+*/
+func (a *ConditionSetsApiService) GetConditionSetAncestors(ctx context.Context, projId string, envId string, conditionSetId string) ApiGetConditionSetAncestorsRequest {
+	return ApiGetConditionSetAncestorsRequest{
+		ApiService:     a,
+		ctx:            ctx,
+		projId:         projId,
+		envId:          envId,
+		conditionSetId: conditionSetId,
+	}
+}
+
+// Execute executes the request
+//
+//	@return []ConditionSetRead
+func (a *ConditionSetsApiService) GetConditionSetAncestorsExecute(r ApiGetConditionSetAncestorsRequest) ([]models.ConditionSetRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue []models.ConditionSetRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetsApiService.GetConditionSetAncestors")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/ancestors"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterValueToString(r.conditionSetId, "conditionSetId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.page != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")
+	}
+	if r.perPage != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "per_page", r.perPage, "")
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiGetConditionSetDescendantsRequest struct {
+	ctx            context.Context
+	ApiService     *ConditionSetsApiService
+	projId         string
+	envId          string
+	conditionSetId string
+	page           *int32
+	perPage        *int32
+}
+
+// Page number of the results to fetch, starting at 1.
+func (r ApiGetConditionSetDescendantsRequest) Page(page int32) ApiGetConditionSetDescendantsRequest {
+	r.page = &page
+	return r
+}
+
+// The number of results per page (max 100).
+func (r ApiGetConditionSetDescendantsRequest) PerPage(perPage int32) ApiGetConditionSetDescendantsRequest {
+	r.perPage = &perPage
+	return r
+}
+
+func (r ApiGetConditionSetDescendantsRequest) Execute() ([]models.ConditionSetRead, *http.Response, error) {
+	return r.ApiService.GetConditionSetDescendantsExecute(r)
+}
+
+/*
+GetConditionSetDescendants Get Condition Set Descendants
+
+Gets all descendants (children, children of children, and so on)
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
+	@return ApiGetConditionSetDescendantsRequest
+*/
+func (a *ConditionSetsApiService) GetConditionSetDescendants(ctx context.Context, projId string, envId string, conditionSetId string) ApiGetConditionSetDescendantsRequest {
+	return ApiGetConditionSetDescendantsRequest{
+		ApiService:     a,
+		ctx:            ctx,
+		projId:         projId,
+		envId:          envId,
+		conditionSetId: conditionSetId,
+	}
+}
+
+// Execute executes the request
+//
+//	@return []ConditionSetRead
+func (a *ConditionSetsApiService) GetConditionSetDescendantsExecute(r ApiGetConditionSetDescendantsRequest) ([]models.ConditionSetRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue []models.ConditionSetRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetsApiService.GetConditionSetDescendants")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/descendants"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterValueToString(r.conditionSetId, "conditionSetId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.page != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")
+	}
+	if r.perPage != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "per_page", r.perPage, "")
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiGetConditionSetPossibleParentsRequest struct {
+	ctx            context.Context
+	ApiService     *ConditionSetsApiService
+	projId         string
+	envId          string
+	conditionSetId string
+	page           *int32
+	perPage        *int32
+}
+
+// Page number of the results to fetch, starting at 1.
+func (r ApiGetConditionSetPossibleParentsRequest) Page(page int32) ApiGetConditionSetPossibleParentsRequest {
+	r.page = &page
+	return r
+}
+
+// The number of results per page (max 100).
+func (r ApiGetConditionSetPossibleParentsRequest) PerPage(perPage int32) ApiGetConditionSetPossibleParentsRequest {
+	r.perPage = &perPage
+	return r
+}
+
+func (r ApiGetConditionSetPossibleParentsRequest) Execute() ([]models.ConditionSetRead, *http.Response, error) {
+	return r.ApiService.GetConditionSetPossibleParentsExecute(r)
+}
+
+/*
+GetConditionSetPossibleParents Get Condition Set Possible Parents
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
+	@return ApiGetConditionSetPossibleParentsRequest
+*/
+func (a *ConditionSetsApiService) GetConditionSetPossibleParents(ctx context.Context, projId string, envId string, conditionSetId string) ApiGetConditionSetPossibleParentsRequest {
+	return ApiGetConditionSetPossibleParentsRequest{
+		ApiService:     a,
+		ctx:            ctx,
+		projId:         projId,
+		envId:          envId,
+		conditionSetId: conditionSetId,
+	}
+}
+
+// Execute executes the request
+//
+//	@return []ConditionSetRead
+func (a *ConditionSetsApiService) GetConditionSetPossibleParentsExecute(r ApiGetConditionSetPossibleParentsRequest) ([]models.ConditionSetRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue []models.ConditionSetRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetsApiService.GetConditionSetPossibleParents")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/possible_parents"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterValueToString(r.conditionSetId, "conditionSetId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.page != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")
+	}
+	if r.perPage != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "per_page", r.perPage, "")
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -384,18 +810,25 @@ func (a *ConditionSetsApiService) GetConditionSetExecute(r ApiGetConditionSetReq
 }
 
 type ApiListConditionSetsRequest struct {
-	ctx        context.Context
-	ApiService *ConditionSetsApiService
-	projId     string
-	envId      string
-	type_      *models.ConditionSetType
-	page       *int32
-	perPage    *int32
+	ctx               context.Context
+	ApiService        *ConditionSetsApiService
+	projId            string
+	envId             string
+	type_             *models.ConditionSetType
+	includeTotalCount *bool
+	page              *int32
+	perPage           *int32
 }
 
 // if provided, will return only the condition sets of the specified type. e.g: only user sets.
 func (r ApiListConditionSetsRequest) Type_(type_ models.ConditionSetType) ApiListConditionSetsRequest {
 	r.type_ = &type_
+	return r
+}
+
+// Include total count in response
+func (r ApiListConditionSetsRequest) IncludeTotalCount(includeTotalCount bool) ApiListConditionSetsRequest {
+	r.includeTotalCount = &includeTotalCount
 	return r
 }
 
@@ -411,7 +844,7 @@ func (r ApiListConditionSetsRequest) PerPage(perPage int32) ApiListConditionSets
 	return r
 }
 
-func (r ApiListConditionSetsRequest) Execute() ([]models.ConditionSetRead, *http.Response, error) {
+func (r ApiListConditionSetsRequest) Execute() (*models.ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet, *http.Response, error) {
 	return r.ApiService.ListConditionSetsExecute(r)
 }
 
@@ -420,10 +853,11 @@ ListConditionSets List Condition Sets
 
 Lists all condition sets matching a filter.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListConditionSetsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListConditionSetsRequest
+
 */
 func (a *ConditionSetsApiService) ListConditionSets(ctx context.Context, projId string, envId string) ApiListConditionSetsRequest {
 	return ApiListConditionSetsRequest{
@@ -435,13 +869,16 @@ func (a *ConditionSetsApiService) ListConditionSets(ctx context.Context, projId 
 }
 
 // Execute executes the request
-//  @return []ConditionSetRead
-func (a *ConditionSetsApiService) ListConditionSetsExecute(r ApiListConditionSetsRequest) ([]models.ConditionSetRead, *http.Response, error) {
+//
+//	@return ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet
+//
+// Deprecated
+func (a *ConditionSetsApiService) ListConditionSetsExecute(r ApiListConditionSetsRequest) (*models.ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.ConditionSetRead
+		localVarReturnValue *models.ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ConditionSetsApiService.ListConditionSets")
@@ -450,21 +887,24 @@ func (a *ConditionSetsApiService) ListConditionSetsExecute(r ApiListConditionSet
 	}
 
 	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/condition_sets"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
 	if r.type_ != nil {
-		localVarQueryParams.Add("type", parameterToString(*r.type_, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "type", r.type_, "")
+	}
+	if r.includeTotalCount != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "include_total_count", r.includeTotalCount, "")
 	}
 	if r.page != nil {
-		localVarQueryParams.Add("page", parameterToString(*r.page, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")
 	}
 	if r.perPage != nil {
-		localVarQueryParams.Add("per_page", parameterToString(*r.perPage, ""))
+		parameterAddToHeaderOrQuery(localVarQueryParams, "per_page", r.perPage, "")
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
@@ -493,9 +933,9 @@ func (a *ConditionSetsApiService) ListConditionSetsExecute(r ApiListConditionSet
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
@@ -554,11 +994,11 @@ UpdateConditionSet Update Condition Set
 Partially updates a condition set.
 Fields that will be provided will be completely overwritten.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
- @return ApiUpdateConditionSetRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param conditionSetId Either the unique id of the condition set, or the URL-friendly key of the condition set (i.e: the \"slug\").
+	@return ApiUpdateConditionSetRequest
 */
 func (a *ConditionSetsApiService) UpdateConditionSet(ctx context.Context, projId string, envId string, conditionSetId string) ApiUpdateConditionSetRequest {
 	return ApiUpdateConditionSetRequest{
@@ -571,7 +1011,8 @@ func (a *ConditionSetsApiService) UpdateConditionSet(ctx context.Context, projId
 }
 
 // Execute executes the request
-//  @return ConditionSetRead
+//
+//	@return ConditionSetRead
 func (a *ConditionSetsApiService) UpdateConditionSetExecute(r ApiUpdateConditionSetRequest) (*models.ConditionSetRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
@@ -586,9 +1027,9 @@ func (a *ConditionSetsApiService) UpdateConditionSetExecute(r ApiUpdateCondition
 	}
 
 	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterToString(r.projId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterToString(r.envId, "")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterToString(r.conditionSetId, "")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"condition_set_id"+"}", url.PathEscape(parameterValueToString(r.conditionSetId, "conditionSetId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -626,9 +1067,9 @@ func (a *ConditionSetsApiService) UpdateConditionSetExecute(r ApiUpdateCondition
 		return localVarReturnValue, localVarHTTPResponse, err
 	}
 
-	localVarBody, err := ioutil.ReadAll(localVarHTTPResponse.Body)
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
 	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = ioutil.NopCloser(bytes.NewBuffer(localVarBody))
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
 	if err != nil {
 		return localVarReturnValue, localVarHTTPResponse, err
 	}

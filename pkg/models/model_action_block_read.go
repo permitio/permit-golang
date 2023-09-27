@@ -14,12 +14,16 @@ import (
 	"encoding/json"
 )
 
+// checks if the ActionBlockRead type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &ActionBlockRead{}
+
 // ActionBlockRead struct for ActionBlockRead
 type ActionBlockRead struct {
 	// a more descriptive name for the action
 	Name *string `json:"name,omitempty"`
 	// optional description string explaining what this action represents in your system
 	Description *string `json:"description,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 	// Unique id of the action
 	Id string `json:"id"`
 	// action key
@@ -108,6 +112,38 @@ func (o *ActionBlockRead) SetDescription(v string) {
 	o.Description = &v
 }
 
+// GetAttributes returns the Attributes field value if set, zero value otherwise.
+func (o *ActionBlockRead) GetAttributes() map[string]interface{} {
+	if o == nil || IsNil(o.Attributes) {
+		var ret map[string]interface{}
+		return ret
+	}
+	return o.Attributes
+}
+
+// GetAttributesOk returns a tuple with the Attributes field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ActionBlockRead) GetAttributesOk() (map[string]interface{}, bool) {
+	if o == nil || IsNil(o.Attributes) {
+		return map[string]interface{}{}, false
+	}
+	return o.Attributes, true
+}
+
+// HasAttributes returns a boolean if a field has been set.
+func (o *ActionBlockRead) HasAttributes() bool {
+	if o != nil && !IsNil(o.Attributes) {
+		return true
+	}
+
+	return false
+}
+
+// SetAttributes gets a reference to the given map[string]interface{} and assigns it to the Attributes field.
+func (o *ActionBlockRead) SetAttributes(v map[string]interface{}) {
+	o.Attributes = v
+}
+
 // GetId returns the Id field value
 func (o *ActionBlockRead) GetId() string {
 	if o == nil {
@@ -165,6 +201,14 @@ func (o *ActionBlockRead) SetKey(v string) {
 }
 
 func (o ActionBlockRead) MarshalJSON() ([]byte, error) {
+	toSerialize,err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o ActionBlockRead) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
@@ -172,13 +216,14 @@ func (o ActionBlockRead) MarshalJSON() ([]byte, error) {
 	if !IsNil(o.Description) {
 		toSerialize["description"] = o.Description
 	}
-	if true {
-		toSerialize["id"] = o.Id
+	if !IsNil(o.Attributes) {
+		toSerialize["attributes"] = o.Attributes
 	}
+	toSerialize["id"] = o.Id
 	if !IsNil(o.Key) {
 		toSerialize["key"] = o.Key
 	}
-	return json.Marshal(toSerialize)
+	return toSerialize, nil
 }
 
 type NullableActionBlockRead struct {

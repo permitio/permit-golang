@@ -43,9 +43,9 @@ If the member is the only member in its account (organization), returns 400 (bad
 due to nobody remains with access to the account, meaning deletion of the entire account (org).
 To completely remove an account, call DELETE `/orgs/{org}`.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
- @return ApiDeleteOrganizationMemberRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
+	@return ApiDeleteOrganizationMemberRequest
 */
 func (a *MembersApiService) DeleteOrganizationMember(ctx context.Context, memberId string) ApiDeleteOrganizationMemberRequest {
 	return ApiDeleteOrganizationMemberRequest{
@@ -144,8 +144,8 @@ GetAuthenticatedMember Get the authenticated account member
 
 Gets the authenticated account member's details.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiGetAuthenticatedMemberRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiGetAuthenticatedMemberRequest
 */
 func (a *MembersApiService) GetAuthenticatedMember(ctx context.Context) ApiGetAuthenticatedMemberRequest {
 	return ApiGetAuthenticatedMemberRequest{
@@ -155,7 +155,8 @@ func (a *MembersApiService) GetAuthenticatedMember(ctx context.Context) ApiGetAu
 }
 
 // Execute executes the request
-//  @return OrgMemberRead
+//
+//	@return OrgMemberRead
 func (a *MembersApiService) GetAuthenticatedMemberExecute(r ApiGetAuthenticatedMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -255,9 +256,9 @@ GetOrganizationMember Get Organization Member
 Gets a single account member by its id or email address. matching the given member,
 if no such member exists under the current active account (organization), returns 404.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
- @return ApiGetOrganizationMemberRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
+	@return ApiGetOrganizationMemberRequest
 */
 func (a *MembersApiService) GetOrganizationMember(ctx context.Context, memberId string) ApiGetOrganizationMemberRequest {
 	return ApiGetOrganizationMemberRequest{
@@ -268,7 +269,8 @@ func (a *MembersApiService) GetOrganizationMember(ctx context.Context, memberId 
 }
 
 // Execute executes the request
-//  @return OrgMemberRead
+//
+//	@return OrgMemberRead
 func (a *MembersApiService) GetOrganizationMemberExecute(r ApiGetOrganizationMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -382,8 +384,8 @@ ListOrganizationMembers List Organization Members
 Lists all the account members that have access to the current active account.
 The active account/organization is determined by the API Key used or by the authenticated session id.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListOrganizationMembersRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiListOrganizationMembersRequest
 */
 func (a *MembersApiService) ListOrganizationMembers(ctx context.Context) ApiListOrganizationMembersRequest {
 	return ApiListOrganizationMembersRequest{
@@ -393,7 +395,8 @@ func (a *MembersApiService) ListOrganizationMembers(ctx context.Context) ApiList
 }
 
 // Execute executes the request
-//  @return []OrgMemberRead
+//
+//	@return []OrgMemberRead
 func (a *MembersApiService) ListOrganizationMembersExecute(r ApiListOrganizationMembersRequest) ([]models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -504,9 +507,9 @@ UpdateOrganizationMember Update Organization Member
 
 Updates an account member's settings.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
- @return ApiUpdateOrganizationMemberRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param memberId Either the unique id (UUID) of the account member, or the email address of the account member.
+	@return ApiUpdateOrganizationMemberRequest
 */
 func (a *MembersApiService) UpdateOrganizationMember(ctx context.Context, memberId string) ApiUpdateOrganizationMemberRequest {
 	return ApiUpdateOrganizationMemberRequest{
@@ -517,7 +520,8 @@ func (a *MembersApiService) UpdateOrganizationMember(ctx context.Context, member
 }
 
 // Execute executes the request
-//  @return OrgMemberRead
+//
+//	@return OrgMemberRead
 func (a *MembersApiService) UpdateOrganizationMemberExecute(r ApiUpdateOrganizationMemberRequest) (*models.OrgMemberRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

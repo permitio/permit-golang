@@ -43,8 +43,8 @@ CreateProject Create Project
 
 Creates a new project under the active organization.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiCreateProjectRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiCreateProjectRequest
 */
 func (a *ProjectsApiService) CreateProject(ctx context.Context) ApiCreateProjectRequest {
 	return ApiCreateProjectRequest{
@@ -54,7 +54,8 @@ func (a *ProjectsApiService) CreateProject(ctx context.Context) ApiCreateProject
 }
 
 // Execute executes the request
-//  @return ProjectRead
+//
+//	@return ProjectRead
 func (a *ProjectsApiService) CreateProjectExecute(r ApiCreateProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
@@ -158,9 +159,9 @@ DeleteProject Delete Project
 
 Deletes the project and all its related data.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiDeleteProjectRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiDeleteProjectRequest
 */
 func (a *ProjectsApiService) DeleteProject(ctx context.Context, projId string) ApiDeleteProjectRequest {
 	return ApiDeleteProjectRequest{
@@ -260,9 +261,9 @@ GetProject Get Project
 
 Gets a single project matching the given proj_id, if such project exists.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiGetProjectRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiGetProjectRequest
 */
 func (a *ProjectsApiService) GetProject(ctx context.Context, projId string) ApiGetProjectRequest {
 	return ApiGetProjectRequest{
@@ -273,7 +274,8 @@ func (a *ProjectsApiService) GetProject(ctx context.Context, projId string) ApiG
 }
 
 // Execute executes the request
-//  @return ProjectRead
+//
+//	@return ProjectRead
 func (a *ProjectsApiService) GetProjectExecute(r ApiGetProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -386,8 +388,8 @@ ListProjects List Projects
 
 Lists all the projects under the active organization.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @return ApiListProjectsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiListProjectsRequest
 */
 func (a *ProjectsApiService) ListProjects(ctx context.Context) ApiListProjectsRequest {
 	return ApiListProjectsRequest{
@@ -397,7 +399,8 @@ func (a *ProjectsApiService) ListProjects(ctx context.Context) ApiListProjectsRe
 }
 
 // Execute executes the request
-//  @return []ProjectRead
+//
+//	@return []ProjectRead
 func (a *ProjectsApiService) ListProjectsExecute(r ApiListProjectsRequest) ([]models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
@@ -508,9 +511,9 @@ UpdateProject Update Project
 
 Updates the project.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @return ApiUpdateProjectRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@return ApiUpdateProjectRequest
 */
 func (a *ProjectsApiService) UpdateProject(ctx context.Context, projId string) ApiUpdateProjectRequest {
 	return ApiUpdateProjectRequest{
@@ -521,7 +524,8 @@ func (a *ProjectsApiService) UpdateProject(ctx context.Context, projId string) A
 }
 
 // Execute executes the request
-//  @return ProjectRead
+//
+//	@return ProjectRead
 func (a *ProjectsApiService) UpdateProjectExecute(r ApiUpdateProjectRequest) (*models.ProjectRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch

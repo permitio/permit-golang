@@ -69,7 +69,7 @@ func (p *ProxyConfigs) Get(ctx context.Context, proxyConfigKey string) (*models.
 
 // GetByKey get a project by key, requires Environment level API key, or higher.
 // Usage Example:
-// `project, err := PermitClient.Api.ProxyConfigs.GetByKey(ctx, "project-key")`
+// `proxyConfig, err := PermitClient.Api.ProxyConfigs.GetByKey(ctx, "proxyconfig-key")`
 func (p *ProxyConfigs) GetByKey(ctx context.Context, ProxyConfigKey string) (*models.ProxyConfigRead, error) {
 	return p.Get(ctx, ProxyConfigKey)
 }

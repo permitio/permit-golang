@@ -65,6 +65,8 @@ type APIClient struct {
 
 	ElementsConfigsApi *ElementsConfigsApiService
 
+	ProxyConfigAPI *ProxyConfigAPIService
+
 	ElementsDataApi *ElementsDataApiService
 
 	EnvironmentsApi *EnvironmentsApiService
@@ -134,6 +136,7 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.EnvironmentsApi = (*EnvironmentsApiService)(&c.common)
 	c.InstructionsApi = (*InstructionsApiService)(&c.common)
 	c.MembersApi = (*MembersApiService)(&c.common)
+	c.ProxyConfigAPI = (*ProxyConfigAPIService)(&c.common)
 	c.OPALDataApi = (*OPALDataApiService)(&c.common)
 	c.OrganizationsApi = (*OrganizationsApiService)(&c.common)
 	c.PolicyApi = (*PolicyApiService)(&c.common)

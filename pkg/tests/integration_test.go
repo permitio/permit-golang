@@ -28,6 +28,32 @@ func TestIntegration(t *testing.T) {
 	_, err := permitClient.SyncUser(ctx, newUser)
 	assert.NoError(t, err)
 
+	// Create a Proxy Config
+	mappingRules := []models.MappingRule{}
+	action := "read"
+	mappingRules = append(mappingRules, models.MappingRule{
+		Url:        "https://asdfasdf.com",
+		HttpMethod: "delete",
+		Resource:   "document3",
+		Action:     &action,
+	})
+	secret := "asdf:asdfasdf"
+	proxyConfigCreate := *models.NewProxyConfigCreate(secret, "pxcf", "proxy")
+	proxyConfigCreate.SetMappingRules(mappingRules)
+	_, err = permitClient.Api.ProxyConfigs.Create(ctx, proxyConfigCreate)
+	assert.ErrorContains(t, err, string(errors.ConflictMessage))
+	proxyConfigUpdate := models.NewProxyConfigUpdate()
+	mappingRules = append(mappingRules, models.MappingRule{
+		Url:        "https://mushy.com",
+		HttpMethod: "post",
+		Resource:   "document3",
+		Action:     &action,
+	})
+	authMechanism := models.BASIC
+	proxyConfigUpdate.SetAuthMechanism(authMechanism)
+	proxyConfigUpdate.SetSecret(secret)
+	proxyConfigUpdate.SetMappingRules(mappingRules)
+	_, err = permitClient.Api.ProxyConfigs.Update(ctx, "pxcf", *proxyConfigUpdate)
 	// Create a resource
 	_, err = permitClient.Api.Resources.Create(ctx, *models.NewResourceCreate(resourceKey, resourceKey, map[string]models.ActionBlockEditable{"read": {}, "write": {}}))
 	assert.ErrorContains(t, err, string(errors.ConflictMessage))

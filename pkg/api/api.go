@@ -60,6 +60,7 @@ type PermitApiClient struct {
 	Tenants            *Tenants
 	Environments       *Environments
 	Projects           *Projects
+	ProxyConfigs       *ProxyConfigs
 	ResourceActions    *ResourceActions
 	ResourceAttributes *ResourceAttributes
 	Resources          *Resources
@@ -90,6 +91,7 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 		Environments:       NewEnvironmentsApi(client, config),
 		Projects:           NewProjectsApi(client, config),
 		ResourceActions:    NewResourceActionsApi(client, config),
+		ProxyConfigs:       NewProxyConfigsApi(client, config),
 		ResourceAttributes: NewResourceAttributesApi(client, config),
 		Resources:          NewResourcesApi(client, config),
 		Roles:              NewRolesApi(client, config),

@@ -24,7 +24,7 @@ func NewProxyConfigsApi(client *openapi.APIClient, config *config.PermitConfig) 
 	}
 }
 
-// List all ProxyConfigs in the organization, requires Project level API key, or higher.
+// List all ProxyConfigs in the organization, requires Environment level API key, or higher.
 // Usage Example:
 // `ProxyConfigs, err := PermitClient.Api.ProxyConfigs.List(ctx, 1, 10)`
 func (p *ProxyConfigs) List(ctx context.Context, page int, perPage int) ([]models.ProxyConfigRead, error) {
@@ -67,7 +67,7 @@ func (p *ProxyConfigs) Get(ctx context.Context, proxyConfigKey string) (*models.
 	return proxyConfig, nil
 }
 
-// GetByKey get a project by key, requires Project level API key, or higher.
+// GetByKey get a project by key, requires Environment level API key, or higher.
 // Usage Example:
 // `project, err := PermitClient.Api.ProxyConfigs.GetByKey(ctx, "project-key")`
 func (p *ProxyConfigs) GetByKey(ctx context.Context, ProxyConfigKey string) (*models.ProxyConfigRead, error) {

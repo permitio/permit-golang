@@ -148,11 +148,13 @@ func TestIntegration(t *testing.T) {
 	resourceSetKey := randKey("resourceset")
 	userSetKey := randKey("userset")
 
+	project := os.Getenv("PROJECT")
+	env := os.Getenv("ENV")
 	token := os.Getenv("PDP_API_KEY")
 	if token == "" {
 		t.Fatal("PDP_API_KEY is not set")
 	}
-	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "default-project", "golang-test")
+	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, project, env)
 	permitClient := permit.New(config.NewConfigBuilder(token).WithContext(permitContext).WithLogger(logger).Build())
 
 	// Create a user
@@ -378,4 +380,31 @@ func TestIntegration(t *testing.T) {
 	assert.Len(t, allowedTenants, 1)
 	assert.Equal(t, tenantKey, allowedTenants[0].Key)
 	assert.True(t, assert.ObjectsAreEqualValues(allowedTenants[0].Attributes, tenantCreate.Attributes))
+
+	// Create a Proxy Config
+	mappingRules := []models.MappingRule{}
+	action := "read"
+	mappingRules = append(mappingRules, models.MappingRule{
+		Url:        "https://asdfasdf.com",
+		HttpMethod: "delete",
+		Resource:   resourceKey,
+		Action:     &action,
+	})
+	secret := "user:pass"
+	proxyConfigCreate := *models.NewProxyConfigCreate(secret, "pxcf", "proxy")
+	proxyConfigCreate.SetMappingRules(mappingRules)
+	_, err = permitClient.Api.ProxyConfigs.Create(ctx, proxyConfigCreate)
+	assert.NoError(t, err)
+	proxyConfigUpdate := models.NewProxyConfigUpdate()
+	mappingRules = append(mappingRules, models.MappingRule{
+		Url:        "https://mushy.com",
+		HttpMethod: "post",
+		Resource:   resourceKey,
+		Action:     &action,
+	})
+	authMechanism := models.BASIC
+	proxyConfigUpdate.SetAuthMechanism(authMechanism)
+	proxyConfigUpdate.SetSecret(secret)
+	proxyConfigUpdate.SetMappingRules(mappingRules)
+	_, err = permitClient.Api.ProxyConfigs.Update(ctx, "pxcf", *proxyConfigUpdate)
 }

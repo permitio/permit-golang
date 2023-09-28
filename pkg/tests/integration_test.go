@@ -148,11 +148,13 @@ func TestIntegration(t *testing.T) {
 	resourceSetKey := randKey("resourceset")
 	userSetKey := randKey("userset")
 
+	project := os.Getenv("PROJECT")
+	env := os.Getenv("ENV")
 	token := os.Getenv("PDP_API_KEY")
 	if token == "" {
 		t.Fatal("PDP_API_KEY is not set")
 	}
-	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, "golang-tests", "dev")
+	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, project, env)
 	permitClient := permit.New(config.NewConfigBuilder(token).WithContext(permitContext).WithLogger(logger).Build())
 
 	// Create a user

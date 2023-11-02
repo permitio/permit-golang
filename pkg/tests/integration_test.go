@@ -155,7 +155,10 @@ func TestIntegration(t *testing.T) {
 		t.Fatal("PDP_API_KEY is not set")
 	}
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, project, env)
-	permitClient := permit.New(config.NewConfigBuilder(token).WithContext(permitContext).WithLogger(logger).Build())
+	permitClient := permit.New(config.NewConfigBuilder(token).
+		WithContext(permitContext).
+		WithLogger(logger).
+		Build())
 
 	// Create a user
 	userCreate := *models.NewUserCreate(userKey)
@@ -286,7 +289,7 @@ func TestIntegration(t *testing.T) {
 	// Assign role to user
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, tenantKey)
 	assert.NoError(t, err)
-	time.Sleep(10 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	userPermissions, err := permitClient.GetUserPermissions(enforcement.UserBuilder(userKey).Build())
 	assert.NoError(t, err)

@@ -20,46 +20,43 @@ import (
 	"strings"
 )
 
-// RoleAssignmentsApiService RoleAssignmentsAPI service
-type RoleAssignmentsApiService service
 
-type ApiAssignRoleRequest struct {
+// RelationshipTuplesAPIService RelationshipTuplesAPI service
+type RelationshipTuplesAPIService service
+
+type ApiBulkCreateRelationshipTuplesRequest struct {
 	ctx context.Context
-	ApiService *RoleAssignmentsApiService
+	ApiService *RelationshipTuplesAPIService
 	projId string
 	envId string
-	roleAssignmentCreate *models.RoleAssignmentCreate
+	relationshipTupleCreateBulkOperation *models.RelationshipTupleCreateBulkOperation
 	permitSession *string
 }
 
-func (r ApiAssignRoleRequest) RoleAssignmentCreate(roleAssignmentCreate models.RoleAssignmentCreate) ApiAssignRoleRequest {
-	r.roleAssignmentCreate = &roleAssignmentCreate
+func (r ApiBulkCreateRelationshipTuplesRequest) RelationshipTupleCreateBulkOperation(relationshipTupleCreateBulkOperation models.RelationshipTupleCreateBulkOperation) ApiBulkCreateRelationshipTuplesRequest {
+	r.relationshipTupleCreateBulkOperation = &relationshipTupleCreateBulkOperation
 	return r
 }
 
-func (r ApiAssignRoleRequest) PermitSession(permitSession string) ApiAssignRoleRequest {
+func (r ApiBulkCreateRelationshipTuplesRequest) PermitSession(permitSession string) ApiBulkCreateRelationshipTuplesRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiAssignRoleRequest) Execute() (*models.RoleAssignmentRead, *http.Response, error) {
-	return r.ApiService.AssignRoleExecute(r)
+func (r ApiBulkCreateRelationshipTuplesRequest) Execute() (map[string]interface{}, *http.Response, error) {
+	return r.ApiService.BulkCreateRelationshipTuplesExecute(r)
 }
 
 /*
-AssignRole Assign Role
-
-Assigns a role to a user within a tenant.
-
-The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
+BulkCreateRelationshipTuples Bulk Create Relationship Tuples
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiAssignRoleRequest
+ @return ApiBulkCreateRelationshipTuplesRequest
 */
-func (a *RoleAssignmentsApiService) AssignRole(ctx context.Context, projId string, envId string) ApiAssignRoleRequest {
-	return ApiAssignRoleRequest{
+func (a *RelationshipTuplesAPIService) BulkCreateRelationshipTuples(ctx context.Context, projId string, envId string) ApiBulkCreateRelationshipTuplesRequest {
+	return ApiBulkCreateRelationshipTuplesRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
@@ -68,29 +65,29 @@ func (a *RoleAssignmentsApiService) AssignRole(ctx context.Context, projId strin
 }
 
 // Execute executes the request
-//  @return RoleAssignmentRead
-func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*models.RoleAssignmentRead, *http.Response, error) {
+//  @return map[string]interface{}
+func (a *RelationshipTuplesAPIService) BulkCreateRelationshipTuplesExecute(r ApiBulkCreateRelationshipTuplesRequest) (map[string]interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *models.RoleAssignmentRead
+		localVarReturnValue  map[string]interface{}
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.AssignRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.BulkCreateRelationshipTuples")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.roleAssignmentCreate == nil {
-		return localVarReturnValue, nil, reportError("roleAssignmentCreate is required and must be specified")
+	if r.relationshipTupleCreateBulkOperation == nil {
+		return localVarReturnValue, nil, reportError("relationshipTupleCreateBulkOperation is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -111,7 +108,7 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.roleAssignmentCreate
+	localVarPostBody = r.relationshipTupleCreateBulkOperation
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -159,39 +156,39 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiBulkAssignRoleRequest struct {
+type ApiBulkDeleteRelationshipTuplesRequest struct {
 	ctx context.Context
-	ApiService *RoleAssignmentsApiService
+	ApiService *RelationshipTuplesAPIService
 	projId string
 	envId string
-	roleAssignmentCreate *[]models.RoleAssignmentCreate
+	relationshipTupleDeleteBulkOperation *models.RelationshipTupleDeleteBulkOperation
 	permitSession *string
 }
 
-func (r ApiBulkAssignRoleRequest) RoleAssignmentCreate(roleAssignmentCreate []models.RoleAssignmentCreate) ApiBulkAssignRoleRequest {
-	r.roleAssignmentCreate = &roleAssignmentCreate
+func (r ApiBulkDeleteRelationshipTuplesRequest) RelationshipTupleDeleteBulkOperation(relationshipTupleDeleteBulkOperation models.RelationshipTupleDeleteBulkOperation) ApiBulkDeleteRelationshipTuplesRequest {
+	r.relationshipTupleDeleteBulkOperation = &relationshipTupleDeleteBulkOperation
 	return r
 }
 
-func (r ApiBulkAssignRoleRequest) PermitSession(permitSession string) ApiBulkAssignRoleRequest {
+func (r ApiBulkDeleteRelationshipTuplesRequest) PermitSession(permitSession string) ApiBulkDeleteRelationshipTuplesRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiBulkAssignRoleRequest) Execute() (*models.BulkRoleAssignmentReport, *http.Response, error) {
-	return r.ApiService.BulkAssignRoleExecute(r)
+func (r ApiBulkDeleteRelationshipTuplesRequest) Execute() (map[string]interface{}, *http.Response, error) {
+	return r.ApiService.BulkDeleteRelationshipTuplesExecute(r)
 }
 
 /*
-BulkAssignRole Bulk Assign Role
+BulkDeleteRelationshipTuples Bulk Delete Relationship Tuples
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiBulkAssignRoleRequest
+ @return ApiBulkDeleteRelationshipTuplesRequest
 */
-func (a *RoleAssignmentsApiService) BulkAssignRole(ctx context.Context, projId string, envId string) ApiBulkAssignRoleRequest {
-	return ApiBulkAssignRoleRequest{
+func (a *RelationshipTuplesAPIService) BulkDeleteRelationshipTuples(ctx context.Context, projId string, envId string) ApiBulkDeleteRelationshipTuplesRequest {
+	return ApiBulkDeleteRelationshipTuplesRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
@@ -200,161 +197,29 @@ func (a *RoleAssignmentsApiService) BulkAssignRole(ctx context.Context, projId s
 }
 
 // Execute executes the request
-//  @return BulkRoleAssignmentReport
-func (a *RoleAssignmentsApiService) BulkAssignRoleExecute(r ApiBulkAssignRoleRequest) (*models.BulkRoleAssignmentReport, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.BulkRoleAssignmentReport
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.BulkAssignRole")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.roleAssignmentCreate == nil {
-		return localVarReturnValue, nil, reportError("roleAssignmentCreate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.roleAssignmentCreate
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiBulkUnassignRoleRequest struct {
-	ctx context.Context
-	ApiService *RoleAssignmentsApiService
-	projId string
-	envId string
-	roleAssignmentRemove *[]models.RoleAssignmentRemove
-	permitSession *string
-}
-
-func (r ApiBulkUnassignRoleRequest) RoleAssignmentRemove(roleAssignmentRemove []models.RoleAssignmentRemove) ApiBulkUnassignRoleRequest {
-	r.roleAssignmentRemove = &roleAssignmentRemove
-	return r
-}
-
-func (r ApiBulkUnassignRoleRequest) PermitSession(permitSession string) ApiBulkUnassignRoleRequest {
-	r.permitSession = &permitSession
-	return r
-}
-
-func (r ApiBulkUnassignRoleRequest) Execute() (*models.BulkRoleUnAssignmentReport, *http.Response, error) {
-	return r.ApiService.BulkUnassignRoleExecute(r)
-}
-
-/*
-BulkUnassignRole Bulk Unassign Role
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiBulkUnassignRoleRequest
-*/
-func (a *RoleAssignmentsApiService) BulkUnassignRole(ctx context.Context, projId string, envId string) ApiBulkUnassignRoleRequest {
-	return ApiBulkUnassignRoleRequest{
-		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
-	}
-}
-
-// Execute executes the request
-//  @return BulkRoleUnAssignmentReport
-func (a *RoleAssignmentsApiService) BulkUnassignRoleExecute(r ApiBulkUnassignRoleRequest) (*models.BulkRoleUnAssignmentReport, *http.Response, error) {
+//  @return map[string]interface{}
+func (a *RelationshipTuplesAPIService) BulkDeleteRelationshipTuplesExecute(r ApiBulkDeleteRelationshipTuplesRequest) (map[string]interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *models.BulkRoleUnAssignmentReport
+		localVarReturnValue  map[string]interface{}
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.BulkUnassignRole")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.BulkDeleteRelationshipTuples")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.roleAssignmentRemove == nil {
-		return localVarReturnValue, nil, reportError("roleAssignmentRemove is required and must be specified")
+	if r.relationshipTupleDeleteBulkOperation == nil {
+		return localVarReturnValue, nil, reportError("relationshipTupleDeleteBulkOperation is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -375,7 +240,7 @@ func (a *RoleAssignmentsApiService) BulkUnassignRoleExecute(r ApiBulkUnassignRol
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.roleAssignmentRemove
+	localVarPostBody = r.relationshipTupleDeleteBulkOperation
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -423,95 +288,341 @@ func (a *RoleAssignmentsApiService) BulkUnassignRoleExecute(r ApiBulkUnassignRol
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListRoleAssignmentsRequest struct {
+type ApiCreateRelationshipTupleRequest struct {
 	ctx context.Context
-	ApiService *RoleAssignmentsApiService
+	ApiService *RelationshipTuplesAPIService
 	projId string
 	envId string
-	user *string
-	role *string
-	tenant *string
-	resource *string
-	resourceInstance *string
-	detailed *bool
-	page *int32
-	perPage *int32
+	relationshipTupleCreate *models.RelationshipTupleCreate
 	permitSession *string
 }
 
-// optional user filter, will only return role assignments granted to this user.
-func (r ApiListRoleAssignmentsRequest) User(user string) ApiListRoleAssignmentsRequest {
-	r.user = &user
+func (r ApiCreateRelationshipTupleRequest) RelationshipTupleCreate(relationshipTupleCreate models.RelationshipTupleCreate) ApiCreateRelationshipTupleRequest {
+	r.relationshipTupleCreate = &relationshipTupleCreate
 	return r
 }
 
-// optional role filter, will only return role assignments granting this role.
-func (r ApiListRoleAssignmentsRequest) Role(role string) ApiListRoleAssignmentsRequest {
-	r.role = &role
+func (r ApiCreateRelationshipTupleRequest) PermitSession(permitSession string) ApiCreateRelationshipTupleRequest {
+	r.permitSession = &permitSession
 	return r
 }
 
-// optional tenant filter, will only return role assignments granted in that tenant.
-func (r ApiListRoleAssignmentsRequest) Tenant(tenant string) ApiListRoleAssignmentsRequest {
-	r.tenant = &tenant
+func (r ApiCreateRelationshipTupleRequest) Execute() (*models.RelationshipTupleRead, *http.Response, error) {
+	return r.ApiService.CreateRelationshipTupleExecute(r)
+}
+
+/*
+CreateRelationshipTuple Create Relationship Tuple
+
+Create a relationship between two resource instances using a relation.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiCreateRelationshipTupleRequest
+*/
+func (a *RelationshipTuplesAPIService) CreateRelationshipTuple(ctx context.Context, projId string, envId string) ApiCreateRelationshipTupleRequest {
+	return ApiCreateRelationshipTupleRequest{
+		ApiService: a,
+		ctx: ctx,
+		projId: projId,
+		envId: envId,
+	}
+}
+
+// Execute executes the request
+//  @return RelationshipTupleRead
+func (a *RelationshipTuplesAPIService) CreateRelationshipTupleExecute(r ApiCreateRelationshipTupleRequest) (*models.RelationshipTupleRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *models.RelationshipTupleRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.CreateRelationshipTuple")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.relationshipTupleCreate == nil {
+		return localVarReturnValue, nil, reportError("relationshipTupleCreate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.relationshipTupleCreate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiDeleteRelationshipTupleRequest struct {
+	ctx context.Context
+	ApiService *RelationshipTuplesAPIService
+	projId string
+	envId string
+	relationshipTupleDelete *models.RelationshipTupleDelete
+	permitSession *string
+}
+
+func (r ApiDeleteRelationshipTupleRequest) RelationshipTupleDelete(relationshipTupleDelete models.RelationshipTupleDelete) ApiDeleteRelationshipTupleRequest {
+	r.relationshipTupleDelete = &relationshipTupleDelete
 	return r
 }
 
-// optional resource **type** filter, will only return role assignments granted on that resource type.
-func (r ApiListRoleAssignmentsRequest) Resource(resource string) ApiListRoleAssignmentsRequest {
-	r.resource = &resource
+func (r ApiDeleteRelationshipTupleRequest) PermitSession(permitSession string) ApiDeleteRelationshipTupleRequest {
+	r.permitSession = &permitSession
 	return r
 }
 
-// optional resource instance filter, will only return role assignments granted on that resource instance.
-func (r ApiListRoleAssignmentsRequest) ResourceInstance(resourceInstance string) ApiListRoleAssignmentsRequest {
-	r.resourceInstance = &resourceInstance
-	return r
+func (r ApiDeleteRelationshipTupleRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteRelationshipTupleExecute(r)
 }
 
-// Whether to return full details about the user, tenant and role
-func (r ApiListRoleAssignmentsRequest) Detailed(detailed bool) ApiListRoleAssignmentsRequest {
+/*
+DeleteRelationshipTuple Delete Relationship Tuple
+
+Delete a relationship between two resource instances.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiDeleteRelationshipTupleRequest
+*/
+func (a *RelationshipTuplesAPIService) DeleteRelationshipTuple(ctx context.Context, projId string, envId string) ApiDeleteRelationshipTupleRequest {
+	return ApiDeleteRelationshipTupleRequest{
+		ApiService: a,
+		ctx: ctx,
+		projId: projId,
+		envId: envId,
+	}
+}
+
+// Execute executes the request
+func (a *RelationshipTuplesAPIService) DeleteRelationshipTupleExecute(r ApiDeleteRelationshipTupleRequest) (*http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodDelete
+		localVarPostBody     interface{}
+		formFiles            []formFile
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.DeleteRelationshipTuple")
+	if err != nil {
+		return nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.relationshipTupleDelete == nil {
+		return nil, reportError("relationshipTupleDelete is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.relationshipTupleDelete
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		}
+		return localVarHTTPResponse, newErr
+	}
+
+	return localVarHTTPResponse, nil
+}
+
+type ApiListRelationshipTuplesRequest struct {
+	ctx context.Context
+	ApiService *RelationshipTuplesAPIService
+	projId string
+	envId string
+	detailed *bool
+	page *int32
+	perPage *int32
+	tenant *string
+	subject *string
+	relation *string
+	object *string
+	permitSession *string
+}
+
+// If true, will return the full subject and object resource instances.
+func (r ApiListRelationshipTuplesRequest) Detailed(detailed bool) ApiListRelationshipTuplesRequest {
 	r.detailed = &detailed
 	return r
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListRoleAssignmentsRequest) Page(page int32) ApiListRoleAssignmentsRequest {
+func (r ApiListRelationshipTuplesRequest) Page(page int32) ApiListRelationshipTuplesRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListRoleAssignmentsRequest) PerPage(perPage int32) ApiListRoleAssignmentsRequest {
+func (r ApiListRelationshipTuplesRequest) PerPage(perPage int32) ApiListRelationshipTuplesRequest {
 	r.perPage = &perPage
 	return r
 }
 
-func (r ApiListRoleAssignmentsRequest) PermitSession(permitSession string) ApiListRoleAssignmentsRequest {
+// The tenant key or id to filter by
+func (r ApiListRelationshipTuplesRequest) Tenant(tenant string) ApiListRelationshipTuplesRequest {
+	r.tenant = &tenant
+	return r
+}
+
+// The subject to filter by, accepts either the resource instance id or resource_type:resource_instance
+func (r ApiListRelationshipTuplesRequest) Subject(subject string) ApiListRelationshipTuplesRequest {
+	r.subject = &subject
+	return r
+}
+
+// The relation id or key to filter by
+func (r ApiListRelationshipTuplesRequest) Relation(relation string) ApiListRelationshipTuplesRequest {
+	r.relation = &relation
+	return r
+}
+
+// The object to filter by, accepts either the resource instance id or resource_type:resource_instance
+func (r ApiListRelationshipTuplesRequest) Object(object string) ApiListRelationshipTuplesRequest {
+	r.object = &object
+	return r
+}
+
+func (r ApiListRelationshipTuplesRequest) PermitSession(permitSession string) ApiListRelationshipTuplesRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiListRoleAssignmentsRequest) Execute() (*models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet, *http.Response, error) {
-	return r.ApiService.ListRoleAssignmentsExecute(r)
+func (r ApiListRelationshipTuplesRequest) Execute() ([]models.RelationshipTupleRead, *http.Response, error) {
+	return r.ApiService.ListRelationshipTuplesExecute(r)
 }
 
 /*
-ListRoleAssignments List Role Assignments
+ListRelationshipTuples List Relationship Tuples
 
-Lists the role assignments defined within an environment.
-
-- If the `user` filter is present, will only return the role assignments of that user.
-- If the `tenant` filter is present, will only return the role assignments in that tenant.
-- If the `role` filter is present, will only return role assignments that are granting that role.
+Lists the relationship tuples defined within an environment.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListRoleAssignmentsRequest
+ @return ApiListRelationshipTuplesRequest
 */
-func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, projId string, envId string) ApiListRoleAssignmentsRequest {
-	return ApiListRoleAssignmentsRequest{
+func (a *RelationshipTuplesAPIService) ListRelationshipTuples(ctx context.Context, projId string, envId string) ApiListRelationshipTuplesRequest {
+	return ApiListRelationshipTuplesRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
@@ -520,21 +631,21 @@ func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, pro
 }
 
 // Execute executes the request
-//  @return ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
-func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) (*models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet, *http.Response, error) {
+//  @return []RelationshipTupleRead
+func (a *RelationshipTuplesAPIService) ListRelationshipTuplesExecute(r ApiListRelationshipTuplesRequest) ([]models.RelationshipTupleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
+		localVarReturnValue  []models.RelationshipTupleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.ListRoleAssignments")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.ListRelationshipTuples")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
@@ -542,21 +653,6 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.user != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "user", r.user, "")
-	}
-	if r.role != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "role", r.role, "")
-	}
-	if r.tenant != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "tenant", r.tenant, "")
-	}
-	if r.resource != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "resource", r.resource, "")
-	}
-	if r.resourceInstance != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "resource_instance", r.resourceInstance, "")
-	}
 	if r.detailed != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "detailed", r.detailed, "")
 	} else {
@@ -574,6 +670,18 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 	} else {
 		var defaultValue int32 = 30
 		r.perPage = &defaultValue
+	}
+	if r.tenant != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "tenant", r.tenant, "")
+	}
+	if r.subject != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "subject", r.subject, "")
+	}
+	if r.relation != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "relation", r.relation, "")
+	}
+	if r.object != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "object", r.object, "")
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
@@ -637,131 +745,4 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 	}
 
 	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUnassignRoleRequest struct {
-	ctx context.Context
-	ApiService *RoleAssignmentsApiService
-	projId string
-	envId string
-	roleAssignmentRemove *models.RoleAssignmentRemove
-	permitSession *string
-}
-
-func (r ApiUnassignRoleRequest) RoleAssignmentRemove(roleAssignmentRemove models.RoleAssignmentRemove) ApiUnassignRoleRequest {
-	r.roleAssignmentRemove = &roleAssignmentRemove
-	return r
-}
-
-func (r ApiUnassignRoleRequest) PermitSession(permitSession string) ApiUnassignRoleRequest {
-	r.permitSession = &permitSession
-	return r
-}
-
-func (r ApiUnassignRoleRequest) Execute() (*http.Response, error) {
-	return r.ApiService.UnassignRoleExecute(r)
-}
-
-/*
-UnassignRole Unassign Role
-
-Unassigns a user role within a tenant.
-
-The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
-
-If the role is not actually assigned, will return 404.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUnassignRoleRequest
-*/
-func (a *RoleAssignmentsApiService) UnassignRole(ctx context.Context, projId string, envId string) ApiUnassignRoleRequest {
-	return ApiUnassignRoleRequest{
-		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
-	}
-}
-
-// Execute executes the request
-func (a *RoleAssignmentsApiService) UnassignRoleExecute(r ApiUnassignRoleRequest) (*http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodDelete
-		localVarPostBody     interface{}
-		formFiles            []formFile
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.UnassignRole")
-	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/role_assignments"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.roleAssignmentRemove == nil {
-		return nil, reportError("roleAssignmentRemove is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.roleAssignmentRemove
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		}
-		return localVarHTTPResponse, newErr
-	}
-
-	return localVarHTTPResponse, nil
 }

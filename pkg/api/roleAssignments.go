@@ -25,12 +25,18 @@ func NewRoleAssignmentsApi(client *openapi.APIClient, config *config.PermitConfi
 
 func (r *RoleAssignments) List(ctx context.Context, page int, perPage int, userFilter, roleFilter, tenantFilter string) (*[]models.RoleAssignmentRead, error) {
 	response, err := r.list(ctx, page, perPage, userFilter, roleFilter, tenantFilter, false)
-	return response.RoleAssignmentRead, err
+	if err != nil {
+		return nil, err
+	}
+	return response.RoleAssignmentRead, nil
 }
 
 func (r *RoleAssignments) ListDetailed(ctx context.Context, page int, perPage int, userFilter, roleFilter, tenantFilter string) (*[]models.RoleAssignmentDetailedRead, error) {
 	response, err := r.list(ctx, page, perPage, userFilter, roleFilter, tenantFilter, true)
-	return response.RoleAssignmentDetailedRead, err
+	if err != nil {
+		return nil, err
+	}
+	return response.RoleAssignmentDetailedRead, nil
 }
 
 func (r *RoleAssignments) list(ctx context.Context, page int, perPage int, userFilter, roleFilter, tenantFilter string, detailed bool) (*models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet, error) {

@@ -164,7 +164,9 @@ func TestIntegration(t *testing.T) {
 	userCreate.SetEmail("john@example.com")
 	_, err := permitClient.Api.Users.Create(ctx, userCreate)
 	assert.NoError(t, err)
-
+	res, err := permitClient.Api.Users.GetAssignedRoles(ctx, userKey, tenantKey, 1, 100)
+	assert.NoError(t, err)
+	assert.Len(t, res, 0)
 	// Check error codes when creating a user with existing name
 	_, err = permitClient.Api.Users.Create(ctx, userCreate)
 	assert.Error(t, err)

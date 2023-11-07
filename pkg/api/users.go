@@ -229,6 +229,12 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 		u.logger.Error("error listing roles for user:"+userKey, zap.Error(err))
 		return nil, err
 	}
+	if roleAssignments == nil || roleAssignments.RoleAssignmentRead == nil {
+		if roleAssignments.RoleAssignmentRead == nil {
+			emptyRoleAssignments := make([]models.RoleAssignmentRead, 0)
+			return emptyRoleAssignments, nil
+		}
+	}
 	return *roleAssignments.RoleAssignmentRead, nil
 }
 

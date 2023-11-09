@@ -90,7 +90,7 @@ func (e *PermitEnforcer) AllTenantsCheck(user User, action Action, resource Reso
 	}
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
 	httpRequest.Header.Set(reqAuthKey, reqAuthValue)
-	res, err := client.Do(httpRequest)
+	res, err := e.client.Do(httpRequest)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
 		e.logger.Error("error sending Permit.AllTenantsCheck() request to PDP", zap.Error(permitError))

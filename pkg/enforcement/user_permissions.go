@@ -112,7 +112,7 @@ func (e *PermitEnforcer) GetUserPermissions(user User, tenants ...string) (UserP
 	}
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
 	httpRequest.Header.Set(reqAuthKey, reqAuthValue)
-	res, err := client.Do(httpRequest)
+	res, err := e.client.Do(httpRequest)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
 		e.logger.Error("error sending Permit.GetUserPermissions() request to PDP", zap.Error(permitError))

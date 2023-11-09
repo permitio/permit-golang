@@ -154,7 +154,7 @@ func (e *PermitEnforcer) bulkCheck(requests ...CheckRequest) ([]bool, error) {
 	}
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
 	httpRequest.Header.Set(reqAuthKey, reqAuthValue)
-	res, err := client.Do(httpRequest)
+	res, err := e.client.Do(httpRequest)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
 		e.logger.Error("error sending Permit.BulkCheck() request to PDP", zap.Error(permitError))

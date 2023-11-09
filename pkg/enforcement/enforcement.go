@@ -3,11 +3,13 @@ package enforcement
 import (
 	"github.com/permitio/permit-golang/pkg/config"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 type PermitBaseEnforcer struct {
 	config *config.PermitConfig
 	logger *zap.Logger
+	client *http.Client
 }
 
 type PermitEnforcer struct {
@@ -15,10 +17,15 @@ type PermitEnforcer struct {
 }
 
 func NewPermitEnforcerClient(config *config.PermitConfig) *PermitEnforcer {
+	client := config.GetHTTPClient()
+	if client == nil {
+		client = http.DefaultClient
+	}
 	return &PermitEnforcer{
 		PermitBaseEnforcer{
 			config: config,
-			logger: config.Logger,
+			logger: config.GetLogger(),
+			client: client,
 		},
 	}
 }

@@ -7,14 +7,6 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net/http"
-	"time"
-)
-
-var (
-	// client does not need to be initialized each request (thread safe). This will cause a huge latency and not good for concurrent requests.
-	client *http.Client = &http.Client{
-		Timeout: DefaultTimeout * time.Second,
-	}
 )
 
 type Action string
@@ -117,7 +109,7 @@ func (e *PermitEnforcer) Check(user User, action Action, resource Resource, addi
 	}
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
 	httpRequest.Header.Set(reqAuthKey, reqAuthValue)
-	res, err := client.Do(httpRequest)
+	res, err := e.client.Do(httpRequest)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
 		e.logger.Error("error sending Permit.Check() request to PDP", zap.Error(permitError))

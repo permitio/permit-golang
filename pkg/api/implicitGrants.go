@@ -76,7 +76,7 @@ func (r *ImplicitGrants) Delete(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error creating derived role", zap.Error(err))
+		r.logger.Error("error deleting derived role", zap.Error(err))
 		return err
 	}
 
@@ -106,7 +106,7 @@ func (r *ImplicitGrants) UpdateConditions(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error creating derived role", zap.Error(err))
+		r.logger.Error("error updating derived role", zap.Error(err))
 		return nil, err
 	}
 

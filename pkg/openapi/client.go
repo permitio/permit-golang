@@ -69,6 +69,7 @@ type APIClient struct {
 	PolicyGitRepositoriesApi *PolicyGitRepositoriesApiService
 	ProjectsApi *ProjectsApiService
 	ProxyConfigAPI *ProxyConfigAPIService
+	RelationshipTuplesApi *RelationshipTuplesAPIService
 	ResourceActionGroupsApi *ResourceActionGroupsApiService
 	ResourceActionsApi *ResourceActionsApiService
 	ResourceAttributesApi *ResourceAttributesApiService
@@ -118,6 +119,7 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.PolicyGitRepositoriesApi = (*PolicyGitRepositoriesApiService)(&c.common)
 	c.ProjectsApi = (*ProjectsApiService)(&c.common)
 	c.ProxyConfigAPI = (*ProxyConfigAPIService)(&c.common)
+	c.RelationshipTuplesApi = (*RelationshipTuplesAPIService)(&c.common)
 	c.ResourceActionGroupsApi = (*ResourceActionGroupsApiService)(&c.common)
 	c.ResourceActionsApi = (*ResourceActionsApiService)(&c.common)
 	c.ResourceAttributesApi = (*ResourceAttributesApiService)(&c.common)

@@ -183,7 +183,7 @@ func (r *ResourceInstances) list(ctx context.Context,
 
 func (r *ResourceInstances) Update(
 	ctx context.Context,
-	instnaceId string,
+	instanceId string,
 	resourceInstanceUpdate models.ResourceInstanceUpdate,
 ) (*models.ResourceInstanceRead, error) {
 	err := r.lazyLoadPermitContext(ctx)
@@ -197,7 +197,7 @@ func (r *ResourceInstances) Update(
 		ctx,
 		r.config.Context.GetProject(),
 		r.config.Context.GetEnvironment(),
-		instnaceId,
+		instanceId,
 	).ResourceInstanceUpdate(resourceInstanceUpdate).Execute()
 
 	err = errors.HttpErrorHandle(err, httpRes)

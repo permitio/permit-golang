@@ -68,6 +68,7 @@ type PermitApiClient struct {
 	ResourceActions      *ResourceActions
 	ResourceAttributes   *ResourceAttributes
 	ResourceInstances    *ResourceInstances
+	ResourceRelations    *ResourceRelations
 	Resources            *Resources
 	RoleAssignments      *RoleAssignments
 	Roles                *Roles
@@ -105,6 +106,7 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 		ResourceActions:      NewResourceActionsApi(client, config),
 		ResourceAttributes:   NewResourceAttributesApi(client, config),
 		ResourceInstances:    NewResourceInstancesApi(client, config),
+		ResourceRelations:    NewResourceRelationsApi(client, config),
 		Resources:            NewResourcesApi(client, config),
 		RoleAssignments:      NewRoleAssignmentsApi(client, config),
 		Roles:                NewRolesApi(client, config),

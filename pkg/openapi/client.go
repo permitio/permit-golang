@@ -49,65 +49,36 @@ type APIClient struct {
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// API Services
-
 	APIKeysApi *APIKeysApiService
-
 	AuthenticationApi *AuthenticationApiService
-
 	ConditionSetRulesApi *ConditionSetRulesApiService
-
 	ConditionSetsApi *ConditionSetsApiService
-
 	DecisionLogsApi *DecisionLogsApiService
-
 	DecisionLogsIngressApi *DecisionLogsIngressApiService
-
 	DefaultApi *DefaultApiService
-
 	ElementsConfigsApi *ElementsConfigsApiService
-
-	ProxyConfigAPI *ProxyConfigAPIService
-
 	ElementsDataApi *ElementsDataApiService
-
 	EnvironmentsApi *EnvironmentsApiService
-
+	ImplicitGrantsApi *ImplicitGrantsAPIService
 	InstructionsApi *InstructionsApiService
-
 	MembersApi *MembersApiService
-
 	OPALDataApi *OPALDataApiService
-
 	OrganizationsApi *OrganizationsApiService
-
 	PolicyApi *PolicyApiService
-
 	PolicyDecisionPointsApi *PolicyDecisionPointsApiService
-
 	PolicyGitRepositoriesApi *PolicyGitRepositoriesApiService
-
 	ProjectsApi *ProjectsApiService
-
-	ResourceActionsApi *ResourceActionsApiService
-
+	ProxyConfigAPI *ProxyConfigAPIService
 	ResourceActionGroupsApi *ResourceActionGroupsApiService
-
+	ResourceActionsApi *ResourceActionsApiService
 	ResourceAttributesApi *ResourceAttributesApiService
-
 	ResourceInstancesApi *ResourceInstancesApiService
-
 	ResourceRolesApi *ResourceRolesApiService
-
 	ResourcesApi *ResourcesApiService
-
 	RoleAssignmentsApi *RoleAssignmentsApiService
-
 	RolesApi *RolesApiService
-
 	TenantsApi *TenantsApiService
-
 	UserAttributesApi *UserAttributesApiService
-
 	UsersApi *UsersApiService
 }
 
@@ -137,17 +108,18 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.ElementsConfigsApi = (*ElementsConfigsApiService)(&c.common)
 	c.ElementsDataApi = (*ElementsDataApiService)(&c.common)
 	c.EnvironmentsApi = (*EnvironmentsApiService)(&c.common)
+	c.ImplicitGrantsApi = (*ImplicitGrantsAPIService)(&c.common)
 	c.InstructionsApi = (*InstructionsApiService)(&c.common)
 	c.MembersApi = (*MembersApiService)(&c.common)
-	c.ProxyConfigAPI = (*ProxyConfigAPIService)(&c.common)
 	c.OPALDataApi = (*OPALDataApiService)(&c.common)
 	c.OrganizationsApi = (*OrganizationsApiService)(&c.common)
 	c.PolicyApi = (*PolicyApiService)(&c.common)
 	c.PolicyDecisionPointsApi = (*PolicyDecisionPointsApiService)(&c.common)
 	c.PolicyGitRepositoriesApi = (*PolicyGitRepositoriesApiService)(&c.common)
 	c.ProjectsApi = (*ProjectsApiService)(&c.common)
-	c.ResourceActionsApi = (*ResourceActionsApiService)(&c.common)
+	c.ProxyConfigAPI = (*ProxyConfigAPIService)(&c.common)
 	c.ResourceActionGroupsApi = (*ResourceActionGroupsApiService)(&c.common)
+	c.ResourceActionsApi = (*ResourceActionsApiService)(&c.common)
 	c.ResourceAttributesApi = (*ResourceAttributesApiService)(&c.common)
 	c.ResourceInstancesApi = (*ResourceInstancesApiService)(&c.common)
 	c.ResourceRolesApi = (*ResourceRolesApiService)(&c.common)

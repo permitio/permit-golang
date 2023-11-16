@@ -70,6 +70,7 @@ type PermitApiClient struct {
 	Elements             *Elements
 	RoleAssignments      *RoleAssignments
 	ConditionSets        *ConditionSets
+	ImplicitGrants       *ImplicitGrants
 }
 
 func (p *PermitApiClient) SetContext(ctx context.Context, project string, environment string) {
@@ -105,5 +106,6 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 		Elements:             NewElementsApi(client, config),
 		RoleAssignments:      NewRoleAssignmentsApi(client, config),
 		ConditionSets:        NewConditionSetsApi(client, config),
+		ImplicitGrants:       NewImplicitGrantsApi(client, config),
 	}
 }

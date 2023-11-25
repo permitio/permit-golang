@@ -25,6 +25,7 @@ type ResourceRoleRead struct {
 	Permissions []string `json:"permissions,omitempty"`
 	// list of role keys that define what roles this role extends. In other words: this role will automatically inherit all the permissions of the given roles in this list.
 	Extends []string `json:"extends,omitempty"`
+	GrantedTo *DerivedRoleBlockRead `json:"granted_to,omitempty"`
 	// A URL-friendly name of the role (i.e: slug). You will be able to query later using this key instead of the id (UUID) of the role.
 	Key string `json:"key"`
 	// Unique id of the role
@@ -395,6 +396,9 @@ func (o ResourceRoleRead) MarshalJSON() ([]byte, error) {
 	if !IsNil(o.Extends) {
 		toSerialize["extends"] = o.Extends
 	}
+	if !IsNil(o.GrantedTo) {
+		toSerialize["granted_to"] = o.GrantedTo
+	}
 	if true {
 		toSerialize["key"] = o.Key
 	}
@@ -456,4 +460,36 @@ func (v NullableResourceRoleRead) MarshalJSON() ([]byte, error) {
 func (v *NullableResourceRoleRead) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
+}
+
+// GetGrantedTo returns the GrantedTo field value if set, zero value otherwise.
+func (o *ResourceRoleRead) GetGrantedTo() DerivedRoleBlockRead {
+	if o == nil || IsNil(o.GrantedTo) {
+		var ret DerivedRoleBlockRead
+		return ret
+	}
+	return *o.GrantedTo
+}
+
+// GetGrantedToOk returns a tuple with the GrantedTo field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ResourceRoleRead) GetGrantedToOk() (*DerivedRoleBlockRead, bool) {
+	if o == nil || IsNil(o.GrantedTo) {
+		return nil, false
+	}
+	return o.GrantedTo, true
+}
+
+// HasGrantedTo returns a boolean if a field has been set.
+func (o *ResourceRoleRead) HasGrantedTo() bool {
+	if o != nil && !IsNil(o.GrantedTo) {
+		return true
+	}
+
+	return false
+}
+
+// SetGrantedTo gets a reference to the given DerivedRoleBlockRead and assigns it to the GrantedTo field.
+func (o *ResourceRoleRead) SetGrantedTo(v DerivedRoleBlockRead) {
+	o.GrantedTo = &v
 }

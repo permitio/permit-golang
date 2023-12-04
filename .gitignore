@@ -25,3 +25,4 @@ _testmain.go
 
 permit-golang
 .idea
+permit-golang.iml

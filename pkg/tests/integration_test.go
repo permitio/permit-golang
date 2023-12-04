@@ -155,10 +155,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatal("PDP_API_KEY is not set")
 	}
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, project, env)
-	permitClient := permit.New(config.NewConfigBuilder(token).
-		WithContext(permitContext).
-		WithLogger(logger).
-		Build())
+	permitClient := permit.New(config.NewConfigBuilder(token).WithPdpUrl(os.Getenv("PDP_URL")).WithContext(permitContext).WithLogger(logger).Build())
 
 	// Create a user
 	userCreate := *models.NewUserCreate(userKey)

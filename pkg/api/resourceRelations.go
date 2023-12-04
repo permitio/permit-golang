@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
@@ -141,9 +142,16 @@ func (r *ResourceRelations) List(
 	retrieved, httpRes, err := request.Execute()
 
 	err = errors.HttpErrorHandle(err, httpRes)
+
 	if err != nil {
 		r.logger.Error("error listing resource instances", zap.Error(err))
 		return nil, err
+	}
+
+	if retrieved == nil {
+		errorMsg := "error listing resource instances - retrieved is nil"
+		r.logger.Error(errorMsg)
+		return nil, fmt.Errorf(errorMsg)
 	}
 
 	return &retrieved.Data, nil

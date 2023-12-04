@@ -286,7 +286,7 @@ func TestIntegration(t *testing.T) {
 	// Assign role to user
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, tenantKey)
 	assert.NoError(t, err)
-	time.Sleep(10 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	userPermissions, err := permitClient.GetUserPermissions(enforcement.UserBuilder(userKey).Build())
 	assert.NoError(t, err)

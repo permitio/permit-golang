@@ -12,117 +12,58 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
-// checks if the Roles type satisfies the MappedNullable interface at compile time
-var _ MappedNullable = &Roles{}
-
-// Roles Roles to copy
+// CopyEnvironmentScopeRoles struct for CopyEnvironmentScopeRoles
 type Roles struct {
-	// Objects to include (use * as wildcard)
-	Include []string `json:"include,omitempty"`
-	// Object to exclude (use * as wildcard)
-	Exclude []string `json:"exclude,omitempty"`
+	PaginatedResultResourceRoleRead *PaginatedResultResourceRoleRead
+	ResourceRoleRead *[]ResourceRoleRead
 }
 
-// NewRoles instantiates a new Roles object
-// This constructor will assign default values to properties that have it defined,
-// and makes sure properties required by API are set, but the set of arguments
-// will change when the set of required properties is changed
-func NewRoles() *Roles {
-	this := Roles{}
-	return &this
-}
-
-// NewRolesWithDefaults instantiates a new Roles object
-// This constructor will only assign default values to properties that have it defined,
-// but it doesn't guarantee that properties required by API are set
-func NewRolesWithDefaults() *Roles {
-	this := Roles{}
-	return &this
-}
-
-// GetInclude returns the Include field value if set, zero value otherwise.
-func (o *Roles) GetInclude() []string {
-	if o == nil || IsNil(o.Include) {
-		var ret []string
-		return ret
-	}
-	return o.Include
-}
-
-// GetIncludeOk returns a tuple with the Include field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Roles) GetIncludeOk() ([]string, bool) {
-	if o == nil || IsNil(o.Include) {
-		return nil, false
-	}
-	return o.Include, true
-}
-
-// HasInclude returns a boolean if a field has been set.
-func (o *Roles) HasInclude() bool {
-	if o != nil && !IsNil(o.Include) {
-		return true
+// Unmarshal JSON data into any of the pointers in the struct
+func (dst *Roles) UnmarshalJSON(data []byte) error {
+	var err error
+	// try to unmarshal JSON data into PaginatedResultResourceRoleRead
+	err = json.Unmarshal(data, &dst.PaginatedResultResourceRoleRead);
+	if err == nil {
+		jsonPaginatedResultResourceRoleRead, _ := json.Marshal(dst.PaginatedResultResourceRoleRead)
+		if string(jsonPaginatedResultResourceRoleRead) == "{}" { // empty struct
+			dst.PaginatedResultResourceRoleRead = nil
+		} else {
+			return nil // data stored in dst.PaginatedResultResourceRoleRead, return on the first match
+		}
+	} else {
+		dst.PaginatedResultResourceRoleRead = nil
 	}
 
-	return false
-}
-
-// SetInclude gets a reference to the given []string and assigns it to the Include field.
-func (o *Roles) SetInclude(v []string) {
-	o.Include = v
-}
-
-// GetExclude returns the Exclude field value if set, zero value otherwise.
-func (o *Roles) GetExclude() []string {
-	if o == nil || IsNil(o.Exclude) {
-		var ret []string
-		return ret
-	}
-	return o.Exclude
-}
-
-// GetExcludeOk returns a tuple with the Exclude field value if set, nil otherwise
-// and a boolean to check if the value has been set.
-func (o *Roles) GetExcludeOk() ([]string, bool) {
-	if o == nil || IsNil(o.Exclude) {
-		return nil, false
-	}
-	return o.Exclude, true
-}
-
-// HasExclude returns a boolean if a field has been set.
-func (o *Roles) HasExclude() bool {
-	if o != nil && !IsNil(o.Exclude) {
-		return true
+	// try to unmarshal JSON data into []ResourceRoleRead
+	err = json.Unmarshal(data, &dst.ResourceRoleRead);
+	if err == nil {
+		jsonResourceRoleRead, _ := json.Marshal(dst.ResourceRoleRead)
+		if string(jsonResourceRoleRead) == "{}" { // empty struct
+			dst.ResourceRoleRead = nil
+		} else {
+			return nil // data stored in dst.[]ResourceRoleRead, return on the first match
+		}
+	} else {
+		dst.ResourceRoleRead = nil
 	}
 
-	return false
+	return fmt.Errorf("data failed to match schemas in anyOf(CopyEnvironmentScopeRoles)")
 }
 
-// SetExclude gets a reference to the given []string and assigns it to the Exclude field.
-func (o *Roles) SetExclude(v []string) {
-	o.Exclude = v
-}
+// Marshal data from the first non-nil pointers in the struct to JSON
+func (src *Roles) MarshalJSON() ([]byte, error) {
+	if src.PaginatedResultResourceRoleRead != nil {
+		return json.Marshal(&src.PaginatedResultResourceRoleRead)
+	}
 
-func (o Roles) MarshalJSON() ([]byte, error) {
-	toSerialize, err := o.ToMap()
-	if err != nil {
-		return []byte{}, err
+	if src.ResourceRoleRead != nil {
+		return json.Marshal(&src.ResourceRoleRead)
 	}
-	return json.Marshal(toSerialize)
-}
 
-func (o Roles) ToMap() (map[string]interface{}, error) {
-	toSerialize := map[string]interface{}{}
-	if !IsNil(o.Include) {
-		toSerialize["include"] = o.Include
-	}
-	if !IsNil(o.Exclude) {
-		toSerialize["exclude"] = o.Exclude
-	}
-	return toSerialize, nil
+	return nil, nil // no data in anyOf schemas
 }
 
 type NullableRoles struct {

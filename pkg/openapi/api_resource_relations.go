@@ -20,78 +20,80 @@ import (
 	"strings"
 )
 
-// ResourceInstancesApiService ResourceInstancesAPI service
-type ResourceInstancesApiService service
 
-type ApiCreateResourceInstanceRequest struct {
+// ResourceRelationsAPIService ResourceRelationsAPI service
+type ResourceRelationsAPIService service
+
+type ApiCreateResourceRelationRequest struct {
 	ctx context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *ResourceRelationsAPIService
 	projId string
 	envId string
-	resourceInstanceCreate *models.ResourceInstanceCreate
+	resourceId string
+	relationCreate *models.RelationCreate
 	permitSession *string
 }
 
-func (r ApiCreateResourceInstanceRequest) ResourceInstanceCreate(resourceInstanceCreate models.ResourceInstanceCreate) ApiCreateResourceInstanceRequest {
-	r.resourceInstanceCreate = &resourceInstanceCreate
+func (r ApiCreateResourceRelationRequest) RelationCreate(relationCreate models.RelationCreate) ApiCreateResourceRelationRequest {
+	r.relationCreate = &relationCreate
 	return r
 }
 
-func (r ApiCreateResourceInstanceRequest) PermitSession(permitSession string) ApiCreateResourceInstanceRequest {
+func (r ApiCreateResourceRelationRequest) PermitSession(permitSession string) ApiCreateResourceRelationRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiCreateResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.CreateResourceInstanceExecute(r)
+func (r ApiCreateResourceRelationRequest) Execute() (*models.RelationRead, *http.Response, error) {
+	return r.ApiService.CreateResourceRelationExecute(r)
 }
 
 /*
-CreateResourceInstance Create Resource Instance
+CreateResourceRelation Create Resource Relation
 
-Creates a new instance inside the Permit.io system.
-
-If the instance is already created: will return 200 instead of 201,
-and will return the existing instance object in the response body.
+Creates a resource relation to another resource
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateResourceInstanceRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiCreateResourceRelationRequest
 */
-func (a *ResourceInstancesApiService) CreateResourceInstance(ctx context.Context, projId string, envId string) ApiCreateResourceInstanceRequest {
-	return ApiCreateResourceInstanceRequest{
+func (a *ResourceRelationsAPIService) CreateResourceRelation(ctx context.Context, projId string, envId string, resourceId string) ApiCreateResourceRelationRequest {
+	return ApiCreateResourceRelationRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
 		envId: envId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
+//  @return RelationRead
+func (a *ResourceRelationsAPIService) CreateResourceRelationExecute(r ApiCreateResourceRelationRequest) (*models.RelationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *models.ResourceInstanceRead
+		localVarReturnValue  *models.RelationRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.CreateResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRelationsAPIService.CreateResourceRelation")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterValueToString(r.resourceId, "resourceId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.resourceInstanceCreate == nil {
-		return localVarReturnValue, nil, reportError("resourceInstanceCreate is required and must be specified")
+	if r.relationCreate == nil {
+		return localVarReturnValue, nil, reportError("relationCreate is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -112,7 +114,7 @@ func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateR
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.resourceInstanceCreate
+	localVarPostBody = r.relationCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -160,62 +162,66 @@ func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateR
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteResourceInstanceRequest struct {
+type ApiDeleteResourceRelationRequest struct {
 	ctx context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *ResourceRelationsAPIService
 	projId string
 	envId string
-	instanceId string
+	resourceId string
+	relationId string
 	permitSession *string
 }
 
-func (r ApiDeleteResourceInstanceRequest) PermitSession(permitSession string) ApiDeleteResourceInstanceRequest {
+func (r ApiDeleteResourceRelationRequest) PermitSession(permitSession string) ApiDeleteResourceRelationRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiDeleteResourceInstanceRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteResourceInstanceExecute(r)
+func (r ApiDeleteResourceRelationRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteResourceRelationExecute(r)
 }
 
 /*
-DeleteResourceInstance Delete Resource Instance
+DeleteResourceRelation Delete Resource Relation
 
-Deletes the instance and all its related data.
+Deletes a resource relation
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiDeleteResourceInstanceRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param relationId Either the unique id of the relation, or the URL-friendly key of the relation (i.e: the \"slug\").
+ @return ApiDeleteResourceRelationRequest
 */
-func (a *ResourceInstancesApiService) DeleteResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiDeleteResourceInstanceRequest {
-	return ApiDeleteResourceInstanceRequest{
+func (a *ResourceRelationsAPIService) DeleteResourceRelation(ctx context.Context, projId string, envId string, resourceId string, relationId string) ApiDeleteResourceRelationRequest {
+	return ApiDeleteResourceRelationRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
 		envId: envId,
-		instanceId: instanceId,
+		resourceId: resourceId,
+		relationId: relationId,
 	}
 }
 
 // Execute executes the request
-func (a *ResourceInstancesApiService) DeleteResourceInstanceExecute(r ApiDeleteResourceInstanceRequest) (*http.Response, error) {
+func (a *ResourceRelationsAPIService) DeleteResourceRelationExecute(r ApiDeleteResourceRelationRequest) (*http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.DeleteResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRelationsAPIService.DeleteResourceRelation")
 	if err != nil {
 		return nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterValueToString(r.instanceId, "instanceId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterValueToString(r.resourceId, "resourceId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"relation_id"+"}", url.PathEscape(parameterValueToString(r.relationId, "relationId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -276,64 +282,68 @@ func (a *ResourceInstancesApiService) DeleteResourceInstanceExecute(r ApiDeleteR
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetResourceInstanceRequest struct {
+type ApiGetResourceRelationRequest struct {
 	ctx context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *ResourceRelationsAPIService
 	projId string
 	envId string
-	instanceId string
+	resourceId string
+	relationId string
 	permitSession *string
 }
 
-func (r ApiGetResourceInstanceRequest) PermitSession(permitSession string) ApiGetResourceInstanceRequest {
+func (r ApiGetResourceRelationRequest) PermitSession(permitSession string) ApiGetResourceRelationRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiGetResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.GetResourceInstanceExecute(r)
+func (r ApiGetResourceRelationRequest) Execute() (*models.RelationRead, *http.Response, error) {
+	return r.ApiService.GetResourceRelationExecute(r)
 }
 
 /*
-GetResourceInstance Get Resource Instance
+GetResourceRelation Get Resource Relation
 
-Gets a instance, if such instance exists. Otherwise returns 404.
+Get a resource relation
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiGetResourceInstanceRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @param relationId Either the unique id of the relation, or the URL-friendly key of the relation (i.e: the \"slug\").
+ @return ApiGetResourceRelationRequest
 */
-func (a *ResourceInstancesApiService) GetResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiGetResourceInstanceRequest {
-	return ApiGetResourceInstanceRequest{
+func (a *ResourceRelationsAPIService) GetResourceRelation(ctx context.Context, projId string, envId string, resourceId string, relationId string) ApiGetResourceRelationRequest {
+	return ApiGetResourceRelationRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
 		envId: envId,
-		instanceId: instanceId,
+		resourceId: resourceId,
+		relationId: relationId,
 	}
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) GetResourceInstanceExecute(r ApiGetResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
+//  @return RelationRead
+func (a *ResourceRelationsAPIService) GetResourceRelationExecute(r ApiGetResourceRelationRequest) (*models.RelationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *models.ResourceInstanceRead
+		localVarReturnValue  *models.RelationRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.GetResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRelationsAPIService.GetResourceRelation")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterValueToString(r.instanceId, "instanceId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterValueToString(r.resourceId, "resourceId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"relation_id"+"}", url.PathEscape(parameterValueToString(r.relationId, "relationId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -403,119 +413,83 @@ func (a *ResourceInstancesApiService) GetResourceInstanceExecute(r ApiGetResourc
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiListResourceInstancesRequest struct {
+type ApiListResourceRelationsRequest struct {
 	ctx context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *ResourceRelationsAPIService
 	projId string
 	envId string
-	tenant *string
-	resource *string
-	detailed *bool
+	resourceId string
 	page *int32
 	perPage *int32
-	search *string
 	permitSession *string
 }
 
-// The tenant key or id to filter by
-func (r ApiListResourceInstancesRequest) Tenant(tenant string) ApiListResourceInstancesRequest {
-	r.tenant = &tenant
-	return r
-}
-
-// The resource key or id to filter by
-func (r ApiListResourceInstancesRequest) Resource(resource string) ApiListResourceInstancesRequest {
-	r.resource = &resource
-	return r
-}
-
-// If true, will return the relationships of the resource instance.
-func (r ApiListResourceInstancesRequest) Detailed(detailed bool) ApiListResourceInstancesRequest {
-	r.detailed = &detailed
-	return r
-}
-
 // Page number of the results to fetch, starting at 1.
-func (r ApiListResourceInstancesRequest) Page(page int32) ApiListResourceInstancesRequest {
+func (r ApiListResourceRelationsRequest) Page(page int32) ApiListResourceRelationsRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListResourceInstancesRequest) PerPage(perPage int32) ApiListResourceInstancesRequest {
+func (r ApiListResourceRelationsRequest) PerPage(perPage int32) ApiListResourceRelationsRequest {
 	r.perPage = &perPage
 	return r
 }
 
-// Text search for the object name or key
-func (r ApiListResourceInstancesRequest) Search(search string) ApiListResourceInstancesRequest {
-	r.search = &search
-	return r
-}
-
-func (r ApiListResourceInstancesRequest) PermitSession(permitSession string) ApiListResourceInstancesRequest {
+func (r ApiListResourceRelationsRequest) PermitSession(permitSession string) ApiListResourceRelationsRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiListResourceInstancesRequest) Execute() ([]models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.ListResourceInstancesExecute(r)
+func (r ApiListResourceRelationsRequest) Execute() (*models.PaginatedResultRelationRead, *http.Response, error) {
+	return r.ApiService.ListResourceRelationsExecute(r)
 }
 
 /*
-ListResourceInstances List Resource Instances
+ListResourceRelations List Resource Relations
 
-Lists all the resource instances defined within an environment.
+List relations on a given resource
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListResourceInstancesRequest
+ @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+ @return ApiListResourceRelationsRequest
 */
-func (a *ResourceInstancesApiService) ListResourceInstances(ctx context.Context, projId string, envId string) ApiListResourceInstancesRequest {
-	return ApiListResourceInstancesRequest{
+func (a *ResourceRelationsAPIService) ListResourceRelations(ctx context.Context, projId string, envId string, resourceId string) ApiListResourceRelationsRequest {
+	return ApiListResourceRelationsRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
 		envId: envId,
+		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return []ResourceInstanceRead
-func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListResourceInstancesRequest) ([]models.ResourceInstanceRead, *http.Response, error) {
+//  @return PaginatedResultRelationRead
+func (a *ResourceRelationsAPIService) ListResourceRelationsExecute(r ApiListResourceRelationsRequest) (*models.PaginatedResultRelationRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  []models.ResourceInstanceRead
+		localVarReturnValue  *models.PaginatedResultRelationRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.ListResourceInstances")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRelationsAPIService.ListResourceRelations")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances"
+	localVarPath := localBasePath + "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"resource_id"+"}", url.PathEscape(parameterValueToString(r.resourceId, "resourceId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.tenant != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "tenant", r.tenant, "")
-	}
-	if r.resource != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "resource", r.resource, "")
-	}
-	if r.detailed != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "detailed", r.detailed, "")
-	} else {
-		var defaultValue bool = false
-		r.detailed = &defaultValue
-	}
 	if r.page != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "")
 	} else {
@@ -528,9 +502,6 @@ func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListReso
 		var defaultValue int32 = 30
 		r.perPage = &defaultValue
 	}
-	if r.search != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "search", r.search, "")
-	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -548,145 +519,6 @@ func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListReso
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUpdateResourceInstanceRequest struct {
-	ctx context.Context
-	ApiService *ResourceInstancesApiService
-	projId string
-	envId string
-	instanceId string
-	resourceInstanceUpdate *models.ResourceInstanceUpdate
-	permitSession *string
-}
-
-func (r ApiUpdateResourceInstanceRequest) ResourceInstanceUpdate(resourceInstanceUpdate models.ResourceInstanceUpdate) ApiUpdateResourceInstanceRequest {
-	r.resourceInstanceUpdate = &resourceInstanceUpdate
-	return r
-}
-
-func (r ApiUpdateResourceInstanceRequest) PermitSession(permitSession string) ApiUpdateResourceInstanceRequest {
-	r.permitSession = &permitSession
-	return r
-}
-
-func (r ApiUpdateResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.UpdateResourceInstanceExecute(r)
-}
-
-/*
-UpdateResourceInstance Update Resource Instance
-
-Partially updates the instance definition.
-Fields that will be provided will be completely overwritten.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiUpdateResourceInstanceRequest
-*/
-func (a *ResourceInstancesApiService) UpdateResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiUpdateResourceInstanceRequest {
-	return ApiUpdateResourceInstanceRequest{
-		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
-		instanceId: instanceId,
-	}
-}
-
-// Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) UpdateResourceInstanceExecute(r ApiUpdateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodPatch
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.ResourceInstanceRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.UpdateResourceInstance")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterValueToString(r.instanceId, "instanceId")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.resourceInstanceUpdate == nil {
-		return localVarReturnValue, nil, reportError("resourceInstanceUpdate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.resourceInstanceUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

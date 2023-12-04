@@ -57,19 +57,24 @@ type PermitApiClient struct {
 	config               *config.PermitConfig
 	logger               *zap.Logger
 	client               *openapi.APIClient
-	Tenants              *Tenants
-	Environments         *Environments
-	Projects             *Projects
-	ResourceActions      *ResourceActions
-	ResourceActionGroups *ResourceActionGroups
-	ProxyConfigs         *ProxyConfigs
-	ResourceAttributes   *ResourceAttributes
-	Resources            *Resources
-	Roles                *Roles
-	Users                *Users
-	Elements             *Elements
-	RoleAssignments      *RoleAssignments
 	ConditionSets        *ConditionSets
+	Elements             *Elements
+	Environments         *Environments
+	ImplicitGrants       *ImplicitGrants
+	Projects             *Projects
+	ProxyConfigs         *ProxyConfigs
+	RelationshipTuples   *RelationshipTuples
+	ResourceActionGroups *ResourceActionGroups
+	ResourceActions      *ResourceActions
+	ResourceAttributes   *ResourceAttributes
+	ResourceInstances    *ResourceInstances
+	ResourceRelations    *ResourceRelations
+	ResourceRoles        *ResourceRoles
+	Resources            *Resources
+	RoleAssignments      *RoleAssignments
+	Roles                *Roles
+	Tenants              *Tenants
+	Users                *Users
 }
 
 func (p *PermitApiClient) SetContext(ctx context.Context, project string, environment string) {
@@ -87,23 +92,27 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 	clientConfig.AddDefaultHeader("Authorization", "Bearer "+config.GetToken())
 	clientConfig.HTTPClient = config.GetHTTPClient()
 	client := openapi.NewAPIClient(clientConfig)
-	userApi := NewUsersApi(client, config)
 	return &PermitApiClient{
 		config:               config,
 		logger:               config.Logger,
 		client:               client,
-		Tenants:              NewTenantsApi(client, config),
-		Environments:         NewEnvironmentsApi(client, config),
-		Projects:             NewProjectsApi(client, config),
-		ResourceActions:      NewResourceActionsApi(client, config),
-		ResourceActionGroups: NewResourceActionGroupsApi(client, config),
-		ResourceAttributes:   NewResourceAttributesApi(client, config),
-		ProxyConfigs:         NewProxyConfigsApi(client, config),
-		Resources:            NewResourcesApi(client, config),
-		Roles:                NewRolesApi(client, config),
-		Users:                userApi,
-		Elements:             NewElementsApi(client, config),
-		RoleAssignments:      NewRoleAssignmentsApi(client, config),
 		ConditionSets:        NewConditionSetsApi(client, config),
+		Elements:             NewElementsApi(client, config),
+		Environments:         NewEnvironmentsApi(client, config),
+		ImplicitGrants:       NewImplicitGrantsApi(client, config),
+		Projects:             NewProjectsApi(client, config),
+		ProxyConfigs:         NewProxyConfigsApi(client, config),
+		RelationshipTuples:   NewRelationshipTuplesApi(client, config),
+		ResourceActionGroups: NewResourceActionGroupsApi(client, config),
+		ResourceActions:      NewResourceActionsApi(client, config),
+		ResourceAttributes:   NewResourceAttributesApi(client, config),
+		ResourceInstances:    NewResourceInstancesApi(client, config),
+		ResourceRelations:    NewResourceRelationsApi(client, config),
+		ResourceRoles:        NewResourceRolesApi(client, config),
+		Resources:            NewResourcesApi(client, config),
+		RoleAssignments:      NewRoleAssignmentsApi(client, config),
+		Roles:                NewRolesApi(client, config),
+		Tenants:              NewTenantsApi(client, config),
+		Users:                NewUsersApi(client, config),
 	}
 }

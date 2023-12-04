@@ -19,10 +19,10 @@ var _ MappedNullable = &EnvironmentCopyScope{}
 
 // EnvironmentCopyScope struct for EnvironmentCopyScope
 type EnvironmentCopyScope struct {
-	Resources    *Resources    `json:"resources,omitempty"`
-	Roles        *Roles        `json:"roles,omitempty"`
-	UserSets     *UserSets     `json:"user_sets,omitempty"`
-	ResourceSets *ResourceSets `json:"resource_sets,omitempty"`
+	Resources    *Resources                 `json:"resources,omitempty"`
+	Roles        *CopyEnvironmentScopeRoles `json:"roles,omitempty"`
+	UserSets     *UserSets                  `json:"user_sets,omitempty"`
+	ResourceSets *ResourceSets              `json:"resource_sets,omitempty"`
 }
 
 // NewEnvironmentCopyScope instantiates a new EnvironmentCopyScope object
@@ -75,9 +75,9 @@ func (o *EnvironmentCopyScope) SetResources(v Resources) {
 }
 
 // GetRoles returns the Roles field value if set, zero value otherwise.
-func (o *EnvironmentCopyScope) GetRoles() Roles {
+func (o *EnvironmentCopyScope) GetRoles() CopyEnvironmentScopeRoles {
 	if o == nil || IsNil(o.Roles) {
-		var ret Roles
+		var ret CopyEnvironmentScopeRoles
 		return ret
 	}
 	return *o.Roles
@@ -85,7 +85,7 @@ func (o *EnvironmentCopyScope) GetRoles() Roles {
 
 // GetRolesOk returns a tuple with the Roles field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *EnvironmentCopyScope) GetRolesOk() (*Roles, bool) {
+func (o *EnvironmentCopyScope) GetRolesOk() (*CopyEnvironmentScopeRoles, bool) {
 	if o == nil || IsNil(o.Roles) {
 		return nil, false
 	}
@@ -102,7 +102,7 @@ func (o *EnvironmentCopyScope) HasRoles() bool {
 }
 
 // SetRoles gets a reference to the given Roles and assigns it to the Roles field.
-func (o *EnvironmentCopyScope) SetRoles(v Roles) {
+func (o *EnvironmentCopyScope) SetRoles(v CopyEnvironmentScopeRoles) {
 	o.Roles = &v
 }
 

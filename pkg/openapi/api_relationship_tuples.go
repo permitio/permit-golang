@@ -20,47 +20,43 @@ import (
 	"strings"
 )
 
-// ResourceInstancesApiService ResourceInstancesAPI service
-type ResourceInstancesApiService service
 
-type ApiCreateResourceInstanceRequest struct {
+// RelationshipTuplesAPIService RelationshipTuplesAPI service
+type RelationshipTuplesAPIService service
+
+type ApiBulkCreateRelationshipTuplesRequest struct {
 	ctx context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *RelationshipTuplesAPIService
 	projId string
 	envId string
-	resourceInstanceCreate *models.ResourceInstanceCreate
+	relationshipTupleCreateBulkOperation *models.RelationshipTupleCreateBulkOperation
 	permitSession *string
 }
 
-func (r ApiCreateResourceInstanceRequest) ResourceInstanceCreate(resourceInstanceCreate models.ResourceInstanceCreate) ApiCreateResourceInstanceRequest {
-	r.resourceInstanceCreate = &resourceInstanceCreate
+func (r ApiBulkCreateRelationshipTuplesRequest) RelationshipTupleCreateBulkOperation(relationshipTupleCreateBulkOperation models.RelationshipTupleCreateBulkOperation) ApiBulkCreateRelationshipTuplesRequest {
+	r.relationshipTupleCreateBulkOperation = &relationshipTupleCreateBulkOperation
 	return r
 }
 
-func (r ApiCreateResourceInstanceRequest) PermitSession(permitSession string) ApiCreateResourceInstanceRequest {
+func (r ApiBulkCreateRelationshipTuplesRequest) PermitSession(permitSession string) ApiBulkCreateRelationshipTuplesRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiCreateResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.CreateResourceInstanceExecute(r)
+func (r ApiBulkCreateRelationshipTuplesRequest) Execute() (map[string]interface{}, *http.Response, error) {
+	return r.ApiService.BulkCreateRelationshipTuplesExecute(r)
 }
 
 /*
-CreateResourceInstance Create Resource Instance
-
-Creates a new instance inside the Permit.io system.
-
-If the instance is already created: will return 200 instead of 201,
-and will return the existing instance object in the response body.
+BulkCreateRelationshipTuples Bulk Create Relationship Tuples
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateResourceInstanceRequest
+ @return ApiBulkCreateRelationshipTuplesRequest
 */
-func (a *ResourceInstancesApiService) CreateResourceInstance(ctx context.Context, projId string, envId string) ApiCreateResourceInstanceRequest {
-	return ApiCreateResourceInstanceRequest{
+func (a *RelationshipTuplesAPIService) BulkCreateRelationshipTuples(ctx context.Context, projId string, envId string) ApiBulkCreateRelationshipTuplesRequest {
+	return ApiBulkCreateRelationshipTuplesRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
@@ -69,29 +65,29 @@ func (a *ResourceInstancesApiService) CreateResourceInstance(ctx context.Context
 }
 
 // Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
+//  @return map[string]interface{}
+func (a *RelationshipTuplesAPIService) BulkCreateRelationshipTuplesExecute(r ApiBulkCreateRelationshipTuplesRequest) (map[string]interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodPost
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  *models.ResourceInstanceRead
+		localVarReturnValue  map[string]interface{}
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.CreateResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.BulkCreateRelationshipTuples")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.resourceInstanceCreate == nil {
-		return localVarReturnValue, nil, reportError("resourceInstanceCreate is required and must be specified")
+	if r.relationshipTupleCreateBulkOperation == nil {
+		return localVarReturnValue, nil, reportError("relationshipTupleCreateBulkOperation is required and must be specified")
 	}
 
 	// to determine the Content-Type header
@@ -112,7 +108,7 @@ func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateR
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.resourceInstanceCreate
+	localVarPostBody = r.relationshipTupleCreateBulkOperation
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -160,69 +156,74 @@ func (a *ResourceInstancesApiService) CreateResourceInstanceExecute(r ApiCreateR
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
-type ApiDeleteResourceInstanceRequest struct {
+type ApiBulkDeleteRelationshipTuplesRequest struct {
 	ctx context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *RelationshipTuplesAPIService
 	projId string
 	envId string
-	instanceId string
+	relationshipTupleDeleteBulkOperation *models.RelationshipTupleDeleteBulkOperation
 	permitSession *string
 }
 
-func (r ApiDeleteResourceInstanceRequest) PermitSession(permitSession string) ApiDeleteResourceInstanceRequest {
+func (r ApiBulkDeleteRelationshipTuplesRequest) RelationshipTupleDeleteBulkOperation(relationshipTupleDeleteBulkOperation models.RelationshipTupleDeleteBulkOperation) ApiBulkDeleteRelationshipTuplesRequest {
+	r.relationshipTupleDeleteBulkOperation = &relationshipTupleDeleteBulkOperation
+	return r
+}
+
+func (r ApiBulkDeleteRelationshipTuplesRequest) PermitSession(permitSession string) ApiBulkDeleteRelationshipTuplesRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiDeleteResourceInstanceRequest) Execute() (*http.Response, error) {
-	return r.ApiService.DeleteResourceInstanceExecute(r)
+func (r ApiBulkDeleteRelationshipTuplesRequest) Execute() (map[string]interface{}, *http.Response, error) {
+	return r.ApiService.BulkDeleteRelationshipTuplesExecute(r)
 }
 
 /*
-DeleteResourceInstance Delete Resource Instance
-
-Deletes the instance and all its related data.
+BulkDeleteRelationshipTuples Bulk Delete Relationship Tuples
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiDeleteResourceInstanceRequest
+ @return ApiBulkDeleteRelationshipTuplesRequest
 */
-func (a *ResourceInstancesApiService) DeleteResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiDeleteResourceInstanceRequest {
-	return ApiDeleteResourceInstanceRequest{
+func (a *RelationshipTuplesAPIService) BulkDeleteRelationshipTuples(ctx context.Context, projId string, envId string) ApiBulkDeleteRelationshipTuplesRequest {
+	return ApiBulkDeleteRelationshipTuplesRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
 		envId: envId,
-		instanceId: instanceId,
 	}
 }
 
 // Execute executes the request
-func (a *ResourceInstancesApiService) DeleteResourceInstanceExecute(r ApiDeleteResourceInstanceRequest) (*http.Response, error) {
+//  @return map[string]interface{}
+func (a *RelationshipTuplesAPIService) BulkDeleteRelationshipTuplesExecute(r ApiBulkDeleteRelationshipTuplesRequest) (map[string]interface{}, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodDelete
 		localVarPostBody     interface{}
 		formFiles            []formFile
+		localVarReturnValue  map[string]interface{}
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.DeleteResourceInstance")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.BulkDeleteRelationshipTuples")
 	if err != nil {
-		return nil, &GenericOpenAPIError{error: err.Error()}
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterValueToString(r.instanceId, "instanceId")), -1)
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
+	if r.relationshipTupleDeleteBulkOperation == nil {
+		return localVarReturnValue, nil, reportError("relationshipTupleDeleteBulkOperation is required and must be specified")
+	}
 
 	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
+	localVarHTTPContentTypes := []string{"application/json"}
 
 	// set Content-Type header
 	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
@@ -238,6 +239,274 @@ func (a *ResourceInstancesApiService) DeleteResourceInstanceExecute(r ApiDeleteR
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	// body params
+	localVarPostBody = r.relationshipTupleDeleteBulkOperation
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiCreateRelationshipTupleRequest struct {
+	ctx context.Context
+	ApiService *RelationshipTuplesAPIService
+	projId string
+	envId string
+	relationshipTupleCreate *models.RelationshipTupleCreate
+	permitSession *string
+}
+
+func (r ApiCreateRelationshipTupleRequest) RelationshipTupleCreate(relationshipTupleCreate models.RelationshipTupleCreate) ApiCreateRelationshipTupleRequest {
+	r.relationshipTupleCreate = &relationshipTupleCreate
+	return r
+}
+
+func (r ApiCreateRelationshipTupleRequest) PermitSession(permitSession string) ApiCreateRelationshipTupleRequest {
+	r.permitSession = &permitSession
+	return r
+}
+
+func (r ApiCreateRelationshipTupleRequest) Execute() (*models.RelationshipTupleRead, *http.Response, error) {
+	return r.ApiService.CreateRelationshipTupleExecute(r)
+}
+
+/*
+CreateRelationshipTuple Create Relationship Tuple
+
+Create a relationship between two resource instances using a relation.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiCreateRelationshipTupleRequest
+*/
+func (a *RelationshipTuplesAPIService) CreateRelationshipTuple(ctx context.Context, projId string, envId string) ApiCreateRelationshipTupleRequest {
+	return ApiCreateRelationshipTupleRequest{
+		ApiService: a,
+		ctx: ctx,
+		projId: projId,
+		envId: envId,
+	}
+}
+
+// Execute executes the request
+//  @return RelationshipTupleRead
+func (a *RelationshipTuplesAPIService) CreateRelationshipTupleExecute(r ApiCreateRelationshipTupleRequest) (*models.RelationshipTupleRead, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *models.RelationshipTupleRead
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.CreateRelationshipTuple")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.relationshipTupleCreate == nil {
+		return localVarReturnValue, nil, reportError("relationshipTupleCreate is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.relationshipTupleCreate
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v models.HTTPValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiDeleteRelationshipTupleRequest struct {
+	ctx context.Context
+	ApiService *RelationshipTuplesAPIService
+	projId string
+	envId string
+	relationshipTupleDelete *models.RelationshipTupleDelete
+	permitSession *string
+}
+
+func (r ApiDeleteRelationshipTupleRequest) RelationshipTupleDelete(relationshipTupleDelete models.RelationshipTupleDelete) ApiDeleteRelationshipTupleRequest {
+	r.relationshipTupleDelete = &relationshipTupleDelete
+	return r
+}
+
+func (r ApiDeleteRelationshipTupleRequest) PermitSession(permitSession string) ApiDeleteRelationshipTupleRequest {
+	r.permitSession = &permitSession
+	return r
+}
+
+func (r ApiDeleteRelationshipTupleRequest) Execute() (*http.Response, error) {
+	return r.ApiService.DeleteRelationshipTupleExecute(r)
+}
+
+/*
+DeleteRelationshipTuple Delete Relationship Tuple
+
+Delete a relationship between two resource instances.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+ @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+ @return ApiDeleteRelationshipTupleRequest
+*/
+func (a *RelationshipTuplesAPIService) DeleteRelationshipTuple(ctx context.Context, projId string, envId string) ApiDeleteRelationshipTupleRequest {
+	return ApiDeleteRelationshipTupleRequest{
+		ApiService: a,
+		ctx: ctx,
+		projId: projId,
+		envId: envId,
+	}
+}
+
+// Execute executes the request
+func (a *RelationshipTuplesAPIService) DeleteRelationshipTupleExecute(r ApiDeleteRelationshipTupleRequest) (*http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodDelete
+		localVarPostBody     interface{}
+		formFiles            []formFile
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.DeleteRelationshipTuple")
+	if err != nil {
+		return nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples"
+	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
+	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.relationshipTupleDelete == nil {
+		return nil, reportError("relationshipTupleDelete is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.relationshipTupleDelete
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return nil, err
@@ -276,204 +545,84 @@ func (a *ResourceInstancesApiService) DeleteResourceInstanceExecute(r ApiDeleteR
 	return localVarHTTPResponse, nil
 }
 
-type ApiGetResourceInstanceRequest struct {
+type ApiListRelationshipTuplesRequest struct {
 	ctx context.Context
-	ApiService *ResourceInstancesApiService
+	ApiService *RelationshipTuplesAPIService
 	projId string
 	envId string
-	instanceId string
-	permitSession *string
-}
-
-func (r ApiGetResourceInstanceRequest) PermitSession(permitSession string) ApiGetResourceInstanceRequest {
-	r.permitSession = &permitSession
-	return r
-}
-
-func (r ApiGetResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.GetResourceInstanceExecute(r)
-}
-
-/*
-GetResourceInstance Get Resource Instance
-
-Gets a instance, if such instance exists. Otherwise returns 404.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiGetResourceInstanceRequest
-*/
-func (a *ResourceInstancesApiService) GetResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiGetResourceInstanceRequest {
-	return ApiGetResourceInstanceRequest{
-		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
-		instanceId: instanceId,
-	}
-}
-
-// Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) GetResourceInstanceExecute(r ApiGetResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodGet
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.ResourceInstanceRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.GetResourceInstance")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterValueToString(r.instanceId, "instanceId")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiListResourceInstancesRequest struct {
-	ctx context.Context
-	ApiService *ResourceInstancesApiService
-	projId string
-	envId string
-	tenant *string
-	resource *string
 	detailed *bool
 	page *int32
 	perPage *int32
-	search *string
+	tenant *string
+	subject *string
+	relation *string
+	object *string
 	permitSession *string
 }
 
-// The tenant key or id to filter by
-func (r ApiListResourceInstancesRequest) Tenant(tenant string) ApiListResourceInstancesRequest {
-	r.tenant = &tenant
-	return r
-}
-
-// The resource key or id to filter by
-func (r ApiListResourceInstancesRequest) Resource(resource string) ApiListResourceInstancesRequest {
-	r.resource = &resource
-	return r
-}
-
-// If true, will return the relationships of the resource instance.
-func (r ApiListResourceInstancesRequest) Detailed(detailed bool) ApiListResourceInstancesRequest {
+// If true, will return the full subject and object resource instances.
+func (r ApiListRelationshipTuplesRequest) Detailed(detailed bool) ApiListRelationshipTuplesRequest {
 	r.detailed = &detailed
 	return r
 }
 
 // Page number of the results to fetch, starting at 1.
-func (r ApiListResourceInstancesRequest) Page(page int32) ApiListResourceInstancesRequest {
+func (r ApiListRelationshipTuplesRequest) Page(page int32) ApiListRelationshipTuplesRequest {
 	r.page = &page
 	return r
 }
 
 // The number of results per page (max 100).
-func (r ApiListResourceInstancesRequest) PerPage(perPage int32) ApiListResourceInstancesRequest {
+func (r ApiListRelationshipTuplesRequest) PerPage(perPage int32) ApiListRelationshipTuplesRequest {
 	r.perPage = &perPage
 	return r
 }
 
-// Text search for the object name or key
-func (r ApiListResourceInstancesRequest) Search(search string) ApiListResourceInstancesRequest {
-	r.search = &search
+// The tenant key or id to filter by
+func (r ApiListRelationshipTuplesRequest) Tenant(tenant string) ApiListRelationshipTuplesRequest {
+	r.tenant = &tenant
 	return r
 }
 
-func (r ApiListResourceInstancesRequest) PermitSession(permitSession string) ApiListResourceInstancesRequest {
+// The subject to filter by, accepts either the resource instance id or resource_type:resource_instance
+func (r ApiListRelationshipTuplesRequest) Subject(subject string) ApiListRelationshipTuplesRequest {
+	r.subject = &subject
+	return r
+}
+
+// The relation id or key to filter by
+func (r ApiListRelationshipTuplesRequest) Relation(relation string) ApiListRelationshipTuplesRequest {
+	r.relation = &relation
+	return r
+}
+
+// The object to filter by, accepts either the resource instance id or resource_type:resource_instance
+func (r ApiListRelationshipTuplesRequest) Object(object string) ApiListRelationshipTuplesRequest {
+	r.object = &object
+	return r
+}
+
+func (r ApiListRelationshipTuplesRequest) PermitSession(permitSession string) ApiListRelationshipTuplesRequest {
 	r.permitSession = &permitSession
 	return r
 }
 
-func (r ApiListResourceInstancesRequest) Execute() ([]models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.ListResourceInstancesExecute(r)
+func (r ApiListRelationshipTuplesRequest) Execute() ([]models.RelationshipTupleRead, *http.Response, error) {
+	return r.ApiService.ListRelationshipTuplesExecute(r)
 }
 
 /*
-ListResourceInstances List Resource Instances
+ListRelationshipTuples List Relationship Tuples
 
-Lists all the resource instances defined within an environment.
+Lists the relationship tuples defined within an environment.
 
  @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
  @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
  @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListResourceInstancesRequest
+ @return ApiListRelationshipTuplesRequest
 */
-func (a *ResourceInstancesApiService) ListResourceInstances(ctx context.Context, projId string, envId string) ApiListResourceInstancesRequest {
-	return ApiListResourceInstancesRequest{
+func (a *RelationshipTuplesAPIService) ListRelationshipTuples(ctx context.Context, projId string, envId string) ApiListRelationshipTuplesRequest {
+	return ApiListRelationshipTuplesRequest{
 		ApiService: a,
 		ctx: ctx,
 		projId: projId,
@@ -482,21 +631,21 @@ func (a *ResourceInstancesApiService) ListResourceInstances(ctx context.Context,
 }
 
 // Execute executes the request
-//  @return []ResourceInstanceRead
-func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListResourceInstancesRequest) ([]models.ResourceInstanceRead, *http.Response, error) {
+//  @return []RelationshipTupleRead
+func (a *RelationshipTuplesAPIService) ListRelationshipTuplesExecute(r ApiListRelationshipTuplesRequest) ([]models.RelationshipTupleRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod   = http.MethodGet
 		localVarPostBody     interface{}
 		formFiles            []formFile
-		localVarReturnValue  []models.ResourceInstanceRead
+		localVarReturnValue  []models.RelationshipTupleRead
 	)
 
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.ListResourceInstances")
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.ListRelationshipTuples")
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances"
+	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/relationship_tuples"
 	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
 
@@ -504,12 +653,6 @@ func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListReso
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
-	if r.tenant != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "tenant", r.tenant, "")
-	}
-	if r.resource != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "resource", r.resource, "")
-	}
 	if r.detailed != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "detailed", r.detailed, "")
 	} else {
@@ -528,8 +671,17 @@ func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListReso
 		var defaultValue int32 = 30
 		r.perPage = &defaultValue
 	}
-	if r.search != nil {
-		parameterAddToHeaderOrQuery(localVarQueryParams, "search", r.search, "")
+	if r.tenant != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "tenant", r.tenant, "")
+	}
+	if r.subject != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "subject", r.subject, "")
+	}
+	if r.relation != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "relation", r.relation, "")
+	}
+	if r.object != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "object", r.object, "")
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
@@ -548,145 +700,6 @@ func (a *ResourceInstancesApiService) ListResourceInstancesExecute(r ApiListReso
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		if localVarHTTPResponse.StatusCode == 422 {
-			var v models.HTTPValidationError
-			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-			if err != nil {
-				newErr.error = err.Error()
-				return localVarReturnValue, localVarHTTPResponse, newErr
-			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := &GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiUpdateResourceInstanceRequest struct {
-	ctx context.Context
-	ApiService *ResourceInstancesApiService
-	projId string
-	envId string
-	instanceId string
-	resourceInstanceUpdate *models.ResourceInstanceUpdate
-	permitSession *string
-}
-
-func (r ApiUpdateResourceInstanceRequest) ResourceInstanceUpdate(resourceInstanceUpdate models.ResourceInstanceUpdate) ApiUpdateResourceInstanceRequest {
-	r.resourceInstanceUpdate = &resourceInstanceUpdate
-	return r
-}
-
-func (r ApiUpdateResourceInstanceRequest) PermitSession(permitSession string) ApiUpdateResourceInstanceRequest {
-	r.permitSession = &permitSession
-	return r
-}
-
-func (r ApiUpdateResourceInstanceRequest) Execute() (*models.ResourceInstanceRead, *http.Response, error) {
-	return r.ApiService.UpdateResourceInstanceExecute(r)
-}
-
-/*
-UpdateResourceInstance Update Resource Instance
-
-Partially updates the instance definition.
-Fields that will be provided will be completely overwritten.
-
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param instanceId Either the unique id of the resource instance, or the URL-friendly key of the resource instance (i.e: the \"slug\").
- @return ApiUpdateResourceInstanceRequest
-*/
-func (a *ResourceInstancesApiService) UpdateResourceInstance(ctx context.Context, projId string, envId string, instanceId string) ApiUpdateResourceInstanceRequest {
-	return ApiUpdateResourceInstanceRequest{
-		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
-		instanceId: instanceId,
-	}
-}
-
-// Execute executes the request
-//  @return ResourceInstanceRead
-func (a *ResourceInstancesApiService) UpdateResourceInstanceExecute(r ApiUpdateResourceInstanceRequest) (*models.ResourceInstanceRead, *http.Response, error) {
-	var (
-		localVarHTTPMethod   = http.MethodPatch
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.ResourceInstanceRead
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceInstancesApiService.UpdateResourceInstance")
-	if err != nil {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}"
-	localVarPath = strings.Replace(localVarPath, "{"+"proj_id"+"}", url.PathEscape(parameterValueToString(r.projId, "projId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"env_id"+"}", url.PathEscape(parameterValueToString(r.envId, "envId")), -1)
-	localVarPath = strings.Replace(localVarPath, "{"+"instance_id"+"}", url.PathEscape(parameterValueToString(r.instanceId, "instanceId")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := url.Values{}
-	localVarFormParams := url.Values{}
-	if r.resourceInstanceUpdate == nil {
-		return localVarReturnValue, nil, reportError("resourceInstanceUpdate is required and must be specified")
-	}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{"application/json"}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
-	}
-
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	// body params
-	localVarPostBody = r.resourceInstanceUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

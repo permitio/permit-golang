@@ -19,7 +19,7 @@ func NewConfigBuilder(token string) *PermitBuilder {
 			debug:      DefaultDebugMode,
 			Context:    nil,
 			Logger:     nil,
-			httpClient: &http.Client{Timeout: time.Second * 5},
+			httpClient: &http.Client{Timeout: DefaultTimeout},
 		},
 	}
 }
@@ -51,6 +51,11 @@ func (c *PermitConfig) WithDebug(debug bool) *PermitConfig {
 
 func (c *PermitConfig) WithContext(context *PermitContext) *PermitConfig {
 	c.Context = context
+	return c
+}
+
+func (c *PermitConfig) WithTimeout(timeout time.Duration) *PermitConfig {
+	c.httpClient.Timeout = timeout
 	return c
 }
 

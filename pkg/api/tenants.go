@@ -116,12 +116,21 @@ func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) 
 		t.logger.Error("", zap.Error(err))
 		return nil, err
 	}
+
 	tenant, httpRes, err := t.client.TenantsApi.CreateTenant(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId).TenantCreate(tenantCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
+
 	if err != nil {
 		t.logger.Error("error creating tenant: "+tenantCreate.GetKey(), zap.Error(err))
 		return nil, err
 	}
+
+	t.logger.Debug("tenant created",
+		zap.String("type", "tenant"),
+		zap.String("key", tenant.GetKey()),
+		zap.String("id", tenant.Id),
+	)
+
 	return tenant, nil
 }
 

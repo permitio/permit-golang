@@ -55,7 +55,7 @@ func (e *PermitEnforcer) parseUserPermissionsResponse(res *http.Response) (UserP
 		}
 	} else {
 		pdpStruct := &userPermissionsResponse{&result}
-		if err := json.Unmarshal(bodyBytes, &pdpStruct); err != nil {
+		if err := json.Unmarshal(bodyBytes, &pdpStruct.Permissions); err != nil {
 			permitError := errors.NewPermitUnexpectedError(err, res)
 			e.logger.Error("error unmarshalling Permit.GetUserPermissions() response from PDP", zap.Error(permitError))
 			return nil, permitError

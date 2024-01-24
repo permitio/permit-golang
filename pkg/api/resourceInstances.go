@@ -46,6 +46,13 @@ func (r *ResourceInstances) Create(
 		return nil, err
 	}
 
+	r.logger.Debug("resource instance created",
+		zap.String("type", "resource_instance"),
+		zap.String("resource", created.GetResource()),
+		zap.String("key", created.GetKey()),
+		zap.String("id", created.Id),
+	)
+
 	return created, nil
 }
 

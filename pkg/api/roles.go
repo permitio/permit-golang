@@ -123,10 +123,18 @@ func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*mode
 	}
 	role, httpRes, err := r.client.RolesApi.CreateRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).RoleCreate(roleCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
+
 	if err != nil {
 		r.logger.Error("error creating role: "+roleCreate.GetKey(), zap.Error(err))
 		return nil, err
 	}
+
+	r.logger.Debug("role created",
+		zap.String("type", "role"),
+		zap.String("key", role.GetKey()),
+		zap.String("id", role.Id),
+	)
+
 	return role, nil
 }
 

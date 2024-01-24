@@ -117,6 +117,12 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 		return nil, err
 	}
 
+	u.logger.Debug("user created",
+		zap.String("type", "user"),
+		zap.String("key", user.GetKey()),
+		zap.String("id", user.Id),
+	)
+
 	return user, nil
 }
 

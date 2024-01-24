@@ -147,15 +147,31 @@ func TestIntegration(t *testing.T) {
 	secondTenantKey := randKey("tenant-2")
 	resourceSetKey := randKey("resourceset")
 	userSetKey := randKey("userset")
+	proxyConfigKey := randKey("proxyconfig")
 
 	project := os.Getenv("PROJECT")
+
+	if project == "" {
+		t.Fatal("PROJECT is not set")
+	}
+
 	env := os.Getenv("ENV")
+
+	if env == "" {
+		t.Fatal("ENV is not set")
+	}
+
 	token := os.Getenv("PDP_API_KEY")
 	if token == "" {
 		t.Fatal("PDP_API_KEY is not set")
 	}
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, project, env)
-	permitClient := permit.New(config.NewConfigBuilder(token).WithPdpUrl(os.Getenv("PDP_URL")).WithContext(permitContext).WithLogger(logger).Build())
+	permitClient := permit.New(config.NewConfigBuilder(token).
+		WithPdpUrl(os.Getenv("PDP_URL")).
+		WithApiUrl(os.Getenv("API_URL")).
+		WithContext(permitContext).
+		WithLogger(logger).
+		Build())
 
 	// Create a user
 	userCreate := *models.NewUserCreate(userKey)
@@ -290,7 +306,7 @@ func TestIntegration(t *testing.T) {
 
 	userPermissions, err := permitClient.GetUserPermissions(enforcement.UserBuilder(userKey).Build())
 	assert.NoError(t, err)
-	userPermissionsInTenant, found := userPermissions[tenantKey]
+	userPermissionsInTenant, found := userPermissions["__tenant:" + tenantKey]
 	assert.True(t, found)
 	assert.Equal(t, tenantKey, userPermissionsInTenant.Tenant.Key)
 	assert.True(t, assert.ObjectsAreEqual(tenantCreate.Attributes, userPermissionsInTenant.Tenant.Attributes))
@@ -393,7 +409,7 @@ func TestIntegration(t *testing.T) {
 		Action:     &action,
 	})
 	secret := "user:pass"
-	proxyConfigCreate := *models.NewProxyConfigCreate(secret, "pxcf", "proxy")
+	proxyConfigCreate := *models.NewProxyConfigCreate(secret, proxyConfigKey, proxyConfigKey)
 	proxyConfigCreate.SetMappingRules(mappingRules)
 	_, err = permitClient.Api.ProxyConfigs.Create(ctx, proxyConfigCreate)
 	assert.NoError(t, err)

@@ -30,12 +30,18 @@ func (c *PermitConfig) WithHTTPClient(client *http.Client) *PermitConfig {
 }
 
 func (c *PermitConfig) WithApiUrl(apiUrl string) *PermitConfig {
-	c.apiUrl = apiUrl
+	if apiUrl != "" {
+		c.apiUrl = apiUrl
+	}
+
 	return c
 }
 
 func (c *PermitConfig) WithPdpUrl(pdpUrl string) *PermitConfig {
-	c.pdpUrl = pdpUrl
+	if pdpUrl != "" {
+		c.pdpUrl = pdpUrl
+	}
+
 	return c
 }
 

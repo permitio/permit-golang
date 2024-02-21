@@ -3,6 +3,12 @@ package tests
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"os"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/enforcement"
 	PermitErrors "github.com/permitio/permit-golang/pkg/errors"
@@ -10,11 +16,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/permit"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"math/rand"
-	"os"
-	"reflect"
-	"testing"
-	"time"
 )
 
 var runId = randId()
@@ -211,6 +212,14 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.Resources.Create(ctx, resourceCreate)
 	assert.NoError(t, err)
 
+	resourceReplace := *models.NewResourceReplace(resourceKey+"-2",
+		map[string]models.ActionBlockEditable{
+			"read":  {Attributes: map[string]interface{}{"marker": marker}},
+			"write": {Attributes: map[string]interface{}{"marker": marker}},
+		})
+	_, err = permitClient.Api.Resources.Replace(ctx, resourceKey+"-2", resourceReplace)
+	assert.NoError(t, err)
+
 	list, err := permitClient.Api.Resources.Search(ctx, 1, 100, resourceKey)
 	assert.NoError(t, err)
 	assert.Len(t, list, 2)
@@ -306,7 +315,7 @@ func TestIntegration(t *testing.T) {
 
 	userPermissions, err := permitClient.GetUserPermissions(enforcement.UserBuilder(userKey).Build())
 	assert.NoError(t, err)
-	userPermissionsInTenant, found := userPermissions["__tenant:" + tenantKey]
+	userPermissionsInTenant, found := userPermissions["__tenant:"+tenantKey]
 	assert.True(t, found)
 	assert.Equal(t, tenantKey, userPermissionsInTenant.Tenant.Key)
 	assert.True(t, assert.ObjectsAreEqual(tenantCreate.Attributes, userPermissionsInTenant.Tenant.Attributes))

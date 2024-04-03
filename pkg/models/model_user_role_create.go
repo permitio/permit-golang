@@ -11,8 +11,13 @@ API version: 2.0.0
 package models
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 )
+
+// checks if the UserRoleCreate type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &UserRoleCreate{}
 
 // UserRoleCreate struct for UserRoleCreate
 type UserRoleCreate struct {
@@ -20,7 +25,11 @@ type UserRoleCreate struct {
 	Role string `json:"role"`
 	// the tenant the role is associated with (accepts either the tenant id or the tenant key)
 	Tenant string `json:"tenant"`
+	// the resource instance the role is associated with (accepts either the resource instance id or key using this format resource_type:resource_instance)
+	ResourceInstance *string `json:"resource_instance,omitempty"`
 }
+
+type _UserRoleCreate UserRoleCreate
 
 // NewUserRoleCreate instantiates a new UserRoleCreate object
 // This constructor will assign default values to properties that have it defined,
@@ -89,15 +98,92 @@ func (o *UserRoleCreate) SetTenant(v string) {
 	o.Tenant = v
 }
 
-func (o UserRoleCreate) MarshalJSON() ([]byte, error) {
-	toSerialize := map[string]interface{}{}
-	if true {
-		toSerialize["role"] = o.Role
+// GetResourceInstance returns the ResourceInstance field value if set, zero value otherwise.
+func (o *UserRoleCreate) GetResourceInstance() string {
+	if o == nil || IsNil(o.ResourceInstance) {
+		var ret string
+		return ret
 	}
-	if true {
-		toSerialize["tenant"] = o.Tenant
+	return *o.ResourceInstance
+}
+
+// GetResourceInstanceOk returns a tuple with the ResourceInstance field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *UserRoleCreate) GetResourceInstanceOk() (*string, bool) {
+	if o == nil || IsNil(o.ResourceInstance) {
+		return nil, false
+	}
+	return o.ResourceInstance, true
+}
+
+// HasResourceInstance returns a boolean if a field has been set.
+func (o *UserRoleCreate) HasResourceInstance() bool {
+	if o != nil && !IsNil(o.ResourceInstance) {
+		return true
+	}
+
+	return false
+}
+
+// SetResourceInstance gets a reference to the given string and assigns it to the ResourceInstance field.
+func (o *UserRoleCreate) SetResourceInstance(v string) {
+	o.ResourceInstance = &v
+}
+
+func (o UserRoleCreate) MarshalJSON() ([]byte, error) {
+	toSerialize, err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
 	}
 	return json.Marshal(toSerialize)
+}
+
+func (o UserRoleCreate) ToMap() (map[string]interface{}, error) {
+	toSerialize := map[string]interface{}{}
+	toSerialize["role"] = o.Role
+	toSerialize["tenant"] = o.Tenant
+	if !IsNil(o.ResourceInstance) {
+		toSerialize["resource_instance"] = o.ResourceInstance
+	}
+	return toSerialize, nil
+}
+
+func (o *UserRoleCreate) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"role",
+		"tenant",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err
+	}
+
+	for _, requiredProperty := range requiredProperties {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varUserRoleCreate := _UserRoleCreate{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varUserRoleCreate)
+
+	if err != nil {
+		return err
+	}
+
+	*o = UserRoleCreate(varUserRoleCreate)
+
+	return err
 }
 
 type NullableUserRoleCreate struct {

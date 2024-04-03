@@ -184,7 +184,7 @@ func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, 
 	return roleAssignmentRead, nil
 }
 
-// AssignResourceRole assigns a role to a user in your context's environment, by user key, role key and tenant key.
+// AssignResourceRole assigns a *resource* role to a user in your context's environment, by user key, role key, tenant key and a resource instance string (e.g. "document:mydoc").
 // Usage Example:
 // `roleAssignment, err := PermitClient.Api.Users.AssignRole(ctx, "user-key", "role-key", "default", "document:mydoc")`
 func (u *Users) AssignResourceRole(ctx context.Context, userKey string, roleKey string, tenantKey string, resourceInstance string) (*models.RoleAssignmentRead, error) {

@@ -167,14 +167,17 @@ func (u *Users) Delete(ctx context.Context, userKey string) error {
 
 // AssignRole assigns a role to a user in your context's environment, by user key, role key and tenant key.
 // Usage Example:
-// `roleAssignment, err := PermitClient.Api.Users.AssignRole(ctx, "user-key", "role-key", "default")`
-func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.RoleAssignmentRead, error) {
+// `roleAssignment, err := PermitClient.Api.Users.AssignRole(ctx, "user-key", "role-key", "default", "document:mydoc")`
+func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, tenantKey string, resourceInstance *string) (*models.RoleAssignmentRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
 		u.logger.Error("", zap.Error(err))
 		return nil, err
 	}
 	userRoleCreate := *models.NewUserRoleCreate(roleKey, tenantKey)
+	if resourceInstance != nil {
+		userRoleCreate.SetResourceInstance(*resourceInstance)
+	}
 	roleAssignmentRead, httpRes, err := u.client.UsersApi.AssignRoleToUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserRoleCreate(userRoleCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {

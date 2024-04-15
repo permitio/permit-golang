@@ -1,3 +1,5 @@
+![Golang.png](imgs/Golang.png)
+
 # Go SDK for Permit.io
 
 Instructions for installing Go SDK for interacting with Permit.io.

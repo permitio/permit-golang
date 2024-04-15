@@ -59,16 +59,13 @@ func NewPermitPaginationError() PermitError {
 }
 
 func NewPermitUnprocessableEntityError(err error, response *http.Response) PermitError {
-	errorMessage := ErrorMessage(err.Error())
-
 	if err == nil {
-		errorMessage = UnprocessableEntityMessage
+		return NewPermitError(UnprocessableEntityMessage, UnprocessableEntityError, API_ERROR, response)
 	}
-
+	errorMessage := ErrorMessage(err.Error())
 	if strings.Contains(err.Error(), "not a valid email address") {
 		errorMessage = "Email is not valid"
 	}
-
 	return NewPermitError(errorMessage, UnprocessableEntityError, API_ERROR, response)
 }
 

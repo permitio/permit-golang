@@ -70,7 +70,7 @@ type APIClient struct {
 	ProjectsApi *ProjectsApiService
 	ProxyConfigAPI *ProxyConfigAPIService
 	RelationshipTuplesApi *RelationshipTuplesAPIService
-	ResouceInstances *ResourceInstancesApiService
+	ResourceInstances *ResourceInstancesApiService
 	ResourceActionGroupsApi *ResourceActionGroupsApiService
 	ResourceActionsApi *ResourceActionsApiService
 	ResourceAttributesApi *ResourceAttributesApiService

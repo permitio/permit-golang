@@ -126,7 +126,6 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.ResourceActionsApi = (*ResourceActionsApiService)(&c.common)
 	c.ResourceAttributesApi = (*ResourceAttributesApiService)(&c.common)
 	c.ResourceInstancesApi = (*ResourceInstancesApiService)(&c.common)
-	c.ResourceInstancesApi = (*ResourceInstancesApiService)(&c.common)
 	c.ResourceRelations = (*ResourceRelationsAPIService)(&c.common)
 	c.ResourceRoles = (*ResourceRolesApiService)(&c.common)
 	c.ResourcesApi = (*ResourcesApiService)(&c.common)

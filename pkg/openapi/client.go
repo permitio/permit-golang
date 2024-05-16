@@ -70,7 +70,7 @@ type APIClient struct {
 	ProjectsApi *ProjectsApiService
 	ProxyConfigAPI *ProxyConfigAPIService
 	RelationshipTuplesApi *RelationshipTuplesAPIService
-	ResouceInstances *ResourceInstancesApiService
+	ResourceInstances *ResourceInstancesApiService
 	ResourceActionGroupsApi *ResourceActionGroupsApiService
 	ResourceActionsApi *ResourceActionsApiService
 	ResourceAttributesApi *ResourceAttributesApiService
@@ -125,7 +125,6 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.ResourceActionGroupsApi = (*ResourceActionGroupsApiService)(&c.common)
 	c.ResourceActionsApi = (*ResourceActionsApiService)(&c.common)
 	c.ResourceAttributesApi = (*ResourceAttributesApiService)(&c.common)
-	c.ResourceInstancesApi = (*ResourceInstancesApiService)(&c.common)
 	c.ResourceInstancesApi = (*ResourceInstancesApiService)(&c.common)
 	c.ResourceRelations = (*ResourceRelationsAPIService)(&c.common)
 	c.ResourceRoles = (*ResourceRolesApiService)(&c.common)

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
@@ -67,7 +68,7 @@ func (r *ResourceInstances) Delete(
 		return err
 	}
 
-	httpRes, err := r.client.ResourceInstances.DeleteResourceInstance(ctx,
+	httpRes, err := r.client.ResourceInstancesApi.DeleteResourceInstance(ctx,
 		r.config.Context.GetProject(),
 		r.config.Context.GetEnvironment(),
 		instanceId,
@@ -94,7 +95,7 @@ func (r *ResourceInstances) Get(
 		return nil, err
 	}
 
-	retrieved, httpRes, err := r.client.ResourceInstances.GetResourceInstance(ctx,
+	retrieved, httpRes, err := r.client.ResourceInstancesApi.GetResourceInstance(ctx,
 		r.config.Context.GetProject(),
 		r.config.Context.GetEnvironment(),
 		instanceId,

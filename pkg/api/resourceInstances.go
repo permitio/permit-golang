@@ -8,20 +8,27 @@ import (
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
+	"time"
 )
 
 type ResourceInstances struct {
-	permitBaseApi
+	PermitBaseFactsApi
 }
 
 func NewResourceInstancesApi(client *openapi.APIClient, config *config.PermitConfig) *ResourceInstances {
 	return &ResourceInstances{
-		permitBaseApi{
-			client: client,
-			config: config,
-			logger: config.Logger,
+		PermitBaseFactsApi{
+			permitBaseApi{
+				client: client,
+				config: config,
+				logger: config.Logger,
+			},
 		},
 	}
+}
+
+func (r *ResourceInstances) WaitForSync(timeout *time.Duration) *ResourceInstances {
+	return NewResourceInstancesApi(r.PermitBaseFactsApi.WaitForSync(timeout).client, r.config)
 }
 
 func (r *ResourceInstances) Create(

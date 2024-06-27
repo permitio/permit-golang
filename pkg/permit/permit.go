@@ -18,8 +18,7 @@ type Client struct {
 var New = NewPermit
 
 func NewPermit(config config.PermitConfig) *Client {
-	ctx := context.Background()
-	apiClient := api.NewPermitApiClient(ctx, &config)
+	apiClient := api.NewPermitApiClient(&config)
 	enforcerClient := enforcement.NewPermitEnforcerClient(&config)
 	return &Client{
 		config:      config,

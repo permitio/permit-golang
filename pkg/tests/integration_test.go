@@ -133,6 +133,45 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 	assert.EqualValues(t, 3, *unassignReport.AssignmentsRemoved)
 }
 
+func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitContext, logger *zap.Logger, token string) {
+	permitClient := permit.New(config.NewConfigBuilder(token).
+		WithPdpUrl(os.Getenv("PDP_URL")).
+		WithApiUrl(os.Getenv("API_URL")).
+		WithContext(permitContext).
+		WithLogger(logger).
+		WithProxyFactsViaPDP(true).
+		WithFactsSyncTimeout(10 * time.Second).
+		Build())
+
+	resourceKey := randKey("resource")
+	resourceCreate := *models.NewResourceCreate(resourceKey, resourceKey,
+		map[string]models.ActionBlockEditable{
+			"read": {Attributes: map[string]interface{}{"marker": "marker"}},
+		})
+	_, err := permitClient.Api.Resources.Create(ctx, resourceCreate)
+	assert.NoError(t, err)
+
+	roleKey := randKey("role")
+	roleCreate := models.NewRoleCreate(roleKey, roleKey)
+	roleCreate.SetPermissions([]string{fmt.Sprintf("%s:read", resourceKey)})
+	_, err = permitClient.Api.Roles.Create(ctx, *roleCreate)
+	assert.NoError(t, err)
+
+	userKey := randKey("user")
+	userCreate := *models.NewUserCreate(userKey)
+	userCreate.SetFirstName("John")
+	userCreate.SetLastName("Doe")
+	userCreate.SetEmail("john@example.com")
+	_, err = permitClient.Api.Users.WaitForSync(nil).Create(ctx, userCreate)
+	assert.NoError(t, err)
+
+	_, err = permitClient.Api.Users.WaitForSync(nil).AssignRole(ctx, userKey, roleKey, "default")
+	assert.NoError(t, err)
+	// check if user has permission immediately
+	allowed, err := permitClient.Check(enforcement.UserBuilder(userKey).Build(), "read", enforcement.ResourceBuilder(resourceKey).Build())
+	assert.NoError(t, err)
+	assert.True(t, allowed)
+}
 func TestIntegration(t *testing.T) {
 	logger := zap.NewExample()
 	ctx := context.Background()
@@ -172,6 +211,9 @@ func TestIntegration(t *testing.T) {
 		WithContext(permitContext).
 		WithLogger(logger).
 		Build())
+
+	// Test Facts API
+	factsApi(ctx, t, permitContext, logger, token)
 
 	// Create a user
 	userCreate := *models.NewUserCreate(userKey)
@@ -306,7 +348,7 @@ func TestIntegration(t *testing.T) {
 
 	userPermissions, err := permitClient.GetUserPermissions(enforcement.UserBuilder(userKey).Build())
 	assert.NoError(t, err)
-	userPermissionsInTenant, found := userPermissions["__tenant:" + tenantKey]
+	userPermissionsInTenant, found := userPermissions["__tenant:"+tenantKey]
 	assert.True(t, found)
 	assert.Equal(t, tenantKey, userPermissionsInTenant.Tenant.Key)
 	assert.True(t, assert.ObjectsAreEqual(tenantCreate.Attributes, userPermissionsInTenant.Tenant.Attributes))

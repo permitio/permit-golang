@@ -11,19 +11,31 @@ type PermitBuilder struct {
 }
 
 func NewConfigBuilder(token string) *PermitBuilder {
+	factsSyncTimeout := DefaultFactsSyncTimeout
 	return &PermitBuilder{
 		PermitConfig: PermitConfig{
-			apiUrl:     DefaultApiUrl,
-			token:      token,
-			pdpUrl:     DefaultPdpUrl,
-			debug:      DefaultDebugMode,
-			Context:    nil,
-			Logger:     nil,
-			httpClient: &http.Client{Timeout: DefaultTimeout},
+			apiUrl:           DefaultApiUrl,
+			token:            token,
+			pdpUrl:           DefaultPdpUrl,
+			debug:            DefaultDebugMode,
+			Context:          nil,
+			Logger:           nil,
+			proxyFactsViaPDP: false,
+			factsSyncTimeout: &factsSyncTimeout,
+			httpClient:       &http.Client{Timeout: DefaultTimeout},
 		},
 	}
 }
 
+func (c *PermitConfig) WithProxyFactsViaPDP(proxyFactsViaPDP bool) *PermitConfig {
+	c.proxyFactsViaPDP = proxyFactsViaPDP
+	return c
+}
+
+func (c *PermitConfig) WithFactsSyncTimeout(timeout time.Duration) *PermitConfig {
+	c.factsSyncTimeout = &timeout
+	return c
+}
 func (c *PermitConfig) WithHTTPClient(client *http.Client) *PermitConfig {
 	c.httpClient = client
 	return c

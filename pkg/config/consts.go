@@ -9,5 +9,6 @@ const (
 	DefaultPdpUrl    = "http://localhost:7766"
 	DefaultOpaUrl    = "http://localhost:8181"
 
-	DefaultTimeout = time.Second * 5
+	DefaultTimeout          = time.Second * 5
+	DefaultFactsSyncTimeout = 10 * time.Second
 )

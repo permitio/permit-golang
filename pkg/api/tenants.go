@@ -8,20 +8,27 @@ import (
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
+	"time"
 )
 
 type Tenants struct {
-	permitBaseApi
+	PermitBaseFactsApi
 }
 
 func NewTenantsApi(client *openapi.APIClient, config *config.PermitConfig) *Tenants {
 	return &Tenants{
-		permitBaseApi{
-			client: client,
-			config: config,
-			logger: config.Logger,
+		PermitBaseFactsApi{
+			permitBaseApi{
+				client: client,
+				config: config,
+				logger: config.Logger,
+			},
 		},
 	}
+}
+
+func (t *Tenants) WaitForSync(timeout *time.Duration) *Tenants {
+	return NewTenantsApi(t.PermitBaseFactsApi.WaitForSync(timeout).client, t.config)
 }
 
 // List all tenants under the context's environment.

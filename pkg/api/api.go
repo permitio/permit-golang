@@ -2,10 +2,12 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
+	"time"
 )
 
 type permitBaseApi struct {
@@ -14,8 +16,35 @@ type permitBaseApi struct {
 	logger *zap.Logger
 }
 
+type PermitBaseFactsApi struct {
+	permitBaseApi
+}
+
+type IPermitBaseFactsApi interface {
+	lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
+	WaitForSync(timeout *time.Duration) *PermitBaseFactsApi
+}
+
 type IPermitBaseApi interface {
 	lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
+}
+
+func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration) *PermitBaseFactsApi {
+	if a.config.GetProxyFactsViaPDP() {
+		stringTimeout := ""
+		if timeout == nil {
+			if timeoutFromConfig := a.config.GetFactsSyncTimeout(); timeoutFromConfig != nil {
+				stringTimeout = fmt.Sprintf("%d", int64(timeoutFromConfig.Seconds()))
+			}
+		}
+
+		clientConfig := a.client.GetConfig()
+		clientConfig.DefaultHeader["X-Wait-Timeout"] = stringTimeout
+		return NewPermitBaseFactsApi(openapi.NewAPIClient(clientConfig), a.config)
+	} else {
+		a.logger.Warn("Attempted to wait for sync, but 'proxyFactsViaPdp' is not enabled. Ignoring")
+		return a
+	}
 }
 
 func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
@@ -84,14 +113,37 @@ func (p *PermitApiClient) SetContext(ctx context.Context, project string, enviro
 	}
 	p.config.Context = permitContext
 }
-
-func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *PermitApiClient {
+func NewClientConfig(config *config.PermitConfig) *openapi.Configuration {
 	clientConfig := openapi.NewConfiguration()
 	clientConfig.Host = getHostFromUrl(config.GetApiUrl())
 	clientConfig.Scheme = getSchemaFromUrl(config.GetApiUrl())
 	clientConfig.AddDefaultHeader("Authorization", "Bearer "+config.GetToken())
 	clientConfig.HTTPClient = config.GetHTTPClient()
-	client := openapi.NewAPIClient(clientConfig)
+	return clientConfig
+}
+func NewFactsClientConfig(config *config.PermitConfig) *openapi.Configuration {
+	clientConfig := openapi.NewConfiguration()
+	stringTimeout := ""
+
+	//if timeout == nil {
+	if timeoutFromConfig := config.GetFactsSyncTimeout(); timeoutFromConfig != nil {
+		stringTimeout = fmt.Sprintf("%d", int64(timeoutFromConfig.Seconds()))
+	}
+	//}
+	clientConfig.DefaultHeader["X-Wait-Timeout"] = stringTimeout
+
+	clientConfig.AddDefaultHeader("Authorization", "Bearer "+config.GetToken())
+	clientConfig.Host = getHostFromUrl(config.GetPdpUrl())
+	clientConfig.Scheme = getSchemaFromUrl(config.GetPdpUrl())
+	clientConfig.HTTPClient = config.GetHTTPClient()
+	return clientConfig
+}
+
+func NewPermitApiClient(config *config.PermitConfig) *PermitApiClient {
+	baseClientConfig := NewClientConfig(config)
+	factsClientConfig := NewFactsClientConfig(config)
+	client := openapi.NewAPIClient(baseClientConfig)
+	factsClient := openapi.NewAPIClient(factsClientConfig)
 	return &PermitApiClient{
 		config:               config,
 		logger:               config.Logger,
@@ -102,17 +154,27 @@ func NewPermitApiClient(ctx context.Context, config *config.PermitConfig) *Permi
 		ImplicitGrants:       NewImplicitGrantsApi(client, config),
 		Projects:             NewProjectsApi(client, config),
 		ProxyConfigs:         NewProxyConfigsApi(client, config),
-		RelationshipTuples:   NewRelationshipTuplesApi(client, config),
+		RelationshipTuples:   NewRelationshipTuplesApi(factsClient, config),
 		ResourceActionGroups: NewResourceActionGroupsApi(client, config),
 		ResourceActions:      NewResourceActionsApi(client, config),
 		ResourceAttributes:   NewResourceAttributesApi(client, config),
-		ResourceInstances:    NewResourceInstancesApi(client, config),
+		ResourceInstances:    NewResourceInstancesApi(factsClient, config),
 		ResourceRelations:    NewResourceRelationsApi(client, config),
 		ResourceRoles:        NewResourceRolesApi(client, config),
 		Resources:            NewResourcesApi(client, config),
-		RoleAssignments:      NewRoleAssignmentsApi(client, config),
+		RoleAssignments:      NewRoleAssignmentsApi(factsClient, config),
 		Roles:                NewRolesApi(client, config),
-		Tenants:              NewTenantsApi(client, config),
-		Users:                NewUsersApi(client, config),
+		Tenants:              NewTenantsApi(factsClient, config),
+		Users:                NewUsersApi(factsClient, config),
+	}
+}
+
+func NewPermitBaseFactsApi(client *openapi.APIClient, config *config.PermitConfig) *PermitBaseFactsApi {
+	return &PermitBaseFactsApi{
+		permitBaseApi: permitBaseApi{
+			client: client,
+			config: config,
+			logger: config.Logger,
+		},
 	}
 }

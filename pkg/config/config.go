@@ -3,17 +3,20 @@ package config
 import (
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 type PermitConfig struct {
-	apiUrl     string
-	token      string
-	pdpUrl     string
-	opaUrl     string
-	debug      bool
-	Context    *PermitContext
-	Logger     *zap.Logger
-	httpClient *http.Client
+	apiUrl           string
+	token            string
+	pdpUrl           string
+	opaUrl           string
+	debug            bool
+	Context          *PermitContext
+	Logger           *zap.Logger
+	httpClient       *http.Client
+	proxyFactsViaPDP bool
+	factsSyncTimeout *time.Duration
 }
 
 type IPermitConfig interface {
@@ -24,6 +27,9 @@ type IPermitConfig interface {
 	GetDebug() bool
 	GetContext() *PermitContext
 	GetLogger() *zap.Logger
+	GetProxyFactsViaPDP() bool
+	GetFactsSyncTimeout() *int64
+	GetHTTPClient() *http.Client
 }
 
 func NewPermitConfig(apiUrl string, token string, pdpUrl string, debug bool, context *PermitContext, logger *zap.Logger) *PermitConfig {
@@ -63,6 +69,14 @@ func (c *PermitConfig) GetContext() *PermitContext {
 
 func (c *PermitConfig) GetLogger() *zap.Logger {
 	return c.Logger
+}
+
+func (c *PermitConfig) GetProxyFactsViaPDP() bool {
+	return c.proxyFactsViaPDP
+}
+
+func (c *PermitConfig) GetFactsSyncTimeout() *time.Duration {
+	return c.factsSyncTimeout
 }
 
 func (c *PermitConfig) GetHTTPClient() *http.Client {

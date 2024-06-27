@@ -26,8 +26,7 @@ func NewRelationshipTuplesApi(client *openapi.APIClient, config *config.PermitCo
 	}
 }
 func (u *RelationshipTuples) WaitForSync(timeout *time.Duration) *RelationshipTuples {
-	u.PermitBaseFactsApi.WaitForSync(timeout)
-	return u
+	return NewRelationshipTuplesApi(u.PermitBaseFactsApi.WaitForSync(timeout).client, u.config)
 }
 
 func (r *RelationshipTuples) Create(

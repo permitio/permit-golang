@@ -28,8 +28,7 @@ func NewTenantsApi(client *openapi.APIClient, config *config.PermitConfig) *Tena
 }
 
 func (t *Tenants) WaitForSync(timeout *time.Duration) *Tenants {
-	t.PermitBaseFactsApi.WaitForSync(timeout)
-	return t
+	return NewTenantsApi(t.PermitBaseFactsApi.WaitForSync(timeout).client, t.config)
 }
 
 // List all tenants under the context's environment.

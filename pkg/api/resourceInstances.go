@@ -28,8 +28,7 @@ func NewResourceInstancesApi(client *openapi.APIClient, config *config.PermitCon
 }
 
 func (r *ResourceInstances) WaitForSync(timeout *time.Duration) *ResourceInstances {
-	r.PermitBaseFactsApi.WaitForSync(timeout)
-	return r
+	return NewResourceInstancesApi(r.PermitBaseFactsApi.WaitForSync(timeout).client, r.config)
 }
 
 func (r *ResourceInstances) Create(

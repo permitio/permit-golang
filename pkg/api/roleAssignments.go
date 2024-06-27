@@ -27,8 +27,7 @@ func NewRoleAssignmentsApi(client *openapi.APIClient, config *config.PermitConfi
 }
 
 func (r *RoleAssignments) WaitForSync(timeout *time.Duration) *RoleAssignments {
-	r.PermitBaseFactsApi.WaitForSync(timeout)
-	return r
+	return NewRoleAssignmentsApi(r.PermitBaseFactsApi.WaitForSync(timeout).client, r.config)
 }
 
 func (r *RoleAssignments) List(ctx context.Context, page int, perPage int, userFilter, roleFilter, tenantFilter string) (*[]models.RoleAssignmentRead, error) {

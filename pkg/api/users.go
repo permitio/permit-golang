@@ -29,8 +29,7 @@ func NewUsersApi(client *openapi.APIClient, config *config.PermitConfig) *Users 
 }
 
 func (u *Users) WaitForSync(timeout *time.Duration) *Users {
-	u.PermitBaseFactsApi.WaitForSync(timeout)
-	return u
+	return NewUsersApi(u.PermitBaseFactsApi.WaitForSync(timeout).client, u.config)
 }
 
 // List the users from your context's environment.

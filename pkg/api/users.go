@@ -9,20 +9,28 @@ import (
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
 	"strings"
+	"time"
 )
 
 type Users struct {
-	permitBaseApi
+	PermitBaseFactsApi
 }
 
 func NewUsersApi(client *openapi.APIClient, config *config.PermitConfig) *Users {
 	return &Users{
-		permitBaseApi{
-			client: client,
-			config: config,
-			logger: config.Logger,
+		PermitBaseFactsApi{
+			permitBaseApi: permitBaseApi{
+				client: client,
+				config: config,
+				logger: config.Logger,
+			},
 		},
 	}
+}
+
+func (u *Users) WaitForSync(timeout *time.Duration) *Users {
+	u.PermitBaseFactsApi.WaitForSync(timeout)
+	return u
 }
 
 // List the users from your context's environment.

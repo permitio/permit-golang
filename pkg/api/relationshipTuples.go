@@ -7,20 +7,27 @@ import (
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
+	"time"
 )
 
 type RelationshipTuples struct {
-	permitBaseApi
+	PermitBaseFactsApi
 }
 
 func NewRelationshipTuplesApi(client *openapi.APIClient, config *config.PermitConfig) *RelationshipTuples {
 	return &RelationshipTuples{
-		permitBaseApi{
-			client: client,
-			config: config,
-			logger: config.Logger,
+		PermitBaseFactsApi{
+			permitBaseApi{
+				client: client,
+				config: config,
+				logger: config.Logger,
+			},
 		},
 	}
+}
+func (u *RelationshipTuples) WaitForSync(timeout *time.Duration) *RelationshipTuples {
+	u.PermitBaseFactsApi.WaitForSync(timeout)
+	return u
 }
 
 func (r *RelationshipTuples) Create(

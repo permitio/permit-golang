@@ -7,20 +7,28 @@ import (
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
+	"time"
 )
 
 type RoleAssignments struct {
-	permitBaseApi
+	PermitBaseFactsApi
 }
 
 func NewRoleAssignmentsApi(client *openapi.APIClient, config *config.PermitConfig) *RoleAssignments {
 	return &RoleAssignments{
-		permitBaseApi{
-			client: client,
-			config: config,
-			logger: config.Logger,
+		PermitBaseFactsApi{
+			permitBaseApi{
+				client: client,
+				config: config,
+				logger: config.Logger,
+			},
 		},
 	}
+}
+
+func (r *RoleAssignments) WaitForSync(timeout *time.Duration) *RoleAssignments {
+	r.PermitBaseFactsApi.WaitForSync(timeout)
+	return r
 }
 
 func (r *RoleAssignments) List(ctx context.Context, page int, perPage int, userFilter, roleFilter, tenantFilter string) (*[]models.RoleAssignmentRead, error) {

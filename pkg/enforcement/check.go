@@ -55,17 +55,19 @@ func (e *PermitEnforcer) getCheckEndpoint() string {
 
 func (e *PermitEnforcer) parseResponse(res *http.Response) (*CheckResponse, error) {
 	var result CheckResponse
+	err := errors.HttpErrorHandle(nil, res)
+	if err != nil {
+		e.logger.Error("error in http response for Permit.Check()", zap.Error(err))
+		return nil, err
+	}
+
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
 		e.logger.Error("error reading Permit.Check() response from PDP", zap.Error(permitError))
 		return nil, permitError
 	}
-	err = errors.HttpErrorHandle(err, res)
-	if err != nil {
-		e.logger.Error(string(bodyBytes), zap.Error(err))
-		return nil, err
-	}
+
 	if e.config.GetOpaUrl() != "" {
 		opaStruct := &struct {
 			Result *CheckResponse `json:"result"`

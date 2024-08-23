@@ -55,30 +55,36 @@ func (e *PermitEnforcer) getCheckEndpoint() string {
 
 func (e *PermitEnforcer) parseResponse(res *http.Response) (*CheckResponse, error) {
 	var result CheckResponse
+	err := errors.HttpErrorHandle(nil, res)
+	if err != nil {
+		responseBodyZap := zap.String("response_body", "")
+		if permitErr, ok := err.(errors.PermitError); ok {
+			responseBodyZap = zap.String("response_body", permitErr.ResponseBody)
+		}
+		e.logger.Error("erroneous http response from PDP for Permit.Check()", zap.Error(err), responseBodyZap)
+		return nil, err
+	}
+
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		permitError := errors.NewPermitUnexpectedError(err, res)
+		permitError := errors.NewPermitUnexpectedError(err, nil)
 		e.logger.Error("error reading Permit.Check() response from PDP", zap.Error(permitError))
 		return nil, permitError
 	}
-	err = errors.HttpErrorHandle(err, res)
-	if err != nil {
-		e.logger.Error(string(bodyBytes), zap.Error(err))
-		return nil, err
-	}
+
 	if e.config.GetOpaUrl() != "" {
 		opaStruct := &struct {
 			Result *CheckResponse `json:"result"`
 		}{&result}
 
 		if err := json.Unmarshal(bodyBytes, opaStruct); err != nil {
-			permitError := errors.NewPermitUnexpectedError(err, res)
+			permitError := errors.NewPermitUnexpectedError(err, nil)
 			e.logger.Error("error unmarshalling Permit.Check() response from OPA", zap.Error(permitError))
 			return nil, err
 		}
 	} else {
 		if err := json.Unmarshal(bodyBytes, &result); err != nil {
-			permitError := errors.NewPermitUnexpectedError(err, res)
+			permitError := errors.NewPermitUnexpectedError(err, nil)
 			e.logger.Error("error unmarshalling Permit.Check response from PDP", zap.Error(permitError))
 			return nil, permitError
 		}

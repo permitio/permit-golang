@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -162,6 +163,29 @@ func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpda
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		r.logger.Error("error updating resource: "+resourceKey, zap.Error(err))
+		return nil, err
+	}
+	return resource, nil
+}
+
+// Replace a resource.
+// Usage Example:
+// ```
+//
+//	resourceReplace := models.NewResourceReplace("Document", map[string]models.ActionBlockEditable{"read": {}, "write": {}}
+//	resource, err := PermitClient.Api.Resources.Replace(ctx, "document", resourceReplace)
+//
+// ```
+func (r *Resources) Replace(ctx context.Context, resourceKey string, resourceReplace models.ResourceReplace) (*models.ResourceRead, error) {
+	err := r.lazyLoadPermitContext(ctx)
+	if err != nil {
+		r.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	resource, httpRes, err := r.client.ResourcesApi.ReplaceResource(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), resourceKey).ResourceReplace(resourceReplace).Execute()
+	err = errors.HttpErrorHandle(err, httpRes)
+	if err != nil {
+		r.logger.Error("error replacing resource: "+resourceKey, zap.Error(err))
 		return nil, err
 	}
 	return resource, nil

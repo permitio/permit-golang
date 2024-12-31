@@ -52,7 +52,10 @@ func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLeve
 	permitContext := a.config.Context.GetContext()
 
 	if permitContext == nil {
-		newPermitContext, err := config.PermitContextFactory(ctx, a.client, "", "", false)
+		// To ensure it's a regular client and not factsClient
+		baseClientConfig := NewClientConfig(a.config)
+		client := openapi.NewAPIClient(baseClientConfig)
+		newPermitContext, err := config.PermitContextFactory(ctx, client, "", "", false)
 		if err != nil {
 			return err
 		}

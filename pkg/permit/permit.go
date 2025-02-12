@@ -55,7 +55,7 @@ type PermitInterface interface {
 	Check(user enforcement.User, action enforcement.Action, resource enforcement.Resource) (bool, error)
 	BulkCheck(requests ...enforcement.CheckRequest) ([]bool, error)
 	FilterObjects(user enforcement.User, action enforcement.Action, context map[string]string, resources ...enforcement.ResourceI) ([]enforcement.ResourceI, error)
-	AllTenantsCheck(request enforcement.CheckRequest) ([]enforcement.TenantDetails, error)
+	AllTenantsCheck(user enforcement.User, action enforcement.Action, resource enforcement.Resource) ([]enforcement.TenantDetails, error)
 	GetUserPermissions(user enforcement.User, tenants ...string) (enforcement.UserPermissions, error)
 	SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
 }

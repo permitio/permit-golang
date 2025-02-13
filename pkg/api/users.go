@@ -259,10 +259,8 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 		return nil, err
 	}
 	if roleAssignments == nil || roleAssignments.RoleAssignmentRead == nil {
-		if roleAssignments.RoleAssignmentRead == nil {
-			emptyRoleAssignments := make([]models.RoleAssignmentRead, 0)
-			return emptyRoleAssignments, nil
-		}
+		emptyRoleAssignments := make([]models.RoleAssignmentRead, 0)
+		return emptyRoleAssignments, nil
 	}
 	return *roleAssignments.RoleAssignmentRead, nil
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 	"time"
 )
 
@@ -38,7 +37,7 @@ func (r *ResourceInstances) Create(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -50,16 +49,11 @@ func (r *ResourceInstances) Create(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error creating resource instance", zap.Error(err))
+		r.logger.Error("error creating resource instance", err)
 		return nil, err
 	}
 
-	r.logger.Debug("resource instance created",
-		zap.String("type", "resource_instance"),
-		zap.String("resource", created.GetResource()),
-		zap.String("key", created.GetKey()),
-		zap.String("id", created.Id),
-	)
+	r.logger.Debug("resource instance created")
 
 	return created, nil
 }
@@ -71,7 +65,7 @@ func (r *ResourceInstances) Delete(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 
@@ -84,7 +78,7 @@ func (r *ResourceInstances) Delete(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error deleting resource instance", zap.Error(err))
+		r.logger.Error("error deleting resource instance", err)
 		return err
 	}
 
@@ -98,7 +92,7 @@ func (r *ResourceInstances) Get(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -111,7 +105,7 @@ func (r *ResourceInstances) Get(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error deleting resource instance", zap.Error(err))
+		r.logger.Error("error deleting resource instance", err)
 		return nil, err
 	}
 
@@ -152,14 +146,14 @@ func (r *ResourceInstances) list(ctx context.Context,
 
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing relationship tuples - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing relationship tuples - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -189,7 +183,7 @@ func (r *ResourceInstances) list(ctx context.Context,
 
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error listing resource instances", zap.Error(err))
+		r.logger.Error("error listing resource instances", err)
 		return nil, err
 	}
 
@@ -204,7 +198,7 @@ func (r *ResourceInstances) Update(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -218,7 +212,7 @@ func (r *ResourceInstances) Update(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error updating resource instance", zap.Error(err))
+		r.logger.Error("error updating resource instance", err)
 		return nil, err
 	}
 

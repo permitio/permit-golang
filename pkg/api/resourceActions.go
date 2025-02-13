@@ -7,7 +7,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 )
 
 type ResourceActions struct {
@@ -32,7 +31,7 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		a.logger.Error("error listing resource actions - max per page: "+string(perPageLimit), zap.Error(err))
+		a.logger.Error("error listing resource actions - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := a.lazyLoadPermitContext(ctx)
@@ -41,7 +40,7 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	}
 	resourceActions, _, err := a.client.ResourceActionsApi.ListResourceActions(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	if err != nil {
-		a.logger.Error("error listing resource actions for resource: "+resourceKey, zap.Error(err))
+		a.logger.Error("error listing resource actions for resource: "+resourceKey, err)
 		return nil, err
 	}
 	return resourceActions, nil
@@ -54,12 +53,12 @@ func (r *ResourceActions) ListByAttributes(ctx context.Context, resourceKey stri
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	actions, httpRes, err := r.client.ResourceActionsApi.ListResourceActions(
@@ -71,7 +70,7 @@ func (r *ResourceActions) ListByAttributes(ctx context.Context, resourceKey stri
 
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error listing roles", zap.Error(err))
+		r.logger.Error("error listing roles", err)
 		return nil, err
 	}
 	return actions, nil
@@ -88,7 +87,7 @@ func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey
 	}
 	resourceActions, _, err := a.client.ResourceActionsApi.GetResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
 	if err != nil {
-		a.logger.Error("error getting resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logger.Error("error getting resource action: "+resourceKey+":"+actionKey, err)
 		return nil, err
 	}
 	return resourceActions, nil
@@ -125,7 +124,7 @@ func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resour
 	}
 	resourceAction, _, err := a.client.ResourceActionsApi.CreateResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).ResourceActionCreate(resourceActionCreate).Execute()
 	if err != nil {
-		a.logger.Error("error creating resource action: "+resourceKey+":"+resourceActionCreate.GetKey(), zap.Error(err))
+		a.logger.Error("error creating resource action: "+resourceKey+":"+resourceActionCreate.GetKey(), err)
 		return nil, err
 	}
 	return resourceAction, nil
@@ -147,7 +146,7 @@ func (a *ResourceActions) Update(ctx context.Context, resourceKey string, action
 	}
 	resourceAction, _, err := a.client.ResourceActionsApi.UpdateResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).ResourceActionUpdate(resourceActionUpdate).Execute()
 	if err != nil {
-		a.logger.Error("error updating resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logger.Error("error updating resource action: "+resourceKey+":"+actionKey, err)
 		return nil, err
 	}
 	return resourceAction, nil
@@ -164,7 +163,7 @@ func (a *ResourceActions) Delete(ctx context.Context, resourceKey string, action
 	}
 	_, err = a.client.ResourceActionsApi.DeleteResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
 	if err != nil {
-		a.logger.Error("error deleting resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logger.Error("error deleting resource action: "+resourceKey+":"+actionKey, err)
 		return err
 	}
 	return nil

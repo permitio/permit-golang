@@ -6,7 +6,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 )
 
 type Elements struct {
@@ -37,7 +36,7 @@ func (e *Elements) LoginAs(ctx context.Context, userLogin models.UserLoginReques
 	embeddedLoginRequestOutput, httpRes, err := e.client.AuthenticationApi.ElementsLoginAs(ctx).UserLoginRequestInput(userLogin).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		e.logger.Error("error login as: "+userLogin.GetUserId()+"in tenant: "+userLogin.GetTenantId(), zap.Error(err))
+		e.logger.Error("error login as: "+userLogin.GetUserId()+"in tenant: "+userLogin.GetTenantId(), err)
 		return nil, err
 	}
 	return embeddedLoginRequestOutput, nil

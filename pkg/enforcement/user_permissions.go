@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 )
@@ -33,12 +32,12 @@ func (e *PermitEnforcer) parseUserPermissionsResponse(res *http.Response) (UserP
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
-		e.logger.Error("error reading Permit.GetUserPermissions() response from PDP", zap.Error(permitError))
+		e.logger.Error("error reading Permit.GetUserPermissions() response from PDP", permitError)
 		return nil, permitError
 	}
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
-		e.logger.Error(string(bodyBytes), zap.Error(err))
+		e.logger.Error(string(bodyBytes), err)
 		return nil, err
 	}
 	if e.config.GetOpaUrl() != "" {
@@ -50,14 +49,14 @@ func (e *PermitEnforcer) parseUserPermissionsResponse(res *http.Response) (UserP
 
 		if err := json.Unmarshal(bodyBytes, opaStruct); err != nil {
 			permitError := errors.NewPermitUnexpectedError(err, res)
-			e.logger.Error("error unmarshalling Permit.GetUserPermissions() response from OPA", zap.Error(permitError))
+			e.logger.Error("error unmarshalling Permit.GetUserPermissions() response from OPA", permitError)
 			return nil, err
 		}
 	} else {
 		pdpStruct := &userPermissionsResponse{&result}
 		if err := json.Unmarshal(bodyBytes, &pdpStruct.Permissions); err != nil {
 			permitError := errors.NewPermitUnexpectedError(err, res)
-			e.logger.Error("error unmarshalling Permit.GetUserPermissions() response from PDP", zap.Error(permitError))
+			e.logger.Error("error unmarshalling Permit.GetUserPermissions() response from PDP", permitError)
 			return nil, permitError
 		}
 	}
@@ -100,14 +99,14 @@ func (e *PermitEnforcer) GetUserPermissions(user User, tenants ...string) (UserP
 	jsonCheckReq, err := newJsonGetUserPermissionsRequest(e.config.GetOpaUrl(), user, tenants)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, nil)
-		e.logger.Error("error marshalling Permit.GetUserPermissions() request", zap.Error(permitError))
+		e.logger.Error("error marshalling Permit.GetUserPermissions() request", permitError)
 		return nil, permitError
 	}
 	reqBody := bytes.NewBuffer(jsonCheckReq)
 	httpRequest, err := http.NewRequest(reqMethod, e.getUserPermissionsEndpoint(), reqBody)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, nil)
-		e.logger.Error("error creating Permit.GetUserPermissions() request", zap.Error(permitError))
+		e.logger.Error("error creating Permit.GetUserPermissions() request", permitError)
 		return nil, permitError
 	}
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
@@ -115,7 +114,7 @@ func (e *PermitEnforcer) GetUserPermissions(user User, tenants ...string) (UserP
 	res, err := e.client.Do(httpRequest)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
-		e.logger.Error("error sending Permit.GetUserPermissions() request to PDP", zap.Error(permitError))
+		e.logger.Error("error sending Permit.GetUserPermissions() request to PDP", permitError)
 		return nil, permitError
 	}
 	result, err := e.parseUserPermissionsResponse(res)

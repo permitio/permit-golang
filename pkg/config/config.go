@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/permitio/permit-golang/pkg/log"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -13,7 +14,7 @@ type PermitConfig struct {
 	opaUrl           string
 	debug            bool
 	Context          *PermitContext
-	Logger           *zap.Logger
+	Logger           log.Logger
 	httpClient       *http.Client
 	proxyFactsViaPDP bool
 	factsSyncTimeout *time.Duration
@@ -26,13 +27,24 @@ type IPermitConfig interface {
 	GetOpaUrl() string
 	GetDebug() bool
 	GetContext() *PermitContext
-	GetLogger() *zap.Logger
+	GetLogger() log.Logger
 	GetProxyFactsViaPDP() bool
-	GetFactsSyncTimeout() *int64
+	GetFactsSyncTimeout() *time.Duration
 	GetHTTPClient() *http.Client
 }
 
-func NewPermitConfig(apiUrl string, token string, pdpUrl string, debug bool, context *PermitContext, logger *zap.Logger) *PermitConfig {
+func NewPermitConfig(apiUrl string, token string, pdpUrl string, debug bool, context *PermitContext, zapLogger *zap.Logger) *PermitConfig {
+	return &PermitConfig{
+		apiUrl:  apiUrl,
+		token:   token,
+		pdpUrl:  pdpUrl,
+		debug:   debug,
+		Context: context,
+		Logger:  newLoggerFromZap(zapLogger),
+	}
+}
+
+func NewPermitConfigWithLogger(apiUrl string, token string, pdpUrl string, debug bool, context *PermitContext, logger log.Logger) *PermitConfig {
 	return &PermitConfig{
 		apiUrl:  apiUrl,
 		token:   token,
@@ -67,7 +79,7 @@ func (c *PermitConfig) GetContext() *PermitContext {
 	return c.Context
 }
 
-func (c *PermitConfig) GetLogger() *zap.Logger {
+func (c *PermitConfig) GetLogger() log.Logger {
 	return c.Logger
 }
 

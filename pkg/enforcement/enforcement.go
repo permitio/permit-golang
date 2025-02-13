@@ -2,13 +2,13 @@ package enforcement
 
 import (
 	"github.com/permitio/permit-golang/pkg/config"
-	"go.uber.org/zap"
+	"github.com/permitio/permit-golang/pkg/log"
 	"net/http"
 )
 
 type PermitBaseEnforcer struct {
 	config *config.PermitConfig
-	logger *zap.Logger
+	logger log.Logger
 	client *http.Client
 }
 

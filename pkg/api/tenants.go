@@ -7,7 +7,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 	"time"
 )
 
@@ -38,18 +37,18 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), zap.Error(err))
+		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
-		t.logger.Error("", zap.Error(err))
+		t.logger.Error("", err)
 		return nil, err
 	}
 	tenants, httpRes, err := t.client.TenantsApi.ListTenants(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		t.logger.Error("error listing tenants", zap.Error(err))
+		t.logger.Error("error listing tenants", err)
 	}
 	return tenants, nil
 }
@@ -61,18 +60,18 @@ func (t *Tenants) ListByAttributes(ctx context.Context, attributes map[string]in
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), zap.Error(err))
+		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
-		t.logger.Error("", zap.Error(err))
+		t.logger.Error("", err)
 		return nil, err
 	}
 	tenants, httpRes, err := t.client.TenantsApi.ListTenants(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId).Page(int32(page)).PerPage(int32(perPage)).AttributeFilter(attributes).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		t.logger.Error("error listing tenants", zap.Error(err))
+		t.logger.Error("error listing tenants", err)
 	}
 	return tenants, nil
 
@@ -84,13 +83,13 @@ func (t *Tenants) ListByAttributes(ctx context.Context, attributes map[string]in
 func (t *Tenants) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error) {
 	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
-		t.logger.Error("", zap.Error(err))
+		t.logger.Error("", err)
 		return nil, err
 	}
 	tenant, httpRes, err := t.client.TenantsApi.GetTenant(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId, tenantKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		t.logger.Error("error getting tenant: "+tenantKey, zap.Error(err))
+		t.logger.Error("error getting tenant: "+tenantKey, err)
 		return nil, err
 	}
 
@@ -120,7 +119,7 @@ func (t *Tenants) GetById(ctx context.Context, tenantId uuid.UUID) (*models.Tena
 func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) (*models.TenantRead, error) {
 	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
-		t.logger.Error("", zap.Error(err))
+		t.logger.Error("", err)
 		return nil, err
 	}
 
@@ -128,15 +127,11 @@ func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) 
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		t.logger.Error("error creating tenant: "+tenantCreate.GetKey(), zap.Error(err))
+		t.logger.Error("error creating tenant: "+tenantCreate.GetKey(), err)
 		return nil, err
 	}
 
-	t.logger.Debug("tenant created",
-		zap.String("type", "tenant"),
-		zap.String("key", tenant.GetKey()),
-		zap.String("id", tenant.Id),
-	)
+	t.logger.Debug("tenant created")
 
 	return tenant, nil
 }
@@ -151,13 +146,13 @@ func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) 
 func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate models.TenantUpdate) (*models.TenantRead, error) {
 	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
-		t.logger.Error("", zap.Error(err))
+		t.logger.Error("", err)
 		return nil, err
 	}
 	tenant, httpRes, err := t.client.TenantsApi.UpdateTenant(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId, tenantKey).TenantUpdate(tenantUpdate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		t.logger.Error("error updating tenant: "+tenantKey, zap.Error(err))
+		t.logger.Error("error updating tenant: "+tenantKey, err)
 		return nil, err
 	}
 	return tenant, nil
@@ -169,13 +164,13 @@ func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate mod
 func (t *Tenants) Delete(ctx context.Context, tenantKey string) error {
 	err := t.lazyLoadPermitContext(ctx)
 	if err != nil {
-		t.logger.Error("", zap.Error(err))
+		t.logger.Error("", err)
 		return err
 	}
 	httpRes, err := t.client.TenantsApi.DeleteTenant(ctx, t.config.Context.ProjectId, t.config.Context.EnvironmentId, tenantKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		t.logger.Error("error deleting tenant: "+tenantKey, zap.Error(err))
+		t.logger.Error("error deleting tenant: "+tenantKey, err)
 		return err
 	}
 	return nil

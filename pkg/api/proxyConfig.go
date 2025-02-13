@@ -7,7 +7,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 )
 
 type ProxyConfigs struct {
@@ -31,18 +30,18 @@ func (p *ProxyConfigs) List(ctx context.Context, page int, perPage int) ([]model
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		p.logger.Error("error listing ProxyConfigs - max per page: "+string(perPageLimit), zap.Error(err))
+		p.logger.Error("error listing ProxyConfigs - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := p.lazyLoadPermitContext(ctx, config.EnvironmentAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return nil, err
 	}
 	ProxyConfigs, httpRes, err := p.client.ProxyConfigAPI.ListProxyConfigs(ctx, p.config.Context.GetProject(), p.config.Context.GetEnvironment()).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error listing ProxyConfigs", zap.Error(err))
+		p.logger.Error("error listing ProxyConfigs", err)
 		return nil, err
 	}
 
@@ -55,13 +54,13 @@ func (p *ProxyConfigs) List(ctx context.Context, page int, perPage int) ([]model
 func (p *ProxyConfigs) Get(ctx context.Context, proxyConfigKey string) (*models.ProxyConfigRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.EnvironmentAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return nil, err
 	}
 	proxyConfig, httpRes, err := p.client.ProxyConfigAPI.GetProxyConfig(ctx, p.config.Context.GetProject(), p.config.Context.GetEnvironment(), proxyConfigKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error getting Proxy Config: "+proxyConfigKey, zap.Error(err))
+		p.logger.Error("error getting Proxy Config: "+proxyConfigKey, err)
 		return nil, err
 	}
 	return proxyConfig, nil
@@ -90,13 +89,13 @@ func (p *ProxyConfigs) GetById(ctx context.Context, ProxyConfigId uuid.UUID) (*m
 func (p *ProxyConfigs) Create(ctx context.Context, proxyConfigCreate models.ProxyConfigCreate) (*models.ProxyConfigRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.EnvironmentAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return nil, err
 	}
 	proxyConfig, httpRes, err := p.client.ProxyConfigAPI.CreateProxyConfig(ctx, p.config.Context.GetProject(), p.config.Context.GetEnvironment()).ProxyConfigCreate(proxyConfigCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error creating proxy config: "+proxyConfigCreate.GetKey(), zap.Error(err))
+		p.logger.Error("error creating proxy config: "+proxyConfigCreate.GetKey(), err)
 		return nil, err
 	}
 	return proxyConfig, nil
@@ -112,13 +111,13 @@ func (p *ProxyConfigs) Create(ctx context.Context, proxyConfigCreate models.Prox
 func (p *ProxyConfigs) Update(ctx context.Context, proxyConfigKey string, proxyConfigUpdate models.ProxyConfigUpdate) (*models.ProxyConfigRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.EnvironmentAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return nil, err
 	}
 	proxyConfig, httpRes, err := p.client.ProxyConfigAPI.UpdateProxyConfig(ctx, p.config.Context.GetProject(), p.config.Context.GetEnvironment(), proxyConfigKey).ProxyConfigUpdate(proxyConfigUpdate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error updating proxy config: "+proxyConfigKey, zap.Error(err))
+		p.logger.Error("error updating proxy config: "+proxyConfigKey, err)
 		return nil, err
 	}
 	return proxyConfig, nil
@@ -130,13 +129,13 @@ func (p *ProxyConfigs) Update(ctx context.Context, proxyConfigKey string, proxyC
 func (p *ProxyConfigs) Delete(ctx context.Context, proxyConfigKey string) error {
 	err := p.lazyLoadPermitContext(ctx, config.EnvironmentAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return err
 	}
 	httpRes, err := p.client.ProxyConfigAPI.DeleteProxyConfig(ctx, p.config.Context.GetProject(), p.config.Context.GetEnvironment(), proxyConfigKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error deleting proxy config: "+proxyConfigKey, zap.Error(err))
+		p.logger.Error("error deleting proxy config: "+proxyConfigKey, err)
 		return err
 	}
 	return nil

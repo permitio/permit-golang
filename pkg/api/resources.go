@@ -7,7 +7,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 )
 
 type Resources struct {
@@ -32,18 +31,18 @@ func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.R
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing resources - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing resources - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	resources, httpRes, err := r.client.ResourcesApi.ListResources(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error listing resources", zap.Error(err))
+		r.logger.Error("error listing resources", err)
 		return nil, err
 	}
 	return resources, nil
@@ -58,14 +57,14 @@ func (r *Resources) Search(ctx context.Context, page int, perPage int, query str
 
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing resources - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing resources - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -78,7 +77,7 @@ func (r *Resources) Search(ctx context.Context, page int, perPage int, query str
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error listing resources", zap.Error(err))
+		r.logger.Error("error listing resources", err)
 		return nil, err
 	}
 
@@ -92,13 +91,13 @@ func (r *Resources) Search(ctx context.Context, page int, perPage int, query str
 func (r *Resources) Get(ctx context.Context, resourceKey string) (*models.ResourceRead, error) {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	resource, httpRes, err := r.client.ResourcesApi.GetResource(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), resourceKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error getting resource: "+resourceKey, zap.Error(err))
+		r.logger.Error("error getting resource: "+resourceKey, err)
 		return nil, err
 	}
 	return resource, nil
@@ -131,13 +130,13 @@ func (r *Resources) GetById(ctx context.Context, resourceId uuid.UUID) (*models.
 func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCreate) (*models.ResourceRead, error) {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	resource, httpRes, err := r.client.ResourcesApi.CreateResource(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).ResourceCreate(resourceCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error creating resource: "+resourceCreate.GetKey(), zap.Error(err))
+		r.logger.Error("error creating resource: "+resourceCreate.GetKey(), err)
 		return nil, err
 	}
 	return resource, nil
@@ -155,13 +154,13 @@ func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCr
 func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpdate models.ResourceUpdate) (*models.ResourceRead, error) {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	resource, httpRes, err := r.client.ResourcesApi.UpdateResource(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), resourceKey).ResourceUpdate(resourceUpdate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error updating resource: "+resourceKey, zap.Error(err))
+		r.logger.Error("error updating resource: "+resourceKey, err)
 		return nil, err
 	}
 	return resource, nil
@@ -174,13 +173,13 @@ func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpda
 func (r *Resources) Delete(ctx context.Context, resourceKey string) error {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 	httpRes, err := r.client.ResourcesApi.DeleteResource(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), resourceKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error deleting resource: "+resourceKey, zap.Error(err))
+		r.logger.Error("error deleting resource: "+resourceKey, err)
 		return err
 	}
 	return nil

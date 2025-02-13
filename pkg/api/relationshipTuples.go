@@ -6,7 +6,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 	"time"
 )
 
@@ -36,7 +35,7 @@ func (r *RelationshipTuples) Create(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -48,7 +47,7 @@ func (r *RelationshipTuples) Create(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error creating relationship tuple", zap.Error(err))
+		r.logger.Error("error creating relationship tuple", err)
 		return nil, err
 	}
 
@@ -62,7 +61,7 @@ func (r *RelationshipTuples) Delete(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 
@@ -74,7 +73,7 @@ func (r *RelationshipTuples) Delete(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error deleting relationship tuple", zap.Error(err))
+		r.logger.Error("error deleting relationship tuple", err)
 		return err
 	}
 
@@ -118,14 +117,14 @@ func (r *RelationshipTuples) list(ctx context.Context,
 
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing relationship tuples - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing relationship tuples - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -159,7 +158,7 @@ func (r *RelationshipTuples) list(ctx context.Context,
 
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error listing relationship tuples", zap.Error(err))
+		r.logger.Error("error listing relationship tuples", err)
 		return nil, err
 	}
 
@@ -173,7 +172,7 @@ func (r *RelationshipTuples) BulkCreate(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 
@@ -185,7 +184,7 @@ func (r *RelationshipTuples) BulkCreate(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error executing bulk relationship tuple creation", zap.Error(err))
+		r.logger.Error("error executing bulk relationship tuple creation", err)
 		return err
 	}
 
@@ -199,7 +198,7 @@ func (r *RelationshipTuples) BulkDelete(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 
@@ -211,7 +210,7 @@ func (r *RelationshipTuples) BulkDelete(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error executing bulk relationship tuple deletion", zap.Error(err))
+		r.logger.Error("error executing bulk relationship tuple deletion", err)
 		return err
 	}
 

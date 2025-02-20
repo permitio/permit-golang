@@ -28,7 +28,7 @@ type IPermitConfig interface {
 	GetContext() *PermitContext
 	GetLogger() *zap.Logger
 	GetProxyFactsViaPDP() bool
-	GetFactsSyncTimeout() *int64
+	GetFactsSyncTimeout() *time.Duration
 	GetHTTPClient() *http.Client
 }
 

@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
+	"github.com/permitio/permit-golang/pkg/log"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 	"time"
 )
 
 type permitBaseApi struct {
 	client *openapi.APIClient
 	config *config.PermitConfig
-	logger *zap.Logger
+	logger log.Logger
 }
 
 type PermitBaseFactsApi struct {
@@ -87,7 +87,7 @@ func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLeve
 
 type PermitApiClient struct {
 	config               *config.PermitConfig
-	logger               *zap.Logger
+	logger               log.Logger
 	client               *openapi.APIClient
 	ConditionSets        *ConditionSets
 	Elements             *Elements
@@ -112,7 +112,7 @@ type PermitApiClient struct {
 func (p *PermitApiClient) SetContext(ctx context.Context, project string, environment string) {
 	permitContext, err := config.PermitContextFactory(ctx, p.client, project, environment, true)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 	}
 	p.config.Context = permitContext
 }

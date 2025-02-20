@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 )
@@ -62,12 +61,12 @@ func (e *PermitEnforcer) parseBulkResponse(res *http.Response) ([]CheckResponse,
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
-		e.logger.Error("error reading Permit.BulkCheck() response from PDP", zap.Error(permitError))
+		e.logger.Error("error reading Permit.BulkCheck() response from PDP", permitError)
 		return nil, permitError
 	}
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
-		e.logger.Error(string(bodyBytes), zap.Error(err))
+		e.logger.Error(string(bodyBytes), err)
 		return nil, err
 	}
 	if e.config.GetOpaUrl() != "" {
@@ -79,14 +78,14 @@ func (e *PermitEnforcer) parseBulkResponse(res *http.Response) ([]CheckResponse,
 
 		if err := json.Unmarshal(bodyBytes, opaStruct); err != nil {
 			permitError := errors.NewPermitUnexpectedError(err, res)
-			e.logger.Error("error unmarshalling Permit.BulkCheck() response from OPA", zap.Error(permitError))
+			e.logger.Error("error unmarshalling Permit.BulkCheck() response from OPA", permitError)
 			return nil, err
 		}
 	} else {
 		pdpStruct := &allowBulkResponse{&result}
 		if err := json.Unmarshal(bodyBytes, &pdpStruct); err != nil {
 			permitError := errors.NewPermitUnexpectedError(err, res)
-			e.logger.Error("error unmarshalling Permit.BulkCheck response from PDP", zap.Error(permitError))
+			e.logger.Error("error unmarshalling Permit.BulkCheck response from PDP", permitError)
 			return nil, permitError
 		}
 	}
@@ -142,14 +141,14 @@ func (e *PermitEnforcer) bulkCheck(requests ...CheckRequest) ([]bool, error) {
 	jsonCheckReq, err := newJsonBulkCheckRequest(e.config.GetOpaUrl(), requests...)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, nil)
-		e.logger.Error("error marshalling Permit.BulkCheck() request", zap.Error(permitError))
+		e.logger.Error("error marshalling Permit.BulkCheck() request", permitError)
 		return nil, permitError
 	}
 	reqBody := bytes.NewBuffer(jsonCheckReq)
 	httpRequest, err := http.NewRequest(reqMethod, e.getBulkCheckEndpoint(), reqBody)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, nil)
-		e.logger.Error("error creating Permit.BulkCheck() request", zap.Error(permitError))
+		e.logger.Error("error creating Permit.BulkCheck() request", permitError)
 		return nil, permitError
 	}
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
@@ -157,7 +156,7 @@ func (e *PermitEnforcer) bulkCheck(requests ...CheckRequest) ([]bool, error) {
 	res, err := e.client.Do(httpRequest)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
-		e.logger.Error("error sending Permit.BulkCheck() request to PDP", zap.Error(permitError))
+		e.logger.Error("error sending Permit.BulkCheck() request to PDP", permitError)
 		return nil, permitError
 	}
 	results, err := e.parseBulkResponse(res)

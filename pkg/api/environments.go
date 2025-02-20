@@ -6,7 +6,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
@@ -32,18 +31,18 @@ func (e *Environments) List(ctx context.Context, page int, perPage int) ([]model
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		e.logger.Error("error listing environments - max per page: "+string(perPageLimit), zap.Error(err))
+		e.logger.Error("error listing environments - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := e.lazyLoadPermitContext(ctx)
 	if err != nil {
-		e.logger.Error("", zap.Error(err))
+		e.logger.Error("", err)
 		return nil, err
 	}
 	environments, httpRes, err := e.client.EnvironmentsApi.ListEnvironments(ctx, e.config.Context.ProjectId).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		e.logger.Error("error listing environments", zap.Error(err))
+		e.logger.Error("error listing environments", err)
 		return nil, err
 	}
 	return environments, nil
@@ -56,13 +55,13 @@ func (e *Environments) List(ctx context.Context, page int, perPage int) ([]model
 func (e *Environments) Get(ctx context.Context, environmentKey string) (*models.EnvironmentRead, error) {
 	err := e.lazyLoadPermitContext(ctx)
 	if err != nil {
-		e.logger.Error("", zap.Error(err))
+		e.logger.Error("", err)
 		return nil, err
 	}
 	environment, httpRes, err := e.client.EnvironmentsApi.GetEnvironment(ctx, e.config.Context.ProjectId, environmentKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		e.logger.Error("error getting environment: "+environmentKey, zap.Error(err))
+		e.logger.Error("error getting environment: "+environmentKey, err)
 		return nil, err
 	}
 
@@ -95,13 +94,13 @@ func (e *Environments) GetById(ctx context.Context, environmentId uuid.UUID) (*m
 func (e *Environments) Create(ctx context.Context, environmentCreate models.EnvironmentCreate) (*models.EnvironmentRead, error) {
 	err := e.lazyLoadPermitContext(ctx)
 	if err != nil {
-		e.logger.Error("", zap.Error(err))
+		e.logger.Error("", err)
 		return nil, err
 	}
 	environment, httpRes, err := e.client.EnvironmentsApi.CreateEnvironment(ctx, e.config.Context.ProjectId).EnvironmentCreate(environmentCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		e.logger.Error("error creating environment: "+environmentCreate.GetKey(), zap.Error(err))
+		e.logger.Error("error creating environment: "+environmentCreate.GetKey(), err)
 		return nil, err
 	}
 
@@ -119,13 +118,13 @@ func (e *Environments) Create(ctx context.Context, environmentCreate models.Envi
 func (e *Environments) Update(ctx context.Context, environmentKey string, environmentUpdate models.EnvironmentUpdate) (*models.EnvironmentRead, error) {
 	err := e.lazyLoadPermitContext(ctx)
 	if err != nil {
-		e.logger.Error("", zap.Error(err))
+		e.logger.Error("", err)
 		return nil, err
 	}
 	environment, httpRes, err := e.client.EnvironmentsApi.UpdateEnvironment(ctx, e.config.Context.ProjectId, environmentKey).EnvironmentUpdate(environmentUpdate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		e.logger.Error("error updating environment: "+environmentKey, zap.Error(err))
+		e.logger.Error("error updating environment: "+environmentKey, err)
 		return nil, err
 	}
 
@@ -139,13 +138,13 @@ func (e *Environments) Update(ctx context.Context, environmentKey string, enviro
 func (e *Environments) Delete(ctx context.Context, environmentKey string) error {
 	err := e.lazyLoadPermitContext(ctx)
 	if err != nil {
-		e.logger.Error("", zap.Error(err))
+		e.logger.Error("", err)
 		return err
 	}
 	httpRes, err := e.client.EnvironmentsApi.DeleteEnvironment(ctx, e.config.Context.ProjectId, environmentKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		e.logger.Error("error deleting environment: "+environmentKey, zap.Error(err))
+		e.logger.Error("error deleting environment: "+environmentKey, err)
 		return err
 	}
 	return nil

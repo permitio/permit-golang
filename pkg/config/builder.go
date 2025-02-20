@@ -78,7 +78,7 @@ func (c *PermitConfig) WithTimeout(timeout time.Duration) *PermitConfig {
 }
 
 func (c *PermitConfig) WithLogger(logger *zap.Logger) *PermitConfig {
-	c.Logger = logger
+	c.Logger = zapLoggerAdapter{zapLogger: logger}
 	return c
 }
 
@@ -88,7 +88,7 @@ func (c *PermitConfig) Build() PermitConfig {
 		if err != nil {
 			panic(err)
 		}
-		c.Logger = logger
+		c.Logger = zapLoggerAdapter{zapLogger: logger}
 	}
 	return *c
 }

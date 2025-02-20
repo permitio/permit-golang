@@ -7,7 +7,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 )
 
 type Projects struct {
@@ -31,18 +30,18 @@ func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.Pr
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		p.logger.Error("error listing projects - max per page: "+string(perPageLimit), zap.Error(err))
+		p.logger.Error("error listing projects - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return nil, err
 	}
 	projects, httpRes, err := p.client.ProjectsApi.ListProjects(ctx).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error listing projects", zap.Error(err))
+		p.logger.Error("error listing projects", err)
 		return nil, err
 	}
 
@@ -55,13 +54,13 @@ func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.Pr
 func (p *Projects) Get(ctx context.Context, projectKey string) (*models.ProjectRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return nil, err
 	}
 	project, httpRes, err := p.client.ProjectsApi.GetProject(ctx, projectKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error getting project: "+projectKey, zap.Error(err))
+		p.logger.Error("error getting project: "+projectKey, err)
 		return nil, err
 	}
 	return project, nil
@@ -90,13 +89,13 @@ func (p *Projects) GetById(ctx context.Context, projectId uuid.UUID) (*models.Pr
 func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreate) (*models.ProjectRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return nil, err
 	}
 	project, httpRes, err := p.client.ProjectsApi.CreateProject(ctx).ProjectCreate(projectCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error creating project: "+projectCreate.GetKey(), zap.Error(err))
+		p.logger.Error("error creating project: "+projectCreate.GetKey(), err)
 		return nil, err
 	}
 	return project, nil
@@ -112,13 +111,13 @@ func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreat
 func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate models.ProjectUpdate) (*models.ProjectRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return nil, err
 	}
 	project, httpRes, err := p.client.ProjectsApi.UpdateProject(ctx, projectKey).ProjectUpdate(projectUpdate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error updating project: "+projectKey, zap.Error(err))
+		p.logger.Error("error updating project: "+projectKey, err)
 		return nil, err
 	}
 	return project, nil
@@ -130,13 +129,13 @@ func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate 
 func (p *Projects) Delete(ctx context.Context, projectKey string) error {
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error("", err)
 		return err
 	}
 	httpRes, err := p.client.ProjectsApi.DeleteProject(ctx, projectKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		p.logger.Error("error deleting project: "+projectKey, zap.Error(err))
+		p.logger.Error("error deleting project: "+projectKey, err)
 		return err
 	}
 	return nil

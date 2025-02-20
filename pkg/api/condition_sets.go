@@ -8,7 +8,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 )
 
 type ConditionSets struct {
@@ -33,14 +32,14 @@ func (c *ConditionSets) List(ctx context.Context, page int, perPage int) ([]mode
 
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		c.logger.Error("error listing condition sets - max per page: "+string(perPageLimit), zap.Error(err))
+		c.logger.Error("error listing condition sets - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 
 	err := c.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		c.logger.Error("", zap.Error(err))
+		c.logger.Error("", err)
 		return nil, err
 	}
 
@@ -53,7 +52,7 @@ func (c *ConditionSets) List(ctx context.Context, page int, perPage int) ([]mode
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		c.logger.Error("error listing condition sets", zap.Error(err))
+		c.logger.Error("error listing condition sets", err)
 		return nil, err
 	}
 
@@ -67,7 +66,7 @@ func (c *ConditionSets) Get(ctx context.Context, conditionSetKey string) (*model
 	err := c.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		c.logger.Error("", zap.Error(err))
+		c.logger.Error("", err)
 		return nil, err
 	}
 
@@ -80,7 +79,7 @@ func (c *ConditionSets) Get(ctx context.Context, conditionSetKey string) (*model
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		c.logger.Error("error getting condition set: "+conditionSetKey, zap.Error(err))
+		c.logger.Error("error getting condition set: "+conditionSetKey, err)
 		return nil, err
 	}
 
@@ -113,7 +112,7 @@ func (c *ConditionSets) Create(ctx context.Context, csCreate models.ConditionSet
 	err := c.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		c.logger.Error("", zap.Error(err))
+		c.logger.Error("", err)
 		return nil, err
 	}
 
@@ -125,7 +124,7 @@ func (c *ConditionSets) Create(ctx context.Context, csCreate models.ConditionSet
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		c.logger.Error("error creating condition set: "+csCreate.GetKey(), zap.Error(err))
+		c.logger.Error("error creating condition set: "+csCreate.GetKey(), err)
 		return nil, err
 	}
 
@@ -137,7 +136,7 @@ func (c *ConditionSets) Update(ctx context.Context, conditionSetKey string, cond
 	err := c.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		c.logger.Error("", zap.Error(err))
+		c.logger.Error("", err)
 		return nil, err
 	}
 
@@ -149,7 +148,7 @@ func (c *ConditionSets) Update(ctx context.Context, conditionSetKey string, cond
 
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		c.logger.Error("error updating condition set: "+conditionSetKey, zap.Error(err))
+		c.logger.Error("error updating condition set: "+conditionSetKey, err)
 		return nil, err
 	}
 	return conditionSet, nil
@@ -160,7 +159,7 @@ func (c *ConditionSets) Delete(ctx context.Context, conditionSetKey string) erro
 	err := c.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		c.logger.Error("", zap.Error(err))
+		c.logger.Error("", err)
 		return err
 	}
 
@@ -174,7 +173,7 @@ func (c *ConditionSets) Delete(ctx context.Context, conditionSetKey string) erro
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		c.logger.Error("error deleting condition set: "+conditionSetKey, zap.Error(err))
+		c.logger.Error("error deleting condition set: "+conditionSetKey, err)
 		return err
 	}
 
@@ -185,7 +184,7 @@ func (c *ConditionSets) AssignSetPermissions(ctx context.Context, userSetKey str
 	err := c.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		c.logger.Error("", zap.Error(err))
+		c.logger.Error("", err)
 		return nil, err
 	}
 
@@ -199,7 +198,7 @@ func (c *ConditionSets) AssignSetPermissions(ctx context.Context, userSetKey str
 
 	if err != nil {
 		errString := fmt.Sprintf("error creating condition set rule %s, %s, %s", userSetKey, permission, resourceSetKey)
-		c.logger.Error("error creating condition set rule: "+errString, zap.Error(err))
+		c.logger.Error("error creating condition set rule: "+errString, err)
 		return nil, err
 	}
 
@@ -210,7 +209,7 @@ func (c *ConditionSets) UnassignSetPermissions(ctx context.Context, userSetKey s
 	err := c.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		c.logger.Error("", zap.Error(err))
+		c.logger.Error("", err)
 		return err
 	}
 
@@ -224,7 +223,7 @@ func (c *ConditionSets) UnassignSetPermissions(ctx context.Context, userSetKey s
 
 	if err != nil {
 		errString := fmt.Sprintf("error creating condition set rule %s, %s, %s", userSetKey, permission, resourceSetKey)
-		c.logger.Error(errString, zap.Error(err))
+		c.logger.Error(errString, err)
 		return err
 	}
 
@@ -235,7 +234,7 @@ func (c *ConditionSets) ListSetPermissions(ctx context.Context, userSetKey strin
 	err := c.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		c.logger.Error("", zap.Error(err))
+		c.logger.Error("", err)
 		return nil, err
 	}
 
@@ -249,7 +248,7 @@ func (c *ConditionSets) ListSetPermissions(ctx context.Context, userSetKey strin
 
 	if err != nil {
 		errString := fmt.Sprintf("error listing rules condition set rule %s, %s, %s", userSetKey, permission, resourceSetKey)
-		c.logger.Error(errString, zap.Error(err))
+		c.logger.Error(errString, err)
 		return nil, err
 	}
 

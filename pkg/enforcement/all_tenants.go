@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/permitio/permit-golang/pkg/errors"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 )
@@ -36,12 +35,12 @@ func (e *PermitEnforcer) parseAllTenantsResponse(res *http.Response) ([]AllTenan
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
-		e.logger.Error("error reading Permit.AllTenantsCheck() response from PDP", zap.Error(permitError))
+		e.logger.Error("error reading Permit.AllTenantsCheck() response from PDP", permitError)
 		return nil, permitError
 	}
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
-		e.logger.Error(string(bodyBytes), zap.Error(err))
+		e.logger.Error(string(bodyBytes), err)
 		return nil, err
 	}
 	if e.config.GetOpaUrl() != "" {
@@ -53,14 +52,14 @@ func (e *PermitEnforcer) parseAllTenantsResponse(res *http.Response) ([]AllTenan
 
 		if err := json.Unmarshal(bodyBytes, opaStruct); err != nil {
 			permitError := errors.NewPermitUnexpectedError(err, res)
-			e.logger.Error("error unmarshalling Permit.AllTenantsCheck() response from OPA", zap.Error(permitError))
+			e.logger.Error("error unmarshalling Permit.AllTenantsCheck() response from OPA", permitError)
 			return nil, err
 		}
 	} else {
 		pdpStruct := &allowedTenantsResponse{&result}
 		if err := json.Unmarshal(bodyBytes, &pdpStruct); err != nil {
 			permitError := errors.NewPermitUnexpectedError(err, res)
-			e.logger.Error("error unmarshalling Permit.AllTenantsCheck() response from PDP", zap.Error(permitError))
+			e.logger.Error("error unmarshalling Permit.AllTenantsCheck() response from PDP", permitError)
 			return nil, permitError
 		}
 	}
@@ -78,14 +77,14 @@ func (e *PermitEnforcer) AllTenantsCheck(user User, action Action, resource Reso
 	jsonCheckReq, err := newJsonCheckRequest(e.config.GetOpaUrl(), user, action, resource, additionalContext[0])
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, nil)
-		e.logger.Error("error marshalling Permit.AllTenantsCheck() request", zap.Error(permitError))
+		e.logger.Error("error marshalling Permit.AllTenantsCheck() request", permitError)
 		return nil, permitError
 	}
 	reqBody := bytes.NewBuffer(jsonCheckReq)
 	httpRequest, err := http.NewRequest(reqMethod, e.getAllTenantsCheckEndpoint(), reqBody)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, nil)
-		e.logger.Error("error creating Permit.AllTenantsCheck() request", zap.Error(permitError))
+		e.logger.Error("error creating Permit.AllTenantsCheck() request", permitError)
 		return nil, permitError
 	}
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
@@ -93,7 +92,7 @@ func (e *PermitEnforcer) AllTenantsCheck(user User, action Action, resource Reso
 	res, err := e.client.Do(httpRequest)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, res)
-		e.logger.Error("error sending Permit.AllTenantsCheck() request to PDP", zap.Error(permitError))
+		e.logger.Error("error sending Permit.AllTenantsCheck() request to PDP", permitError)
 		return nil, permitError
 	}
 	results, err := e.parseAllTenantsResponse(res)

@@ -5,9 +5,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
+	"github.com/permitio/permit-golang/pkg/log"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 	"strings"
 	"time"
 )
@@ -40,18 +40,18 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		u.logger.Error("error listing users - max per page: "+string(perPageLimit), zap.Error(err))
+		u.logger.Error("error listing users - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 	users, httpRes, err := u.client.UsersApi.ListUsers(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment()).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error listing users", zap.Error(err))
+		u.logger.Error("error listing users", err)
 		return nil, err
 	}
 	return users.GetData(), nil
@@ -64,13 +64,13 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 func (u *Users) Get(ctx context.Context, userKey string) (*models.UserRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 	user, httpRes, err := u.client.UsersApi.GetUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error getting user: "+userKey, zap.Error(err))
+		u.logger.Error("error getting user: "+userKey, err)
 		return nil, err
 	}
 	return user, nil
@@ -107,7 +107,7 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 	err := u.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 
@@ -120,15 +120,11 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		u.logger.Error("error creating user:"+userCreate.GetKey(), zap.Error(err))
+		u.logger.Error("error creating user:"+userCreate.GetKey(), err)
 		return nil, err
 	}
 
-	u.logger.Debug("user created",
-		zap.String("type", "user"),
-		zap.String("key", user.GetKey()),
-		zap.String("id", user.Id),
-	)
+	u.logger.Debug("user created")
 
 	return user, nil
 }
@@ -147,13 +143,13 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.UserUpdate) (*models.UserRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 	user, httpRes, err := u.client.UsersApi.UpdateUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserUpdate(userUpdate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error updating user:"+userKey, zap.Error(err))
+		u.logger.Error("error updating user:"+userKey, err)
 		return nil, err
 	}
 	return user, nil
@@ -166,13 +162,13 @@ func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.Us
 func (u *Users) Delete(ctx context.Context, userKey string) error {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return err
 	}
 	httpRes, err := u.client.UsersApi.DeleteUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error deleting user:"+userKey, zap.Error(err))
+		u.logger.Error("error deleting user:"+userKey, err)
 		return err
 	}
 	return nil
@@ -184,14 +180,14 @@ func (u *Users) Delete(ctx context.Context, userKey string) error {
 func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.RoleAssignmentRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 	userRoleCreate := *models.NewUserRoleCreate(roleKey, tenantKey)
 	roleAssignmentRead, httpRes, err := u.client.UsersApi.AssignRoleToUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserRoleCreate(userRoleCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error assigning role:"+roleKey+" to user:"+userKey, zap.Error(err))
+		u.logger.Error("error assigning role:"+roleKey+" to user:"+userKey, err)
 		return nil, err
 	}
 	return roleAssignmentRead, nil
@@ -203,7 +199,7 @@ func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, 
 func (u *Users) AssignResourceRole(ctx context.Context, userKey string, roleKey string, tenantKey string, resourceInstance string) (*models.RoleAssignmentRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 	userRoleCreate := *models.NewUserRoleCreate(roleKey, tenantKey)
@@ -211,7 +207,7 @@ func (u *Users) AssignResourceRole(ctx context.Context, userKey string, roleKey 
 	roleAssignmentRead, httpRes, err := u.client.UsersApi.AssignRoleToUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserRoleCreate(userRoleCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error assigning role:"+roleKey+" to user:"+userKey, zap.Error(err))
+		u.logger.Error("error assigning role:"+roleKey+" to user:"+userKey, err)
 		return nil, err
 	}
 	return roleAssignmentRead, nil
@@ -223,14 +219,14 @@ func (u *Users) AssignResourceRole(ctx context.Context, userKey string, roleKey 
 func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.UserRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 	UserRoleRemove := *models.NewUserRoleRemove(roleKey, tenantKey)
 	user, httpRes, err := u.client.UsersApi.UnassignRoleFromUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserRoleRemove(UserRoleRemove).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error unassigning role:"+roleKey+" from user:"+userKey, zap.Error(err))
+		u.logger.Error("error unassigning role:"+roleKey+" from user:"+userKey, err)
 		return nil, err
 	}
 	return user, nil
@@ -245,12 +241,12 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		u.logger.Error("error listing users - max per page: "+string(perPageLimit), zap.Error(err))
+		u.logger.Error("error listing users - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 	roleAssignments, httpRes, err := u.client.RoleAssignmentsApi.ListRoleAssignments(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment()).
@@ -259,14 +255,12 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 		Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		u.logger.Error("error listing roles for user:"+userKey, zap.Error(err))
+		u.logger.Error("error listing roles for user:"+userKey, err)
 		return nil, err
 	}
 	if roleAssignments == nil || roleAssignments.RoleAssignmentRead == nil {
-		if roleAssignments.RoleAssignmentRead == nil {
-			emptyRoleAssignments := make([]models.RoleAssignmentRead, 0)
-			return emptyRoleAssignments, nil
-		}
+		emptyRoleAssignments := make([]models.RoleAssignmentRead, 0)
+		return emptyRoleAssignments, nil
 	}
 	return *roleAssignments.RoleAssignmentRead, nil
 }
@@ -283,18 +277,18 @@ func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey 
 func (u *Users) SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
-		u.logger.Error("", zap.Error(err))
+		u.logger.Error("", err)
 		return nil, err
 	}
 	existUser, err := u.Get(ctx, user.GetKey())
 	if err != nil {
 		if !strings.Contains(err.Error(), string(errors.NotFound)) {
-			u.logger.Error("", zap.Error(err))
+			u.logger.Error("", err)
 			return nil, err
 		}
 	}
 	if existUser != nil {
-		u.logger.Info("User already exists, updating it...", zap.String("user", user.GetKey()))
+		u.logger.Info("User already exists, updating it...", log.UserKey, user.GetKey())
 		userUpdate := models.NewUserUpdate()
 		if email := user.GetEmail(); email != "" {
 			userUpdate.SetEmail(user.GetEmail())
@@ -308,15 +302,15 @@ func (u *Users) SyncUser(ctx context.Context, user models.UserCreate) (*models.U
 		userUpdate.SetAttributes(user.GetAttributes())
 		userRead, err := u.Update(ctx, user.GetKey(), *userUpdate)
 		if err != nil {
-			u.logger.Error("error updating user: "+user.GetKey(), zap.Error(err))
+			u.logger.Error("error updating user: "+user.GetKey(), err)
 			return nil, err
 		}
 		return userRead, nil
 	}
-	u.logger.Info("User does not exist, creating it...", zap.String("user", user.GetKey()))
+	u.logger.Info("User does not exist, creating it...", log.UserKey, user.GetKey())
 	userRead, err := u.Create(ctx, user)
 	if err != nil {
-		u.logger.Error("error creating user: "+user.GetKey(), zap.Error(err))
+		u.logger.Error("error creating user: "+user.GetKey(), err)
 		return nil, err
 	}
 	return userRead, err

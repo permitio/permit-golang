@@ -5,9 +5,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
+	"github.com/permitio/permit-golang/pkg/log"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 )
 
 type Roles struct {
@@ -35,18 +35,18 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	roles, httpRes, err := r.client.RolesApi.ListRoles(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error listing roles", zap.Error(err))
+		r.logger.Error("error listing roles", err)
 		return nil, err
 	}
 	return roles, nil
@@ -59,18 +59,18 @@ func (r *Roles) ListByAttributes(ctx context.Context, page int, perPage int, att
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	roles, httpRes, err := r.client.RolesApi.ListRoles(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).Page(int32(page)).PerPage(int32(perPage)).AttributesFilter(attributesFilter).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error listing roles", zap.Error(err))
+		r.logger.Error("error listing roles", err)
 		return nil, err
 	}
 	return roles, nil
@@ -82,13 +82,13 @@ func (r *Roles) ListByAttributes(ctx context.Context, page int, perPage int, att
 func (r *Roles) Get(ctx context.Context, roleKey string) (*models.RoleRead, error) {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	role, httpRes, err := r.client.RolesApi.GetRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error getting role: "+roleKey, zap.Error(err))
+		r.logger.Error("error getting role: "+roleKey, err)
 		return nil, err
 	}
 
@@ -118,22 +118,18 @@ func (r *Roles) GetById(ctx context.Context, roleKey uuid.UUID) (*models.RoleRea
 func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*models.RoleRead, error) {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	role, httpRes, err := r.client.RolesApi.CreateRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment()).RoleCreate(roleCreate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error creating role: "+roleCreate.GetKey(), zap.Error(err))
+		r.logger.Error("error creating role: "+roleCreate.GetKey(), err)
 		return nil, err
 	}
 
-	r.logger.Debug("role created",
-		zap.String("type", "role"),
-		zap.String("key", role.GetKey()),
-		zap.String("id", role.Id),
-	)
+	r.logger.Debug("role created")
 
 	return role, nil
 }
@@ -148,13 +144,13 @@ func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*mode
 func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.RoleUpdate) (*models.RoleRead, error) {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 	role, httpRes, err := r.client.RolesApi.UpdateRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey).RoleUpdate(roleUpdate).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error updating role: "+roleKey, zap.Error(err))
+		r.logger.Error("error updating role: "+roleKey, err)
 		return nil, err
 	}
 	return role, nil
@@ -166,13 +162,13 @@ func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.Ro
 func (r *Roles) Delete(ctx context.Context, roleKey string) error {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 	httpRes, err := r.client.RolesApi.DeleteRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error deleting role: "+roleKey, zap.Error(err))
+		r.logger.Error("error deleting role: "+roleKey, err)
 		return err
 	}
 	return nil
@@ -186,14 +182,14 @@ func (r *Roles) Delete(ctx context.Context, roleKey string) error {
 func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissions []string) error {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 	addRolePermissions := *models.NewAddRolePermissions(permissions)
 	_, httpRes, err := r.client.RolesApi.AssignPermissionsToRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey).AddRolePermissions(addRolePermissions).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error assigning these permissions: '"+listToString(permissions)+"' to role: "+roleKey, zap.Error(err))
+		r.logger.Error("error assigning these permissions: '"+listToString(permissions)+"' to role: "+roleKey, err)
 		return err
 	}
 	return nil
@@ -207,14 +203,14 @@ func (r *Roles) AssignPermissions(ctx context.Context, roleKey string, permissio
 func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissions []string) error {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 	removeRolePermissions := *models.NewRemoveRolePermissions(permissions)
 	_, httpRes, err := r.client.RolesApi.RemovePermissionsFromRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey).RemoveRolePermissions(removeRolePermissions).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error removing these permissions: '"+listToString(permissions)+"' from role: "+roleKey, zap.Error(err))
+		r.logger.Error("error removing these permissions: '"+listToString(permissions)+"' from role: "+roleKey, err)
 		return err
 	}
 	return nil
@@ -223,7 +219,7 @@ func (r *Roles) RemovePermissions(ctx context.Context, roleKey string, permissio
 func (r *Roles) BulkAssignRole(ctx context.Context, assignments []models.RoleAssignmentCreate) (*models.BulkRoleAssignmentReport, error) {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -233,7 +229,7 @@ func (r *Roles) BulkAssignRole(ctx context.Context, assignments []models.RoleAss
 	err = errors.HttpErrorHandle(err, resp)
 
 	if err != nil {
-		r.logger.Error("failed assigning roles in bulk", zap.Error(err), zap.Int("count", len(assignments)))
+		r.logger.Error("failed assigning roles in bulk", err, log.CountKey, len(assignments))
 		return nil, err
 	}
 
@@ -243,7 +239,7 @@ func (r *Roles) BulkAssignRole(ctx context.Context, assignments []models.RoleAss
 func (r *Roles) BulkUnAssignRole(ctx context.Context, unassignments []models.RoleAssignmentRemove) (*models.BulkRoleUnAssignmentReport, error) {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -253,7 +249,7 @@ func (r *Roles) BulkUnAssignRole(ctx context.Context, unassignments []models.Rol
 	err = errors.HttpErrorHandle(err, resp)
 
 	if err != nil {
-		r.logger.Error("failed assigning roles in bulk", zap.Error(err), zap.Int("count", len(unassignments)))
+		r.logger.Error("failed assigning roles in bulk", err, log.CountKey, len(unassignments))
 		return nil, err
 	}
 
@@ -269,13 +265,13 @@ func (r *Roles) BulkUnAssignRole(ctx context.Context, unassignments []models.Rol
 func (r *Roles) AddParentRole(ctx context.Context, roleKey string, parentRoleKey string) error {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 	_, httpRes, err := r.client.RolesApi.AddParentRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey, parentRoleKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error adding parent role: '"+parentRoleKey+"' to role: "+roleKey, zap.Error(err))
+		r.logger.Error("error adding parent role: '"+parentRoleKey+"' to role: "+roleKey, err)
 		return err
 	}
 	return nil
@@ -287,13 +283,13 @@ func (r *Roles) AddParentRole(ctx context.Context, roleKey string, parentRoleKey
 func (r *Roles) RemoveParentRole(ctx context.Context, roleKey string, parentRoleKey string) error {
 	err := r.lazyLoadPermitContext(ctx)
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 	_, httpRes, err := r.client.RolesApi.RemoveParentRole(ctx, r.config.Context.GetProject(), r.config.Context.GetEnvironment(), roleKey, parentRoleKey).Execute()
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error removing parent role: '"+parentRoleKey+"' from role: "+roleKey, zap.Error(err))
+		r.logger.Error("error removing parent role: '"+parentRoleKey+"' from role: "+roleKey, err)
 		return err
 	}
 	return nil

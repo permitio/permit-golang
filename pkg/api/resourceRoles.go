@@ -6,7 +6,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"go.uber.org/zap"
 )
 
 type ResourceRoles struct {
@@ -31,7 +30,7 @@ func (r *ResourceRoles) Create(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -44,7 +43,7 @@ func (r *ResourceRoles) Create(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error creating resource role", zap.Error(err))
+		r.logger.Error("error creating resource role", err)
 		return nil, err
 	}
 
@@ -59,7 +58,7 @@ func (r *ResourceRoles) Delete(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return err
 	}
 
@@ -73,7 +72,7 @@ func (r *ResourceRoles) Delete(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error deleting resource role", zap.Error(err))
+		r.logger.Error("error deleting resource role", err)
 		return err
 	}
 
@@ -88,7 +87,7 @@ func (r *ResourceRoles) Get(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -102,7 +101,7 @@ func (r *ResourceRoles) Get(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error deleting resource role", zap.Error(err))
+		r.logger.Error("error deleting resource role", err)
 		return nil, err
 	}
 
@@ -119,14 +118,14 @@ func (r *ResourceRoles) List(
 
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing resource roles - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing resource roles - max per page: "+string(perPageLimit), err)
 		return nil, err
 	}
 
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -141,7 +140,7 @@ func (r *ResourceRoles) List(
 
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
-		r.logger.Error("error listing resource roles", zap.Error(err))
+		r.logger.Error("error listing resource roles", err)
 		return nil, err
 	}
 
@@ -157,7 +156,7 @@ func (r *ResourceRoles) Update(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -172,7 +171,7 @@ func (r *ResourceRoles) Update(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error updating resource role", zap.Error(err))
+		r.logger.Error("error updating resource role", err)
 		return nil, err
 	}
 
@@ -188,7 +187,7 @@ func (r *ResourceRoles) AddParent(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -203,7 +202,7 @@ func (r *ResourceRoles) AddParent(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error adding parent to resource role", zap.Error(err))
+		r.logger.Error("error adding parent to resource role", err)
 		return nil, err
 	}
 
@@ -219,7 +218,7 @@ func (r *ResourceRoles) RemoveParent(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -234,7 +233,7 @@ func (r *ResourceRoles) RemoveParent(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error creating resource instance", zap.Error(err))
+		r.logger.Error("error creating resource instance", err)
 		return nil, err
 	}
 
@@ -250,7 +249,7 @@ func (r *ResourceRoles) AssignPermissions(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -265,7 +264,7 @@ func (r *ResourceRoles) AssignPermissions(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error assigning permissions", zap.Error(err))
+		r.logger.Error("error assigning permissions", err)
 		return nil, err
 	}
 
@@ -281,7 +280,7 @@ func (r *ResourceRoles) RemovePermissions(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -296,7 +295,7 @@ func (r *ResourceRoles) RemovePermissions(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error removing permissions", zap.Error(err))
+		r.logger.Error("error removing permissions", err)
 		return nil, err
 	}
 
@@ -311,7 +310,7 @@ func (r *ResourceRoles) GetAncestors(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -326,7 +325,7 @@ func (r *ResourceRoles) GetAncestors(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error assigning permissions", zap.Error(err))
+		r.logger.Error("error assigning permissions", err)
 		return nil, err
 	}
 
@@ -345,7 +344,7 @@ func (r *ResourceRoles) GetDescendants(
 	err := r.lazyLoadPermitContext(ctx)
 
 	if err != nil {
-		r.logger.Error("", zap.Error(err))
+		r.logger.Error("", err)
 		return nil, err
 	}
 
@@ -360,7 +359,7 @@ func (r *ResourceRoles) GetDescendants(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error assigning permissions", zap.Error(err))
+		r.logger.Error("error assigning permissions", err)
 		return nil, err
 	}
 

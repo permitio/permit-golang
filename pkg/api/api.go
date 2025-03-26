@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
-	"time"
 )
 
 type permitBaseApi struct {
@@ -22,14 +23,21 @@ type PermitBaseFactsApi struct {
 
 type IPermitBaseFactsApi interface {
 	lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
-	WaitForSync(timeout *time.Duration) *PermitBaseFactsApi
+	WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *PermitBaseFactsApi
 }
 
 type IPermitBaseApi interface {
 	lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
 }
 
-func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration) *PermitBaseFactsApi {
+// WaitForSync configures the client to wait for facts synchronization.
+//
+// Parameters:
+//   - timeout: Optional duration to wait for synchronization.
+//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
+//     When "ignore" is specified, the request will continue processing even if facts sync times out.
+//     When "fail" is specified, the request will fail with an error if facts sync times out.
+func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *PermitBaseFactsApi {
 	if a.config.GetProxyFactsViaPDP() {
 		stringTimeout := ""
 		if timeout == nil {
@@ -40,6 +48,14 @@ func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration) *PermitBaseFact
 
 		clientConfig := a.client.GetConfig()
 		clientConfig.DefaultHeader["X-Wait-Timeout"] = stringTimeout
+
+		// Add the timeout policy header if a policy is provided or set in the config
+		if len(policy) > 0 && policy[0] != "" {
+			clientConfig.DefaultHeader["X-Timeout-Policy"] = string(policy[0])
+		} else if a.config.GetFactsSyncTimeoutPolicy() != "" {
+			clientConfig.DefaultHeader["X-Timeout-Policy"] = string(a.config.GetFactsSyncTimeoutPolicy())
+		}
+
 		return NewPermitBaseFactsApi(openapi.NewAPIClient(clientConfig), a.config)
 	} else {
 		a.logger.Warn("Attempted to wait for sync, but 'proxyFactsViaPdp' is not enabled. Ignoring")
@@ -126,14 +142,20 @@ func NewClientConfig(config *config.PermitConfig) *openapi.Configuration {
 }
 func NewFactsClientConfig(config *config.PermitConfig) *openapi.Configuration {
 	clientConfig := openapi.NewConfiguration()
-	stringTimeout := ""
 
-	//if timeout == nil {
-	if timeoutFromConfig := config.GetFactsSyncTimeout(); timeoutFromConfig != nil {
-		stringTimeout = fmt.Sprintf("%d", int64(timeoutFromConfig.Seconds()))
+	// Only add timeout-related headers if proxyFactsViaPDP is enabled
+	if config.GetProxyFactsViaPDP() {
+		// Add X-Wait-Timeout header only if factsSyncTimeout is set
+		if timeoutFromConfig := config.GetFactsSyncTimeout(); timeoutFromConfig != nil {
+			stringTimeout := fmt.Sprintf("%d", int64(timeoutFromConfig.Seconds()))
+			clientConfig.DefaultHeader["X-Wait-Timeout"] = stringTimeout
+		}
+
+		// Add X-Timeout-Policy header only if factsSyncTimeoutPolicy is set
+		if policy := config.GetFactsSyncTimeoutPolicy(); policy != "" {
+			clientConfig.DefaultHeader["X-Timeout-Policy"] = string(policy)
+		}
 	}
-	//}
-	clientConfig.DefaultHeader["X-Wait-Timeout"] = stringTimeout
 
 	clientConfig.AddDefaultHeader("Authorization", "Bearer "+config.GetToken())
 	clientConfig.Host = getHostFromUrl(config.GetPdpUrl())

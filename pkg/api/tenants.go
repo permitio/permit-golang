@@ -2,13 +2,14 @@ package api
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Tenants struct {
@@ -27,8 +28,13 @@ func NewTenantsApi(client *openapi.APIClient, config *config.PermitConfig) *Tena
 	}
 }
 
-func (t *Tenants) WaitForSync(timeout *time.Duration) *Tenants {
-	return NewTenantsApi(t.PermitBaseFactsApi.WaitForSync(timeout).client, t.config)
+// WaitForSync configures the client to wait for facts synchronization.
+//
+// Parameters:
+//   - timeout: Optional duration to wait for synchronization.
+//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
+func (t *Tenants) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *Tenants {
+	return NewTenantsApi(t.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, t.config)
 }
 
 // List all tenants under the context's environment.

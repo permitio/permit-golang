@@ -2,12 +2,13 @@ package api
 
 import (
 	"context"
+	"time"
+
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
-	"time"
 )
 
 type RelationshipTuples struct {
@@ -25,8 +26,14 @@ func NewRelationshipTuplesApi(client *openapi.APIClient, config *config.PermitCo
 		},
 	}
 }
-func (u *RelationshipTuples) WaitForSync(timeout *time.Duration) *RelationshipTuples {
-	return NewRelationshipTuplesApi(u.PermitBaseFactsApi.WaitForSync(timeout).client, u.config)
+
+// WaitForSync configures the client to wait for facts synchronization.
+//
+// Parameters:
+//   - timeout: Optional duration to wait for synchronization.
+//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
+func (u *RelationshipTuples) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *RelationshipTuples {
+	return NewRelationshipTuplesApi(u.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, u.config)
 }
 
 func (r *RelationshipTuples) Create(

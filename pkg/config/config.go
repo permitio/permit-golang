@@ -1,22 +1,34 @@
 package config
 
 import (
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
+)
+
+// FactsSyncTimeoutPolicy defines the possible policies for facts synchronization timeout
+type FactsSyncTimeoutPolicy string
+
+const (
+	// FactsSyncTimeoutPolicyIgnore indicates to ignore timeout and continue
+	FactsSyncTimeoutPolicyIgnore FactsSyncTimeoutPolicy = "ignore"
+	// FactsSyncTimeoutPolicyFail indicates to fail the request when timeout is reached
+	FactsSyncTimeoutPolicyFail FactsSyncTimeoutPolicy = "fail"
 )
 
 type PermitConfig struct {
-	apiUrl           string
-	token            string
-	pdpUrl           string
-	opaUrl           string
-	debug            bool
-	Context          *PermitContext
-	Logger           *zap.Logger
-	httpClient       *http.Client
-	proxyFactsViaPDP bool
-	factsSyncTimeout *time.Duration
+	apiUrl                 string
+	token                  string
+	pdpUrl                 string
+	opaUrl                 string
+	debug                  bool
+	Context                *PermitContext
+	Logger                 *zap.Logger
+	httpClient             *http.Client
+	proxyFactsViaPDP       bool
+	factsSyncTimeout       *time.Duration
+	factsSyncTimeoutPolicy FactsSyncTimeoutPolicy
 }
 
 type IPermitConfig interface {
@@ -29,6 +41,7 @@ type IPermitConfig interface {
 	GetLogger() *zap.Logger
 	GetProxyFactsViaPDP() bool
 	GetFactsSyncTimeout() *time.Duration
+	GetFactsSyncTimeoutPolicy() FactsSyncTimeoutPolicy
 	GetHTTPClient() *http.Client
 }
 
@@ -77,6 +90,10 @@ func (c *PermitConfig) GetProxyFactsViaPDP() bool {
 
 func (c *PermitConfig) GetFactsSyncTimeout() *time.Duration {
 	return c.factsSyncTimeout
+}
+
+func (c *PermitConfig) GetFactsSyncTimeoutPolicy() FactsSyncTimeoutPolicy {
+	return c.factsSyncTimeoutPolicy
 }
 
 func (c *PermitConfig) GetHTTPClient() *http.Client {

@@ -21,9 +21,18 @@ type PermitBaseFactsApi struct {
 	permitBaseApi
 }
 
+// WaitForSyncOptions contains options for configuring facts synchronization behavior
+type WaitForSyncOptions struct {
+	// Policy specifies what to do when timeout is reached ("ignore" or "fail")
+	// When "ignore" is specified, the request will continue processing even if facts sync times out.
+	// When "fail" is specified, the request will fail with an error if facts sync times out.
+	Policy config.FactsSyncTimeoutPolicy
+}
+
 type IPermitBaseFactsApi interface {
 	lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
-	WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *PermitBaseFactsApi
+	WaitForSync(timeout *time.Duration, options WaitForSyncOptions) *PermitBaseFactsApi
+	WaitForSyncWithTimeout(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *PermitBaseFactsApi
 }
 
 type IPermitBaseApi interface {
@@ -33,25 +42,25 @@ type IPermitBaseApi interface {
 // WaitForSync configures the client to wait for facts synchronization.
 //
 // Parameters:
-//   - timeout: Optional duration to wait for synchronization.
-//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
-//     When "ignore" is specified, the request will continue processing even if facts sync times out.
-//     When "fail" is specified, the request will fail with an error if facts sync times out.
-func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *PermitBaseFactsApi {
+//   - timeout: Required duration to wait for synchronization
+//   - options: Additional configuration options for facts synchronization
+func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration, options WaitForSyncOptions) *PermitBaseFactsApi {
 	if a.config.GetProxyFactsViaPDP() {
 		stringTimeout := ""
 		if timeout == nil {
 			if timeoutFromConfig := a.config.GetFactsSyncTimeout(); timeoutFromConfig != nil {
 				stringTimeout = fmt.Sprintf("%d", int64(timeoutFromConfig.Seconds()))
 			}
+		} else {
+			stringTimeout = fmt.Sprintf("%d", int64(timeout.Seconds()))
 		}
 
 		clientConfig := a.client.GetConfig()
 		clientConfig.DefaultHeader["X-Wait-Timeout"] = stringTimeout
 
 		// Add the timeout policy header if a policy is provided or set in the config
-		if len(policy) > 0 && policy[0] != "" {
-			clientConfig.DefaultHeader["X-Timeout-Policy"] = string(policy[0])
+		if options.Policy != "" {
+			clientConfig.DefaultHeader["X-Timeout-Policy"] = string(options.Policy)
 		} else if a.config.GetFactsSyncTimeoutPolicy() != "" {
 			clientConfig.DefaultHeader["X-Timeout-Policy"] = string(a.config.GetFactsSyncTimeoutPolicy())
 		}
@@ -61,6 +70,20 @@ func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration, policy ...confi
 		a.logger.Warn("Attempted to wait for sync, but 'proxyFactsViaPdp' is not enabled. Ignoring")
 		return a
 	}
+}
+
+// WaitForSyncWithTimeout is a backward-compatible method that accepts individual parameters
+// and converts them to the new WaitForSync format
+//
+// Deprecated: Use WaitForSync with explicit timeout and options instead
+func (a *PermitBaseFactsApi) WaitForSyncWithTimeout(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *PermitBaseFactsApi {
+	options := WaitForSyncOptions{}
+
+	if len(policy) > 0 {
+		options.Policy = policy[0]
+	}
+
+	return a.WaitForSync(timeout, options)
 }
 
 func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
@@ -98,7 +121,6 @@ func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLeve
 			"environment using `PermitClient.SetPermitContext()` method.")
 	}
 	return nil
-
 }
 
 type PermitApiClient struct {
@@ -132,6 +154,7 @@ func (p *PermitApiClient) SetContext(ctx context.Context, project string, enviro
 	}
 	p.config.Context = permitContext
 }
+
 func NewClientConfig(config *config.PermitConfig) *openapi.Configuration {
 	clientConfig := openapi.NewConfiguration()
 	clientConfig.Host = getHostFromUrl(config.GetApiUrl())
@@ -140,6 +163,7 @@ func NewClientConfig(config *config.PermitConfig) *openapi.Configuration {
 	clientConfig.HTTPClient = config.GetHTTPClient()
 	return clientConfig
 }
+
 func NewFactsClientConfig(config *config.PermitConfig) *openapi.Configuration {
 	clientConfig := openapi.NewConfiguration()
 

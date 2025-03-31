@@ -2,12 +2,13 @@ package api
 
 import (
 	"context"
+	"time"
+
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
-	"time"
 )
 
 type RoleAssignments struct {
@@ -26,8 +27,13 @@ func NewRoleAssignmentsApi(client *openapi.APIClient, config *config.PermitConfi
 	}
 }
 
-func (r *RoleAssignments) WaitForSync(timeout *time.Duration) *RoleAssignments {
-	return NewRoleAssignmentsApi(r.PermitBaseFactsApi.WaitForSync(timeout).client, r.config)
+// WaitForSync configures the client to wait for facts synchronization.
+//
+// Parameters:
+//   - timeout: Optional duration to wait for synchronization.
+//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
+func (r *RoleAssignments) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *RoleAssignments {
+	return NewRoleAssignmentsApi(r.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, r.config)
 }
 
 func (r *RoleAssignments) List(ctx context.Context, page int, perPage int, userFilter, roleFilter, tenantFilter string) (*[]models.RoleAssignmentRead, error) {

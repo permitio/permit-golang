@@ -2,14 +2,15 @@ package api
 
 import (
 	"context"
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
-	"strings"
-	"time"
 )
 
 type Users struct {
@@ -28,8 +29,13 @@ func NewUsersApi(client *openapi.APIClient, config *config.PermitConfig) *Users 
 	}
 }
 
-func (u *Users) WaitForSync(timeout *time.Duration) *Users {
-	return NewUsersApi(u.PermitBaseFactsApi.WaitForSync(timeout).client, u.config)
+// WaitForSync configures the client to wait for facts synchronization.
+//
+// Parameters:
+//   - timeout: Optional duration to wait for synchronization.
+//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
+func (u *Users) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *Users {
+	return NewUsersApi(u.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, u.config)
 }
 
 // List the users from your context's environment.

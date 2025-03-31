@@ -3,12 +3,13 @@ package api
 import (
 	"context"
 
+	"time"
+
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/models"
 	"github.com/permitio/permit-golang/pkg/openapi"
 	"go.uber.org/zap"
-	"time"
 )
 
 type ResourceInstances struct {
@@ -27,8 +28,13 @@ func NewResourceInstancesApi(client *openapi.APIClient, config *config.PermitCon
 	}
 }
 
-func (r *ResourceInstances) WaitForSync(timeout *time.Duration) *ResourceInstances {
-	return NewResourceInstancesApi(r.PermitBaseFactsApi.WaitForSync(timeout).client, r.config)
+// WaitForSync configures the client to wait for facts synchronization.
+//
+// Parameters:
+//   - timeout: Optional duration to wait for synchronization.
+//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
+func (r *ResourceInstances) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *ResourceInstances {
+	return NewResourceInstancesApi(r.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, r.config)
 }
 
 func (r *ResourceInstances) Create(

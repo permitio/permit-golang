@@ -32,7 +32,6 @@ type WaitForSyncOptions struct {
 type IPermitBaseFactsApi interface {
 	lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error
 	WaitForSync(timeout *time.Duration, options WaitForSyncOptions) *PermitBaseFactsApi
-	WaitForSyncWithTimeout(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *PermitBaseFactsApi
 }
 
 type IPermitBaseApi interface {
@@ -70,20 +69,6 @@ func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration, options WaitFor
 		a.logger.Warn("Attempted to wait for sync, but 'proxyFactsViaPdp' is not enabled. Ignoring")
 		return a
 	}
-}
-
-// WaitForSyncWithTimeout is a backward-compatible method that accepts individual parameters
-// and converts them to the new WaitForSync format
-//
-// Deprecated: Use WaitForSync with explicit timeout and options instead
-func (a *PermitBaseFactsApi) WaitForSyncWithTimeout(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *PermitBaseFactsApi {
-	options := WaitForSyncOptions{}
-
-	if len(policy) > 0 {
-		options.Policy = policy[0]
-	}
-
-	return a.WaitForSync(timeout, options)
 }
 
 func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {

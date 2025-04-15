@@ -9,6 +9,12 @@ import (
 	"net/http"
 )
 
+type ResourceDetails struct {
+	Type       string                 `json:"type,omitempty"`
+	Key        string                   `json:"key,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
+}
+
 type TenantUserPermissions struct {
 	Tenant      TenantDetails `json:"tenant"`
    Resource    *ResourceDetails     `json:"resource,omitempty"`

@@ -17,7 +17,7 @@ type ResourceDetails struct {
 
 type TenantUserPermissions struct {
 	Tenant      TenantDetails `json:"tenant"`
-   Resource    *ResourceDetails     `json:"resource,omitempty"`
+	Resource    *ResourceDetails     `json:"resource,omitempty"`
 	Permissions []string      `json:"permissions"`
 	Roles       []string      `json:"roles"`
 }

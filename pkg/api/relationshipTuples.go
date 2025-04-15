@@ -33,7 +33,11 @@ func NewRelationshipTuplesApi(client *openapi.APIClient, config *config.PermitCo
 //   - timeout: Optional duration to wait for synchronization.
 //   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
 func (u *RelationshipTuples) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *RelationshipTuples {
-	return NewRelationshipTuplesApi(u.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, u.config)
+	options := WaitForSyncOptions{}
+	if len(policy) > 0 {
+		options.Policy = policy[0]
+	}
+	return NewRelationshipTuplesApi(u.PermitBaseFactsApi.WaitForSync(timeout, options).client, u.config)
 }
 
 func (r *RelationshipTuples) Create(

@@ -34,7 +34,11 @@ func NewResourceInstancesApi(client *openapi.APIClient, config *config.PermitCon
 //   - timeout: Optional duration to wait for synchronization.
 //   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
 func (r *ResourceInstances) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *ResourceInstances {
-	return NewResourceInstancesApi(r.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, r.config)
+	options := WaitForSyncOptions{}
+	if len(policy) > 0 {
+		options.Policy = policy[0]
+	}
+	return NewResourceInstancesApi(r.PermitBaseFactsApi.WaitForSync(timeout, options).client, r.config)
 }
 
 func (r *ResourceInstances) Create(

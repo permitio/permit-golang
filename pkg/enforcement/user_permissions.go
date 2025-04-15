@@ -11,7 +11,9 @@ import (
 
 type TenantUserPermissions struct {
 	Tenant      TenantDetails `json:"tenant"`
+	Resource    *Resource     `json:"resource,omitempty"`
 	Permissions []string      `json:"permissions"`
+	Roles       []string      `json:"roles"`
 }
 
 type UserPermissions map[string]TenantUserPermissions

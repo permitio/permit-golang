@@ -10,16 +10,16 @@ import (
 )
 
 type ResourceDetails struct {
-	Type       string                 	`json:"type,omitempty"`
-	Key        string                   `json:"key,omitempty"`
-	Attributes map[string]interface{} 	`json:"attributes,omitempty"`
+	Type       string                 `json:"type,omitempty"`
+	Key        string                 `json:"key,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 type TenantUserPermissions struct {
-	Tenant      TenantDetails 		`json:"tenant"`
-	Resource    *ResourceDetails    `json:"resource,omitempty"`
-	Permissions []string      		`json:"permissions"`
-	Roles       []string      		`json:"roles"`
+	Tenant      TenantDetails    `json:"tenant"`
+	Resource    *ResourceDetails `json:"resource,omitempty"`
+	Permissions []string         `json:"permissions"`
+	Roles       []string         `json:"roles"`
 }
 
 type UserPermissions map[string]TenantUserPermissions

@@ -32,9 +32,9 @@ func NewTenantsApi(client *openapi.APIClient, config *config.PermitConfig) *Tena
 //
 // Parameters:
 //   - timeout: Optional duration to wait for synchronization.
-//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
-func (t *Tenants) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *Tenants {
-	return NewTenantsApi(t.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, t.config)
+//   - options: Additional configuration options for facts synchronization
+func (t *Tenants) WaitForSync(timeout *time.Duration, options WaitForSyncOptions) *Tenants {
+	return NewTenantsApi(t.PermitBaseFactsApi.WaitForSync(timeout, options).client, t.config)
 }
 
 // List all tenants under the context's environment.

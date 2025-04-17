@@ -135,7 +135,7 @@ func (o *DerivedRoleBlockRead) SetUsersWithRole(v []DerivedRoleRuleRead) {
 }
 
 func (o DerivedRoleBlockRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

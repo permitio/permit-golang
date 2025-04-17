@@ -49,39 +49,39 @@ type APIClient struct {
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// API Services
-	APIKeysApi *APIKeysApiService
-	AuthenticationApi *AuthenticationApiService
-	ConditionSetRulesApi *ConditionSetRulesApiService
-	ConditionSetsApi *ConditionSetsApiService
-	DecisionLogsApi *DecisionLogsApiService
-	DecisionLogsIngressApi *DecisionLogsIngressApiService
-	DefaultApi *DefaultApiService
-	ElementsConfigsApi *ElementsConfigsApiService
-	ElementsDataApi *ElementsDataApiService
-	EnvironmentsApi *EnvironmentsApiService
-	ImplicitGrantsApi *ImplicitGrantsAPIService
-	InstructionsApi *InstructionsApiService
-	MembersApi *MembersApiService
-	OPALDataApi *OPALDataApiService
-	OrganizationsApi *OrganizationsApiService
-	PolicyApi *PolicyApiService
-	PolicyDecisionPointsApi *PolicyDecisionPointsApiService
+	APIKeysApi               *APIKeysApiService
+	AuthenticationApi        *AuthenticationApiService
+	ConditionSetRulesApi     *ConditionSetRulesApiService
+	ConditionSetsApi         *ConditionSetsApiService
+	DecisionLogsApi          *DecisionLogsApiService
+	DecisionLogsIngressApi   *DecisionLogsIngressApiService
+	DefaultApi               *DefaultApiService
+	ElementsConfigsApi       *ElementsConfigsApiService
+	ElementsDataApi          *ElementsDataApiService
+	EnvironmentsApi          *EnvironmentsApiService
+	ImplicitGrantsApi        *ImplicitGrantsAPIService
+	InstructionsApi          *InstructionsApiService
+	MembersApi               *MembersApiService
+	OPALDataApi              *OPALDataApiService
+	OrganizationsApi         *OrganizationsApiService
+	PolicyApi                *PolicyApiService
+	PolicyDecisionPointsApi  *PolicyDecisionPointsApiService
 	PolicyGitRepositoriesApi *PolicyGitRepositoriesApiService
-	ProjectsApi *ProjectsApiService
-	ProxyConfigAPI *ProxyConfigAPIService
-	RelationshipTuplesApi *RelationshipTuplesAPIService
-	ResourceActionGroupsApi *ResourceActionGroupsApiService
-	ResourceActionsApi *ResourceActionsApiService
-	ResourceAttributesApi *ResourceAttributesApiService
-	ResourceInstancesApi *ResourceInstancesApiService
-	ResourceRelations *ResourceRelationsAPIService
-	ResourceRoles *ResourceRolesApiService
-	ResourcesApi *ResourcesApiService
-	RoleAssignmentsApi *RoleAssignmentsApiService
-	RolesApi *RolesApiService
-	TenantsApi *TenantsApiService
-	UserAttributesApi *UserAttributesApiService
-	UsersApi *UsersApiService
+	ProjectsApi              *ProjectsApiService
+	ProxyConfigAPI           *ProxyConfigAPIService
+	RelationshipTuplesApi    *RelationshipTuplesAPIService
+	ResourceActionGroupsApi  *ResourceActionGroupsApiService
+	ResourceActionsApi       *ResourceActionsApiService
+	ResourceAttributesApi    *ResourceAttributesApiService
+	ResourceInstancesApi     *ResourceInstancesApiService
+	ResourceRelations        *ResourceRelationsAPIService
+	ResourceRoles            *ResourceRolesApiService
+	ResourcesApi             *ResourcesApiService
+	RoleAssignmentsApi       *RoleAssignmentsApiService
+	RolesApi                 *RolesApiService
+	TenantsApi               *TenantsApiService
+	UserAttributesApi        *UserAttributesApiService
+	UsersApi                 *UsersApiService
 }
 
 type service struct {

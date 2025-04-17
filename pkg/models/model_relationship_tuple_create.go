@@ -154,7 +154,7 @@ func (o *RelationshipTupleCreate) SetTenant(v string) {
 }
 
 func (o RelationshipTupleCreate) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

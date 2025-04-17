@@ -20,9 +20,9 @@ var _ MappedNullable = &PaginatedResultResourceRoleRead{}
 // PaginatedResultResourceRoleRead struct for PaginatedResultResourceRoleRead
 type PaginatedResultResourceRoleRead struct {
 	// List of Resource Roles
-	Data []ResourceRoleRead `json:"data"`
-	TotalCount int32 `json:"total_count"`
-	PageCount *int32 `json:"page_count,omitempty"`
+	Data       []ResourceRoleRead `json:"data"`
+	TotalCount int32              `json:"total_count"`
+	PageCount  *int32             `json:"page_count,omitempty"`
 }
 
 // NewPaginatedResultResourceRoleRead instantiates a new PaginatedResultResourceRoleRead object
@@ -129,7 +129,7 @@ func (o *PaginatedResultResourceRoleRead) SetPageCount(v int32) {
 }
 
 func (o PaginatedResultResourceRoleRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

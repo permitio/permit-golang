@@ -21,9 +21,9 @@ var _ MappedNullable = &RoleAssignmentDetailedRead{}
 // RoleAssignmentDetailedRead struct for RoleAssignmentDetailedRead
 type RoleAssignmentDetailedRead struct {
 	// Unique id of the role assignment
-	Id string `json:"id"`
-	Role RoleAssignmentRole `json:"role"`
-	User RoleAssignmentUser `json:"user"`
+	Id     string               `json:"id"`
+	Role   RoleAssignmentRole   `json:"role"`
+	User   RoleAssignmentUser   `json:"user"`
 	Tenant RoleAssignmentTenant `json:"tenant"`
 	// Unique id of the organization that the role assignment belongs to.
 	OrganizationId string `json:"organization_id"`
@@ -253,7 +253,7 @@ func (o *RoleAssignmentDetailedRead) SetCreatedAt(v time.Time) {
 }
 
 func (o RoleAssignmentDetailedRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

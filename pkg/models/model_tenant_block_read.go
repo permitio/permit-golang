@@ -161,7 +161,7 @@ func (o *TenantBlockRead) SetAttributes(v map[string]interface{}) {
 }
 
 func (o TenantBlockRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

@@ -19,7 +19,7 @@ var _ MappedNullable = &RoleAssignmentRole{}
 
 // RoleAssignmentRole struct for RoleAssignmentRole
 type RoleAssignmentRole struct {
-	Id string `json:"id"`
+	Id  string `json:"id"`
 	Key string `json:"key"`
 }
 
@@ -91,7 +91,7 @@ func (o *RoleAssignmentRole) SetKey(v string) {
 }
 
 func (o RoleAssignmentRole) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

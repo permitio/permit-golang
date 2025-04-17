@@ -20,19 +20,18 @@ import (
 	"strings"
 )
 
-
 // ImplicitGrantsAPIService ImplicitGrantsAPI service
 type ImplicitGrantsAPIService service
 
 type ApiCreateImplicitGrantRequest struct {
-	ctx context.Context
-	ApiService *ImplicitGrantsAPIService
-	projId string
-	envId string
-	resourceId string
-	roleId string
+	ctx                   context.Context
+	ApiService            *ImplicitGrantsAPIService
+	projId                string
+	envId                 string
+	resourceId            string
+	roleId                string
 	derivedRoleRuleCreate *models.DerivedRoleRuleCreate
-	permitSession *string
+	permitSession         *string
 }
 
 func (r ApiCreateImplicitGrantRequest) DerivedRoleRuleCreate(derivedRoleRuleCreate models.DerivedRoleRuleCreate) ApiCreateImplicitGrantRequest {
@@ -54,32 +53,33 @@ CreateImplicitGrant Create Implicit Grant
 
 Creates an implicit grant on a given role
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiCreateImplicitGrantRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@return ApiCreateImplicitGrantRequest
 */
 func (a *ImplicitGrantsAPIService) CreateImplicitGrant(ctx context.Context, projId string, envId string, resourceId string, roleId string) ApiCreateImplicitGrantRequest {
 	return ApiCreateImplicitGrantRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 		resourceId: resourceId,
-		roleId: roleId,
+		roleId:     roleId,
 	}
 }
 
 // Execute executes the request
-//  @return DerivedRoleRuleRead
+//
+//	@return DerivedRoleRuleRead
 func (a *ImplicitGrantsAPIService) CreateImplicitGrantExecute(r ApiCreateImplicitGrantRequest) (*models.DerivedRoleRuleRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.DerivedRoleRuleRead
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.DerivedRoleRuleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ImplicitGrantsAPIService.CreateImplicitGrant")
@@ -148,8 +148,8 @@ func (a *ImplicitGrantsAPIService) CreateImplicitGrantExecute(r ApiCreateImplici
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -167,14 +167,14 @@ func (a *ImplicitGrantsAPIService) CreateImplicitGrantExecute(r ApiCreateImplici
 }
 
 type ApiDeleteImplicitGrantRequest struct {
-	ctx context.Context
-	ApiService *ImplicitGrantsAPIService
-	projId string
-	envId string
-	roleId string
-	resourceId string
+	ctx                   context.Context
+	ApiService            *ImplicitGrantsAPIService
+	projId                string
+	envId                 string
+	roleId                string
+	resourceId            string
 	derivedRoleRuleDelete *models.DerivedRoleRuleDelete
-	permitSession *string
+	permitSession         *string
 }
 
 func (r ApiDeleteImplicitGrantRequest) DerivedRoleRuleDelete(derivedRoleRuleDelete models.DerivedRoleRuleDelete) ApiDeleteImplicitGrantRequest {
@@ -196,20 +196,20 @@ DeleteImplicitGrant Delete Implicit Grant
 
 Deletes an implicit grant on a given role
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiDeleteImplicitGrantRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiDeleteImplicitGrantRequest
 */
 func (a *ImplicitGrantsAPIService) DeleteImplicitGrant(ctx context.Context, projId string, envId string, roleId string, resourceId string) ApiDeleteImplicitGrantRequest {
 	return ApiDeleteImplicitGrantRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
-		roleId: roleId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
+		roleId:     roleId,
 		resourceId: resourceId,
 	}
 }
@@ -217,9 +217,9 @@ func (a *ImplicitGrantsAPIService) DeleteImplicitGrant(ctx context.Context, proj
 // Execute executes the request
 func (a *ImplicitGrantsAPIService) DeleteImplicitGrantExecute(r ApiDeleteImplicitGrantRequest) (*http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodDelete
-		localVarPostBody     interface{}
-		formFiles            []formFile
+		localVarHTTPMethod = http.MethodDelete
+		localVarPostBody   interface{}
+		formFiles          []formFile
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ImplicitGrantsAPIService.DeleteImplicitGrant")
@@ -288,8 +288,8 @@ func (a *ImplicitGrantsAPIService) DeleteImplicitGrantExecute(r ApiDeleteImplici
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarHTTPResponse, newErr
 	}
@@ -298,14 +298,14 @@ func (a *ImplicitGrantsAPIService) DeleteImplicitGrantExecute(r ApiDeleteImplici
 }
 
 type ApiUpdateImplicitGrantsConditionsRequest struct {
-	ctx context.Context
-	ApiService *ImplicitGrantsAPIService
-	projId string
-	envId string
-	resourceId string
-	roleId string
+	ctx                                                         context.Context
+	ApiService                                                  *ImplicitGrantsAPIService
+	projId                                                      string
+	envId                                                       string
+	resourceId                                                  string
+	roleId                                                      string
 	permitBackendSchemasSchemaDerivedRoleRuleDerivationSettings *models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings
-	permitSession *string
+	permitSession                                               *string
 }
 
 func (r ApiUpdateImplicitGrantsConditionsRequest) PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings(permitBackendSchemasSchemaDerivedRoleRuleDerivationSettings models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings) ApiUpdateImplicitGrantsConditionsRequest {
@@ -327,32 +327,33 @@ UpdateImplicitGrantsConditions Update Implicit Grants Conditions
 
 Update the `when` for implicit grants on a given role
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
- @return ApiUpdateImplicitGrantsConditionsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param roleId Either the unique id of the role, or the URL-friendly key of the role (i.e: the \"slug\").
+	@return ApiUpdateImplicitGrantsConditionsRequest
 */
 func (a *ImplicitGrantsAPIService) UpdateImplicitGrantsConditions(ctx context.Context, projId string, envId string, resourceId string, roleId string) ApiUpdateImplicitGrantsConditionsRequest {
 	return ApiUpdateImplicitGrantsConditionsRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 		resourceId: resourceId,
-		roleId: roleId,
+		roleId:     roleId,
 	}
 }
 
 // Execute executes the request
-//  @return PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings
+//
+//	@return PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings
 func (a *ImplicitGrantsAPIService) UpdateImplicitGrantsConditionsExecute(r ApiUpdateImplicitGrantsConditionsRequest) (*models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodPut
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings
+		localVarHTTPMethod  = http.MethodPut
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ImplicitGrantsAPIService.UpdateImplicitGrantsConditions")
@@ -421,8 +422,8 @@ func (a *ImplicitGrantsAPIService) UpdateImplicitGrantsConditionsExecute(r ApiUp
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}

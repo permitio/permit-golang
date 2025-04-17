@@ -19,9 +19,9 @@ var _ MappedNullable = &RelationshipTupleObj{}
 
 // RelationshipTupleObj struct for RelationshipTupleObj
 type RelationshipTupleObj struct {
-	SubjectStr string `json:"subject_str"`
+	SubjectStr  string `json:"subject_str"`
 	RelationStr string `json:"relation_str"`
-	ObjectStr string `json:"object_str"`
+	ObjectStr   string `json:"object_str"`
 }
 
 // NewRelationshipTupleObj instantiates a new RelationshipTupleObj object
@@ -117,7 +117,7 @@ func (o *RelationshipTupleObj) SetObjectStr(v string) {
 }
 
 func (o RelationshipTupleObj) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

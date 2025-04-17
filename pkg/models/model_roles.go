@@ -18,14 +18,14 @@ import (
 // CopyEnvironmentScopeRoles struct for CopyEnvironmentScopeRoles
 type Roles struct {
 	PaginatedResultResourceRoleRead *PaginatedResultResourceRoleRead
-	ResourceRoleRead *[]ResourceRoleRead
+	ResourceRoleRead                *[]ResourceRoleRead
 }
 
 // Unmarshal JSON data into any of the pointers in the struct
 func (dst *Roles) UnmarshalJSON(data []byte) error {
 	var err error
 	// try to unmarshal JSON data into PaginatedResultResourceRoleRead
-	err = json.Unmarshal(data, &dst.PaginatedResultResourceRoleRead);
+	err = json.Unmarshal(data, &dst.PaginatedResultResourceRoleRead)
 	if err == nil {
 		jsonPaginatedResultResourceRoleRead, _ := json.Marshal(dst.PaginatedResultResourceRoleRead)
 		if string(jsonPaginatedResultResourceRoleRead) == "{}" { // empty struct
@@ -38,7 +38,7 @@ func (dst *Roles) UnmarshalJSON(data []byte) error {
 	}
 
 	// try to unmarshal JSON data into []ResourceRoleRead
-	err = json.Unmarshal(data, &dst.ResourceRoleRead);
+	err = json.Unmarshal(data, &dst.ResourceRoleRead)
 	if err == nil {
 		jsonResourceRoleRead, _ := json.Marshal(dst.ResourceRoleRead)
 		if string(jsonResourceRoleRead) == "{}" { // empty struct

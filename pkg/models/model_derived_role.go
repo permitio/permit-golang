@@ -19,9 +19,9 @@ var _ MappedNullable = &DerivedRole{}
 
 // DerivedRole struct for DerivedRole
 type DerivedRole struct {
-	Conditions *string `json:"conditions,omitempty"`
-	Settings PermitBackendSchemasSchemaOpalDataDerivationSettings `json:"settings"`
-	Rules []DerivedRoleRule `json:"rules"`
+	Conditions *string                                              `json:"conditions,omitempty"`
+	Settings   PermitBackendSchemasSchemaOpalDataDerivationSettings `json:"settings"`
+	Rules      []DerivedRoleRule                                    `json:"rules"`
 }
 
 // NewDerivedRole instantiates a new DerivedRole object
@@ -124,7 +124,7 @@ func (o *DerivedRole) SetRules(v []DerivedRoleRule) {
 }
 
 func (o DerivedRole) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

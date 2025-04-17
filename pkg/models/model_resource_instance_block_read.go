@@ -154,7 +154,7 @@ func (o *ResourceInstanceBlockRead) SetAttributes(v map[string]interface{}) {
 }
 
 func (o ResourceInstanceBlockRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

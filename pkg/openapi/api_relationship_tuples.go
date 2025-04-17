@@ -20,17 +20,16 @@ import (
 	"strings"
 )
 
-
 // RelationshipTuplesAPIService RelationshipTuplesAPI service
 type RelationshipTuplesAPIService service
 
 type ApiBulkCreateRelationshipTuplesRequest struct {
-	ctx context.Context
-	ApiService *RelationshipTuplesAPIService
-	projId string
-	envId string
+	ctx                                  context.Context
+	ApiService                           *RelationshipTuplesAPIService
+	projId                               string
+	envId                                string
 	relationshipTupleCreateBulkOperation *models.RelationshipTupleCreateBulkOperation
-	permitSession *string
+	permitSession                        *string
 }
 
 func (r ApiBulkCreateRelationshipTuplesRequest) RelationshipTupleCreateBulkOperation(relationshipTupleCreateBulkOperation models.RelationshipTupleCreateBulkOperation) ApiBulkCreateRelationshipTuplesRequest {
@@ -50,28 +49,29 @@ func (r ApiBulkCreateRelationshipTuplesRequest) Execute() (map[string]interface{
 /*
 BulkCreateRelationshipTuples Bulk Create Relationship Tuples
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiBulkCreateRelationshipTuplesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiBulkCreateRelationshipTuplesRequest
 */
 func (a *RelationshipTuplesAPIService) BulkCreateRelationshipTuples(ctx context.Context, projId string, envId string) ApiBulkCreateRelationshipTuplesRequest {
 	return ApiBulkCreateRelationshipTuplesRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return map[string]interface{}
+//
+//	@return map[string]interface{}
 func (a *RelationshipTuplesAPIService) BulkCreateRelationshipTuplesExecute(r ApiBulkCreateRelationshipTuplesRequest) (map[string]interface{}, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  map[string]interface{}
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue map[string]interface{}
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.BulkCreateRelationshipTuples")
@@ -138,8 +138,8 @@ func (a *RelationshipTuplesAPIService) BulkCreateRelationshipTuplesExecute(r Api
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -157,12 +157,12 @@ func (a *RelationshipTuplesAPIService) BulkCreateRelationshipTuplesExecute(r Api
 }
 
 type ApiBulkDeleteRelationshipTuplesRequest struct {
-	ctx context.Context
-	ApiService *RelationshipTuplesAPIService
-	projId string
-	envId string
+	ctx                                  context.Context
+	ApiService                           *RelationshipTuplesAPIService
+	projId                               string
+	envId                                string
 	relationshipTupleDeleteBulkOperation *models.RelationshipTupleDeleteBulkOperation
-	permitSession *string
+	permitSession                        *string
 }
 
 func (r ApiBulkDeleteRelationshipTuplesRequest) RelationshipTupleDeleteBulkOperation(relationshipTupleDeleteBulkOperation models.RelationshipTupleDeleteBulkOperation) ApiBulkDeleteRelationshipTuplesRequest {
@@ -182,28 +182,29 @@ func (r ApiBulkDeleteRelationshipTuplesRequest) Execute() (map[string]interface{
 /*
 BulkDeleteRelationshipTuples Bulk Delete Relationship Tuples
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiBulkDeleteRelationshipTuplesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiBulkDeleteRelationshipTuplesRequest
 */
 func (a *RelationshipTuplesAPIService) BulkDeleteRelationshipTuples(ctx context.Context, projId string, envId string) ApiBulkDeleteRelationshipTuplesRequest {
 	return ApiBulkDeleteRelationshipTuplesRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return map[string]interface{}
+//
+//	@return map[string]interface{}
 func (a *RelationshipTuplesAPIService) BulkDeleteRelationshipTuplesExecute(r ApiBulkDeleteRelationshipTuplesRequest) (map[string]interface{}, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodDelete
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  map[string]interface{}
+		localVarHTTPMethod  = http.MethodDelete
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue map[string]interface{}
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.BulkDeleteRelationshipTuples")
@@ -270,8 +271,8 @@ func (a *RelationshipTuplesAPIService) BulkDeleteRelationshipTuplesExecute(r Api
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -289,12 +290,12 @@ func (a *RelationshipTuplesAPIService) BulkDeleteRelationshipTuplesExecute(r Api
 }
 
 type ApiCreateRelationshipTupleRequest struct {
-	ctx context.Context
-	ApiService *RelationshipTuplesAPIService
-	projId string
-	envId string
+	ctx                     context.Context
+	ApiService              *RelationshipTuplesAPIService
+	projId                  string
+	envId                   string
 	relationshipTupleCreate *models.RelationshipTupleCreate
-	permitSession *string
+	permitSession           *string
 }
 
 func (r ApiCreateRelationshipTupleRequest) RelationshipTupleCreate(relationshipTupleCreate models.RelationshipTupleCreate) ApiCreateRelationshipTupleRequest {
@@ -316,28 +317,29 @@ CreateRelationshipTuple Create Relationship Tuple
 
 Create a relationship between two resource instances using a relation.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiCreateRelationshipTupleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiCreateRelationshipTupleRequest
 */
 func (a *RelationshipTuplesAPIService) CreateRelationshipTuple(ctx context.Context, projId string, envId string) ApiCreateRelationshipTupleRequest {
 	return ApiCreateRelationshipTupleRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return RelationshipTupleRead
+//
+//	@return RelationshipTupleRead
 func (a *RelationshipTuplesAPIService) CreateRelationshipTupleExecute(r ApiCreateRelationshipTupleRequest) (*models.RelationshipTupleRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.RelationshipTupleRead
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RelationshipTupleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.CreateRelationshipTuple")
@@ -404,8 +406,8 @@ func (a *RelationshipTuplesAPIService) CreateRelationshipTupleExecute(r ApiCreat
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -423,12 +425,12 @@ func (a *RelationshipTuplesAPIService) CreateRelationshipTupleExecute(r ApiCreat
 }
 
 type ApiDeleteRelationshipTupleRequest struct {
-	ctx context.Context
-	ApiService *RelationshipTuplesAPIService
-	projId string
-	envId string
+	ctx                     context.Context
+	ApiService              *RelationshipTuplesAPIService
+	projId                  string
+	envId                   string
 	relationshipTupleDelete *models.RelationshipTupleDelete
-	permitSession *string
+	permitSession           *string
 }
 
 func (r ApiDeleteRelationshipTupleRequest) RelationshipTupleDelete(relationshipTupleDelete models.RelationshipTupleDelete) ApiDeleteRelationshipTupleRequest {
@@ -450,26 +452,26 @@ DeleteRelationshipTuple Delete Relationship Tuple
 
 Delete a relationship between two resource instances.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiDeleteRelationshipTupleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiDeleteRelationshipTupleRequest
 */
 func (a *RelationshipTuplesAPIService) DeleteRelationshipTuple(ctx context.Context, projId string, envId string) ApiDeleteRelationshipTupleRequest {
 	return ApiDeleteRelationshipTupleRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
 func (a *RelationshipTuplesAPIService) DeleteRelationshipTupleExecute(r ApiDeleteRelationshipTupleRequest) (*http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodDelete
-		localVarPostBody     interface{}
-		formFiles            []formFile
+		localVarHTTPMethod = http.MethodDelete
+		localVarPostBody   interface{}
+		formFiles          []formFile
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.DeleteRelationshipTuple")
@@ -536,8 +538,8 @@ func (a *RelationshipTuplesAPIService) DeleteRelationshipTupleExecute(r ApiDelet
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarHTTPResponse, newErr
 	}
@@ -546,17 +548,17 @@ func (a *RelationshipTuplesAPIService) DeleteRelationshipTupleExecute(r ApiDelet
 }
 
 type ApiListRelationshipTuplesRequest struct {
-	ctx context.Context
-	ApiService *RelationshipTuplesAPIService
-	projId string
-	envId string
-	detailed *bool
-	page *int32
-	perPage *int32
-	tenant *string
-	subject *string
-	relation *string
-	object *string
+	ctx           context.Context
+	ApiService    *RelationshipTuplesAPIService
+	projId        string
+	envId         string
+	detailed      *bool
+	page          *int32
+	perPage       *int32
+	tenant        *string
+	subject       *string
+	relation      *string
+	object        *string
 	permitSession *string
 }
 
@@ -616,28 +618,29 @@ ListRelationshipTuples List Relationship Tuples
 
 Lists the relationship tuples defined within an environment.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListRelationshipTuplesRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListRelationshipTuplesRequest
 */
 func (a *RelationshipTuplesAPIService) ListRelationshipTuples(ctx context.Context, projId string, envId string) ApiListRelationshipTuplesRequest {
 	return ApiListRelationshipTuplesRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return []RelationshipTupleRead
+//
+//	@return []RelationshipTupleRead
 func (a *RelationshipTuplesAPIService) ListRelationshipTuplesExecute(r ApiListRelationshipTuplesRequest) ([]models.RelationshipTupleRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodGet
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  []models.RelationshipTupleRead
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue []models.RelationshipTupleRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RelationshipTuplesAPIService.ListRelationshipTuples")
@@ -729,8 +732,8 @@ func (a *RelationshipTuplesAPIService) ListRelationshipTuplesExecute(r ApiListRe
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}

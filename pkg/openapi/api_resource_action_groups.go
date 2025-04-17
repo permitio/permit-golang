@@ -398,13 +398,13 @@ func (a *ResourceActionGroupsApiService) GetResourceActionGroupExecute(r ApiGetR
 }
 
 type ApiListResourceActionGroupsRequest struct {
-	ctx        context.Context
-	ApiService *ResourceActionGroupsApiService
-	projId     string
-	envId      string
-	resourceId string
-	page       *int32
-	perPage    *int32
+	ctx              context.Context
+	ApiService       *ResourceActionGroupsApiService
+	projId           string
+	envId            string
+	resourceId       string
+	page             *int32
+	perPage          *int32
 	attributesFilter map[string]interface{}
 }
 

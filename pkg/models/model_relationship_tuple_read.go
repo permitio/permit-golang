@@ -47,11 +47,11 @@ type RelationshipTupleRead struct {
 	// Date and time when the relationship tuple was created (ISO_8601 format).
 	CreatedAt time.Time `json:"created_at"`
 	// Date and time when the relationship tuple was created (ISO_8601 format).
-	UpdatedAt time.Time `json:"updated_at"`
-	SubjectDetails *ResourceInstanceBlockRead `json:"subject_details,omitempty"`
+	UpdatedAt       time.Time                  `json:"updated_at"`
+	SubjectDetails  *ResourceInstanceBlockRead `json:"subject_details,omitempty"`
 	RelationDetails *StrippedRelationBlockRead `json:"relation_details,omitempty"`
-	ObjectDetails *ResourceInstanceBlockRead `json:"object_details,omitempty"`
-	TenantDetails *TenantBlockRead `json:"tenant_details,omitempty"`
+	ObjectDetails   *ResourceInstanceBlockRead `json:"object_details,omitempty"`
+	TenantDetails   *TenantBlockRead           `json:"tenant_details,omitempty"`
 }
 
 // NewRelationshipTupleRead instantiates a new RelationshipTupleRead object
@@ -550,7 +550,7 @@ func (o *RelationshipTupleRead) SetTenantDetails(v TenantBlockRead) {
 }
 
 func (o RelationshipTupleRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

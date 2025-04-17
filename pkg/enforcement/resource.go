@@ -11,7 +11,7 @@ type ResourceI interface {
 type Resource struct {
 	Type       string                 `json:"type,omitempty"`
 	ID         string                 `json:"id,omitempty"`
-	Key        string          		  `json:"key,omitempty"`
+	Key        string                 `json:"key,omitempty"`
 	Tenant     string                 `json:"tenant,omitempty"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 	Context    map[string]string      `json:"context,omitempty"`

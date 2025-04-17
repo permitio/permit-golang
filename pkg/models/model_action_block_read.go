@@ -22,8 +22,8 @@ type ActionBlockRead struct {
 	// a more descriptive name for the action
 	Name *string `json:"name,omitempty"`
 	// optional description string explaining what this action represents in your system
-	Description *string `json:"description,omitempty"`
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Description *string                `json:"description,omitempty"`
+	Attributes  map[string]interface{} `json:"attributes,omitempty"`
 	// Unique id of the action
 	Id string `json:"id"`
 	// action key
@@ -201,7 +201,7 @@ func (o *ActionBlockRead) SetKey(v string) {
 }
 
 func (o ActionBlockRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

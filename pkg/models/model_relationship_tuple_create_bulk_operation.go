@@ -65,7 +65,7 @@ func (o *RelationshipTupleCreateBulkOperation) SetOperations(v []RelationshipTup
 }
 
 func (o RelationshipTupleCreateBulkOperation) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

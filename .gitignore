@@ -26,3 +26,7 @@ _testmain.go
 permit-golang
 .idea
 permit-golang.iml
+
+# Secrets
+.env
+.secrets

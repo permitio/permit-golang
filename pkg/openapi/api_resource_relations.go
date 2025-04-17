@@ -20,18 +20,17 @@ import (
 	"strings"
 )
 
-
 // ResourceRelationsAPIService ResourceRelationsAPI service
 type ResourceRelationsAPIService service
 
 type ApiCreateResourceRelationRequest struct {
-	ctx context.Context
-	ApiService *ResourceRelationsAPIService
-	projId string
-	envId string
-	resourceId string
+	ctx            context.Context
+	ApiService     *ResourceRelationsAPIService
+	projId         string
+	envId          string
+	resourceId     string
 	relationCreate *models.RelationCreate
-	permitSession *string
+	permitSession  *string
 }
 
 func (r ApiCreateResourceRelationRequest) RelationCreate(relationCreate models.RelationCreate) ApiCreateResourceRelationRequest {
@@ -53,30 +52,31 @@ CreateResourceRelation Create Resource Relation
 
 Creates a resource relation to another resource
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiCreateResourceRelationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiCreateResourceRelationRequest
 */
 func (a *ResourceRelationsAPIService) CreateResourceRelation(ctx context.Context, projId string, envId string, resourceId string) ApiCreateResourceRelationRequest {
 	return ApiCreateResourceRelationRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return RelationRead
+//
+//	@return RelationRead
 func (a *ResourceRelationsAPIService) CreateResourceRelationExecute(r ApiCreateResourceRelationRequest) (*models.RelationRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.RelationRead
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RelationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRelationsAPIService.CreateResourceRelation")
@@ -144,8 +144,8 @@ func (a *ResourceRelationsAPIService) CreateResourceRelationExecute(r ApiCreateR
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -163,12 +163,12 @@ func (a *ResourceRelationsAPIService) CreateResourceRelationExecute(r ApiCreateR
 }
 
 type ApiDeleteResourceRelationRequest struct {
-	ctx context.Context
-	ApiService *ResourceRelationsAPIService
-	projId string
-	envId string
-	resourceId string
-	relationId string
+	ctx           context.Context
+	ApiService    *ResourceRelationsAPIService
+	projId        string
+	envId         string
+	resourceId    string
+	relationId    string
 	permitSession *string
 }
 
@@ -186,19 +186,19 @@ DeleteResourceRelation Delete Resource Relation
 
 Deletes a resource relation
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param relationId Either the unique id of the relation, or the URL-friendly key of the relation (i.e: the \"slug\").
- @return ApiDeleteResourceRelationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param relationId Either the unique id of the relation, or the URL-friendly key of the relation (i.e: the \"slug\").
+	@return ApiDeleteResourceRelationRequest
 */
 func (a *ResourceRelationsAPIService) DeleteResourceRelation(ctx context.Context, projId string, envId string, resourceId string, relationId string) ApiDeleteResourceRelationRequest {
 	return ApiDeleteResourceRelationRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 		resourceId: resourceId,
 		relationId: relationId,
 	}
@@ -207,9 +207,9 @@ func (a *ResourceRelationsAPIService) DeleteResourceRelation(ctx context.Context
 // Execute executes the request
 func (a *ResourceRelationsAPIService) DeleteResourceRelationExecute(r ApiDeleteResourceRelationRequest) (*http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodDelete
-		localVarPostBody     interface{}
-		formFiles            []formFile
+		localVarHTTPMethod = http.MethodDelete
+		localVarPostBody   interface{}
+		formFiles          []formFile
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRelationsAPIService.DeleteResourceRelation")
@@ -273,8 +273,8 @@ func (a *ResourceRelationsAPIService) DeleteResourceRelationExecute(r ApiDeleteR
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarHTTPResponse, newErr
 	}
@@ -283,12 +283,12 @@ func (a *ResourceRelationsAPIService) DeleteResourceRelationExecute(r ApiDeleteR
 }
 
 type ApiGetResourceRelationRequest struct {
-	ctx context.Context
-	ApiService *ResourceRelationsAPIService
-	projId string
-	envId string
-	resourceId string
-	relationId string
+	ctx           context.Context
+	ApiService    *ResourceRelationsAPIService
+	projId        string
+	envId         string
+	resourceId    string
+	relationId    string
 	permitSession *string
 }
 
@@ -306,32 +306,33 @@ GetResourceRelation Get Resource Relation
 
 Get a resource relation
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @param relationId Either the unique id of the relation, or the URL-friendly key of the relation (i.e: the \"slug\").
- @return ApiGetResourceRelationRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@param relationId Either the unique id of the relation, or the URL-friendly key of the relation (i.e: the \"slug\").
+	@return ApiGetResourceRelationRequest
 */
 func (a *ResourceRelationsAPIService) GetResourceRelation(ctx context.Context, projId string, envId string, resourceId string, relationId string) ApiGetResourceRelationRequest {
 	return ApiGetResourceRelationRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 		resourceId: resourceId,
 		relationId: relationId,
 	}
 }
 
 // Execute executes the request
-//  @return RelationRead
+//
+//	@return RelationRead
 func (a *ResourceRelationsAPIService) GetResourceRelationExecute(r ApiGetResourceRelationRequest) (*models.RelationRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodGet
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.RelationRead
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RelationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRelationsAPIService.GetResourceRelation")
@@ -395,8 +396,8 @@ func (a *ResourceRelationsAPIService) GetResourceRelationExecute(r ApiGetResourc
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -414,13 +415,13 @@ func (a *ResourceRelationsAPIService) GetResourceRelationExecute(r ApiGetResourc
 }
 
 type ApiListResourceRelationsRequest struct {
-	ctx context.Context
-	ApiService *ResourceRelationsAPIService
-	projId string
-	envId string
-	resourceId string
-	page *int32
-	perPage *int32
+	ctx           context.Context
+	ApiService    *ResourceRelationsAPIService
+	projId        string
+	envId         string
+	resourceId    string
+	page          *int32
+	perPage       *int32
 	permitSession *string
 }
 
@@ -450,30 +451,31 @@ ListResourceRelations List Resource Relations
 
 List relations on a given resource
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
- @return ApiListResourceRelationsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@param resourceId Either the unique id of the resource, or the URL-friendly key of the resource (i.e: the \"slug\").
+	@return ApiListResourceRelationsRequest
 */
 func (a *ResourceRelationsAPIService) ListResourceRelations(ctx context.Context, projId string, envId string, resourceId string) ApiListResourceRelationsRequest {
 	return ApiListResourceRelationsRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 		resourceId: resourceId,
 	}
 }
 
 // Execute executes the request
-//  @return PaginatedResultRelationRead
+//
+//	@return PaginatedResultRelationRead
 func (a *ResourceRelationsAPIService) ListResourceRelationsExecute(r ApiListResourceRelationsRequest) (*models.PaginatedResultRelationRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodGet
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.PaginatedResultRelationRead
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.PaginatedResultRelationRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ResourceRelationsAPIService.ListResourceRelations")
@@ -548,8 +550,8 @@ func (a *ResourceRelationsAPIService) ListResourceRelationsExecute(r ApiListReso
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}

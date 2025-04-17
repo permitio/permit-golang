@@ -389,7 +389,7 @@ type ApiListResourcesRequest struct {
 	ApiService     *ResourcesApiService
 	projId         string
 	envId          string
-	search *string
+	search         *string
 	includeBuiltIn *bool
 	page           *int32
 	perPage        *int32

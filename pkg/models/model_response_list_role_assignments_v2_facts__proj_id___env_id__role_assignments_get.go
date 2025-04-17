@@ -18,14 +18,14 @@ import (
 // ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet struct for ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
 type ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet struct {
 	RoleAssignmentDetailedRead *[]RoleAssignmentDetailedRead
-	RoleAssignmentRead *[]RoleAssignmentRead
+	RoleAssignmentRead         *[]RoleAssignmentRead
 }
 
 // Unmarshal JSON data into any of the pointers in the struct
 func (dst *ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet) UnmarshalJSON(data []byte) error {
 	var err error
 	// try to unmarshal JSON data into []RoleAssignmentDetailedRead
-	err = json.Unmarshal(data, &dst.RoleAssignmentDetailedRead);
+	err = json.Unmarshal(data, &dst.RoleAssignmentDetailedRead)
 	if err == nil {
 		jsonRoleAssignmentDetailedRead, _ := json.Marshal(dst.RoleAssignmentDetailedRead)
 		if string(jsonRoleAssignmentDetailedRead) == "{}" { // empty struct
@@ -38,7 +38,7 @@ func (dst *ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet) Unma
 	}
 
 	// try to unmarshal JSON data into []RoleAssignmentRead
-	err = json.Unmarshal(data, &dst.RoleAssignmentRead);
+	err = json.Unmarshal(data, &dst.RoleAssignmentRead)
 	if err == nil {
 		jsonRoleAssignmentRead, _ := json.Marshal(dst.RoleAssignmentRead)
 		if string(jsonRoleAssignmentRead) == "{}" { // empty struct

@@ -24,8 +24,8 @@ type DerivedRoleRuleDelete struct {
 	// the resource key that needs to exist on the related role (from the relation)
 	OnResource string `json:"on_resource"`
 	// the relation key that needs to exist between the resource and the related resource
-	LinkedByRelation string `json:"linked_by_relation"`
-	When *PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings `json:"when,omitempty"`
+	LinkedByRelation string                                                       `json:"linked_by_relation"`
+	When             *PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings `json:"when,omitempty"`
 }
 
 // NewDerivedRoleRuleDelete instantiates a new DerivedRoleRuleDelete object
@@ -155,7 +155,7 @@ func (o *DerivedRoleRuleDelete) SetWhen(v PermitBackendSchemasSchemaDerivedRoleR
 }
 
 func (o DerivedRoleRuleDelete) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

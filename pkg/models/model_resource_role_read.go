@@ -24,7 +24,7 @@ type ResourceRoleRead struct {
 	// list of action keys that define what actions this resource role is permitted to do
 	Permissions []string `json:"permissions,omitempty"`
 	// list of role keys that define what roles this role extends. In other words: this role will automatically inherit all the permissions of the given roles in this list.
-	Extends []string `json:"extends,omitempty"`
+	Extends   []string              `json:"extends,omitempty"`
 	GrantedTo *DerivedRoleBlockRead `json:"granted_to,omitempty"`
 	// A URL-friendly name of the role (i.e: slug). You will be able to query later using this key instead of the id (UUID) of the role.
 	Key string `json:"key"`

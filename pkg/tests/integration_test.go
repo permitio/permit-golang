@@ -162,10 +162,10 @@ func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitCon
 	userCreate.SetFirstName("John")
 	userCreate.SetLastName("Doe")
 	userCreate.SetEmail("john@example.com")
-	_, err = permitClient.Api.Users.WaitForSync(nil).Create(ctx, userCreate)
+	_, err = permitClient.Api.Users.Create(ctx, userCreate)
 	assert.NoError(t, err)
 
-	_, err = permitClient.Api.Users.WaitForSync(nil).AssignRole(ctx, userKey, roleKey, "default")
+	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, "default")
 	assert.NoError(t, err)
 	// check if user has permission immediately
 	allowed, err := permitClient.Check(enforcement.UserBuilder(userKey).Build(), "read", enforcement.ResourceBuilder(resourceKey).Build())

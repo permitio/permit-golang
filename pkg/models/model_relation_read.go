@@ -398,7 +398,7 @@ func (o *RelationRead) SetSubjectResourceId(v string) {
 }
 
 func (o RelationRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

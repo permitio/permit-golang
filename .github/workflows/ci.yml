@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_and_lint:
+    name: Build and Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run go fmt
+        run: go fmt ./...
+
+      - name: Build
+        run: go build -v ./...
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      pdp:
+        image: permitio/pdp-v2:latest
+        ports:
+          - 7766:7000
+        env:
+          PDP_API_KEY: ${{ secrets.PERMIT_API_KEY }}
+          PDP_DEBUG: true
+    env:
+      PROJECT: "golang-tests"
+      ENV: "dev"
+      # Use localhost for GitHub Actions (for Act local testing, setup PDP separately)
+      PDP_URL: "http://localhost:7766"
+      API_URL: "https://api.permit.io"
+      PDP_API_KEY: ${{ secrets.PERMIT_API_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v ./... 

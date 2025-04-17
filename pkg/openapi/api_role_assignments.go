@@ -24,12 +24,12 @@ import (
 type RoleAssignmentsApiService service
 
 type ApiAssignRoleRequest struct {
-	ctx context.Context
-	ApiService *RoleAssignmentsApiService
-	projId string
-	envId string
+	ctx                  context.Context
+	ApiService           *RoleAssignmentsApiService
+	projId               string
+	envId                string
 	roleAssignmentCreate *models.RoleAssignmentCreate
-	permitSession *string
+	permitSession        *string
 }
 
 func (r ApiAssignRoleRequest) RoleAssignmentCreate(roleAssignmentCreate models.RoleAssignmentCreate) ApiAssignRoleRequest {
@@ -53,28 +53,29 @@ Assigns a role to a user within a tenant.
 
 The tenant defines the scope of the assignment. In other words, the role is effective only within the tenant.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiAssignRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiAssignRoleRequest
 */
 func (a *RoleAssignmentsApiService) AssignRole(ctx context.Context, projId string, envId string) ApiAssignRoleRequest {
 	return ApiAssignRoleRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return RoleAssignmentRead
+//
+//	@return RoleAssignmentRead
 func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*models.RoleAssignmentRead, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.RoleAssignmentRead
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.RoleAssignmentRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.AssignRole")
@@ -141,8 +142,8 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -160,12 +161,12 @@ func (a *RoleAssignmentsApiService) AssignRoleExecute(r ApiAssignRoleRequest) (*
 }
 
 type ApiBulkAssignRoleRequest struct {
-	ctx context.Context
-	ApiService *RoleAssignmentsApiService
-	projId string
-	envId string
+	ctx                  context.Context
+	ApiService           *RoleAssignmentsApiService
+	projId               string
+	envId                string
 	roleAssignmentCreate *[]models.RoleAssignmentCreate
-	permitSession *string
+	permitSession        *string
 }
 
 func (r ApiBulkAssignRoleRequest) RoleAssignmentCreate(roleAssignmentCreate []models.RoleAssignmentCreate) ApiBulkAssignRoleRequest {
@@ -185,28 +186,29 @@ func (r ApiBulkAssignRoleRequest) Execute() (*models.BulkRoleAssignmentReport, *
 /*
 BulkAssignRole Bulk Assign Role
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiBulkAssignRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiBulkAssignRoleRequest
 */
 func (a *RoleAssignmentsApiService) BulkAssignRole(ctx context.Context, projId string, envId string) ApiBulkAssignRoleRequest {
 	return ApiBulkAssignRoleRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return BulkRoleAssignmentReport
+//
+//	@return BulkRoleAssignmentReport
 func (a *RoleAssignmentsApiService) BulkAssignRoleExecute(r ApiBulkAssignRoleRequest) (*models.BulkRoleAssignmentReport, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodPost
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.BulkRoleAssignmentReport
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.BulkRoleAssignmentReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.BulkAssignRole")
@@ -273,8 +275,8 @@ func (a *RoleAssignmentsApiService) BulkAssignRoleExecute(r ApiBulkAssignRoleReq
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -292,12 +294,12 @@ func (a *RoleAssignmentsApiService) BulkAssignRoleExecute(r ApiBulkAssignRoleReq
 }
 
 type ApiBulkUnassignRoleRequest struct {
-	ctx context.Context
-	ApiService *RoleAssignmentsApiService
-	projId string
-	envId string
+	ctx                  context.Context
+	ApiService           *RoleAssignmentsApiService
+	projId               string
+	envId                string
 	roleAssignmentRemove *[]models.RoleAssignmentRemove
-	permitSession *string
+	permitSession        *string
 }
 
 func (r ApiBulkUnassignRoleRequest) RoleAssignmentRemove(roleAssignmentRemove []models.RoleAssignmentRemove) ApiBulkUnassignRoleRequest {
@@ -317,28 +319,29 @@ func (r ApiBulkUnassignRoleRequest) Execute() (*models.BulkRoleUnAssignmentRepor
 /*
 BulkUnassignRole Bulk Unassign Role
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiBulkUnassignRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiBulkUnassignRoleRequest
 */
 func (a *RoleAssignmentsApiService) BulkUnassignRole(ctx context.Context, projId string, envId string) ApiBulkUnassignRoleRequest {
 	return ApiBulkUnassignRoleRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return BulkRoleUnAssignmentReport
+//
+//	@return BulkRoleUnAssignmentReport
 func (a *RoleAssignmentsApiService) BulkUnassignRoleExecute(r ApiBulkUnassignRoleRequest) (*models.BulkRoleUnAssignmentReport, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodDelete
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.BulkRoleUnAssignmentReport
+		localVarHTTPMethod  = http.MethodDelete
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.BulkRoleUnAssignmentReport
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.BulkUnassignRole")
@@ -405,8 +408,8 @@ func (a *RoleAssignmentsApiService) BulkUnassignRoleExecute(r ApiBulkUnassignRol
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -424,19 +427,19 @@ func (a *RoleAssignmentsApiService) BulkUnassignRoleExecute(r ApiBulkUnassignRol
 }
 
 type ApiListRoleAssignmentsRequest struct {
-	ctx context.Context
-	ApiService *RoleAssignmentsApiService
-	projId string
-	envId string
-	user *string
-	role *string
-	tenant *string
-	resource *string
+	ctx              context.Context
+	ApiService       *RoleAssignmentsApiService
+	projId           string
+	envId            string
+	user             *string
+	role             *string
+	tenant           *string
+	resource         *string
 	resourceInstance *string
-	detailed *bool
-	page *int32
-	perPage *int32
-	permitSession *string
+	detailed         *bool
+	page             *int32
+	perPage          *int32
+	permitSession    *string
 }
 
 // optional user filter, will only return role assignments granted to this user.
@@ -505,28 +508,29 @@ Lists the role assignments defined within an environment.
 - If the `tenant` filter is present, will only return the role assignments in that tenant.
 - If the `role` filter is present, will only return role assignments that are granting that role.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiListRoleAssignmentsRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiListRoleAssignmentsRequest
 */
 func (a *RoleAssignmentsApiService) ListRoleAssignments(ctx context.Context, projId string, envId string) ApiListRoleAssignmentsRequest {
 	return ApiListRoleAssignmentsRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
-//  @return ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
+//
+//	@return ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
 func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssignmentsRequest) (*models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet, *http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodGet
-		localVarPostBody     interface{}
-		formFiles            []formFile
-		localVarReturnValue  *models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.ListRoleAssignments")
@@ -621,8 +625,8 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 				newErr.error = err.Error()
 				return localVarReturnValue, localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -640,12 +644,12 @@ func (a *RoleAssignmentsApiService) ListRoleAssignmentsExecute(r ApiListRoleAssi
 }
 
 type ApiUnassignRoleRequest struct {
-	ctx context.Context
-	ApiService *RoleAssignmentsApiService
-	projId string
-	envId string
+	ctx                  context.Context
+	ApiService           *RoleAssignmentsApiService
+	projId               string
+	envId                string
 	roleAssignmentRemove *models.RoleAssignmentRemove
-	permitSession *string
+	permitSession        *string
 }
 
 func (r ApiUnassignRoleRequest) RoleAssignmentRemove(roleAssignmentRemove models.RoleAssignmentRemove) ApiUnassignRoleRequest {
@@ -671,26 +675,26 @@ The tenant defines the scope of the assignment. In other words, the role is effe
 
 If the role is not actually assigned, will return 404.
 
- @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- @param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
- @param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
- @return ApiUnassignRoleRequest
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param projId Either the unique id of the project, or the URL-friendly key of the project (i.e: the \"slug\").
+	@param envId Either the unique id of the environment, or the URL-friendly key of the environment (i.e: the \"slug\").
+	@return ApiUnassignRoleRequest
 */
 func (a *RoleAssignmentsApiService) UnassignRole(ctx context.Context, projId string, envId string) ApiUnassignRoleRequest {
 	return ApiUnassignRoleRequest{
 		ApiService: a,
-		ctx: ctx,
-		projId: projId,
-		envId: envId,
+		ctx:        ctx,
+		projId:     projId,
+		envId:      envId,
 	}
 }
 
 // Execute executes the request
 func (a *RoleAssignmentsApiService) UnassignRoleExecute(r ApiUnassignRoleRequest) (*http.Response, error) {
 	var (
-		localVarHTTPMethod   = http.MethodDelete
-		localVarPostBody     interface{}
-		formFiles            []formFile
+		localVarHTTPMethod = http.MethodDelete
+		localVarPostBody   interface{}
+		formFiles          []formFile
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "RoleAssignmentsApiService.UnassignRole")
@@ -757,8 +761,8 @@ func (a *RoleAssignmentsApiService) UnassignRoleExecute(r ApiUnassignRoleRequest
 				newErr.error = err.Error()
 				return localVarHTTPResponse, newErr
 			}
-					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
-					newErr.model = v
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
 		}
 		return localVarHTTPResponse, newErr
 	}

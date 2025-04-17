@@ -19,11 +19,11 @@ var _ MappedNullable = &RoleAssignmentUser{}
 
 // RoleAssignmentUser struct for RoleAssignmentUser
 type RoleAssignmentUser struct {
-	Id string `json:"id"`
-	Key string `json:"key"`
-	Email *string `json:"email,omitempty"`
-	FirstName *string `json:"first_name,omitempty"`
-	LastName *string `json:"last_name,omitempty"`
+	Id         string                 `json:"id"`
+	Key        string                 `json:"key"`
+	Email      *string                `json:"email,omitempty"`
+	FirstName  *string                `json:"first_name,omitempty"`
+	LastName   *string                `json:"last_name,omitempty"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
@@ -223,7 +223,7 @@ func (o *RoleAssignmentUser) SetAttributes(v map[string]interface{}) {
 }
 
 func (o RoleAssignmentUser) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

@@ -20,9 +20,9 @@ var _ MappedNullable = &PaginatedResultRelationRead{}
 // PaginatedResultRelationRead struct for PaginatedResultRelationRead
 type PaginatedResultRelationRead struct {
 	// List of Relations
-	Data []RelationRead `json:"data"`
-	TotalCount int32 `json:"total_count"`
-	PageCount *int32 `json:"page_count,omitempty"`
+	Data       []RelationRead `json:"data"`
+	TotalCount int32          `json:"total_count"`
+	PageCount  *int32         `json:"page_count,omitempty"`
 }
 
 // NewPaginatedResultRelationRead instantiates a new PaginatedResultRelationRead object
@@ -129,7 +129,7 @@ func (o *PaginatedResultRelationRead) SetPageCount(v int32) {
 }
 
 func (o PaginatedResultRelationRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

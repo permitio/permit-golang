@@ -19,9 +19,9 @@ var _ MappedNullable = &RoleAssignmentTenant{}
 
 // RoleAssignmentTenant struct for RoleAssignmentTenant
 type RoleAssignmentTenant struct {
-	Id string `json:"id"`
-	Key string `json:"key"`
-	Name string `json:"name"`
+	Id         string                 `json:"id"`
+	Key        string                 `json:"key"`
+	Name       string                 `json:"name"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
@@ -150,7 +150,7 @@ func (o *RoleAssignmentTenant) SetAttributes(v map[string]interface{}) {
 }
 
 func (o RoleAssignmentTenant) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

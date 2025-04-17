@@ -141,7 +141,7 @@ func (o *ResourceActionUpdate) SetAttributes(v map[string]interface{}) {
 }
 
 func (o ResourceActionUpdate) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

@@ -120,7 +120,7 @@ func (o *RelationshipTupleDelete) SetObject(v string) {
 }
 
 func (o RelationshipTupleDelete) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}

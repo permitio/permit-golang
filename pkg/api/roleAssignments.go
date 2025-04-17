@@ -31,9 +31,9 @@ func NewRoleAssignmentsApi(client *openapi.APIClient, config *config.PermitConfi
 //
 // Parameters:
 //   - timeout: Optional duration to wait for synchronization.
-//   - policy: Optional policy to apply when timeout is reached ("ignore" or "fail").
-func (r *RoleAssignments) WaitForSync(timeout *time.Duration, policy ...config.FactsSyncTimeoutPolicy) *RoleAssignments {
-	return NewRoleAssignmentsApi(r.PermitBaseFactsApi.WaitForSync(timeout, policy...).client, r.config)
+//   - options: Additional configuration options for facts synchronization
+func (r *RoleAssignments) WaitForSync(timeout *time.Duration, options WaitForSyncOptions) *RoleAssignments {
+	return NewRoleAssignmentsApi(r.PermitBaseFactsApi.WaitForSync(timeout, options).client, r.config)
 }
 
 func (r *RoleAssignments) List(ctx context.Context, page int, perPage int, userFilter, roleFilter, tenantFilter string) (*[]models.RoleAssignmentRead, error) {

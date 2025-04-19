@@ -223,6 +223,26 @@ func (u *Users) AssignResourceRole(ctx context.Context, userKey string, roleKey 
 	return roleAssignmentRead, nil
 }
 
+// UnassignResourceRole unassigns a *resource* role from a user in your context's environment, by user key, role key, tenant key and a resource instance string (e.g. "document:mydoc").
+// Usage Example:
+// `err := PermitClient.Api.Users.UnassignResourceRole(ctx, "user-key", "role-key", "default", "document:mydoc")`
+func (u *Users) UnassignResourceRole(ctx context.Context, userKey string, roleKey string, tenantKey string, resourceInstance string) (*models.UserRead, error) {
+	err := u.lazyLoadPermitContext(ctx)
+	if err != nil {
+		u.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	userRoleRemove := *models.NewUserRoleRemove(roleKey, tenantKey)
+	userRoleRemove.SetResourceInstance(resourceInstance)
+	user, httpRes, err := u.client.UsersApi.UnassignRoleFromUser(ctx, u.config.Context.GetProject(), u.config.Context.GetEnvironment(), userKey).UserRoleRemove(userRoleRemove).Execute()
+	err = errors.HttpErrorHandle(err, httpRes)
+	if err != nil {
+		u.logger.Error("error unassigning role:"+roleKey+" from user:"+userKey, zap.Error(err))
+		return nil, err
+	}
+	return user, nil
+}
+
 // UnassignRole unassigns a role from a user in your context's environment, by user key, role key and tenant key.
 // Usage Example:
 // `err := PermitClient.Api.Users.UnassignRole(ctx, "user-key", "role-key", "default")`

@@ -102,7 +102,7 @@ func (r *ResourceRoles) Get(
 	err = errors.HttpErrorHandle(err, httpRes)
 
 	if err != nil {
-		r.logger.Error("error deleting resource role", zap.Error(err))
+		r.logger.Error("error getting resource role", zap.Error(err))
 		return nil, err
 	}
 

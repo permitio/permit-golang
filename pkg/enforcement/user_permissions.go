@@ -74,43 +74,96 @@ func (e *PermitEnforcer) parseUserPermissionsResponse(res *http.Response) (UserP
 }
 
 type GetUserPermissionsRequest struct {
-	User    User              `json:"user"`
-	Tenants []string          `json:"tenants,omitempty"`
-	Context map[string]string `json:"context,omitempty"`
+	User          User              `json:"user"`
+	Tenants       []string          `json:"tenants,omitempty"`
+	ResourceTypes []string          `json:"resource_types,omitempty"`
+	Resources     []string          `json:"resources,omitempty"`
+	Context       map[string]string `json:"context,omitempty"`
 }
 
-func NewGetUserPermissionsRequest(user User, tenants []string) *GetUserPermissionsRequest {
-	return &GetUserPermissionsRequest{
-		User:    user,
-		Tenants: tenants,
-		Context: nil,
+// UserPermissionOption is a function that modifies GetUserPermissionsRequest
+type UserPermissionOption func(*GetUserPermissionsRequest)
+
+// WithTenants adds tenant filters to the user permissions request
+func WithTenants(tenants []string) UserPermissionOption {
+	return func(r *GetUserPermissionsRequest) {
+		r.Tenants = tenants
 	}
 }
 
-func newJsonGetUserPermissionsRequest(opaUrl string, user User, tenants []string) ([]byte, error) {
-	getUserPermissionsReq := NewGetUserPermissionsRequest(user, tenants)
-	var genericCheckReq interface{} = getUserPermissionsReq
-	if opaUrl != "" {
+// WithResourceTypes adds resource type filters to the user permissions request
+func WithResourceTypes(resourceTypes []string) UserPermissionOption {
+	return func(r *GetUserPermissionsRequest) {
+		r.ResourceTypes = resourceTypes
+	}
+}
+
+// WithResources adds resource instance filters to the user permissions request
+func WithResources(resources []string) UserPermissionOption {
+	return func(r *GetUserPermissionsRequest) {
+		r.Resources = resources
+	}
+}
+
+// WithContext adds context data to the user permissions request
+func WithContext(context map[string]interface{}) UserPermissionOption {
+	return func(r *GetUserPermissionsRequest) {
+		// Convert the map[string]interface{} to map[string]string for compatibility
+		if context != nil {
+			contextMap := make(map[string]string)
+			for k, v := range context {
+				// Convert value to string if it's not already
+				switch val := v.(type) {
+				case string:
+					contextMap[k] = val
+				case bool:
+					if val {
+						contextMap[k] = "true"
+					} else {
+						contextMap[k] = "false"
+					}
+				default:
+					// Try to marshal other types to JSON
+					jsonBytes, err := json.Marshal(v)
+					if err == nil {
+						contextMap[k] = string(jsonBytes)
+					}
+				}
+			}
+			r.Context = contextMap
+		}
+	}
+}
+
+// GetUserPermissions returns permissions a user has, optionally filtered by tenants, resource types, resources, and with custom context
+func (e *PermitEnforcer) GetUserPermissions(user User, opts ...UserPermissionOption) (UserPermissions, error) {
+	// Create base request with just the required user
+	req := &GetUserPermissionsRequest{
+		User: user,
+	}
+	
+	// Apply all options
+	for _, opt := range opts {
+		opt(req)
+	}
+	
+	// Build request and send to API
+	reqAuthValue := "Bearer " + e.config.GetToken()
+	
+	var genericCheckReq interface{} = req
+	if e.config.GetOpaUrl() != "" {
 		genericCheckReq = &struct {
 			Input *GetUserPermissionsRequest `json:"input"`
-		}{getUserPermissionsReq}
+		}{req}
 	}
+	
 	jsonCheckReq, err := json.Marshal(genericCheckReq)
-	if err != nil {
-		return nil, err
-	}
-	return jsonCheckReq, nil
-}
-
-func (e *PermitEnforcer) GetUserPermissions(user User, tenants ...string) (UserPermissions, error) {
-	reqAuthValue := "Bearer " + e.config.GetToken()
-
-	jsonCheckReq, err := newJsonGetUserPermissionsRequest(e.config.GetOpaUrl(), user, tenants)
 	if err != nil {
 		permitError := errors.NewPermitUnexpectedError(err, nil)
 		e.logger.Error("error marshalling Permit.GetUserPermissions() request", zap.Error(permitError))
 		return nil, permitError
 	}
+	
 	reqBody := bytes.NewBuffer(jsonCheckReq)
 	httpRequest, err := http.NewRequest(reqMethod, e.getUserPermissionsEndpoint(), reqBody)
 	if err != nil {
@@ -118,6 +171,7 @@ func (e *PermitEnforcer) GetUserPermissions(user User, tenants ...string) (UserP
 		e.logger.Error("error creating Permit.GetUserPermissions() request", zap.Error(permitError))
 		return nil, permitError
 	}
+	
 	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
 	httpRequest.Header.Set(reqAuthKey, reqAuthValue)
 	res, err := e.client.Do(httpRequest)
@@ -126,9 +180,11 @@ func (e *PermitEnforcer) GetUserPermissions(user User, tenants ...string) (UserP
 		e.logger.Error("error sending Permit.GetUserPermissions() request to PDP", zap.Error(permitError))
 		return nil, permitError
 	}
+	
 	result, err := e.parseUserPermissionsResponse(res)
 	if err != nil {
 		return nil, err
 	}
+	
 	return result, nil
 }

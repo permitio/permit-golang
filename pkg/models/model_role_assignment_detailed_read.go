@@ -1,7 +1,7 @@
 /*
 Permit.io API
 
- Authorization as a service
+ Authorization as a service 
 
 API version: 2.0.0
 */
@@ -13,6 +13,8 @@ package models
 import (
 	"encoding/json"
 	"time"
+	"bytes"
+	"fmt"
 )
 
 // checks if the RoleAssignmentDetailedRead type satisfies the MappedNullable interface at compile time
@@ -21,10 +23,14 @@ var _ MappedNullable = &RoleAssignmentDetailedRead{}
 // RoleAssignmentDetailedRead struct for RoleAssignmentDetailedRead
 type RoleAssignmentDetailedRead struct {
 	// Unique id of the role assignment
-	Id     string               `json:"id"`
-	Role   RoleAssignmentRole   `json:"role"`
-	User   RoleAssignmentUser   `json:"user"`
+	Id string `json:"id"`
+	// the role that is assigned
+	Role RoleAssignmentRole `json:"role"`
+	// the user the role is assigned to
+	User RoleAssignmentUser `json:"user"`
+	// the tenant the role is associated with
 	Tenant RoleAssignmentTenant `json:"tenant"`
+	ResourceInstance *RoleAssignmentResourceInstance `json:"resource_instance,omitempty"`
 	// Unique id of the organization that the role assignment belongs to.
 	OrganizationId string `json:"organization_id"`
 	// Unique id of the project that the role assignment belongs to.
@@ -34,6 +40,8 @@ type RoleAssignmentDetailedRead struct {
 	// Date and time when the role assignment was created (ISO_8601 format).
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type _RoleAssignmentDetailedRead RoleAssignmentDetailedRead
 
 // NewRoleAssignmentDetailedRead instantiates a new RoleAssignmentDetailedRead object
 // This constructor will assign default values to properties that have it defined,
@@ -156,6 +164,38 @@ func (o *RoleAssignmentDetailedRead) SetTenant(v RoleAssignmentTenant) {
 	o.Tenant = v
 }
 
+// GetResourceInstance returns the ResourceInstance field value if set, zero value otherwise.
+func (o *RoleAssignmentDetailedRead) GetResourceInstance() RoleAssignmentResourceInstance {
+	if o == nil || IsNil(o.ResourceInstance) {
+		var ret RoleAssignmentResourceInstance
+		return ret
+	}
+	return *o.ResourceInstance
+}
+
+// GetResourceInstanceOk returns a tuple with the ResourceInstance field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *RoleAssignmentDetailedRead) GetResourceInstanceOk() (*RoleAssignmentResourceInstance, bool) {
+	if o == nil || IsNil(o.ResourceInstance) {
+		return nil, false
+	}
+	return o.ResourceInstance, true
+}
+
+// HasResourceInstance returns a boolean if a field has been set.
+func (o *RoleAssignmentDetailedRead) HasResourceInstance() bool {
+	if o != nil && !IsNil(o.ResourceInstance) {
+		return true
+	}
+
+	return false
+}
+
+// SetResourceInstance gets a reference to the given RoleAssignmentResourceInstance and assigns it to the ResourceInstance field.
+func (o *RoleAssignmentDetailedRead) SetResourceInstance(v RoleAssignmentResourceInstance) {
+	o.ResourceInstance = &v
+}
+
 // GetOrganizationId returns the OrganizationId field value
 func (o *RoleAssignmentDetailedRead) GetOrganizationId() string {
 	if o == nil {
@@ -253,7 +293,7 @@ func (o *RoleAssignmentDetailedRead) SetCreatedAt(v time.Time) {
 }
 
 func (o RoleAssignmentDetailedRead) MarshalJSON() ([]byte, error) {
-	toSerialize, err := o.ToMap()
+	toSerialize,err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}
@@ -266,11 +306,58 @@ func (o RoleAssignmentDetailedRead) ToMap() (map[string]interface{}, error) {
 	toSerialize["role"] = o.Role
 	toSerialize["user"] = o.User
 	toSerialize["tenant"] = o.Tenant
+	if !IsNil(o.ResourceInstance) {
+		toSerialize["resource_instance"] = o.ResourceInstance
+	}
 	toSerialize["organization_id"] = o.OrganizationId
 	toSerialize["project_id"] = o.ProjectId
 	toSerialize["environment_id"] = o.EnvironmentId
 	toSerialize["created_at"] = o.CreatedAt
 	return toSerialize, nil
+}
+
+func (o *RoleAssignmentDetailedRead) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"id",
+		"role",
+		"user",
+		"tenant",
+		"organization_id",
+		"project_id",
+		"environment_id",
+		"created_at",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err;
+	}
+
+	for _, requiredProperty := range(requiredProperties) {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varRoleAssignmentDetailedRead := _RoleAssignmentDetailedRead{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varRoleAssignmentDetailedRead)
+
+	if err != nil {
+		return err
+	}
+
+	*o = RoleAssignmentDetailedRead(varRoleAssignmentDetailedRead)
+
+	return err
 }
 
 type NullableRoleAssignmentDetailedRead struct {
@@ -308,3 +395,5 @@ func (v *NullableRoleAssignmentDetailedRead) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }
+
+

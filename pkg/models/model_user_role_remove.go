@@ -20,6 +20,8 @@ type UserRoleRemove struct {
 	Role string `json:"role"`
 	// the tenant the role is associated with (accepts either the tenant id or the tenant key)
 	Tenant string `json:"tenant"`
+			// the resource instance the role is associated with (accepts either the resource instance id or key using this format resource_type:resource_instance)
+	ResourceInstance *string `json:"resource_instance,omitempty"`
 }
 
 // NewUserRoleRemove instantiates a new UserRoleRemove object
@@ -89,6 +91,38 @@ func (o *UserRoleRemove) SetTenant(v string) {
 	o.Tenant = v
 }
 
+// GetResourceInstance returns the ResourceInstance field value if set, zero value otherwise.
+func (o *UserRoleRemove) GetResourceInstance() string {
+	if o == nil || IsNil(o.ResourceInstance) {
+		var ret string
+		return ret
+	}
+	return *o.ResourceInstance
+}
+
+// GetResourceInstanceOk returns a tuple with the ResourceInstance field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *UserRoleRemove) GetResourceInstanceOk() (*string, bool) {
+	if o == nil || IsNil(o.ResourceInstance) {
+		return nil, false
+	}
+	return o.ResourceInstance, true
+}
+
+// HasResourceInstance returns a boolean if a field has been set.
+func (o *UserRoleRemove) HasResourceInstance() bool {
+	if o != nil && !IsNil(o.ResourceInstance) {
+		return true
+	}
+
+	return false
+}
+
+// SetResourceInstance gets a reference to the given string and assigns it to the ResourceInstance field.
+func (o *UserRoleRemove) SetResourceInstance(v string) {
+	o.ResourceInstance = &v
+}
+
 func (o UserRoleRemove) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -96,6 +130,9 @@ func (o UserRoleRemove) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["tenant"] = o.Tenant
+	}
+	if o.HasResourceInstance() {
+		toSerialize["resource_instance"] = o.ResourceInstance
 	}
 	return json.Marshal(toSerialize)
 }

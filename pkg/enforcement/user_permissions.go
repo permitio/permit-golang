@@ -3,10 +3,11 @@ package enforcement
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/permitio/permit-golang/pkg/errors"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
+
+	"github.com/permitio/permit-golang/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type ResourceDetails struct {
@@ -74,9 +75,37 @@ func (e *PermitEnforcer) parseUserPermissionsResponse(res *http.Response) (UserP
 }
 
 type GetUserPermissionsRequest struct {
-	User    User              `json:"user"`
-	Tenants []string          `json:"tenants,omitempty"`
-	Context map[string]string `json:"context,omitempty"`
+	User          User                   `json:"user"`
+	Tenants       []string               `json:"tenants,omitempty"`
+	Resources     []string               `json:"resources,omitempty"`
+	ResourceTypes []string               `json:"resource_types,omitempty"`
+	Context       map[string]interface{} `json:"context,omitempty"`
+}
+
+type UserPermissionsOption func(*GetUserPermissionsRequest)
+
+func WithTenants(tenants []string) UserPermissionsOption {
+	return func(req *GetUserPermissionsRequest) {
+		req.Tenants = tenants
+	}
+}
+
+func WithResources(resources []string) UserPermissionsOption {
+	return func(req *GetUserPermissionsRequest) {
+		req.Resources = resources
+	}
+}
+
+func WithResourceTypes(resourceTypes []string) UserPermissionsOption {
+	return func(req *GetUserPermissionsRequest) {
+		req.ResourceTypes = resourceTypes
+	}
+}
+
+func WithContext(context map[string]interface{}) UserPermissionsOption {
+	return func(req *GetUserPermissionsRequest) {
+		req.Context = context
+	}
 }
 
 func NewGetUserPermissionsRequest(user User, tenants []string) *GetUserPermissionsRequest {
@@ -130,5 +159,58 @@ func (e *PermitEnforcer) GetUserPermissions(user User, tenants ...string) (UserP
 	if err != nil {
 		return nil, err
 	}
+	return result, nil
+}
+
+func (e *PermitEnforcer) GetUserPermissionsWithOptions(user User, opts ...UserPermissionsOption) (UserPermissions, error) {
+	// Create base request with just the required user
+	req := &GetUserPermissionsRequest{
+		User: user,
+	}
+
+	// Apply all options
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	// Build request and send to API
+	reqAuthValue := "Bearer " + e.config.GetToken()
+
+	var genericCheckReq interface{} = req
+	if e.config.GetOpaUrl() != "" {
+		genericCheckReq = &struct {
+			Input *GetUserPermissionsRequest `json:"input"`
+		}{req}
+	}
+
+	jsonCheckReq, err := json.Marshal(genericCheckReq)
+	if err != nil {
+		permitError := errors.NewPermitUnexpectedError(err, nil)
+		e.logger.Error("error marshalling Permit.GetUserPermissionWithOptions() request", zap.Error(permitError))
+		return nil, permitError
+	}
+
+	reqBody := bytes.NewBuffer(jsonCheckReq)
+	httpRequest, err := http.NewRequest(reqMethod, e.getUserPermissionsEndpoint(), reqBody)
+	if err != nil {
+		permitError := errors.NewPermitUnexpectedError(err, nil)
+		e.logger.Error("error creating Permit.GetUserPermissionWithOptions() request", zap.Error(permitError))
+		return nil, permitError
+	}
+
+	httpRequest.Header.Set(reqContentTypeKey, reqContentTypeValue)
+	httpRequest.Header.Set(reqAuthKey, reqAuthValue)
+	res, err := e.client.Do(httpRequest)
+	if err != nil {
+		permitError := errors.NewPermitUnexpectedError(err, res)
+		e.logger.Error("error sending Permit.GetUserPermissionWithOptions() request to PDP", zap.Error(permitError))
+		return nil, permitError
+	}
+
+	result, err := e.parseUserPermissionsResponse(res)
+	if err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }

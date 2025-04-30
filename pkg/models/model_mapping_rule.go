@@ -12,6 +12,15 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
+)
+
+// UrlMatchType defines the type of URL matching
+type UrlMatchType string
+
+const (
+	// URLMatchTypeRegex indicates regex URL matching
+	URLMatchTypeRegex UrlMatchType = "regex"
 )
 
 // checks if the MappingRule type satisfies the MappedNullable interface at compile time
@@ -30,6 +39,8 @@ type MappingRule struct {
 	Action *string `json:"action,omitempty"`
 	// The priority of the mapping rule. The higher the priority, the higher the precedence
 	Priority *int32 `json:"priority,omitempty"`
+	// The type of URL matching to use (empty for exact match, 'regex' for regular expression matching)
+	UrlType *UrlMatchType `json:"url_type,omitempty"`
 }
 
 // NewMappingRule instantiates a new MappingRule object
@@ -220,6 +231,43 @@ func (o *MappingRule) SetPriority(v int32) {
 	o.Priority = &v
 }
 
+// GetUrlType returns the UrlType field value if set, zero value otherwise.
+func (o *MappingRule) GetUrlType() UrlMatchType {
+	if o == nil || IsNil(o.UrlType) {
+		var ret UrlMatchType
+		return ret
+	}
+	return *o.UrlType
+}
+
+// GetUrlTypeOk returns a tuple with the UrlType field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *MappingRule) GetUrlTypeOk() (*UrlMatchType, bool) {
+	if o == nil || IsNil(o.UrlType) {
+		return nil, false
+	}
+	return o.UrlType, true
+}
+
+// HasUrlType returns a boolean if a field has been set.
+func (o *MappingRule) HasUrlType() bool {
+	if o != nil && !IsNil(o.UrlType) {
+		return true
+	}
+
+	return false
+}
+
+// SetUrlType gets a reference to the given UrlMatchType and assigns it to the UrlType field.
+func (o *MappingRule) SetUrlType(v UrlMatchType) {
+	o.UrlType = &v
+}
+
+// IsRegexUrl returns true if URL matching is using regex
+func (o *MappingRule) IsRegexUrl() bool {
+	return o.HasUrlType() && o.GetUrlType() == URLMatchTypeRegex
+}
+
 func (o MappingRule) MarshalJSON() ([]byte, error) {
 	toSerialize, err := o.ToMap()
 	if err != nil {
@@ -242,7 +290,26 @@ func (o MappingRule) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.Priority) {
 		toSerialize["priority"] = o.Priority
 	}
+	if !IsNil(o.UrlType) && *o.UrlType == URLMatchTypeRegex {
+		toSerialize["url_type"] = o.UrlType
+	}
 	return toSerialize, nil
+}
+
+// UnmarshalJSON supports both string and custom type for UrlMatchType
+func (u *UrlMatchType) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+	
+	switch str {
+	case "regex", "":
+		*u = UrlMatchType(str)
+		return nil
+	default:
+		return fmt.Errorf("invalid url match type: %s, must be empty or 'regex'", str)
+	}
 }
 
 type NullableMappingRule struct {

@@ -302,7 +302,7 @@ func (u *UrlMatchType) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &str); err != nil {
 		return err
 	}
-	
+
 	switch str {
 	case "regex", "":
 		*u = UrlMatchType(str)

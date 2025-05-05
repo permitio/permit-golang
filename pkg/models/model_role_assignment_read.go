@@ -11,9 +11,14 @@ API version: 2.0.0
 package models
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"time"
 )
+
+// checks if the RoleAssignmentRead type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &RoleAssignmentRead{}
 
 // RoleAssignmentRead struct for RoleAssignmentRead
 type RoleAssignmentRead struct {
@@ -24,7 +29,11 @@ type RoleAssignmentRead struct {
 	// the role that is assigned
 	Role string `json:"role"`
 	// the tenant the role is associated with
-	Tenant string `json:"tenant"`
+	Tenant *string `json:"tenant,omitempty"`
+	// the resource instance the role is associated with
+	ResourceInstance *string `json:"resource_instance,omitempty"`
+	// Unique id of the resource instance
+	ResourceInstanceId *string `json:"resource_instance_id,omitempty"`
 	// Unique id of the user
 	UserId string `json:"user_id"`
 	// Unique id of the role
@@ -41,16 +50,17 @@ type RoleAssignmentRead struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type _RoleAssignmentRead RoleAssignmentRead
+
 // NewRoleAssignmentRead instantiates a new RoleAssignmentRead object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewRoleAssignmentRead(id string, user string, role string, tenant string, userId string, roleId string, tenantId string, organizationId string, projectId string, environmentId string, createdAt time.Time) *RoleAssignmentRead {
+func NewRoleAssignmentRead(id string, user string, role string, userId string, roleId string, tenantId string, organizationId string, projectId string, environmentId string, createdAt time.Time) *RoleAssignmentRead {
 	this := RoleAssignmentRead{}
 	this.Id = id
 	this.User = user
 	this.Role = role
-	this.Tenant = tenant
 	this.UserId = userId
 	this.RoleId = roleId
 	this.TenantId = tenantId
@@ -141,28 +151,100 @@ func (o *RoleAssignmentRead) SetRole(v string) {
 	o.Role = v
 }
 
-// GetTenant returns the Tenant field value
+// GetTenant returns the Tenant field value if set, zero value otherwise.
 func (o *RoleAssignmentRead) GetTenant() string {
-	if o == nil {
+	if o == nil || IsNil(o.Tenant) {
 		var ret string
 		return ret
 	}
-
-	return o.Tenant
+	return *o.Tenant
 }
 
-// GetTenantOk returns a tuple with the Tenant field value
+// GetTenantOk returns a tuple with the Tenant field value if set, nil otherwise
 // and a boolean to check if the value has been set.
 func (o *RoleAssignmentRead) GetTenantOk() (*string, bool) {
-	if o == nil {
+	if o == nil || IsNil(o.Tenant) {
 		return nil, false
 	}
-	return &o.Tenant, true
+	return o.Tenant, true
 }
 
-// SetTenant sets field value
+// HasTenant returns a boolean if a field has been set.
+func (o *RoleAssignmentRead) HasTenant() bool {
+	if o != nil && !IsNil(o.Tenant) {
+		return true
+	}
+
+	return false
+}
+
+// SetTenant gets a reference to the given string and assigns it to the Tenant field.
 func (o *RoleAssignmentRead) SetTenant(v string) {
-	o.Tenant = v
+	o.Tenant = &v
+}
+
+// GetResourceInstance returns the ResourceInstance field value if set, zero value otherwise.
+func (o *RoleAssignmentRead) GetResourceInstance() string {
+	if o == nil || IsNil(o.ResourceInstance) {
+		var ret string
+		return ret
+	}
+	return *o.ResourceInstance
+}
+
+// GetResourceInstanceOk returns a tuple with the ResourceInstance field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *RoleAssignmentRead) GetResourceInstanceOk() (*string, bool) {
+	if o == nil || IsNil(o.ResourceInstance) {
+		return nil, false
+	}
+	return o.ResourceInstance, true
+}
+
+// HasResourceInstance returns a boolean if a field has been set.
+func (o *RoleAssignmentRead) HasResourceInstance() bool {
+	if o != nil && !IsNil(o.ResourceInstance) {
+		return true
+	}
+
+	return false
+}
+
+// SetResourceInstance gets a reference to the given string and assigns it to the ResourceInstance field.
+func (o *RoleAssignmentRead) SetResourceInstance(v string) {
+	o.ResourceInstance = &v
+}
+
+// GetResourceInstanceId returns the ResourceInstanceId field value if set, zero value otherwise.
+func (o *RoleAssignmentRead) GetResourceInstanceId() string {
+	if o == nil || IsNil(o.ResourceInstanceId) {
+		var ret string
+		return ret
+	}
+	return *o.ResourceInstanceId
+}
+
+// GetResourceInstanceIdOk returns a tuple with the ResourceInstanceId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *RoleAssignmentRead) GetResourceInstanceIdOk() (*string, bool) {
+	if o == nil || IsNil(o.ResourceInstanceId) {
+		return nil, false
+	}
+	return o.ResourceInstanceId, true
+}
+
+// HasResourceInstanceId returns a boolean if a field has been set.
+func (o *RoleAssignmentRead) HasResourceInstanceId() bool {
+	if o != nil && !IsNil(o.ResourceInstanceId) {
+		return true
+	}
+
+	return false
+}
+
+// SetResourceInstanceId gets a reference to the given string and assigns it to the ResourceInstanceId field.
+func (o *RoleAssignmentRead) SetResourceInstanceId(v string) {
+	o.ResourceInstanceId = &v
 }
 
 // GetUserId returns the UserId field value
@@ -334,41 +416,81 @@ func (o *RoleAssignmentRead) SetCreatedAt(v time.Time) {
 }
 
 func (o RoleAssignmentRead) MarshalJSON() ([]byte, error) {
-	toSerialize := map[string]interface{}{}
-	if true {
-		toSerialize["id"] = o.Id
-	}
-	if true {
-		toSerialize["user"] = o.User
-	}
-	if true {
-		toSerialize["role"] = o.Role
-	}
-	if true {
-		toSerialize["tenant"] = o.Tenant
-	}
-	if true {
-		toSerialize["user_id"] = o.UserId
-	}
-	if true {
-		toSerialize["role_id"] = o.RoleId
-	}
-	if true {
-		toSerialize["tenant_id"] = o.TenantId
-	}
-	if true {
-		toSerialize["organization_id"] = o.OrganizationId
-	}
-	if true {
-		toSerialize["project_id"] = o.ProjectId
-	}
-	if true {
-		toSerialize["environment_id"] = o.EnvironmentId
-	}
-	if true {
-		toSerialize["created_at"] = o.CreatedAt
+	toSerialize, err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
 	}
 	return json.Marshal(toSerialize)
+}
+
+func (o RoleAssignmentRead) ToMap() (map[string]interface{}, error) {
+	toSerialize := map[string]interface{}{}
+	toSerialize["id"] = o.Id
+	toSerialize["user"] = o.User
+	toSerialize["role"] = o.Role
+	if !IsNil(o.Tenant) {
+		toSerialize["tenant"] = o.Tenant
+	}
+	if !IsNil(o.ResourceInstance) {
+		toSerialize["resource_instance"] = o.ResourceInstance
+	}
+	if !IsNil(o.ResourceInstanceId) {
+		toSerialize["resource_instance_id"] = o.ResourceInstanceId
+	}
+	toSerialize["user_id"] = o.UserId
+	toSerialize["role_id"] = o.RoleId
+	toSerialize["tenant_id"] = o.TenantId
+	toSerialize["organization_id"] = o.OrganizationId
+	toSerialize["project_id"] = o.ProjectId
+	toSerialize["environment_id"] = o.EnvironmentId
+	toSerialize["created_at"] = o.CreatedAt
+	return toSerialize, nil
+}
+
+func (o *RoleAssignmentRead) UnmarshalJSON(data []byte) (err error) {
+	// This validates that all required properties are included in the JSON object
+	// by unmarshalling the object into a generic map with string keys and checking
+	// that every required field exists as a key in the generic map.
+	requiredProperties := []string{
+		"id",
+		"user",
+		"role",
+		"user_id",
+		"role_id",
+		"tenant_id",
+		"organization_id",
+		"project_id",
+		"environment_id",
+		"created_at",
+	}
+
+	allProperties := make(map[string]interface{})
+
+	err = json.Unmarshal(data, &allProperties)
+
+	if err != nil {
+		return err
+	}
+
+	for _, requiredProperty := range requiredProperties {
+		if _, exists := allProperties[requiredProperty]; !exists {
+			return fmt.Errorf("no value given for required property %v", requiredProperty)
+		}
+	}
+
+	varRoleAssignmentRead := _RoleAssignmentRead{}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&varRoleAssignmentRead)
+
+	if err != nil {
+		return err
+	}
+
+	*o = RoleAssignmentRead(varRoleAssignmentRead)
+
+	return err
 }
 
 type NullableRoleAssignmentRead struct {

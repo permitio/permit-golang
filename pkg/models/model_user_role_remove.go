@@ -20,7 +20,7 @@ type UserRoleRemove struct {
 	Role string `json:"role"`
 	// the tenant the role is associated with (accepts either the tenant id or the tenant key)
 	Tenant string `json:"tenant"`
-			// the resource instance the role is associated with (accepts either the resource instance id or key using this format resource_type:resource_instance)
+	// the resource instance the role is associated with (accepts either the resource instance id or key using this format resource_type:resource_instance)
 	ResourceInstance *string `json:"resource_instance,omitempty"`
 }
 

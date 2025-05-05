@@ -2,6 +2,7 @@ package permit
 
 import (
 	"context"
+
 	"github.com/permitio/permit-golang/pkg/api"
 	config "github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/enforcement"
@@ -51,11 +52,16 @@ func (c *Client) GetUserPermissions(user enforcement.User, tenants ...string) (e
 	return c.enforcement.GetUserPermissions(user, tenants...)
 }
 
+func (c *Client) GetUserPermissionsWithOptions(user enforcement.User, opts ...enforcement.UserPermissionsOption) (enforcement.UserPermissions, error) {
+	return c.enforcement.GetUserPermissionsWithOptions(user, opts...)
+}
+
 type PermitInterface interface {
 	Check(user enforcement.User, action enforcement.Action, resource enforcement.Resource) (bool, error)
 	BulkCheck(requests ...enforcement.CheckRequest) ([]bool, error)
 	FilterObjects(user enforcement.User, action enforcement.Action, context map[string]string, resources ...enforcement.ResourceI) ([]enforcement.ResourceI, error)
 	AllTenantsCheck(user enforcement.User, action enforcement.Action, resource enforcement.Resource) ([]enforcement.TenantDetails, error)
 	GetUserPermissions(user enforcement.User, tenants ...string) (enforcement.UserPermissions, error)
+	GetUserPermissionsWithOptions(user enforcement.User, opts ...enforcement.UserPermissionsOption) (enforcement.UserPermissions, error)
 	SyncUser(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
 }

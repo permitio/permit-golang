@@ -29,7 +29,7 @@ type RoleAssignmentRead struct {
 	// the role that is assigned
 	Role string `json:"role"`
 	// the tenant the role is associated with
-	Tenant *string `json:"tenant,omitempty"`
+	Tenant string `json:"tenant"`
 	// the resource instance the role is associated with
 	ResourceInstance *string `json:"resource_instance,omitempty"`
 	// Unique id of the resource instance
@@ -56,11 +56,12 @@ type _RoleAssignmentRead RoleAssignmentRead
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewRoleAssignmentRead(id string, user string, role string, userId string, roleId string, tenantId string, organizationId string, projectId string, environmentId string, createdAt time.Time) *RoleAssignmentRead {
+func NewRoleAssignmentRead(id string, user string, role string, tenant string, userId string, roleId string, tenantId string, organizationId string, projectId string, environmentId string, createdAt time.Time) *RoleAssignmentRead {
 	this := RoleAssignmentRead{}
 	this.Id = id
 	this.User = user
 	this.Role = role
+	this.Tenant = tenant
 	this.UserId = userId
 	this.RoleId = roleId
 	this.TenantId = tenantId
@@ -151,36 +152,28 @@ func (o *RoleAssignmentRead) SetRole(v string) {
 	o.Role = v
 }
 
-// GetTenant returns the Tenant field value if set, zero value otherwise.
+// GetTenant returns the Tenant field value
 func (o *RoleAssignmentRead) GetTenant() string {
-	if o == nil || IsNil(o.Tenant) {
+	if o == nil {
 		var ret string
 		return ret
 	}
-	return *o.Tenant
+
+	return o.Tenant
 }
 
-// GetTenantOk returns a tuple with the Tenant field value if set, nil otherwise
+// GetTenantOk returns a tuple with the Tenant field value
 // and a boolean to check if the value has been set.
 func (o *RoleAssignmentRead) GetTenantOk() (*string, bool) {
-	if o == nil || IsNil(o.Tenant) {
+	if o == nil {
 		return nil, false
 	}
-	return o.Tenant, true
+	return &o.Tenant, true
 }
 
-// HasTenant returns a boolean if a field has been set.
-func (o *RoleAssignmentRead) HasTenant() bool {
-	if o != nil && !IsNil(o.Tenant) {
-		return true
-	}
-
-	return false
-}
-
-// SetTenant gets a reference to the given string and assigns it to the Tenant field.
+// SetTenant sets field value
 func (o *RoleAssignmentRead) SetTenant(v string) {
-	o.Tenant = &v
+	o.Tenant = v
 }
 
 // GetResourceInstance returns the ResourceInstance field value if set, zero value otherwise.
@@ -428,9 +421,8 @@ func (o RoleAssignmentRead) ToMap() (map[string]interface{}, error) {
 	toSerialize["id"] = o.Id
 	toSerialize["user"] = o.User
 	toSerialize["role"] = o.Role
-	if !IsNil(o.Tenant) {
-		toSerialize["tenant"] = o.Tenant
-	}
+	toSerialize["tenant"] = o.Tenant
+
 	if !IsNil(o.ResourceInstance) {
 		toSerialize["resource_instance"] = o.ResourceInstance
 	}

@@ -1,7 +1,7 @@
 /*
 Permit.io API
 
- Authorization as a service 
+ Authorization as a service
 
 API version: 2.0.0
 */
@@ -11,8 +11,8 @@ API version: 2.0.0
 package models
 
 import (
-	"encoding/json"
 	"bytes"
+	"encoding/json"
 	"fmt"
 )
 
@@ -21,9 +21,9 @@ var _ MappedNullable = &RoleAssignmentResourceInstance{}
 
 // RoleAssignmentResourceInstance struct for RoleAssignmentResourceInstance
 type RoleAssignmentResourceInstance struct {
-	Id string `json:"id"`
-	Key string `json:"key"`
-	Resource string `json:"resource"`
+	Id         string                 `json:"id"`
+	Key        string                 `json:"key"`
+	Resource   string                 `json:"resource"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
@@ -154,7 +154,7 @@ func (o *RoleAssignmentResourceInstance) SetAttributes(v map[string]interface{})
 }
 
 func (o RoleAssignmentResourceInstance) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}
@@ -187,10 +187,10 @@ func (o *RoleAssignmentResourceInstance) UnmarshalJSON(data []byte) (err error) 
 	err = json.Unmarshal(data, &allProperties)
 
 	if err != nil {
-		return err;
+		return err
 	}
 
-	for _, requiredProperty := range(requiredProperties) {
+	for _, requiredProperty := range requiredProperties {
 		if _, exists := allProperties[requiredProperty]; !exists {
 			return fmt.Errorf("no value given for required property %v", requiredProperty)
 		}
@@ -246,5 +246,3 @@ func (v *NullableRoleAssignmentResourceInstance) UnmarshalJSON(src []byte) error
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }
-
-

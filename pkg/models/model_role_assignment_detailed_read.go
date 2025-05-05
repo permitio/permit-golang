@@ -1,7 +1,7 @@
 /*
 Permit.io API
 
- Authorization as a service 
+ Authorization as a service
 
 API version: 2.0.0
 */
@@ -11,10 +11,10 @@ API version: 2.0.0
 package models
 
 import (
-	"encoding/json"
-	"time"
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // checks if the RoleAssignmentDetailedRead type satisfies the MappedNullable interface at compile time
@@ -29,7 +29,7 @@ type RoleAssignmentDetailedRead struct {
 	// the user the role is assigned to
 	User RoleAssignmentUser `json:"user"`
 	// the tenant the role is associated with
-	Tenant RoleAssignmentTenant `json:"tenant"`
+	Tenant           RoleAssignmentTenant            `json:"tenant"`
 	ResourceInstance *RoleAssignmentResourceInstance `json:"resource_instance,omitempty"`
 	// Unique id of the organization that the role assignment belongs to.
 	OrganizationId string `json:"organization_id"`
@@ -293,7 +293,7 @@ func (o *RoleAssignmentDetailedRead) SetCreatedAt(v time.Time) {
 }
 
 func (o RoleAssignmentDetailedRead) MarshalJSON() ([]byte, error) {
-	toSerialize,err := o.ToMap()
+	toSerialize, err := o.ToMap()
 	if err != nil {
 		return []byte{}, err
 	}
@@ -336,10 +336,10 @@ func (o *RoleAssignmentDetailedRead) UnmarshalJSON(data []byte) (err error) {
 	err = json.Unmarshal(data, &allProperties)
 
 	if err != nil {
-		return err;
+		return err
 	}
 
-	for _, requiredProperty := range(requiredProperties) {
+	for _, requiredProperty := range requiredProperties {
 		if _, exists := allProperties[requiredProperty]; !exists {
 			return fmt.Errorf("no value given for required property %v", requiredProperty)
 		}
@@ -395,5 +395,3 @@ func (v *NullableRoleAssignmentDetailedRead) UnmarshalJSON(src []byte) error {
 	v.isSet = true
 	return json.Unmarshal(src, &v.value)
 }
-
-

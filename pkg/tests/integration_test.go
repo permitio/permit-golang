@@ -346,6 +346,15 @@ func TestIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	time.Sleep(30 * time.Second)
 
+	// Testing List Tenants Users
+	// Note - Dependent on the user creation above -- consider decoupling this test from the user creation
+
+	// Test 1: Basic functionality - tenant with assigned user
+	tenantUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
+	assert.NoError(t, err)
+	assert.Len(t, tenantUsers, 1)
+	assert.Equal(t, userKey, tenantUsers[0].GetKey())
+
 	userPermissions, err := permitClient.GetUserPermissions(enforcement.UserBuilder(userKey).Build())
 	assert.NoError(t, err)
 	userPermissionsInTenant, found := userPermissions["__tenant:"+tenantKey]

@@ -186,3 +186,27 @@ func (t *Tenants) Delete(ctx context.Context, tenantKey string) error {
 	}
 	return nil
 }
+
+// ListTenantUsers lists all users within a specific tenant under the context's environment.
+// Usage Example:
+// `users, err := PermitClient.Api.Tenants.ListTenantUsers(ctx, "tenant-key", 1, 10)`
+func (t *Tenants) ListTenantUsers(ctx context.Context, tenantKey string, page int, perPage int) ([]models.UserRead, error) {
+	perPageLimit := int32(DefaultPerPageLimit)
+	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
+		err := errors.NewPermitPaginationError()
+		t.logger.Error("error listing tenant users - max per page: "+string(perPageLimit), zap.Error(err))
+		return nil, err
+	}
+	err := t.lazyLoadPermitContext(ctx)
+	if err != nil {
+		t.logger.Error("", zap.Error(err))
+		return nil, err
+	}
+	users, httpRes, err := t.client.TenantsApi.ListTenantUsers(ctx, t.config.Context.ProjectId, tenantKey, t.config.Context.EnvironmentId).Page(int32(page)).PerPage(int32(perPage)).Execute()
+	err = errors.HttpErrorHandle(err, httpRes)
+	if err != nil {
+		t.logger.Error("error listing tenant users for tenant: "+tenantKey, zap.Error(err))
+		return nil, err
+	}
+	return users.GetData(), nil
+}

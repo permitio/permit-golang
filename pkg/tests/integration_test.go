@@ -73,72 +73,58 @@ func randKey(postfix string) string {
 }
 
 func testListTenantUsers(ctx context.Context, t *testing.T, permitClient *permit.Client, tenantKey, userKey string) {
-	fmt.Printf("🧪 Testing ListTenantUsers functionality...\n")
-
 	// Test 1: Basic functionality - tenant with assigned user
-	fmt.Printf("📋 Test 1: Verifying tenant has assigned user\n")
 	tenantUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
 	assert.NoError(t, err)
 	assert.Len(t, tenantUsers, 1)
 	assert.Equal(t, userKey, tenantUsers[0].GetKey())
-	fmt.Printf("   ✅ Found expected user in tenant: %s\n", tenantUsers[0].GetKey())
 
 	// Test 2: Verify user object properties
-	fmt.Printf("📋 Test 2: Verifying user object properties\n")
-	if len(tenantUsers) > 0 {
-		user := tenantUsers[0]
-		assert.NotEmpty(t, user.GetKey())
-		assert.NotEmpty(t, user.GetEmail())
-		fmt.Printf("   ✅ User properties: %s (%s %s) - %s\n", 
-			user.GetKey(), user.GetFirstName(), user.GetLastName(), user.GetEmail())
-	}
+	assert.Greater(t, len(tenantUsers), 0, "Should have at least one user")
+	user := tenantUsers[0]
+	assert.NotEmpty(t, user.GetKey())
+	assert.NotEmpty(t, user.GetEmail())
+	// Note - Dependent on the user creation above -- consider decoupling this test from the user creation
+	assert.Equal(t, userKey, user.GetKey())
+	assert.Equal(t, "John", user.GetFirstName())
+	assert.Equal(t, "Doe", user.GetLastName())
+	assert.Equal(t, "john@example.com", user.GetEmail())
 
-	// Test 3: Pagination test
-	fmt.Printf("📋 Test 3: Testing pagination\n")
-	
-	// Test page 1 with limit 1
+	// Test 3: Function signature verification
+	assert.IsType(t, []models.UserRead{}, tenantUsers, "Return type should be []models.UserRead")
+
+	// Test 4: Pagination test
 	page1Users, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 1)
 	assert.NoError(t, err)
 	assert.Len(t, page1Users, 1)
-	fmt.Printf("   ✅ Page 1 (limit=1): Found %d users\n", len(page1Users))
+	assert.Equal(t, userKey, page1Users[0].GetKey())
 	
-	// Test page 2 with limit 1 (should be empty since we only have 1 user)
+	// Page 2 should be empty since we only have 1 user
 	page2Users, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 2, 1)
 	assert.NoError(t, err)
 	assert.Len(t, page2Users, 0)
-	fmt.Printf("   ✅ Page 2 (limit=1): Found %d users (expected 0)\n", len(page2Users))
 
-	// Test 4: Edge cases
-	fmt.Printf("📋 Test 4: Testing edge cases\n")
-	
-	// Test with invalid pagination values
+	// Test 5: Edge cases - invalid pagination values
 	_, err = permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 0, 10)
-	if err != nil {
-		fmt.Printf("   ✅ page=0 correctly returns error: %v\n", err)
-	}
+	assert.Error(t, err, "page=0 should return an error")
 	
 	_, err = permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 0)
-	if err != nil {
-		fmt.Printf("   ✅ limit=0 correctly returns error: %v\n", err)
+	assert.Error(t, err, "limit=0 should return an error")
+
+	// Test 6: Test with different page sizes
+	allUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
+	assert.NoError(t, err)
+	smallPageUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 1)
+	assert.NoError(t, err)
+	assert.LessOrEqual(t, len(smallPageUsers), len(allUsers), "Small page should have <= users than full page")
+
+	// Test 7: Verify consistency across calls
+	secondCall, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
+	assert.NoError(t, err)
+	assert.Equal(t, len(tenantUsers), len(secondCall), "Multiple calls should return same number of users")
+	if len(tenantUsers) > 0 && len(secondCall) > 0 {
+		assert.Equal(t, tenantUsers[0].GetKey(), secondCall[0].GetKey(), "Same user should be returned")
 	}
-
-	// Test 5: Non-existent tenant handling
-	fmt.Printf("📋 Test 5: Testing non-existent tenant\n")
-	nonExistentTenant := randKey("nonexistent")
-	_, err = permitClient.Api.Tenants.ListTenantUsers(ctx, nonExistentTenant, 1, 100)
-	if err != nil {
-		fmt.Printf("   ✅ Non-existent tenant '%s' correctly returns error\n", nonExistentTenant)
-	} else {
-		fmt.Printf("   ⚠️  Non-existent tenant '%s' returned successfully (empty list)\n", nonExistentTenant)
-	}
-
-	// Test 6: Function signature verification
-	fmt.Printf("📋 Test 6: Function signature verification\n")
-	users, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 10)
-	assert.IsType(t, []models.UserRead{}, users, "Return type should be []models.UserRead")
-	fmt.Printf("   ✅ Function returns correct type: []models.UserRead\n")
-
-	fmt.Printf("🎉 ListTenantUsers testing completed successfully!\n\n")
 }
 
 func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, roleKey, tenantKey, resourceKey, actionKey string) {

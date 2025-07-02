@@ -72,61 +72,6 @@ func randKey(postfix string) string {
 	return runId + "-" + postfix
 }
 
-func testListTenantUsers(ctx context.Context, t *testing.T, permitClient *permit.Client, tenantKey, userKey string) {
-	// Test 1: Basic functionality - tenant with assigned user
-	tenantUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
-	assert.NoError(t, err)
-	assert.Len(t, tenantUsers, 1)
-	assert.Equal(t, userKey, tenantUsers[0].GetKey())
-
-	// Test 2: Verify user object properties
-	assert.Greater(t, len(tenantUsers), 0, "Should have at least one user")
-	user := tenantUsers[0]
-	assert.NotEmpty(t, user.GetKey())
-	assert.NotEmpty(t, user.GetEmail())
-	// Note - Dependent on the user creation above -- consider decoupling this test from the user creation
-	assert.Equal(t, userKey, user.GetKey())
-	assert.Equal(t, "John", user.GetFirstName())
-	assert.Equal(t, "Doe", user.GetLastName())
-	assert.Equal(t, "john@example.com", user.GetEmail())
-
-	// Test 3: Function signature verification
-	assert.IsType(t, []models.UserRead{}, tenantUsers, "Return type should be []models.UserRead")
-
-	// Test 4: Pagination test
-	page1Users, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 1)
-	assert.NoError(t, err)
-	assert.Len(t, page1Users, 1)
-	assert.Equal(t, userKey, page1Users[0].GetKey())
-	
-	// Page 2 should be empty since we only have 1 user
-	page2Users, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 2, 1)
-	assert.NoError(t, err)
-	assert.Len(t, page2Users, 0)
-
-	// Test 5: Edge cases - invalid pagination values
-	_, err = permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 0, 10)
-	assert.Error(t, err, "page=0 should return an error")
-	
-	_, err = permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 0)
-	assert.Error(t, err, "limit=0 should return an error")
-
-	// Test 6: Test with different page sizes
-	allUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
-	assert.NoError(t, err)
-	smallPageUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 1)
-	assert.NoError(t, err)
-	assert.LessOrEqual(t, len(smallPageUsers), len(allUsers), "Small page should have <= users than full page")
-
-	// Test 7: Verify consistency across calls
-	secondCall, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
-	assert.NoError(t, err)
-	assert.Equal(t, len(tenantUsers), len(secondCall), "Multiple calls should return same number of users")
-	if len(tenantUsers) > 0 && len(secondCall) > 0 {
-		assert.Equal(t, tenantUsers[0].GetKey(), secondCall[0].GetKey(), "Same user should be returned")
-	}
-}
-
 func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, roleKey, tenantKey, resourceKey, actionKey string) {
 	// Bulk (un)assignments
 	var users []*models.UserCreate
@@ -401,8 +346,61 @@ func TestIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	time.Sleep(30 * time.Second)
 
-	// Test ListTenantUsers functionality comprehensively
-	testListTenantUsers(ctx, t, permitClient, tenantKey, userKey)
+	// Testing List Tenants Users
+	// Note - Dependent on the user creation above -- consider decoupling this test from the user creation
+
+	// Test 1: Basic functionality - tenant with assigned user
+	tenantUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
+	assert.NoError(t, err)
+	assert.Len(t, tenantUsers, 1)
+	assert.Equal(t, userKey, tenantUsers[0].GetKey())
+
+	// Test 2: Verify user object properties
+	assert.Greater(t, len(tenantUsers), 0, "Should have at least one user")
+	user := tenantUsers[0]
+	assert.NotEmpty(t, user.GetKey())
+	assert.NotEmpty(t, user.GetEmail())
+	// Note - Dependent on the user creation above -- consider decoupling this test from the user creation
+	assert.Equal(t, userKey, user.GetKey())
+	assert.Equal(t, "John", user.GetFirstName())
+	assert.Equal(t, "Doe", user.GetLastName())
+	assert.Equal(t, "john@example.com", user.GetEmail())
+
+	// Test 3: Function signature verification
+	assert.IsType(t, []models.UserRead{}, tenantUsers, "Return type should be []models.UserRead")
+
+	// Test 4: Pagination test
+	page1Users, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 1)
+	assert.NoError(t, err)
+	assert.Len(t, page1Users, 1)
+	assert.Equal(t, userKey, page1Users[0].GetKey())
+	
+	// Page 2 should be empty since we only have 1 user
+	page2Users, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 2, 1)
+	assert.NoError(t, err)
+	assert.Len(t, page2Users, 0)
+
+	// Test 5: Edge cases - invalid pagination values
+	_, err = permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 0, 10)
+	assert.Error(t, err, "page=0 should return an error")
+	
+	_, err = permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 0)
+	assert.Error(t, err, "limit=0 should return an error")
+
+	// Test 6: Test with different page sizes
+	allUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
+	assert.NoError(t, err)
+	smallPageUsers, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 1)
+	assert.NoError(t, err)
+	assert.LessOrEqual(t, len(smallPageUsers), len(allUsers), "Small page should have <= users than full page")
+
+	// Test 7: Verify consistency across calls
+	secondCall, err := permitClient.Api.Tenants.ListTenantUsers(ctx, tenantKey, 1, 100)
+	assert.NoError(t, err)
+	assert.Equal(t, len(tenantUsers), len(secondCall), "Multiple calls should return same number of users")
+	if len(tenantUsers) > 0 && len(secondCall) > 0 {
+		assert.Equal(t, tenantUsers[0].GetKey(), secondCall[0].GetKey(), "Same user should be returned")
+	}
 
 	userPermissions, err := permitClient.GetUserPermissions(enforcement.UserBuilder(userKey).Build())
 	assert.NoError(t, err)

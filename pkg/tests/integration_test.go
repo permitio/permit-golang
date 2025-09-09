@@ -3,6 +3,12 @@ package tests
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"os"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/enforcement"
 	PermitErrors "github.com/permitio/permit-golang/pkg/errors"
@@ -10,11 +16,6 @@ import (
 	"github.com/permitio/permit-golang/pkg/permit"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"math/rand"
-	"os"
-	"reflect"
-	"testing"
-	"time"
 )
 
 var runId = randId()
@@ -135,8 +136,9 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 
 func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitContext, logger *zap.Logger, token string) {
 	permitClient := permit.New(config.NewConfigBuilder(token).
-		WithPdpUrl(os.Getenv("PDP_URL")).
-		WithApiUrl(os.Getenv("API_URL")).
+	WithPdpUrl("http://localhost:7766").
+	// WithPdpUrl(os.Getenv("PDP_URL")).
+	WithApiUrl("https://api.permit.io").
 		WithContext(permitContext).
 		WithLogger(logger).
 		WithProxyFactsViaPDP(true).
@@ -171,6 +173,32 @@ func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitCon
 	allowed, err := permitClient.Check(enforcement.UserBuilder(userKey).Build(), "read", enforcement.ResourceBuilder(resourceKey).Build())
 	assert.NoError(t, err)
 	assert.True(t, allowed)
+}
+
+func TestFactsIntegration(t *testing.T) {
+	logger := zap.NewExample()
+	ctx := context.Background()
+
+	project := os.Getenv("PROJECT")
+
+	if project == "" {
+		t.Fatal("PROJECT is not set")
+	}
+
+	env := os.Getenv("ENV")
+
+	if env == "" {
+		t.Fatal("ENV is not set")
+	}
+
+	token := os.Getenv("PDP_API_KEY")
+	if token == "" {
+		t.Fatal("PDP_API_KEY is not set")
+	}
+	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, project, env)
+	
+	// Test Facts API
+	factsApi(ctx, t, permitContext, logger, token)
 }
 func TestIntegration(t *testing.T) {
 	logger := zap.NewExample()
@@ -210,10 +238,7 @@ func TestIntegration(t *testing.T) {
 		WithApiUrl(os.Getenv("API_URL")).
 		WithContext(permitContext).
 		WithLogger(logger).
-		Build())
-
-	// Test Facts API
-	factsApi(ctx, t, permitContext, logger, token)
+		Build())	
 
 	// Create a user
 	userCreate := *models.NewUserCreate(userKey)
@@ -344,7 +369,7 @@ func TestIntegration(t *testing.T) {
 	// Assign role to user
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, tenantKey)
 	assert.NoError(t, err)
-	time.Sleep(30 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	// Testing List Tenants Users
 	// Note - Dependent on the user creation above -- consider decoupling this test from the user creation

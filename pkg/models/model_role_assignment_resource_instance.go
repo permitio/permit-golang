@@ -199,7 +199,7 @@ func (o *RoleAssignmentResourceInstance) UnmarshalJSON(data []byte) (err error) 
 	varRoleAssignmentResourceInstance := _RoleAssignmentResourceInstance{}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
-	
+
 	err = decoder.Decode(&varRoleAssignmentResourceInstance)
 
 	if err != nil {

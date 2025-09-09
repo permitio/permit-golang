@@ -136,9 +136,9 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 
 func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitContext, logger *zap.Logger, token string) {
 	permitClient := permit.New(config.NewConfigBuilder(token).
-	WithPdpUrl("http://localhost:7766").
-	// WithPdpUrl(os.Getenv("PDP_URL")).
-	WithApiUrl("https://api.permit.io").
+		WithPdpUrl("http://localhost:7766").
+		// WithPdpUrl(os.Getenv("PDP_URL")).
+		WithApiUrl("https://api.permit.io").
 		WithContext(permitContext).
 		WithLogger(logger).
 		WithProxyFactsViaPDP(true).
@@ -196,7 +196,7 @@ func TestFactsIntegration(t *testing.T) {
 		t.Fatal("PDP_API_KEY is not set")
 	}
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, project, env)
-	
+
 	// Test Facts API
 	factsApi(ctx, t, permitContext, logger, token)
 }
@@ -238,7 +238,7 @@ func TestIntegration(t *testing.T) {
 		WithApiUrl(os.Getenv("API_URL")).
 		WithContext(permitContext).
 		WithLogger(logger).
-		Build())	
+		Build())
 
 	// Create a user
 	userCreate := *models.NewUserCreate(userKey)

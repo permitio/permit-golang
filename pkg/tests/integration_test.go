@@ -18,12 +18,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var runId = randId()
-
-func init() {
-	println("Run ID: ", runId)
-}
-
 type MyResource struct {
 	UniqueID     string
 	Type         string
@@ -68,18 +62,18 @@ func randId() string {
 	return string(b)
 }
 
-func randKey(postfix string) string {
+func randKey(runId, postfix string) string {
 	return runId + "-" + postfix
 }
 
-func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, roleKey, tenantKey, resourceKey, actionKey string) {
+func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, roleKey, tenantKey, resourceKey, actionKey string, runId string) {
 	// Bulk (un)assignments
 	var users []*models.UserCreate
 	var bulkAssignments []models.RoleAssignmentCreate
 	var bulkUnAssignments []models.RoleAssignmentRemove
 
 	for i := 0; i < 3; i++ {
-		bulkUserKey := randKey(fmt.Sprintf("bulkuser-%d", i))
+		bulkUserKey := randKey(runId, fmt.Sprintf("bulkuser-%d", i))
 		bulkUserCreate := models.NewUserCreate(bulkUserKey)
 		users = append(users, models.NewUserCreate(bulkUserKey))
 		bulkAssignments = append(bulkAssignments, *models.NewRoleAssignmentCreate(roleKey, tenantKey, bulkUserKey))
@@ -133,7 +127,7 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 	assert.EqualValues(t, 3, *unassignReport.AssignmentsRemoved)
 }
 
-func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitContext, logger *zap.Logger, token string) {
+func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitContext, logger *zap.Logger, token string, runId string) {	
 	permitClient := permit.New(config.NewConfigBuilder(token).
 		WithPdpUrl(os.Getenv("PDP_URL")).
 		WithApiUrl(os.Getenv("API_URL")).
@@ -143,7 +137,7 @@ func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitCon
 		WithFactsSyncTimeout(10 * time.Second).
 		Build())
 
-	resourceKey := randKey("resource")
+	resourceKey := randKey(runId, "resource")
 	resourceCreate := *models.NewResourceCreate(resourceKey, resourceKey,
 		map[string]models.ActionBlockEditable{
 			"read": {Attributes: map[string]interface{}{"marker": "marker"}},
@@ -151,13 +145,13 @@ func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitCon
 	_, err := permitClient.Api.Resources.Create(ctx, resourceCreate)
 	assert.NoError(t, err)
 
-	roleKey := randKey("role")
+	roleKey := randKey(runId, "role")
 	roleCreate := models.NewRoleCreate(roleKey, roleKey)
 	roleCreate.SetPermissions([]string{fmt.Sprintf("%s:read", resourceKey)})
 	_, err = permitClient.Api.Roles.Create(ctx, *roleCreate)
 	assert.NoError(t, err)
 
-	userKey := randKey("user")
+	userKey := randKey(runId, "user")
 	userCreate := *models.NewUserCreate(userKey)
 	userCreate.SetFirstName("John")
 	userCreate.SetLastName("Doe")
@@ -176,7 +170,8 @@ func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitCon
 func TestFactsIntegration(t *testing.T) {
 	logger := zap.NewExample()
 	ctx := context.Background()
-
+	runId := randId()
+	t.Log("Run ID: ", runId)
 	project := os.Getenv("PROJECT")
 
 	if project == "" {
@@ -196,23 +191,24 @@ func TestFactsIntegration(t *testing.T) {
 	permitContext := config.NewPermitContext(config.EnvironmentAPIKeyLevel, project, env)
 
 	// Test Facts API
-	factsApi(ctx, t, permitContext, logger, token)
+	factsApi(ctx, t, permitContext, logger, token, runId)
 }
 func TestIntegration(t *testing.T) {
 	logger := zap.NewExample()
 	ctx := context.Background()
-
-	userKey := randKey("user")
-	resourceKey := randKey("resource")
-	roleKey := randKey("role")
-	marker := randKey("marker")
-	actionKey := randKey("action")
-	actionGroupKey := randKey("actiongroup")
-	tenantKey := randKey("tenant-1")
-	secondTenantKey := randKey("tenant-2")
-	resourceSetKey := randKey("resourceset")
-	userSetKey := randKey("userset")
-	proxyConfigKey := randKey("proxyconfig")
+	runId := randId()
+	t.Log("Run ID: ", runId)
+	userKey := randKey(runId, "user")
+	resourceKey := randKey(runId, "resource")
+	roleKey := randKey(runId, "role")
+	marker := randKey(runId, "marker")
+	actionKey := randKey(runId, "action")
+	actionGroupKey := randKey(runId, "actiongroup")
+	tenantKey := randKey(runId, "tenant-1")
+	secondTenantKey := randKey(runId, "tenant-2")
+	resourceSetKey := randKey(runId, "resourceset")
+	userSetKey := randKey(runId, "userset")
+	proxyConfigKey := randKey(runId, "proxyconfig")
 
 	project := os.Getenv("PROJECT")
 
@@ -389,7 +385,7 @@ func TestIntegration(t *testing.T) {
 	detailedRAs, err := permitClient.Api.RoleAssignments.ListDetailed(ctx, 1, 100, userKey, roleKey, tenantKey)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(*detailedRAs))
-	checkBulk(ctx, t, permitClient, roleKey, tenantKey, resourceKey, "read")
+	checkBulk(ctx, t, permitClient, roleKey, tenantKey, resourceKey, "read", runId)
 
 	userSetCreate := *models.NewConditionSetCreate(userSetKey, userSetKey)
 	userSetCreate.SetType(models.USERSET)

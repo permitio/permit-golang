@@ -127,7 +127,7 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 	assert.EqualValues(t, 3, *unassignReport.AssignmentsRemoved)
 }
 
-func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitContext, logger *zap.Logger, token string, runId string) {	
+func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitContext, logger *zap.Logger, token string, runId string) {
 	permitClient := permit.New(config.NewConfigBuilder(token).
 		WithPdpUrl(os.Getenv("PDP_URL")).
 		WithApiUrl(os.Getenv("API_URL")).
@@ -426,7 +426,7 @@ func TestIntegration(t *testing.T) {
 	csUpdate.SetDescription("Top Secrets")
 	cs, err := permitClient.Api.ConditionSets.Update(ctx, resourceSetKey, csUpdate)
 	assert.NoError(t, err)
-	assert.NotNil(t, cs)	
+	assert.NotNil(t, cs)
 	assert.Equal(t, "Top Secrets", *cs.Description)
 
 	_, err = permitClient.Api.ConditionSets.AssignSetPermissions(ctx, userSetKey, resourceKey+":"+actionKey, resourceSetKey)

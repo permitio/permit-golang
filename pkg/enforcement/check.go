@@ -22,7 +22,7 @@ type CheckRequest struct {
 	User     User              `json:"user"`
 	Action   Action            `json:"action"`
 	Resource Resource          `json:"resource"`
-	Context  map[string]string `json:"context"`
+	Context  map[string]string `json:"context,omitempty"`
 }
 
 func NewCheckRequest(user User, action Action, resource Resource, context map[string]string) *CheckRequest {

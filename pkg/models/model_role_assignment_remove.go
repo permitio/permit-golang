@@ -203,7 +203,7 @@ func (o *RoleAssignmentRemove) UnmarshalJSON(data []byte) (err error) {
 	varRoleAssignmentRemove := _RoleAssignmentRemove{}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
+
 	err = decoder.Decode(&varRoleAssignmentRemove)
 
 	if err != nil {

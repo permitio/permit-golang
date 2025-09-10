@@ -21,7 +21,6 @@ import (
 var runId = randId()
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
 	println("Run ID: ", runId)
 }
 

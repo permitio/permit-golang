@@ -102,7 +102,7 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 		assert.Equal(t, roleKey, assigned[0].Role)
 	}
 
-	time.Sleep(6 * time.Second)
+	time.Sleep(15 * time.Second)
 	requests := make([]enforcement.CheckRequest, len(bulkAssignments))
 	for i, assignment := range bulkAssignments {
 		var tenant string
@@ -136,9 +136,8 @@ func checkBulk(ctx context.Context, t *testing.T, permitClient *permit.Client, r
 
 func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitContext, logger *zap.Logger, token string) {
 	permitClient := permit.New(config.NewConfigBuilder(token).
-		WithPdpUrl("http://localhost:7766").
-		// WithPdpUrl(os.Getenv("PDP_URL")).
-		WithApiUrl("https://api.permit.io").
+		WithPdpUrl(os.Getenv("PDP_URL")).
+		WithApiUrl(os.Getenv("API_URL")).
 		WithContext(permitContext).
 		WithLogger(logger).
 		WithProxyFactsViaPDP(true).
@@ -432,6 +431,7 @@ func TestIntegration(t *testing.T) {
 	csUpdate.SetDescription("Top Secrets")
 	cs, err := permitClient.Api.ConditionSets.Update(ctx, resourceSetKey, csUpdate)
 	assert.NoError(t, err)
+	assert.NotNil(t, cs)	
 	assert.Equal(t, "Top Secrets", *cs.Description)
 
 	_, err = permitClient.Api.ConditionSets.AssignSetPermissions(ctx, userSetKey, resourceKey+":"+actionKey, resourceSetKey)
@@ -471,6 +471,7 @@ func TestIntegration(t *testing.T) {
 		"read",
 		resourceCheck.WithTenant("").Build(),
 	)
+	assert.NoError(t, err)
 	assert.Len(t, allowedTenants, 1)
 	assert.Equal(t, tenantKey, allowedTenants[0].Key)
 	assert.True(t, assert.ObjectsAreEqualValues(allowedTenants[0].Attributes, tenantCreate.Attributes))
@@ -500,5 +501,6 @@ func TestIntegration(t *testing.T) {
 	proxyConfigUpdate.SetAuthMechanism(authMechanism)
 	proxyConfigUpdate.SetSecret(secret)
 	proxyConfigUpdate.SetMappingRules(mappingRules)
-	_, err = permitClient.Api.ProxyConfigs.Update(ctx, "pxcf", *proxyConfigUpdate)
+	_, err = permitClient.Api.ProxyConfigs.Update(ctx, proxyConfigKey, *proxyConfigUpdate)
+	assert.NoError(t, err)
 }

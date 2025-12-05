@@ -274,6 +274,14 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.Resources.Create(ctx, resourceCreate)
 	assert.NoError(t, err)
 
+	resourceReplace := *models.NewResourceReplace(resourceKey+"-2",
+		map[string]models.ActionBlockEditable{
+			"read":  {Attributes: map[string]interface{}{"marker": marker}},
+			"write": {Attributes: map[string]interface{}{"marker": marker}},
+		})
+	_, err = permitClient.Api.Resources.Replace(ctx, resourceKey+"-2", resourceReplace)
+	assert.NoError(t, err)
+
 	list, err := permitClient.Api.Resources.Search(ctx, 1, 100, resourceKey)
 	assert.NoError(t, err)
 	assert.Len(t, list, 2)

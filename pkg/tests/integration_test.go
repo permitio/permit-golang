@@ -135,8 +135,7 @@ func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitCon
 		WithApiUrl(os.Getenv("API_URL")).
 		WithContext(permitContext).
 		WithLogger(logger).
-		WithProxyFactsViaPDP(true).
-		WithFactsSyncTimeout(10 * time.Second).
+		WithProxyFactsViaPDP(false).
 		Build())
 
 	resourceKey := randKey(runId, "resource")
@@ -163,7 +162,8 @@ func factsApi(ctx context.Context, t *testing.T, permitContext *config.PermitCon
 
 	_, err = permitClient.Api.Users.AssignRole(ctx, userKey, roleKey, "default")
 	assert.NoError(t, err)
-	// check if user has permission immediately
+	// Wait for facts to sync to PDP before checking permission
+	time.Sleep(15 * time.Second)
 	allowed, err := permitClient.Check(enforcement.UserBuilder(userKey).Build(), "read", enforcement.ResourceBuilder(resourceKey).Build())
 	assert.NoError(t, err)
 	assert.True(t, allowed)

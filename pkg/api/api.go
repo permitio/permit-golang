@@ -177,16 +177,6 @@ func NewPermitApiClient(config *config.PermitConfig) *PermitApiClient {
 	baseClientConfig := NewClientConfig(config)
 	client := openapi.NewAPIClient(baseClientConfig)
 
-	// Note: Previously, factsClient always used the PDP URL for facts APIs,
-	// which caused issues when proxyFactsViaPDP was false (the default).
-	// Now factsClient defaults to the regular client (API URL) and only uses
-	// the PDP URL when proxyFactsViaPDP is explicitly enabled.
-	factsClient := client
-	if config.GetProxyFactsViaPDP() {
-		factsClientConfig := NewFactsClientConfig(config)
-		factsClient = openapi.NewAPIClient(factsClientConfig)
-	}
-
 	return &PermitApiClient{
 		config:               config,
 		logger:               config.Logger,
@@ -197,18 +187,18 @@ func NewPermitApiClient(config *config.PermitConfig) *PermitApiClient {
 		ImplicitGrants:       NewImplicitGrantsApi(client, config),
 		Projects:             NewProjectsApi(client, config),
 		ProxyConfigs:         NewProxyConfigsApi(client, config),
-		RelationshipTuples:   NewRelationshipTuplesApi(factsClient, config),
+		RelationshipTuples:   NewRelationshipTuplesApi(client, config),
 		ResourceActionGroups: NewResourceActionGroupsApi(client, config),
 		ResourceActions:      NewResourceActionsApi(client, config),
 		ResourceAttributes:   NewResourceAttributesApi(client, config),
-		ResourceInstances:    NewResourceInstancesApi(factsClient, config),
+		ResourceInstances:    NewResourceInstancesApi(client, config),
 		ResourceRelations:    NewResourceRelationsApi(client, config),
 		ResourceRoles:        NewResourceRolesApi(client, config),
 		Resources:            NewResourcesApi(client, config),
-		RoleAssignments:      NewRoleAssignmentsApi(factsClient, config),
+		RoleAssignments:      NewRoleAssignmentsApi(client, config),
 		Roles:                NewRolesApi(client, config),
-		Tenants:              NewTenantsApi(factsClient, config),
-		Users:                NewUsersApi(factsClient, config),
+		Tenants:              NewTenantsApi(client, config),
+		Users:                NewUsersApi(client, config),
 	}
 }
 

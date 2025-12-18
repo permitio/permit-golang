@@ -176,6 +176,15 @@ func NewFactsClientConfig(config *config.PermitConfig) *openapi.Configuration {
 func NewPermitApiClient(config *config.PermitConfig) *PermitApiClient {
 	baseClientConfig := NewClientConfig(config)
 	client := openapi.NewAPIClient(baseClientConfig)
+
+	// Use factsClient (PDP URL) only when proxyFactsViaPDP is enabled,
+	// otherwise use the regular client (API URL) for facts APIs
+	factsClient := client
+	if config.GetProxyFactsViaPDP() {
+		factsClientConfig := NewFactsClientConfig(config)
+		factsClient = openapi.NewAPIClient(factsClientConfig)
+	}
+
 	return &PermitApiClient{
 		config:               config,
 		logger:               config.Logger,
@@ -186,18 +195,18 @@ func NewPermitApiClient(config *config.PermitConfig) *PermitApiClient {
 		ImplicitGrants:       NewImplicitGrantsApi(client, config),
 		Projects:             NewProjectsApi(client, config),
 		ProxyConfigs:         NewProxyConfigsApi(client, config),
-		RelationshipTuples:   NewRelationshipTuplesApi(client, config),
+		RelationshipTuples:   NewRelationshipTuplesApi(factsClient, config),
 		ResourceActionGroups: NewResourceActionGroupsApi(client, config),
 		ResourceActions:      NewResourceActionsApi(client, config),
 		ResourceAttributes:   NewResourceAttributesApi(client, config),
-		ResourceInstances:    NewResourceInstancesApi(client, config),
+		ResourceInstances:    NewResourceInstancesApi(factsClient, config),
 		ResourceRelations:    NewResourceRelationsApi(client, config),
 		ResourceRoles:        NewResourceRolesApi(client, config),
 		Resources:            NewResourcesApi(client, config),
-		RoleAssignments:      NewRoleAssignmentsApi(client, config),
+		RoleAssignments:      NewRoleAssignmentsApi(factsClient, config),
 		Roles:                NewRolesApi(client, config),
-		Tenants:              NewTenantsApi(client, config),
-		Users:                NewUsersApi(client, config),
+		Tenants:              NewTenantsApi(factsClient, config),
+		Users:                NewUsersApi(factsClient, config),
 	}
 }
 

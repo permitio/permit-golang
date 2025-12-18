@@ -39,6 +39,7 @@ type IPermitConfig interface {
 	GetDebug() bool
 	GetContext() *PermitContext
 	GetLogger() *zap.Logger
+	// Deprecated: GetProxyFactsViaPDP will be removed in future versions.
 	GetProxyFactsViaPDP() bool
 	GetFactsSyncTimeout() *time.Duration
 	GetFactsSyncTimeoutPolicy() FactsSyncTimeoutPolicy

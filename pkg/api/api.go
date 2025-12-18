@@ -177,10 +177,10 @@ func NewPermitApiClient(config *config.PermitConfig) *PermitApiClient {
 	baseClientConfig := NewClientConfig(config)
 	client := openapi.NewAPIClient(baseClientConfig)
 
-	// Deprecated: factsClient was previously always using PDP URL for facts APIs,
+	// Note: Previously, factsClient always used the PDP URL for facts APIs,
 	// which caused issues when proxyFactsViaPDP was false (the default).
 	// Now factsClient defaults to the regular client (API URL) and only uses
-	// PDP URL when proxyFactsViaPDP is explicitly enabled.
+	// the PDP URL when proxyFactsViaPDP is explicitly enabled.
 	factsClient := client
 	if config.GetProxyFactsViaPDP() {
 		factsClientConfig := NewFactsClientConfig(config)

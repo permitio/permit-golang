@@ -13,27 +13,28 @@ package openapi
 import (
 	"bytes"
 	"context"
-	"github.com/permitio/permit-golang/pkg/models"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/permitio/permit-golang/pkg/models"
 )
 
 // UserAttributesApiService UserAttributesApi service
 type UserAttributesApiService service
 
 type ApiCreateUserAttributeRequest struct {
-	ctx                     context.Context
-	ApiService              *UserAttributesApiService
-	projId                  string
-	envId                   string
-	resourceAttributeCreate *models.ResourceAttributeCreate
-	resourceId              *string
+	ctx                 context.Context
+	ApiService          *UserAttributesApiService
+	projId              string
+	envId               string
+	userAttributeCreate *models.UserAttributeCreate
+	resourceId          *string
 }
 
-func (r ApiCreateUserAttributeRequest) ResourceAttributeCreate(resourceAttributeCreate models.ResourceAttributeCreate) ApiCreateUserAttributeRequest {
-	r.resourceAttributeCreate = &resourceAttributeCreate
+func (r ApiCreateUserAttributeRequest) UserAttributeCreate(userAttributeCreate models.UserAttributeCreate) ApiCreateUserAttributeRequest {
+	r.userAttributeCreate = &userAttributeCreate
 	return r
 }
 
@@ -42,7 +43,7 @@ func (r ApiCreateUserAttributeRequest) ResourceId(resourceId string) ApiCreateUs
 	return r
 }
 
-func (r ApiCreateUserAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
+func (r ApiCreateUserAttributeRequest) Execute() (*models.UserAttributeRead, *http.Response, error) {
 	return r.ApiService.CreateUserAttributeExecute(r)
 }
 
@@ -67,13 +68,13 @@ func (a *UserAttributesApiService) CreateUserAttribute(ctx context.Context, proj
 
 // Execute executes the request
 //
-//	@return ResourceAttributeRead
-func (a *UserAttributesApiService) CreateUserAttributeExecute(r ApiCreateUserAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
+//	@return UserAttributeRead
+func (a *UserAttributesApiService) CreateUserAttributeExecute(r ApiCreateUserAttributeRequest) (*models.UserAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceAttributeRead
+		localVarReturnValue *models.UserAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UserAttributesApiService.CreateUserAttribute")
@@ -88,8 +89,8 @@ func (a *UserAttributesApiService) CreateUserAttributeExecute(r ApiCreateUserAtt
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.resourceAttributeCreate == nil {
-		return localVarReturnValue, nil, reportError("resourceAttributeCreate is required and must be specified")
+	if r.userAttributeCreate == nil {
+		return localVarReturnValue, nil, reportError("userAttributeCreate is required and must be specified")
 	}
 
 	if r.resourceId != nil {
@@ -113,7 +114,7 @@ func (a *UserAttributesApiService) CreateUserAttributeExecute(r ApiCreateUserAtt
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.resourceAttributeCreate
+	localVarPostBody = r.userAttributeCreate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err
@@ -317,7 +318,7 @@ func (r ApiGetUserAttributeRequest) ResourceId(resourceId string) ApiGetUserAttr
 	return r
 }
 
-func (r ApiGetUserAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
+func (r ApiGetUserAttributeRequest) Execute() (*models.UserAttributeRead, *http.Response, error) {
 	return r.ApiService.GetUserAttributeExecute(r)
 }
 
@@ -344,13 +345,13 @@ func (a *UserAttributesApiService) GetUserAttribute(ctx context.Context, projId 
 
 // Execute executes the request
 //
-//	@return ResourceAttributeRead
-func (a *UserAttributesApiService) GetUserAttributeExecute(r ApiGetUserAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
+//	@return UserAttributeRead
+func (a *UserAttributesApiService) GetUserAttributeExecute(r ApiGetUserAttributeRequest) (*models.UserAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceAttributeRead
+		localVarReturnValue *models.UserAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UserAttributesApiService.GetUserAttribute")
@@ -461,7 +462,7 @@ func (r ApiListUserAttributesRequest) PerPage(perPage int32) ApiListUserAttribut
 	return r
 }
 
-func (r ApiListUserAttributesRequest) Execute() ([]models.ResourceAttributeRead, *http.Response, error) {
+func (r ApiListUserAttributesRequest) Execute() ([]models.UserAttributeRead, *http.Response, error) {
 	return r.ApiService.ListUserAttributesExecute(r)
 }
 
@@ -486,13 +487,13 @@ func (a *UserAttributesApiService) ListUserAttributes(ctx context.Context, projI
 
 // Execute executes the request
 //
-//	@return []ResourceAttributeRead
-func (a *UserAttributesApiService) ListUserAttributesExecute(r ApiListUserAttributesRequest) ([]models.ResourceAttributeRead, *http.Response, error) {
+//	@return []UserAttributeRead
+func (a *UserAttributesApiService) ListUserAttributesExecute(r ApiListUserAttributesRequest) ([]models.UserAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue []models.ResourceAttributeRead
+		localVarReturnValue []models.UserAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UserAttributesApiService.ListUserAttributes")
@@ -582,17 +583,17 @@ func (a *UserAttributesApiService) ListUserAttributesExecute(r ApiListUserAttrib
 }
 
 type ApiUpdateUserAttributeRequest struct {
-	ctx                     context.Context
-	ApiService              *UserAttributesApiService
-	projId                  string
-	envId                   string
-	attributeId             string
-	resourceAttributeUpdate *models.ResourceAttributeUpdate
-	resourceId              *string
+	ctx                 context.Context
+	ApiService          *UserAttributesApiService
+	projId              string
+	envId               string
+	attributeId         string
+	userAttributeUpdate *models.UserAttributeUpdate
+	resourceId          *string
 }
 
-func (r ApiUpdateUserAttributeRequest) ResourceAttributeUpdate(resourceAttributeUpdate models.ResourceAttributeUpdate) ApiUpdateUserAttributeRequest {
-	r.resourceAttributeUpdate = &resourceAttributeUpdate
+func (r ApiUpdateUserAttributeRequest) UserAttributeUpdate(userAttributeUpdate models.UserAttributeUpdate) ApiUpdateUserAttributeRequest {
+	r.userAttributeUpdate = &userAttributeUpdate
 	return r
 }
 
@@ -601,7 +602,7 @@ func (r ApiUpdateUserAttributeRequest) ResourceId(resourceId string) ApiUpdateUs
 	return r
 }
 
-func (r ApiUpdateUserAttributeRequest) Execute() (*models.ResourceAttributeRead, *http.Response, error) {
+func (r ApiUpdateUserAttributeRequest) Execute() (*models.UserAttributeRead, *http.Response, error) {
 	return r.ApiService.UpdateUserAttributeExecute(r)
 }
 
@@ -629,13 +630,13 @@ func (a *UserAttributesApiService) UpdateUserAttribute(ctx context.Context, proj
 
 // Execute executes the request
 //
-//	@return ResourceAttributeRead
-func (a *UserAttributesApiService) UpdateUserAttributeExecute(r ApiUpdateUserAttributeRequest) (*models.ResourceAttributeRead, *http.Response, error) {
+//	@return UserAttributeRead
+func (a *UserAttributesApiService) UpdateUserAttributeExecute(r ApiUpdateUserAttributeRequest) (*models.UserAttributeRead, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodPatch
 		localVarPostBody    interface{}
 		formFiles           []formFile
-		localVarReturnValue *models.ResourceAttributeRead
+		localVarReturnValue *models.UserAttributeRead
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UserAttributesApiService.UpdateUserAttribute")
@@ -651,8 +652,8 @@ func (a *UserAttributesApiService) UpdateUserAttributeExecute(r ApiUpdateUserAtt
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.resourceAttributeUpdate == nil {
-		return localVarReturnValue, nil, reportError("resourceAttributeUpdate is required and must be specified")
+	if r.userAttributeUpdate == nil {
+		return localVarReturnValue, nil, reportError("userAttributeUpdate is required and must be specified")
 	}
 
 	if r.resourceId != nil {
@@ -676,7 +677,7 @@ func (a *UserAttributesApiService) UpdateUserAttributeExecute(r ApiUpdateUserAtt
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
 	// body params
-	localVarPostBody = r.resourceAttributeUpdate
+	localVarPostBody = r.userAttributeUpdate
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

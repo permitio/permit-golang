@@ -129,6 +129,7 @@ type PermitApiClient struct {
 	RoleAssignments      *RoleAssignments
 	Roles                *Roles
 	Tenants              *Tenants
+	UserAttributes       *UserAttributes
 	Users                *Users
 }
 
@@ -198,6 +199,7 @@ func NewPermitApiClient(config *config.PermitConfig) *PermitApiClient {
 		RoleAssignments:      NewRoleAssignmentsApi(client, config),
 		Roles:                NewRolesApi(client, config),
 		Tenants:              NewTenantsApi(client, config),
+		UserAttributes:       NewUserAttributesApi(client, config),
 		Users:                NewUsersApi(client, config),
 	}
 }

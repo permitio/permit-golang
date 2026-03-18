@@ -20,22 +20,26 @@ type AttributeType string
 
 // List of AttributeType
 const (
-	BOOL   AttributeType = "bool"
-	NUMBER AttributeType = "number"
-	STRING AttributeType = "string"
-	TIME   AttributeType = "time"
-	ARRAY  AttributeType = "array"
-	JSON   AttributeType = "json"
+	BOOL         AttributeType = "bool"
+	NUMBER       AttributeType = "number"
+	STRING       AttributeType = "string"
+	TIME         AttributeType = "time"
+	ARRAY        AttributeType = "array"
+	JSON         AttributeType = "json"
+	OBJECT       AttributeType = "object"
+	OBJECT_ARRAY AttributeType = "object_array"
 )
 
 // All allowed values of AttributeType enum
 var AllowedAttributeTypeEnumValues = []AttributeType{
-	"bool",
-	"number",
-	"string",
-	"time",
-	"array",
-	"json",
+	BOOL,
+	NUMBER,
+	STRING,
+	TIME,
+	ARRAY,
+	JSON,
+	OBJECT,
+	OBJECT_ARRAY,
 }
 
 func (v *AttributeType) UnmarshalJSON(src []byte) error {

@@ -236,12 +236,45 @@ func TestIntegration(t *testing.T) {
 		WithLogger(logger).
 		Build())
 
+	// User schema attributes (users/attributes API)
+	uAttrKey := randKey(runId, "userattr")
+	uAttrCreate := models.NewUserAttributeCreate(uAttrKey, models.STRING)
+	uAttrCreate.SetDescription("integration test user attribute")
+	uAttr, err := permitClient.Api.UserAttributes.Create(ctx, *uAttrCreate)
+	assert.NoError(t, err)
+	assert.Equal(t, uAttrKey, uAttr.Key)
+	assert.Equal(t, models.STRING, uAttr.GetType())
+
+	uAttrs, err := permitClient.Api.UserAttributes.List(ctx, 1, 100)
+	assert.NoError(t, err)
+	foundUAttr := false
+	for _, a := range uAttrs {
+		if a.Key == uAttrKey {
+			foundUAttr = true
+			break
+		}
+	}
+	assert.True(t, foundUAttr)
+
+	gotUAttr, err := permitClient.Api.UserAttributes.Get(ctx, uAttrKey)
+	assert.NoError(t, err)
+	assert.Equal(t, uAttr.Id, gotUAttr.Id)
+
+	uAttrUpd := models.NewUserAttributeUpdate()
+	uAttrUpd.SetDescription("updated user attribute description")
+	updatedUAttr, err := permitClient.Api.UserAttributes.Update(ctx, uAttrKey, *uAttrUpd)
+	assert.NoError(t, err)
+	assert.Equal(t, "updated user attribute description", updatedUAttr.GetDescription())
+
+	err = permitClient.Api.UserAttributes.Delete(ctx, uAttrKey)
+	assert.NoError(t, err)
+
 	// Create a user
 	userCreate := *models.NewUserCreate(userKey)
 	userCreate.SetFirstName("John")
 	userCreate.SetLastName("Doe")
 	userCreate.SetEmail("john@example.com")
-	_, err := permitClient.Api.Users.Create(ctx, userCreate)
+	_, err = permitClient.Api.Users.Create(ctx, userCreate)
 	assert.NoError(t, err)
 	res, err := permitClient.Api.Users.GetAssignedRoles(ctx, userKey, tenantKey, 1, 100)
 	assert.NoError(t, err)

@@ -424,6 +424,17 @@ func TestIntegration(t *testing.T) {
 	_, err = permitClient.Api.ConditionSets.Create(ctx, resourceSet)
 	assert.NoError(t, err)
 
+	conditionSetsListed, err := permitClient.Api.ConditionSets.List(ctx, 1, 100)
+	assert.NoError(t, err)
+	listedKeys := make(map[string]struct{}, len(conditionSetsListed))
+	for _, cs := range conditionSetsListed {
+		listedKeys[cs.Key] = struct{}{}
+	}
+	_, hasUserSet := listedKeys[userSetKey]
+	_, hasResourceSet := listedKeys[resourceSetKey]
+	assert.True(t, hasUserSet, "ConditionSets.List should include the created user set")
+	assert.True(t, hasResourceSet, "ConditionSets.List should include the created resource set")
+
 	csUpdate := *models.NewConditionSetUpdate()
 	csUpdate.SetDescription("Top Secrets")
 	cs, err := permitClient.Api.ConditionSets.Update(ctx, resourceSetKey, csUpdate)

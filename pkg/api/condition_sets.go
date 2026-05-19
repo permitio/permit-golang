@@ -57,7 +57,20 @@ func (c *ConditionSets) List(ctx context.Context, page int, perPage int) ([]mode
 		return nil, err
 	}
 
-	return conditionSets.PaginatedResultConditionSetRead.GetData(), nil
+	return conditionSetListData(conditionSets), nil
+}
+
+func conditionSetListData(conditionSets *models.ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet) []models.ConditionSetRead {
+	if conditionSets == nil {
+		return nil
+	}
+	if conditionSets.PaginatedResultConditionSetRead != nil {
+		return conditionSets.PaginatedResultConditionSetRead.GetData()
+	}
+	if conditionSets.ConditionSetRead != nil {
+		return *conditionSets.ConditionSetRead
+	}
+	return nil
 }
 
 // Get a condition set by key.

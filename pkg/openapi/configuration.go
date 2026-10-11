@@ -28,7 +28,8 @@ func (c contextKey) String() string {
 }
 
 var (
-	// ContextOAuth2 takes an oauth2.TokenSource as authentication for the request.
+	// ContextOAuth2 is no longer read by the client: a value stored under it is ignored.
+	// Use ContextAccessToken, or set the Authorization header with AddDefaultHeader.
 	ContextOAuth2 = contextKey("token")
 
 	// ContextBasicAuth takes BasicAuth as authentication for the request.

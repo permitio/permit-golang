@@ -1,3 +1,11 @@
+//go:build integration
+
+// Package tests holds integration tests that call a live Permit environment.
+// Run them with
+//
+//	go test -tags integration ./pkg/tests
+//
+// They read PROJECT, ENV, PDP_API_KEY, PDP_URL and API_URL from the environment.
 package tests
 
 import (

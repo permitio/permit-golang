@@ -1,0 +1,159 @@
+# Integration tests for the v1 line: the tests in pkg/tests, run against the Permit API and a PDP
+# container. They need the GitHub environment `integration`, with the secret PERMIT_API_KEY (an
+# API key of one Permit environment) and the variables PERMIT_PROJECT and PERMIT_ENV (the keys of
+# that environment's project and of the environment). A reviewer of the GitHub environment
+# approves each run before it gets them. Before approving a run of a pull request, read its
+# changes to .github/workflows/, pkg/tests/ and internal/testcleanup/.
+#
+# It runs for pushes to master and release branches, and for pull requests from branches of this
+# repository. Pull requests from forks get no secrets, so the job is skipped for them. The CI
+# check that branch protection requires does not depend on this workflow.
+#
+# The key of every object a run creates starts with the run prefix and a hyphen. Each test
+# deletes what it created, and the last step deletes what is left with that prefix and nothing
+# else, so runs may overlap in the Permit environment.
+#
+# Pinned by hand; Dependabot does not bump them: Go 1.27.1, and the PDP image by its digest.
+name: Integration
+
+on:
+  pull_request:
+  push:
+    branches: [master, 'release/**']
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+env:
+  GOTOOLCHAIN: local
+  PDP_IMAGE: >-
+    permitio/pdp-v2:0.9.16@sha256:e3cf30794ec2d256636b4714641df46e51ee58a3f1f0d24c606e214e0bf8669a
+
+jobs:
+  integration:
+    name: integration tests
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    # Runs of one pull request or branch never overlap, and a newer push to a pull request cancels
+    # its older run, whose last step still deletes what it created. Runs of different refs may
+    # overlap: each has its own run prefix and its own PDP.
+    concurrency:
+      group: integration-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    environment: integration
+    permissions:
+      contents: read
+    env:
+      PERMIT_TEST_RUN_PREFIX: gosdk-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      PROJECT: ${{ vars.PERMIT_PROJECT }}
+      ENV: ${{ vars.PERMIT_ENV }}
+      API_URL: https://api.permit.io
+      PDP_URL: http://localhost:7766
+    steps:
+      - name: Check the settings of the integration environment
+        env:
+          PERMIT_API_KEY: ${{ secrets.PERMIT_API_KEY }}
+        run: |
+          missing=()
+          [[ -n "$PERMIT_API_KEY" ]] || missing+=("the secret PERMIT_API_KEY")
+          [[ -n "$PROJECT" ]] || missing+=("the variable PERMIT_PROJECT")
+          [[ -n "$ENV" ]] || missing+=("the variable PERMIT_ENV")
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error title=Missing settings::Set ${missing[*]} in the integration environment."
+            exit 1
+          fi
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache: false
+      # A step, not a service container, so that it starts only after the settings check. Docker
+      # reads the key from the environment, so it is not in the command line.
+      - name: Start the PDP
+        env:
+          PDP_API_KEY: ${{ secrets.PERMIT_API_KEY }}
+        run: |
+          docker run -d --name permit-pdp -p 7766:7000 -e PDP_API_KEY "$PDP_IMAGE"
+      # Runs while the PDP starts. It compiles the tests, which fills the build cache for the test
+      # step, and builds the cleanup command that the last step runs, so that step compiles
+      # nothing after a cancel.
+      - name: Build the tests and the cleanup command
+        id: build
+        run: |
+          go test -c -race -tags integration -o /dev/null ./pkg/tests
+          go build -tags integration -o "$RUNNER_TEMP/cleanup" ./pkg/tests/cleanup
+      # /healthy answers 503 until the PDP has loaded the policy and data of the environment.
+      # Bound by elapsed time, not by tries, because a try can take up to 5 seconds.
+      - name: Wait for the PDP
+        run: |
+          while (( SECONDS < 300 )); do
+            if curl -sf --max-time 5 "$PDP_URL/healthy" >/dev/null 2>&1; then
+              echo "The PDP is healthy after ${SECONDS}s."
+              exit 0
+            fi
+            if [[ "$(docker inspect --format '{{.State.Running}}' permit-pdp)" != true ]]; then
+              echo "::error title=PDP stopped::The PDP container stopped. See the step Show the" \
+                "PDP logs."
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "::error title=PDP not healthy::$PDP_URL/healthy did not answer 200 within 300s."
+          exit 1
+      - name: Test
+        # Keep the JSON report for the next step and print the plain test output.
+        timeout-minutes: 16
+        env:
+          PDP_API_KEY: ${{ secrets.PERMIT_API_KEY }}
+        run: |
+          go test -tags integration -race -count=1 -shuffle=on -timeout 15m -json ./pkg/tests \
+            | tee "$RUNNER_TEMP/go-test.json" \
+            | jq -Rrj 'fromjson? // {Output: "\(.)\n"} | .Output // empty'
+      - name: Check that every package ran tests and none were skipped
+        run: .github/scripts/check-test-report.sh "$RUNNER_TEMP/go-test.json"
+      # The PDP's log can hold credentials that GitHub does not mask, such as a token derived from
+      # the API key in a failed request that it logs, so it is printed only through this filter,
+      # which replaces bearer tokens, JWTs and permit_key_ values. The filter also drops the health
+      # check requests, which are most of the log, and every "Health check failed" line but the
+      # last, which it prints at the end because it says why the PDP was not healthy.
+      - name: Show the PDP logs
+        if: failure()
+        run: |
+          docker logs permit-pdp 2>&1 | awk '
+            {
+              gsub(/[Bb][Ee][Aa][Rr][Ee][Rr][ \t]+[^ \t",)}]+/, "Bearer [REDACTED]")
+              gsub(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/, "[REDACTED-JWT]")
+              gsub(/permit_key_[A-Za-z0-9_-]+/, "[REDACTED]")
+            }
+            tolower($0) ~ /health check failed/ { last = $0; next }
+            !/GET \/health/ { print }
+            END { if (last != "") print last }
+          ' | tail -300 || true
+      - name: Stop the PDP
+        if: always()
+        run: docker rm -f permit-pdp || true
+      # Also after a failed, timed out or cancelled test step, whose tests may not have deleted
+      # what they created. When it fails, the steps above still show the test result.
+      - name: Delete what this run left
+        if: always() && steps.build.outcome == 'success'
+        timeout-minutes: 8
+        env:
+          PDP_API_KEY: ${{ secrets.PERMIT_API_KEY }}
+        run: |
+          if ! "$RUNNER_TEMP/cleanup"; then
+            echo "::error title=Cleanup failed::Objects whose key starts with" \
+              "$PERMIT_TEST_RUN_PREFIX- may be left; see this step's log. To delete them, run" \
+              "PERMIT_TEST_RUN_PREFIX=$PERMIT_TEST_RUN_PREFIX go run -tags integration" \
+              "./pkg/tests/cleanup with the other variables that pkg/tests reads."
+            exit 1
+          fi

@@ -55,8 +55,9 @@ func PermitContextFactory(ctx context.Context, client *openapi.APIClient, projec
 		if apiKeyLevel == ProjectAPIKeyLevel {
 			if project == "" {
 				return nil, PermitErrors.NewPermitContextError("You initiated the Permit.io " +
-					"client with a Project level API key, " +
-					"please set a context with the API key related project")
+					"client with a project API key and gave SetContext no project. Pass the " +
+					"API key's project, and an environment for the methods that work in an " +
+					"environment, such as Users")
 			}
 		}
 		return NewPermitContext(apiKeyLevel, project, environment), nil

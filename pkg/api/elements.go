@@ -26,8 +26,10 @@ func NewElementsApi(client *openapi.APIClient, config *config.PermitConfig) *Ele
 // LoginAs login as a given user.
 // Usage Example:
 // ```
-// userLogin := models.NewUserLoginRequestInput("user-id", "tenant-id")
-// embeddedLoginRequestOutput, err := PermitClient.Api.Elements.LoginAs(ctx, userLogin)
+//
+//	userLogin := models.NewUserLoginRequestInput("user-id", "tenant-id")
+//	embeddedLoginRequestOutput, err := PermitClient.Api.Elements.LoginAs(ctx, *userLogin)
+//
 // ```
 func (e *Elements) LoginAs(ctx context.Context, userLogin models.UserLoginRequestInput) (*models.EmbeddedLoginRequestOutput, error) {
 	err := e.lazyLoadPermitContext(ctx)

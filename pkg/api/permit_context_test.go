@@ -15,14 +15,20 @@ import (
 	"github.com/permitio/permit-golang/pkg/api"
 	"github.com/permitio/permit-golang/pkg/config"
 	permitErrors "github.com/permitio/permit-golang/pkg/errors"
+	"github.com/permitio/permit-golang/pkg/models"
+	"github.com/permitio/permit-golang/pkg/permit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 const (
-	scopeJSON      = `{"organization_id":"org","project_id":"proj","environment_id":"env"}`
-	scopedUserJSON = `{"key":"u1","id":"11111111-1111-1111-1111-111111111111",` +
+	scopeJSON             = `{"organization_id":"org","project_id":"proj","environment_id":"env"}`
+	organizationScopeJSON = `{"organization_id":"org","project_id":null,"environment_id":null}`
+	projectScopeJSON      = `{"organization_id":"org","project_id":"proj","environment_id":null}`
+	scopedUserJSON        = `{"key":"u1","id":"11111111-1111-1111-1111-111111111111",` +
 		`"organization_id":"org","project_id":"proj","environment_id":"env",` +
 		`"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","roles":[]}`
 	scopeErrorBody = `{"detail":"scope request rejected"}`
@@ -92,8 +98,60 @@ func (s *scopeAPI) serve(w http.ResponseWriter, r *http.Request) {
 }
 
 func newClientWithoutContext(apiURL string) *api.PermitApiClient {
-	cfg := config.NewConfigBuilder("test-token").WithApiUrl(apiURL).WithLogger(zap.NewNop()).Build()
+	cfg := config.NewConfigBuilder("test-token").
+		WithApiUrl(apiURL).
+		WithPdpUrl(apiURL).
+		WithLogger(zap.NewNop()).
+		Build()
 	return api.NewPermitApiClient(&cfg)
+}
+
+// newSDKClientWithoutContext returns a client made with permit.New, as an application makes it,
+// where newClientWithoutContext returns the api package's client. Both of its URLs point at
+// serverURL, its context is not set, so its first call loads the context from the API key
+// scope, and it logs to logger.
+func newSDKClientWithoutContext(serverURL string, logger *zap.Logger) *permit.Client {
+	cfg := config.NewConfigBuilder(testToken).
+		WithApiUrl(serverURL).
+		WithPdpUrl(serverURL).
+		WithLogger(logger).
+		Build()
+	return permit.New(cfg)
+}
+
+// newKeyLevelAPI returns a fakeAPI that answers the API key scope request with scope, as the API
+// does for a key of that level, and every other request with a user.
+func newKeyLevelAPI(t *testing.T, scope string) *fakeAPI {
+	t.Helper()
+	f := &fakeAPI{}
+	f.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		f.requests = append(f.requests, recordedRequest{method: r.Method, path: r.URL.Path})
+		f.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/v2/api-key/scope" {
+			_, _ = w.Write([]byte(scope))
+			return
+		}
+		_, _ = w.Write([]byte(userJSON))
+	}))
+	t.Cleanup(f.Close)
+	return f
+}
+
+// assertUserRequestsUseProjectAndEnvironment asserts that srv received requests other than the
+// scope request, and that each of them went to user u1 in project "proj" and environment "env".
+func assertUserRequestsUseProjectAndEnvironment(t *testing.T, srv *fakeAPI) {
+	t.Helper()
+	userRequests := 0
+	for _, req := range srv.recorded() {
+		if req.path == "/v2/api-key/scope" {
+			continue
+		}
+		userRequests++
+		assert.Equal(t, "/v2/facts/proj/env/users/u1", req.path, req.method)
+	}
+	assert.NotZero(t, userRequests)
 }
 
 // waitingContext closes arrived the first time a call asks for its Done channel. A call that waits
@@ -174,6 +232,51 @@ func requireContextError(t *testing.T, err error) permitErrors.PermitError {
 	require.True(t, errors.As(err, &permitErr), "want a PermitError, got %T: %v", err, err)
 	require.Equal(t, permitErrors.ContextError, permitErr.ErrorCode, err.Error())
 	return permitErr
+}
+
+func TestContextErrorWithOrganizationKeyNamesTheCallThatSetsTheContext(t *testing.T) {
+	srv := newKeyLevelAPI(t, organizationScopeJSON)
+	client := newSDKClientWithoutContext(srv.URL, zap.NewNop())
+	ctx := context.Background()
+	user := *models.NewUserCreate("u1")
+
+	_, err := client.SyncUser(ctx, user)
+
+	requireContextError(t, err)
+	wantErr := permitErrors.NewPermitContextError("The client's context has no project or " +
+		"environment. Call client.Api.SetContext(ctx, project, environment) first, with the " +
+		"project and the environment to use.")
+	assert.Equal(t, wantErr.Error(), err.Error())
+
+	client.Api.SetContext(ctx, "proj", "env")
+	_, err = client.SyncUser(ctx, user)
+
+	require.NoError(t, err)
+	assertUserRequestsUseProjectAndEnvironment(t, srv)
+}
+
+func TestSetContextWithProjectKeyLogsWhatToSet(t *testing.T) {
+	srv := newKeyLevelAPI(t, projectScopeJSON)
+	core, logs := observer.New(zapcore.ErrorLevel)
+	client := newSDKClientWithoutContext(srv.URL, zap.New(core))
+	ctx := context.Background()
+
+	client.Api.SetContext(ctx, "", "env")
+
+	entries := logs.All()
+	require.Len(t, entries, 1)
+	assert.Equal(t, `SetContext could not set project "" and environment "env", `+
+		"so the client has no context", entries[0].Message)
+	wantErr := permitErrors.NewPermitContextError("You initiated the Permit.io client with a " +
+		"project API key and gave SetContext no project. Pass the API key's project, and an " +
+		"environment for the methods that work in an environment, such as Users")
+	assert.Equal(t, wantErr.Error(), fmt.Sprint(entries[0].ContextMap()["error"]))
+
+	client.Api.SetContext(ctx, "proj", "env")
+	_, err := client.SyncUser(ctx, *models.NewUserCreate("u1"))
+
+	require.NoError(t, err)
+	assertUserRequestsUseProjectAndEnvironment(t, srv)
 }
 
 func TestPermitContextLoadsOnceForConcurrentCalls(t *testing.T) {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -27,12 +28,12 @@ func NewResourceActionGroupsApi(client *openapi.APIClient, config *config.Permit
 // List all resource action groups of a resource by resource key.
 // Usage Example:
 //
-//	`resourceActions, err := PermitClient.Api.ResourceActions.List(ctx, "resource-key", 1, 10)`
+//	`actionGroups, err := PermitClient.Api.ResourceActionGroups.List(ctx, "resource-key", 1, 10)`
 func (a *ResourceActionGroups) List(ctx context.Context, resourceKey string, page int, perPage int) ([]models.ResourceActionGroupRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		a.logger.Error("error listing resource actions - max per page: "+string(perPageLimit), zap.Error(err))
+		a.logger.Error("error listing resource action groups - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := a.lazyLoadPermitContext(ctx)
@@ -53,7 +54,7 @@ func (a *ResourceActionGroups) ListByAttributes(ctx context.Context, resourceKey
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		a.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		a.logger.Error("error listing resource action groups - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := a.lazyLoadPermitContext(ctx)
@@ -76,10 +77,10 @@ func (a *ResourceActionGroups) ListByAttributes(ctx context.Context, resourceKey
 	return actionGroups, nil
 }
 
-// Get a resource action by resource key and action key.
+// Get a resource action group by resource key and action group key.
 // Usage Example:
 //
-//	`resourceAction, err := PermitClient.Api.ResourceActions.Get(ctx, "resource-key", "action-key")`
+//	`actionGroup, err := PermitClient.Api.ResourceActionGroups.Get(ctx, "resource-key", "action-group-key")`
 func (a *ResourceActionGroups) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionGroupRead, error) {
 	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
@@ -93,28 +94,28 @@ func (a *ResourceActionGroups) Get(ctx context.Context, resourceKey string, acti
 	return resourceActionsGroups, nil
 }
 
-// GetByKey gets a resource action by resource key and action key.
+// GetByKey gets a resource action group by resource key and action group key.
 // Usage Example:
 //
-//	`resourceAction, err := PermitClient.Api.ResourceActions.GetByKey(ctx, "resource-key", "action-key")`
+//	`actionGroup, err := PermitClient.Api.ResourceActionGroups.GetByKey(ctx, "resource-key", "action-group-key")`
 func (a *ResourceActionGroups) GetByKey(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionGroupRead, error) {
 	return a.Get(ctx, resourceKey, actionKey)
 }
 
-// GetById gets a resource action by resource ID and action ID.
+// GetById gets a resource action group by resource ID and action group ID.
 // Usage Example:
 //
-//	`resourceAction, err := PermitClient.Api.ResourceActions.GetById(ctx, uuid.New(), uuid.New())`
+//	`actionGroup, err := PermitClient.Api.ResourceActionGroups.GetById(ctx, uuid.New(), uuid.New())`
 func (a *ResourceActionGroups) GetById(ctx context.Context, resourceKey uuid.UUID, actionKey uuid.UUID) (*models.ResourceActionGroupRead, error) {
 	return a.Get(ctx, resourceKey.String(), actionKey.String())
 }
 
-// Create a resource action by resource key.
+// Create a resource action group by resource key.
 // Usage Example:
 // ```
 //
-//	resourceActionCreate := models.NewResourceActionCreate("action-key", "action-name")
-//	resourceAction, err := PermitClient.Api.ResourceActions.Create(ctx, "resource-key", resourceActionCreate)
+//	actionGroupCreate := models.NewResourceActionGroupCreate("action-group-key", "action-group-name")
+//	actionGroup, err := PermitClient.Api.ResourceActionGroups.Create(ctx, "resource-key", *actionGroupCreate)
 //
 // ```
 func (a *ResourceActionGroups) Create(ctx context.Context, resourceKey string, resourceActionCreate models.ResourceActionGroupCreate) (*models.ResourceActionGroupRead, error) {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -10,6 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// Projects manages the projects of the API key's organization. Its methods need no project or
+// environment in the client's context, so they work without SetContext.
 type Projects struct {
 	permitBaseApi
 }
@@ -24,14 +27,15 @@ func NewProjectsApi(client *openapi.APIClient, config *config.PermitConfig) *Pro
 	}
 }
 
-// List all projects in the organization, requires Project level API key, or higher.
+// List all projects in the organization, requires Environment level API key, or higher.
 // Usage Example:
-// `projects, err := PermitClient.Api.Projects.List(ctx, 1, 10)`
+//
+//	`projects, err := PermitClient.Api.Projects.List(ctx, 1, 10)`
 func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.ProjectRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		p.logger.Error("error listing projects - max per page: "+string(perPageLimit), zap.Error(err))
+		p.logger.Error("error listing projects - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)
@@ -49,9 +53,10 @@ func (p *Projects) List(ctx context.Context, page int, perPage int) ([]models.Pr
 	return projects, nil
 }
 
-// Get a project by key, requires Project level API key, or higher.
+// Get a project by key, requires Environment level API key, or higher.
 // Usage Example:
-// `project, err := PermitClient.Api.Projects.Get(ctx, "project-key")`
+//
+//	`project, err := PermitClient.Api.Projects.Get(ctx, "project-key")`
 func (p *Projects) Get(ctx context.Context, projectKey string) (*models.ProjectRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)
 	if err != nil {
@@ -67,25 +72,29 @@ func (p *Projects) Get(ctx context.Context, projectKey string) (*models.ProjectR
 	return project, nil
 }
 
-// GetByKey get a project by key, requires Project level API key, or higher.
+// GetByKey get a project by key, requires Environment level API key, or higher.
 // Usage Example:
-// `project, err := PermitClient.Api.Projects.GetByKey(ctx, "project-key")`
+//
+//	`project, err := PermitClient.Api.Projects.GetByKey(ctx, "project-key")`
 func (p *Projects) GetByKey(ctx context.Context, projectKey string) (*models.ProjectRead, error) {
 	return p.Get(ctx, projectKey)
 }
 
-// GetById get a project by id, requires Project level API key, or higher.
+// GetById get a project by id, requires Environment level API key, or higher.
 // Usage Example:
-// `project, err := PermitClient.Api.Projects.GetById(ctx, uuid.New())`
+//
+//	`project, err := PermitClient.Api.Projects.GetById(ctx, uuid.New())`
 func (p *Projects) GetById(ctx context.Context, projectId uuid.UUID) (*models.ProjectRead, error) {
 	return p.Get(ctx, projectId.String())
 }
 
-// Create a new project, requires Project level API key, or higher.
+// Create a new project, requires Organization level API key.
 // Usage Example:
 // ```
-// projectCreate := models.NewProjectCreate("project-key", "project-name")
-// project, err := PermitClient.Api.Projects.Create(ctx, projectCreate)
+//
+//	projectCreate := models.NewProjectCreate("project-key", "project-name")
+//	project, err := PermitClient.Api.Projects.Create(ctx, *projectCreate)
+//
 // ```
 func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreate) (*models.ProjectRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)
@@ -105,9 +114,11 @@ func (p *Projects) Create(ctx context.Context, projectCreate models.ProjectCreat
 // Update a project, requires Project level API key, or higher.
 // Usage Example:
 // ```
-// projectUpdate := models.NewProjectUpdate()
-// projectUpdate.SetName("new-project-name")
-// project, err := PermitClient.Api.Projects.Update(ctx, "project-key", projectUpdate)
+//
+//	projectUpdate := models.NewProjectUpdate()
+//	projectUpdate.SetName("new-project-name")
+//	project, err := PermitClient.Api.Projects.Update(ctx, "project-key", *projectUpdate)
+//
 // ```
 func (p *Projects) Update(ctx context.Context, projectKey string, projectUpdate models.ProjectUpdate) (*models.ProjectRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.OrganizationAPIKeyLevel)

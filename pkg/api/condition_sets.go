@@ -33,7 +33,7 @@ func (c *ConditionSets) List(ctx context.Context, page int, perPage int) ([]mode
 
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		c.logger.Error("error listing condition sets - max per page: "+string(perPageLimit), zap.Error(err))
+		c.logger.Error("error listing condition sets - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 
@@ -127,8 +127,10 @@ func (c *ConditionSets) GetById(ctx context.Context, conditionSetId uuid.UUID) (
 // Create a new condition set.
 // Usage Example:
 // ```
-// csCreate := models.NewConditionSetCreate("cs-key", "cs-name")
-// cs, err := PermitClient.Api.ConditionSets.Create(ctx, csCreate)
+//
+//	csCreate := models.NewConditionSetCreate("cs-key", "cs-name")
+//	cs, err := PermitClient.Api.ConditionSets.Create(ctx, *csCreate)
+//
 // ```
 func (c *ConditionSets) Create(ctx context.Context, csCreate models.ConditionSetCreate) (*models.ConditionSetRead, error) {
 	err := c.lazyLoadPermitContext(ctx)

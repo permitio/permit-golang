@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -35,7 +36,7 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing roles - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := r.lazyLoadPermitContext(ctx)
@@ -52,14 +53,15 @@ func (r *Roles) List(ctx context.Context, page int, perPage int) ([]models.RoleR
 	return roles, nil
 }
 
-// List all roles in the current environment by attributes filter
+// ListByAttributes lists the roles in the current environment by an attributes filter.
 // Usage Example:
-// `roles, err := PermitClient.Api.Roles.List(ctx,1, 10, map[string]string{"attribute": "xyz"})`
+//
+//	`roles, err := PermitClient.Api.Roles.ListByAttributes(ctx, 1, 10, map[string]interface{}{"attribute": "xyz"})`
 func (r *Roles) ListByAttributes(ctx context.Context, page int, perPage int, attributesFilter map[string]interface{}) ([]models.RoleRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing roles - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := r.lazyLoadPermitContext(ctx)
@@ -112,8 +114,10 @@ func (r *Roles) GetById(ctx context.Context, roleKey uuid.UUID) (*models.RoleRea
 // Create a new role.
 // Usage Example:
 // ```
-// roleCreate := models.NewRoleCreate("role-key", "role-name")
-// role, err := PermitClient.Api.Roles.Create(ctx, roleCreate)
+//
+//	roleCreate := models.NewRoleCreate("role-key", "role-name")
+//	role, err := PermitClient.Api.Roles.Create(ctx, *roleCreate)
+//
 // ```
 func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*models.RoleRead, error) {
 	err := r.lazyLoadPermitContext(ctx)
@@ -141,9 +145,11 @@ func (r *Roles) Create(ctx context.Context, roleCreate models.RoleCreate) (*mode
 // Update a role.
 // Usage Example:
 // ```
-// roleUpdate := models.NewRoleUpdate()
-// roleUpdate.SetName("new-role-name")
-// role, err := PermitClient.Api.Roles.Update(ctx, "role-key", roleUpdate)
+//
+//	roleUpdate := models.NewRoleUpdate()
+//	roleUpdate.SetName("new-role-name")
+//	role, err := PermitClient.Api.Roles.Update(ctx, "role-key", *roleUpdate)
+//
 // ```
 func (r *Roles) Update(ctx context.Context, roleKey string, roleUpdate models.RoleUpdate) (*models.RoleRead, error) {
 	err := r.lazyLoadPermitContext(ctx)

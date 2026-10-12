@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,7 +45,7 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), zap.Error(err))
+		t.logger.Error("error listing tenants - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := t.lazyLoadPermitContext(ctx)
@@ -61,14 +62,15 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 	return tenants, nil
 }
 
-// ListTenantsByAttributes gets tenants under the context's environment - by a given attributes.
+// ListByAttributes gets tenants under the context's environment - by a given attributes.
 // Usage Example:
-// `tenants, err := PermitClient.Api.Tenants.ListTenantsByAttributes(ctx, map[string]string{"key": "value"})`
+//
+//	`tenants, err := PermitClient.Api.Tenants.ListByAttributes(ctx, map[string]interface{}{"key": "value"}, 1, 10)`
 func (t *Tenants) ListByAttributes(ctx context.Context, attributes map[string]interface{}, page int, perPage int) ([]models.TenantRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		t.logger.Error("error listing tenants - max per page: "+string(perPageLimit), zap.Error(err))
+		t.logger.Error("error listing tenants - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := t.lazyLoadPermitContext(ctx)
@@ -122,8 +124,10 @@ func (t *Tenants) GetById(ctx context.Context, tenantId uuid.UUID) (*models.Tena
 // Create a new tenant under the context's environment.
 // Usage Example:
 // ```
-// tenantCreate := models.NewTenantCreate("tenant-key", "tenant-name")
-// tenant, err := PermitClient.Api.Tenants.Create(ctx, tenantCreate)
+//
+//	tenantCreate := models.NewTenantCreate("tenant-key", "tenant-name")
+//	tenant, err := PermitClient.Api.Tenants.Create(ctx, *tenantCreate)
+//
 // ```
 func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) (*models.TenantRead, error) {
 	err := t.lazyLoadPermitContext(ctx)
@@ -152,9 +156,11 @@ func (t *Tenants) Create(ctx context.Context, tenantCreate models.TenantCreate) 
 // Update a tenant under the context's environment.
 // Usage Example:
 // ```
-// tenantUpdate := models.NewTenantUpdate()
-// tenantUpdate.SetName("new-tenant-name")
-// tenant, err := PermitClient.Api.Tenants.Update(ctx, "tenant-key", tenantUpdate)
+//
+//	tenantUpdate := models.NewTenantUpdate()
+//	tenantUpdate.SetName("new-tenant-name")
+//	tenant, err := PermitClient.Api.Tenants.Update(ctx, "tenant-key", *tenantUpdate)
+//
 // ```
 func (t *Tenants) Update(ctx context.Context, tenantKey string, tenantUpdate models.TenantUpdate) (*models.TenantRead, error) {
 	err := t.lazyLoadPermitContext(ctx)
@@ -196,7 +202,7 @@ func (t *Tenants) ListTenantUsers(ctx context.Context, tenantKey string, page in
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		t.logger.Error("error listing tenant users - max per page: "+string(perPageLimit), zap.Error(err))
+		t.logger.Error("error listing tenant users - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := t.lazyLoadPermitContext(ctx)

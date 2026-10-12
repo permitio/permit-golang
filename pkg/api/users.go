@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -46,7 +47,7 @@ func (u *Users) List(ctx context.Context, page int, perPage int) ([]models.UserR
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		u.logger.Error("error listing users - max per page: "+string(perPageLimit), zap.Error(err))
+		u.logger.Error("error listing users - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := u.lazyLoadPermitContext(ctx)
@@ -106,7 +107,7 @@ func (u *Users) GetById(ctx context.Context, userId uuid.UUID) (*models.UserRead
 //	userCreate.SetEmail("user-email@mail.com")
 //	userCreate.SetFirstName("user-first-name")
 //	userCreate.SetLastName("user-last-name")
-//	user, err := PermitClient.Api.Users.Create(ctx, userCreate)
+//	user, err := PermitClient.Api.Users.Create(ctx, *userCreate)
 //
 // ```
 func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*models.UserRead, error) {
@@ -147,7 +148,7 @@ func (u *Users) Create(ctx context.Context, userCreate models.UserCreate) (*mode
 //	userUpdate.SetEmail("new@email.com")
 //	userUpdate.SetFirstName("new-first-name")
 //	userUpdate.SetLastName("new-last-name")
-//	user, err := PermitClient.Api.Users.Update(ctx, "user-key", userUpdate)
+//	user, err := PermitClient.Api.Users.Update(ctx, "user-key", *userUpdate)
 //
 // ```
 func (u *Users) Update(ctx context.Context, userKey string, userUpdate models.UserUpdate) (*models.UserRead, error) {
@@ -205,7 +206,8 @@ func (u *Users) AssignRole(ctx context.Context, userKey string, roleKey string, 
 
 // AssignResourceRole assigns a *resource* role to a user in your context's environment, by user key, role key, tenant key and a resource instance string (e.g. "document:mydoc").
 // Usage Example:
-// `roleAssignment, err := PermitClient.Api.Users.AssignRole(ctx, "user-key", "role-key", "default", "document:mydoc")`
+//
+//	`roleAssignment, err := PermitClient.Api.Users.AssignResourceRole(ctx, "user-key", "role-key", "default", "document:mydoc")`
 func (u *Users) AssignResourceRole(ctx context.Context, userKey string, roleKey string, tenantKey string, resourceInstance string) (*models.RoleAssignmentRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
@@ -225,7 +227,8 @@ func (u *Users) AssignResourceRole(ctx context.Context, userKey string, roleKey 
 
 // UnassignResourceRole unassigns a *resource* role from a user in your context's environment, by user key, role key, tenant key and a resource instance string (e.g. "document:mydoc").
 // Usage Example:
-// `err := PermitClient.Api.Users.UnassignResourceRole(ctx, "user-key", "role-key", "default", "document:mydoc")`
+//
+//	`user, err := PermitClient.Api.Users.UnassignResourceRole(ctx, "user-key", "role-key", "default", "document:mydoc")`
 func (u *Users) UnassignResourceRole(ctx context.Context, userKey string, roleKey string, tenantKey string, resourceInstance string) (*models.UserRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
@@ -245,7 +248,8 @@ func (u *Users) UnassignResourceRole(ctx context.Context, userKey string, roleKe
 
 // UnassignRole unassigns a role from a user in your context's environment, by user key, role key and tenant key.
 // Usage Example:
-// `err := PermitClient.Api.Users.UnassignRole(ctx, "user-key", "role-key", "default")`
+//
+//	`user, err := PermitClient.Api.Users.UnassignRole(ctx, "user-key", "role-key", "default")`
 func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string, tenantKey string) (*models.UserRead, error) {
 	err := u.lazyLoadPermitContext(ctx)
 	if err != nil {
@@ -264,14 +268,13 @@ func (u *Users) UnassignRole(ctx context.Context, userKey string, roleKey string
 
 // GetAssignedRoles lists all roles assigned to a user in your context's environment, by user key, tenant key and pagination options.
 // Usage Example:
-// ```
 //
 //	`roleAssignmentList, err := PermitClient.Api.Users.GetAssignedRoles(ctx, "user-key", "default", 1, 10)`
 func (u *Users) GetAssignedRoles(ctx context.Context, userKey string, tenantKey string, page int, perPage int) ([]models.RoleAssignmentRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		u.logger.Error("error listing users - max per page: "+string(perPageLimit), zap.Error(err))
+		u.logger.Error("error listing assigned roles - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := u.lazyLoadPermitContext(ctx)

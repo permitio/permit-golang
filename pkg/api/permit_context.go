@@ -73,7 +73,12 @@ func (a *permitBaseApi) requestPermitContext(
 	// contexts end.
 	defer func() {
 		permitContextLoads.Lock()
-		// Keep a context that SetContext stored while the request was in flight.
+		// Keep a context that SetContext stored while the request was in flight. SetContext
+		// writes a.config.Context without taking this lock, and lazyLoadPermitContext and the
+		// API methods read it without the lock, so a SetContext call that runs while other calls
+		// on the same client run is a data race, here and wherever they read the context.
+		// Callers must call SetContext before their other calls on that client, never at the
+		// same time as them.
 		if permitContext != nil && a.config.Context == nil {
 			a.config.Context = permitContext
 		}

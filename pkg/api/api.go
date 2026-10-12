@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -109,18 +110,14 @@ func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLeve
 		methodApiLevel = methodApiLevelArg[0]
 	}
 	if methodApiLevel == config.ProjectAPIKeyLevel && a.config.GetContext().GetEnvironment() == "" {
-		return errors.NewPermitContextError("You're trying to use an SDK method that's specific to a project," +
-			"but you haven't set the current project in your client's context yet," +
-			"or you are using an organization level API key." +
-			"Please set the context to a specific" +
-			"project using `PermitClient.SetPermitContext()` method.")
+		return errors.NewPermitContextError("This method needs a project and an environment in " +
+			"the client's context. Call client.Api.SetContext(ctx, project, environment) first, " +
+			"with both.")
 	}
 	if methodApiLevel == config.EnvironmentAPIKeyLevel && a.config.GetContext().GetProject() == "" && a.config.GetContext().GetEnvironment() == "" {
-		return errors.NewPermitContextError("You're trying to use an SDK method that's specific to an environment," +
-			"but you haven't set the current environment in your client's context yet," +
-			"or you are using an organization/project level API key." +
-			"Please set the context to a specific" +
-			"environment using `PermitClient.SetPermitContext()` method.")
+		return errors.NewPermitContextError("The client's context has no project or environment. " +
+			"Call client.Api.SetContext(ctx, project, environment) first, with the project and " +
+			"the environment to use.")
 	}
 	return nil
 }
@@ -149,10 +146,15 @@ type PermitApiClient struct {
 	Users                *Users
 }
 
+// SetContext sets the project and environment that the client's methods use. Call it once,
+// after permit.New and before other calls, with an organization or a project API key. It does
+// not return an error: when it fails, it logs the error and clears the project and environment
+// that an earlier call set.
 func (p *PermitApiClient) SetContext(ctx context.Context, project string, environment string) {
 	permitContext, err := config.PermitContextFactory(ctx, p.client, project, environment, true)
 	if err != nil {
-		p.logger.Error("", zap.Error(err))
+		p.logger.Error(fmt.Sprintf("SetContext could not set project %q and environment %q, "+
+			"so the client has no context", project, environment), zap.Error(err))
 	}
 	p.config.Context = permitContext
 }

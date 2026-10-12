@@ -39,7 +39,11 @@ func NewBulkCheckRequestParameterized(user []User, action []Action, resource []R
 }
 
 func newJsonBulkCheckRequest(opaUrl string, requests ...CheckRequest) ([]byte, error) {
-	checkReq := NewBulkCheckRequest(requests...)
+	checkReq := make([]CheckRequest, len(requests))
+	for i, request := range requests {
+		request.Resource = withKeyFromID(request.Resource)
+		checkReq[i] = request
+	}
 	var genericCheckReq interface{} = checkReq
 	if opaUrl != "" {
 		genericCheckReq = &struct {
@@ -65,6 +69,7 @@ func (e *PermitEnforcer) parseBulkResponse(res *http.Response) ([]CheckResponse,
 		e.logger.Error("error reading Permit.BulkCheck() response from PDP", zap.Error(permitError))
 		return nil, permitError
 	}
+	res.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
 		e.logger.Error(string(bodyBytes), zap.Error(err))
@@ -177,8 +182,13 @@ func (e *PermitEnforcer) bulkCheck(requests ...CheckRequest) ([]bool, error) {
 func (e *PermitEnforcer) FilterObjects(user User, action Action, context map[string]string, resources ...ResourceI) ([]ResourceI, error) {
 	requests := make([]CheckRequest, len(resources))
 	for i, resource := range resources {
+		key := ""
+		if r, ok := resource.(*Resource); ok {
+			key = r.Key
+		}
 		permitResource := ResourceBuilder(resource.GetType()).
 			WithID(resource.GetID()).
+			WithKey(key).
 			WithContext(resource.GetContext()).
 			WithAttributes(resource.GetAttributes()).
 			WithTenant(resource.GetTenant()).

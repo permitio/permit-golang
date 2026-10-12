@@ -39,6 +39,7 @@ func (e *PermitEnforcer) parseAllTenantsResponse(res *http.Response) ([]AllTenan
 		e.logger.Error("error reading Permit.AllTenantsCheck() response from PDP", zap.Error(permitError))
 		return nil, permitError
 	}
+	res.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
 		e.logger.Error(string(bodyBytes), zap.Error(err))
@@ -100,9 +101,11 @@ func (e *PermitEnforcer) AllTenantsCheck(user User, action Action, resource Reso
 	if err != nil {
 		return nil, err
 	}
-	allowResults := make([]TenantDetails, len(results))
-	for result := range results {
-		allowResults[result] = results[result].Tenant
+	allowResults := make([]TenantDetails, 0, len(results))
+	for _, result := range results {
+		if result.Allow {
+			allowResults = append(allowResults, result.Tenant)
+		}
 	}
 	return allowResults, nil
 }

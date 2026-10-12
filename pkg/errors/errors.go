@@ -95,3 +95,29 @@ func NewPermitConnectionError(err error) PermitError {
 
 	return NewPermitError(ErrorMessage(err.Error()), ConnectionError, GENERAL_ERROR, nil)
 }
+
+// NewPermitContextErrorWithCause returns a ContextError that wraps cause, so errors.Is, errors.As
+// and errors.Unwrap reach it, and whose text ends with the text of cause. When cause is a
+// PermitError with a status code, the text also gives that status, and StatusCode and ResponseBody
+// are copied from cause.
+func NewPermitContextErrorWithCause(additionalMessage ErrorMessage, cause error) PermitError {
+	permitError := NewPermitContextError(additionalMessage)
+	if cause == nil {
+		return permitError
+	}
+	var causePermitError PermitError
+	if e.As(cause, &causePermitError) && causePermitError.StatusCode != 0 {
+		permitError.StatusCode = causePermitError.StatusCode
+		permitError.ResponseBody = causePermitError.ResponseBody
+		permitError.error = fmt.Errorf("%s (status %d): %w",
+			permitError.Error(), permitError.StatusCode, cause)
+		return permitError
+	}
+	permitError.error = fmt.Errorf("%s: %w", permitError.Error(), cause)
+	return permitError
+}
+
+// Unwrap returns the error that caused p, or nil when p records no cause.
+func (p PermitError) Unwrap() error {
+	return e.Unwrap(p.error)
+}

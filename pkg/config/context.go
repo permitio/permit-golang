@@ -4,7 +4,6 @@ import (
 	"context"
 	PermitErrors "github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/openapi"
-	"strings"
 )
 
 type PermitContext struct {
@@ -41,15 +40,8 @@ func (p *PermitContext) GetProject() string {
 func PermitContextFactory(ctx context.Context, client *openapi.APIClient, project string, environment string, isUserInput bool) (*PermitContext, error) {
 	apiKeysScopeRead, httpRes, err := client.APIKeysApi.GetApiKeyScope(ctx).Execute()
 	err = PermitErrors.HttpErrorHandle(err, httpRes)
-	additionalErrorMessage := PermitErrors.EmptyErrorMessage
 	if err != nil {
-		if strings.Contains(err.Error(), string(PermitErrors.ForbiddenMessage)) {
-			additionalErrorMessage = PermitErrors.ForbiddenMessage
-		}
-		if strings.Contains(err.Error(), string(PermitErrors.UnauthorizedMessage)) {
-			additionalErrorMessage = PermitErrors.UnauthorizedMessage
-		}
-		return nil, PermitErrors.NewPermitContextError(additionalErrorMessage)
+		return nil, PermitErrors.NewPermitContextErrorWithCause("the API key scope request failed", err)
 	}
 	apiKeyLevel := GetApiKeyLevel(apiKeysScopeRead)
 	if isUserInput {

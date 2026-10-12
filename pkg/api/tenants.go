@@ -56,6 +56,7 @@ func (t *Tenants) List(ctx context.Context, page int, perPage int) ([]models.Ten
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		t.logger.Error("error listing tenants", zap.Error(err))
+		return nil, err
 	}
 	return tenants, nil
 }
@@ -79,6 +80,7 @@ func (t *Tenants) ListByAttributes(ctx context.Context, attributes map[string]in
 	err = errors.HttpErrorHandle(err, httpRes)
 	if err != nil {
 		t.logger.Error("error listing tenants", zap.Error(err))
+		return nil, err
 	}
 	return tenants, nil
 

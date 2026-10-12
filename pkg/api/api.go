@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/permitio/permit-golang/pkg/config"
@@ -48,13 +48,13 @@ func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration, options WaitFor
 		stringTimeout := ""
 		if timeout == nil {
 			if timeoutFromConfig := a.config.GetFactsSyncTimeout(); timeoutFromConfig != nil {
-				stringTimeout = fmt.Sprintf("%d", int64(timeoutFromConfig.Seconds()))
+				stringTimeout = formatSeconds(*timeoutFromConfig)
 			}
 		} else {
-			stringTimeout = fmt.Sprintf("%d", int64(timeout.Seconds()))
+			stringTimeout = formatSeconds(*timeout)
 		}
 
-		clientConfig := a.client.GetConfig()
+		clientConfig := copyClientConfig(a.client.GetConfig())
 		clientConfig.DefaultHeader["X-Wait-Timeout"] = stringTimeout
 
 		// Add the timeout policy header if a policy is provided or set in the config
@@ -69,6 +69,24 @@ func (a *PermitBaseFactsApi) WaitForSync(timeout *time.Duration, options WaitFor
 		a.logger.Warn("Attempted to wait for sync, but 'proxyFactsViaPdp' is not enabled. Ignoring")
 		return a
 	}
+}
+
+// copyClientConfig returns a copy of cfg with its own DefaultHeader map, so headers set on the
+// copy never reach requests made with cfg, which other goroutines may be sending concurrently.
+func copyClientConfig(cfg *openapi.Configuration) *openapi.Configuration {
+	clone := *cfg
+	clone.DefaultHeader = make(map[string]string, len(cfg.DefaultHeader))
+	for key, value := range cfg.DefaultHeader {
+		clone.DefaultHeader[key] = value
+	}
+	return &clone
+}
+
+// formatSeconds formats d as a decimal number of seconds for the X-Wait-Timeout header, without
+// truncating fractions or using an exponent (1.5s is "1.5", 1ns is "0.000000001"). A single
+// division keeps millisecond values exact, where d.Seconds() can give "1.1179999999999999".
+func formatSeconds(d time.Duration) string {
+	return strconv.FormatFloat(float64(d)/float64(time.Second), 'f', -1, 64)
 }
 
 func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
@@ -156,7 +174,7 @@ func NewFactsClientConfig(config *config.PermitConfig) *openapi.Configuration {
 	if config.GetProxyFactsViaPDP() {
 		// Add X-Wait-Timeout header only if factsSyncTimeout is set
 		if timeoutFromConfig := config.GetFactsSyncTimeout(); timeoutFromConfig != nil {
-			stringTimeout := fmt.Sprintf("%d", int64(timeoutFromConfig.Seconds()))
+			stringTimeout := formatSeconds(*timeoutFromConfig)
 			clientConfig.DefaultHeader["X-Wait-Timeout"] = stringTimeout
 		}
 
@@ -174,6 +192,9 @@ func NewFactsClientConfig(config *config.PermitConfig) *openapi.Configuration {
 }
 
 func NewPermitApiClient(config *config.PermitConfig) *PermitApiClient {
+	if config.Logger == nil {
+		config.Logger = zap.NewNop()
+	}
 	baseClientConfig := NewClientConfig(config)
 	client := openapi.NewAPIClient(baseClientConfig)
 

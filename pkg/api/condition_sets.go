@@ -57,7 +57,28 @@ func (c *ConditionSets) List(ctx context.Context, page int, perPage int) ([]mode
 		return nil, err
 	}
 
-	return conditionSets.PaginatedResultConditionSetRead.GetData(), nil
+	return conditionSetListData(conditionSets), nil
+}
+
+// conditionSetListData returns the condition sets in a list response, which the API sends either
+// as a bare JSON array or as a paginated envelope. A response with no items gives an empty,
+// non-nil slice.
+func conditionSetListData(
+	response *models.ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet,
+) []models.ConditionSetRead {
+	if response == nil {
+		return []models.ConditionSetRead{}
+	}
+	var conditionSets []models.ConditionSetRead
+	if response.PaginatedResultConditionSetRead != nil {
+		conditionSets = response.PaginatedResultConditionSetRead.GetData()
+	} else if response.ConditionSetRead != nil {
+		conditionSets = *response.ConditionSetRead
+	}
+	if conditionSets == nil {
+		return []models.ConditionSetRead{}
+	}
+	return conditionSets
 }
 
 // Get a condition set by key.

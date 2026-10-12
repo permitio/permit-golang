@@ -41,6 +41,11 @@ func (r *RoleAssignments) List(ctx context.Context, page int, perPage int, userF
 	if err != nil {
 		return nil, err
 	}
+	// An empty body leaves response nil. The decoder tries RoleAssignmentDetailedRead first and
+	// stores "[]" there, so an empty page leaves RoleAssignmentRead nil.
+	if response == nil || response.RoleAssignmentRead == nil {
+		return &[]models.RoleAssignmentRead{}, nil
+	}
 	return response.RoleAssignmentRead, nil
 }
 
@@ -48,6 +53,11 @@ func (r *RoleAssignments) ListDetailed(ctx context.Context, page int, perPage in
 	response, err := r.list(ctx, page, perPage, userFilter, roleFilter, tenantFilter, true)
 	if err != nil {
 		return nil, err
+	}
+	// An empty body leaves response nil. An empty page decodes into RoleAssignmentDetailedRead,
+	// the variant the decoder tries first.
+	if response == nil || response.RoleAssignmentDetailedRead == nil {
+		return &[]models.RoleAssignmentDetailedRead{}, nil
 	}
 	return response.RoleAssignmentDetailedRead, nil
 }

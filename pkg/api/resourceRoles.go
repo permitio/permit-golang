@@ -330,11 +330,7 @@ func (r *ResourceRoles) GetAncestors(
 		return nil, err
 	}
 
-	if retrieved.Roles.PaginatedResultResourceRoleRead != nil {
-		return &retrieved.Roles.PaginatedResultResourceRoleRead.Data, nil
-	} else {
-		return retrieved.Roles.ResourceRoleRead, nil
-	}
+	return resourceRoleListData(retrieved), nil
 }
 
 func (r *ResourceRoles) GetDescendants(
@@ -364,9 +360,17 @@ func (r *ResourceRoles) GetDescendants(
 		return nil, err
 	}
 
-	if retrieved.Roles.PaginatedResultResourceRoleRead != nil {
-		return &retrieved.Roles.PaginatedResultResourceRoleRead.Data, nil
-	} else {
-		return retrieved.Roles.ResourceRoleRead, nil
+	return resourceRoleListData(retrieved), nil
+}
+
+// resourceRoleListData returns the roles in an ancestors or descendants response, which holds
+// either a bare JSON array or a paginated envelope.
+func resourceRoleListData(response *models.ResourceRoleList) *[]models.ResourceRoleRead {
+	if response != nil && response.Roles.PaginatedResultResourceRoleRead != nil {
+		return &response.Roles.PaginatedResultResourceRoleRead.Data
 	}
+	if response != nil && response.Roles.ResourceRoleRead != nil {
+		return response.Roles.ResourceRoleRead
+	}
+	return &[]models.ResourceRoleRead{}
 }

@@ -16,6 +16,8 @@ Install the SDK using the following command:
 go get github.com/permitio/permit-golang
 ```
 
+The SDK requires Go 1.19 or later. CI tests it on Go 1.19 and Go 1.27.
+
 Put the package under your project folder and add the following in import:
 
 ```golang

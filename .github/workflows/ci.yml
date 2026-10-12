@@ -1,65 +1,207 @@
+# CI for the v1 line. It reads no secrets, so pull requests from forks run the
+# same checks. The tests in pkg/tests need live Permit credentials and build
+# only with -tags integration; they are not run here.
+#
+# Go versions are pinned by hand; Dependabot does not bump go-version:
+#   1.19.13, the go.mod floor: fmt, vet and the test matrix in this file.
+#   1.27.1: the test matrix and govulncheck in this file, and verify-release.yml.
+#
+# The module is small, so setup-go's cache is off in every job (cache: false):
+# each run downloads and builds from scratch and restores nothing saved by
+# another run.
 name: CI
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+  push:
+    branches: [master, 'release/**']
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+env:
+  # Each job tests the Go version it installs, never a toolchain that go.mod asks for.
+  GOTOOLCHAIN: local
 
 jobs:
-  build_and_lint:
-    name: Build and Lint
-    runs-on: ubuntu-latest
+  fmt:
+    name: fmt
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.19'
-          cache: true
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # gofmt output changes between Go releases, so the check uses the go.mod floor.
+          go-version: '1.19.13'
+          cache: false
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [[ -n "$unformatted" ]]; then
+            echo "These files are not formatted with gofmt from Go 1.19.13:" >&2
+            echo "$unformatted" >&2
+            echo "Format them with that gofmt:" >&2
+            echo "  go install golang.org/dl/go1.19.13@latest && go1.19.13 download" >&2
+            echo "  \"\$(go1.19.13 env GOROOT)/bin/gofmt\" -w <files>" >&2
+            exit 1
+          fi
+      - name: Check that the CI job needs every other job
+        run: |
+          ci=.github/workflows/ci.yml
+          # The parentheses matter: yq reads a - b - c as a - (b - c).
+          unlisted=$(yq -r '((.jobs | keys) - ["ci"]) - .jobs.ci.needs | .[]' "$ci")
+          unknown=$(yq -r '.jobs.ci.needs - ((.jobs | keys) - ["ci"]) | .[]' "$ci")
+          if [[ -n "$unlisted" ]]; then
+            echo "Add these jobs to the needs list of the CI job in $ci:" >&2
+            echo "$unlisted" >&2
+          fi
+          if [[ -n "$unknown" ]]; then
+            echo "These names in the needs list of the CI job in $ci are not jobs:" >&2
+            echo "$unknown" >&2
+          fi
+          if [[ -n "$unlisted" || -n "$unknown" ]]; then
+            exit 1
+          fi
 
-      - name: Download dependencies
-        run: go mod download
+  vet:
+    name: vet
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.19.13'
+          cache: false
+      - name: Vet
+        # No file is excluded by the integration tag, so this also vets the default build.
+        run: go vet -tags integration ./...
+      - name: Check that go.mod and go.sum are tidy
+        # A requirement that no package imports would slip past the module guard below and
+        # govulncheck, yet still raise the minimum versions of every application using the SDK.
+        run: |
+          go mod tidy
+          if ! git diff --exit-code -- go.mod go.sum; then
+            echo "go.mod or go.sum is not tidy. Run go mod tidy with Go 1.19.13 and commit it." >&2
+            exit 1
+          fi
+      - name: Check that the removed modules stay out
+        run: |
+          removed=(golang.org/x/net golang.org/x/oauth2 google.golang.org/appengine
+            google.golang.org/protobuf github.com/golang/protobuf)
+          modules=$(go list -deps -test -tags integration \
+            -f '{{with .Module}}{{.Path}}{{end}}' ./...)
+          found=()
+          for module in "${removed[@]}"; do
+            if grep -qFx "$module" <<<"$modules"; then
+              found+=("$module")
+            fi
+          done
+          if (( ${#found[@]} > 0 )); then
+            echo "The packages or tests import these modules again: ${found[*]}" >&2
+            echo "v1.3.0 removed them: the SDK's old minimum versions of x/net and x/oauth2" >&2
+            echo "had published advisories, and every application that uses the SDK" >&2
+            echo "inherits its minimum versions. Use the standard library instead (for" >&2
+            echo "example context, not golang.org/x/net/context); go mod why -m <module>" >&2
+            echo "shows which import brings a module in." >&2
+            exit 1
+          fi
 
-      - name: Run go fmt
-        run: go fmt ./...
-
-      - name: Build
-        run: go build -v ./...
-
-  tests:
-    name: Tests
-    runs-on: ubuntu-latest
+  test:
+    name: test (Go ${{ matrix.go }})
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    services:
-      pdp:
-        image: permitio/pdp-v2:latest
-        ports:
-          - 7766:7000
-        env:
-          PDP_API_KEY: ${{ secrets.PERMIT_API_KEY }}
-          PDP_DEBUG: true
-    env:
-      PROJECT: "golang-tests"
-      ENV: "dev"
-      # Use localhost for GitHub Actions (for Act local testing, setup PDP separately)
-      PDP_URL: "http://localhost:7766"
-      API_URL: "https://api.permit.io"
-      PDP_API_KEY: ${{ secrets.PERMIT_API_KEY }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.19.13', '1.27.1']
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.19'
-          cache: true
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: Test
+        # Keep the JSON report for the next step and print the plain test output.
+        run: |
+          go test -race -count=1 -shuffle=on -json ./... \
+            | tee "$RUNNER_TEMP/go-test.json" \
+            | jq -Rrj 'fromjson? // {Output: "\(.)\n"} | .Output // empty'
+      - name: Check that every package ran tests and none were skipped
+        run: .github/scripts/check-test-report.sh "$RUNNER_TEMP/go-test.json"
 
-      - name: Download dependencies
-        run: go mod download
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - name: Install govulncheck
+        # Built with this job's Go, so it can load that Go's standard library.
+        run: GOBIN="$RUNNER_TEMP/bin" go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
+      - name: Scan
+        run: |
+          .github/scripts/govulncheck.sh "$RUNNER_TEMP/bin/govulncheck" \
+            "$RUNNER_TEMP/govulncheck.json" ./...
 
-      - name: Run tests
-        run: go test -v ./...
+  ci:
+    # Branch protection requires only this check, so the jobs above and their
+    # matrix entries can be renamed without editing the branch rule. always():
+    # GitHub counts a skipped required check as passing, so this job must run,
+    # and fail, when a needed job fails or is cancelled.
+    name: CI
+    if: always()
+    needs: [fmt, vet, test, govulncheck]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every job to succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<<"$NEEDS"
+          # fmt checks that needs lists every other job, so fmt must stay in needs.
+          if ! jq -e 'has("fmt")' <<<"$NEEDS" >/dev/null; then
+            echo "Keep fmt in the needs list of this job: it checks that list." >&2
+            exit 1
+          fi
+          if ! jq -e 'all(.[]; .result == "success")' <<<"$NEEDS" >/dev/null; then
+            echo "A required job did not succeed." >&2
+            exit 1
+          fi

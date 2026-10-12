@@ -1,0 +1,77 @@
+name: Verify release
+
+# v1 release steps: (1) merge the release pull request once the CI check passed
+# on its exact head commit; (2) tag that commit with the version and push the
+# tag; (3) run this workflow with the version.
+#
+# The go command downloads the version twice: from proxy.golang.org (checked
+# against sum.golang.org), and straight from the git tag, building the module
+# zip itself. The two h1: hashes must be equal.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published version to verify, for example v1.3.0
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+env:
+  GOTOOLCHAIN: local
+
+jobs:
+  verify:
+    name: Verify release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions: {}
+    env:
+      MODULE: github.com/permitio/permit-golang
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Check the version input
+        run: |
+          if [[ ! "$VERSION" =~ ^v1\.[0-9]+\.[0-9]+$ ]]; then
+            printf 'version must look like v1.3.0, got %q\n' "$VERSION" >&2
+            exit 1
+          fi
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - name: Compare the published hash with the tag
+        # Outside any module, so go mod download fetches exactly MODULE@VERSION.
+        working-directory: ${{ runner.temp }}
+        run: |
+          if ! published=$(GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org \
+            GOMODCACHE="$RUNNER_TEMP/proxy" go mod download -json "$MODULE@$VERSION"); then
+            echo "Could not download $MODULE@$VERSION from proxy.golang.org:" >&2
+            echo "$published" >&2
+            exit 1
+          fi
+          if ! tagged=$(GOPROXY=direct GOSUMDB=off \
+            GOMODCACHE="$RUNNER_TEMP/direct" go mod download -json "$MODULE@$VERSION"); then
+            echo "Could not build $MODULE@$VERSION from its git tag:" >&2
+            echo "$tagged" >&2
+            exit 1
+          fi
+          jq -r '"proxy: \(.Sum) from \(.Origin.Ref) at \(.Origin.Hash)"' <<<"$published"
+          jq -r '"tag:   \(.Sum) from \(.Origin.Ref) at \(.Origin.Hash)"' <<<"$tagged"
+          if ! jq -e --argjson t "$tagged" '.Sum == $t.Sum and (.Sum | startswith("h1:"))' \
+            <<<"$published" >/dev/null; then
+            echo "The module served for $VERSION does not match its tag." >&2
+            echo "Do not announce the release. Check whether the tag moved after the" \
+              "proxy fetched it: compare the two commits above." >&2
+            exit 1
+          fi
+          echo "The module served for $VERSION matches its tag."

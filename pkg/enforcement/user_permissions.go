@@ -45,6 +45,7 @@ func (e *PermitEnforcer) parseUserPermissionsResponse(res *http.Response) (UserP
 		e.logger.Error("error reading Permit.GetUserPermissions() response from PDP", zap.Error(permitError))
 		return nil, permitError
 	}
+	res.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
 		e.logger.Error(string(bodyBytes), zap.Error(err))

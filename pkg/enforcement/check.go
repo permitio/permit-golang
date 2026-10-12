@@ -35,7 +35,7 @@ func NewCheckRequest(user User, action Action, resource Resource, context map[st
 }
 
 func newJsonCheckRequest(opaUrl string, user User, action Action, resource Resource, context map[string]string) ([]byte, error) {
-	checkReq := NewCheckRequest(user, action, resource, context)
+	checkReq := NewCheckRequest(user, action, withKeyFromID(resource), context)
 	var genericCheckReq interface{} = checkReq
 	if opaUrl != "" {
 		genericCheckReq = &struct {

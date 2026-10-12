@@ -151,18 +151,18 @@ func (a *ResourceActionGroups) Create(ctx context.Context, resourceKey string, r
 //	return resourceAction, nil
 //}
 
-// Delete a resource action by resource key and action key.
+// Delete a resource action group by resource key and action group key.
 // Usage Example:
 //
-//	`err := PermitClient.Api.ResourceActions.Delete(ctx, "resource-key", "action-key")`
+//	`err := PermitClient.Api.ResourceActionGroups.Delete(ctx, "resource-key", "action-group-key")`
 func (a *ResourceActionGroups) Delete(ctx context.Context, resourceKey string, actionKey string) error {
 	err := a.lazyLoadPermitContext(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = a.client.ResourceActionsApi.DeleteResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
+	_, err = a.client.ResourceActionGroupsApi.DeleteResourceActionGroup(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
 	if err != nil {
-		a.logger.Error("error deleting resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logger.Error("error deleting resource action group: "+resourceKey+":"+actionKey, zap.Error(err))
 		return err
 	}
 	return nil

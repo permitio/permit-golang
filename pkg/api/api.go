@@ -91,17 +91,8 @@ func formatSeconds(d time.Duration) string {
 
 func (a *permitBaseApi) lazyLoadPermitContext(ctx context.Context, methodApiLevelArg ...config.APIKeyLevel) error {
 	var methodApiLevel config.APIKeyLevel
-	permitContext := a.config.Context.GetContext()
-
-	if permitContext == nil {
-		// To ensure it's a regular client and not factsClient
-		baseClientConfig := NewClientConfig(a.config)
-		client := openapi.NewAPIClient(baseClientConfig)
-		newPermitContext, err := config.PermitContextFactory(ctx, client, "", "", false)
-		if err != nil {
-			return err
-		}
-		a.config.Context = newPermitContext
+	if err := a.loadPermitContext(ctx); err != nil {
+		return err
 	}
 
 	if len(methodApiLevelArg) == 0 {

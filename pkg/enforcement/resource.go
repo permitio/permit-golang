@@ -74,3 +74,13 @@ func (r *Resource) Build() Resource {
 	}
 	return *r
 }
+
+// withKeyFromID returns r with Key set to ID when Key is empty. The PDP identifies a resource
+// instance by "key" and ignores "id", so a resource that has only an ID would otherwise be checked
+// as its type alone.
+func withKeyFromID(r Resource) Resource {
+	if r.Key == "" {
+		r.Key = r.ID
+	}
+	return r
+}

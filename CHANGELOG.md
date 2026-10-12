@@ -2,6 +2,22 @@
 
 ## v1.3.0 (unreleased)
 
+### Behaviour changes
+
+- Checks send a resource key for resources that have an ID and no key, so the PDP checks the
+  resource instance instead of only its type:
+  - `Check`, `BulkCheck` and `AllTenantsCheck`: a resource built with `WithID` and no `WithKey`
+    sends its ID as `key`, the field the PDP reads.
+  - `FilterObjects`: an `*enforcement.Resource` built with `WithKey` sends its key, which was
+    dropped before, and any other object, including your own `ResourceI` types, sends `GetID()`
+    as `key`.
+
+  Before, the PDP received no key for these resources, so it checked the resource type, and every
+  object of that type got the same decision. Decisions can now change for resources that have
+  instance-level roles or relationships in Permit. Check the calls that pass resources built with
+  `WithID`, and the objects you pass to `FilterObjects`: the IDs they send must be the resource
+  instance keys you use in Permit. To keep a type-level check, leave both the ID and the key empty.
+
 ### Dependencies
 
 - The module no longer requires `golang.org/x/net` or `golang.org/x/oauth2`, so its `go.mod` also
@@ -47,3 +63,30 @@
 - A nil logger no longer makes the SDK panic the first time it logs an error. `NewPermitConfig`
   with a nil logger, a builder chain used without `Build()`, a `PermitConfig` literal and
   `WithLogger(nil)` now all give a client that uses a no-op logger.
+- `ResourceActionGroups.Delete` could never work before: it sent the request to the resource
+  action route, so it deleted the action whose key matched the group's key, or failed when there
+  was no such action. It now deletes the action group.
+- Concurrent first calls on a client whose context is not set no longer each send a
+  `GET /v2/api-key/scope` request and write the client's context at the same time. One call sends
+  the request; calls that start while it is in flight wait for it, or until their own context
+  ends, instead of sending their own, and share its result. The next call after a failed request
+  sends a new one.
+- When the API key scope request fails, the error is still a `PermitError` with `ErrorCode`
+  `ContextError`, and it now keeps the cause: the text includes the status and the underlying
+  error, `StatusCode` and `ResponseBody` come from the scope response, and `errors.Is`,
+  `errors.As` and `errors.Unwrap` reach the underlying error, such as `context.Canceled` or a
+  connection error. Before, the status, body and cause were dropped, and every failure other than
+  401 and 403 had the same text. Because the text now includes the cause, match on `ErrorCode`
+  (`ContextError`) or on the message constants, such as `errors.UnauthorizedMessage`, not on the
+  full text. `PermitError` has a new `Unwrap` method, and `errors.NewPermitContextErrorWithCause`
+  is new.
+- `Check`, `BulkCheck`, `FilterObjects`, `AllTenantsCheck`, `GetUserPermissions` and
+  `GetUserPermissionsWithOptions` return a `PermitError` with `ErrorCode` `UnexpectedError` and the
+  status when the PDP answers with a status the SDK did not handle, such as 400, 421 or 429.
+  Before, `Check` returned `false` with a nil error, so a failure looked like a deny, and
+  `AllTenantsCheck` returned no tenants. `errors.HttpErrorHandle(nil, response)` now returns this
+  error, instead of nil, for a status outside 200-299 that it does not map to another code.
+- Errors from `BulkCheck`, `FilterObjects`, `AllTenantsCheck`, `GetUserPermissions` and
+  `GetUserPermissionsWithOptions` include the PDP response body in `ResponseBody`; it was empty.
+- `AllTenantsCheck` returns only the tenants where the PDP allowed the action. Before, it also
+  returned tenants whose decision was `"allow": false`.

@@ -47,6 +47,9 @@ type IPermitConfig interface {
 }
 
 func NewPermitConfig(apiUrl string, token string, pdpUrl string, debug bool, context *PermitContext, logger *zap.Logger) *PermitConfig {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	return &PermitConfig{
 		apiUrl:  apiUrl,
 		token:   token,

@@ -17,6 +17,9 @@ type PermitEnforcer struct {
 }
 
 func NewPermitEnforcerClient(config *config.PermitConfig) *PermitEnforcer {
+	if config.Logger == nil {
+		config.Logger = zap.NewNop()
+	}
 	client := config.GetHTTPClient()
 	if client == nil {
 		client = http.DefaultClient

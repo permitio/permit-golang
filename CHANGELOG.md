@@ -135,3 +135,9 @@ those secrets too.
   with `[REDACTED]` as a whole. `ResourceActions`, `ResourceActionGroups` and
   `ResourceAttributes` still return the generated client's error type unchanged, as in v1.2.8;
   the SDK's own log line for those errors has the API key and `permit_key_` values replaced.
+- `Tenants.List` and `Tenants.ListByAttributes` return the error when the request fails. Before,
+  they logged it and returned a nil error, so a 401 or 500 response or a connection failure looked
+  like an empty list, and a 200 response whose body they could not read gave no tenants or a
+  partly read list. Now they return a nil list with the error: a `PermitError` with the status
+  code when a response arrived, or else the error from sending the request, such as a connection
+  failure or a cancelled context.

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/permitio/permit-golang/internal/redact"
 )
 
 type PermitError struct {
@@ -22,8 +24,18 @@ func NewPermitUnexpectedError(err error, response *http.Response) PermitError {
 	return NewPermitError(ErrorMessage(err.Error()), UnexpectedError, GENERAL_ERROR, response)
 }
 
+// NewPermitError returns a PermitError whose text and ResponseBody have the API key that the
+// request was sent with and the values that start with permit_key_ replaced by [REDACTED]. In a
+// JSON ResponseBody, the values under keys that name a credential, such as secret, token,
+// api_key, password and authorization, are replaced too. The API key is taken from the
+// Authorization header of response.Request, and is replaced only when it has at least 16
+// characters; with a transport that does not set Response.Request, the other values are still
+// replaced.
 func NewPermitError(errorMessage ErrorMessage, errorCode ErrorCode, errorType ErrorType, response *http.Response) PermitError {
-	permitError := e.New(fmt.Sprintf("ErrorCode: %s, ErrorType: %s, Message: %s", errorCode, errorType, errorMessage))
+	apiKey := requestAPIKey(response)
+	message := redact.Text(string(errorMessage), apiKey)
+	permitError := e.New(fmt.Sprintf("ErrorCode: %s, ErrorType: %s, Message: %s",
+		errorCode, errorType, message))
 
 	if response == nil {
 		return PermitError{
@@ -34,12 +46,26 @@ func NewPermitError(errorMessage ErrorMessage, errorCode ErrorCode, errorType Er
 	} else {
 		return PermitError{
 			StatusCode:   response.StatusCode,
-			ResponseBody: getJsonFromHttpResponse(response),
+			ResponseBody: redact.Body(getJsonFromHttpResponse(response), apiKey),
 			error:        permitError,
 			ErrorCode:    errorCode,
 			ErrorType:    errorType,
 		}
 	}
+}
+
+// requestAPIKey returns the credential in the Authorization header of the request that response
+// answers, without its scheme, or "" when there is none. The SDK sends the configured API key
+// there, so this is the key to remove from what the response is turned into.
+func requestAPIKey(response *http.Response) string {
+	if response == nil || response.Request == nil {
+		return ""
+	}
+	authorization := response.Request.Header.Get("Authorization")
+	if _, credential, found := strings.Cut(authorization, " "); found {
+		return strings.TrimSpace(credential)
+	}
+	return authorization
 }
 
 func NewPermitNotFoundError(err error, response *http.Response) PermitError {

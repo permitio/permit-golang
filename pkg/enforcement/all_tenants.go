@@ -42,7 +42,7 @@ func (e *PermitEnforcer) parseAllTenantsResponse(res *http.Response) ([]AllTenan
 	res.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
-		e.logger.Error(string(bodyBytes), zap.Error(err))
+		e.logErrorResponse("Permit.AllTenantsCheck()", err)
 		return nil, err
 	}
 	if e.config.GetOpaUrl() != "" {

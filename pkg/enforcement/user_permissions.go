@@ -48,7 +48,7 @@ func (e *PermitEnforcer) parseUserPermissionsResponse(res *http.Response) (UserP
 	res.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
-		e.logger.Error(string(bodyBytes), zap.Error(err))
+		e.logErrorResponse("Permit.GetUserPermissions()", err)
 		return nil, err
 	}
 	if e.config.GetOpaUrl() != "" {

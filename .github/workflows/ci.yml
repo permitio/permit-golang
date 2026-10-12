@@ -1,10 +1,12 @@
 # CI for the v1 line. It reads no secrets, so pull requests from forks run the
 # same checks. The tests in pkg/tests need live Permit credentials and build
-# only with -tags integration; they are not run here.
+# only with -tags integration; integration.yml runs them, and nothing here
+# depends on it.
 #
 # Go versions are pinned by hand; Dependabot does not bump go-version:
 #   1.19.13, the go.mod floor: fmt, vet and the test matrix in this file.
-#   1.27.1: the test matrix and govulncheck in this file, and verify-release.yml.
+#   1.27.1: the test matrix and govulncheck in this file, verify-release.yml and
+#   integration.yml.
 #
 # The module is small, so setup-go's cache is off in every job (cache: false):
 # each run downloads and builds from scratch and restores nothing saved by

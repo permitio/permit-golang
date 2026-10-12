@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -32,7 +33,7 @@ func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page 
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		a.logger.Error("error listing resource attributes - max per page: "+string(perPageLimit), zap.Error(err))
+		a.logger.Error("error listing resource attributes - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := a.lazyLoadPermitContext(ctx)
@@ -87,7 +88,7 @@ func (a *ResourceAttributes) GetById(ctx context.Context, resourceKey uuid.UUID,
 // ```
 //
 //	resourceAttributeCreate := models.NewResourceAttributeCreate("attribute-key", models.AttributeType("string"))
-//	resourceAttribute, err := PermitClient.Api.ResourceAttributes.Create(ctx, "resource-key", resourceAttributeCreate)
+//	resourceAttribute, err := PermitClient.Api.ResourceAttributes.Create(ctx, "resource-key", *resourceAttributeCreate)
 //
 // ```
 func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, resourceAttributeCreate models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error) {
@@ -110,7 +111,7 @@ func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, res
 //
 //	resourceAttributeUpdate := models.NewResourceAttributeUpdate()
 //	resourceAttributeUpdate.SetType("bool")
-//	resourceAttribute, err := PermitClient.Api.ResourceAttributes.Update(ctx, "resource-key", "attribute-key", resourceAttributeUpdate)
+//	resourceAttribute, err := PermitClient.Api.ResourceAttributes.Update(ctx, "resource-key", "attribute-key", *resourceAttributeUpdate)
 //
 // ```
 func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, attributeKey string, resourceAttributeUpdate models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error) {

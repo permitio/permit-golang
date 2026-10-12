@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -32,7 +33,7 @@ func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.R
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing resources - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing resources - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := r.lazyLoadPermitContext(ctx)
@@ -52,13 +53,13 @@ func (r *Resources) List(ctx context.Context, page int, perPage int) ([]models.R
 // Search for resources by key or name.
 // Usage Example:
 //
-//	`resources, err := PermitClient.Api.Resources.List(ctx, 1, 10)`
+//	`resources, err := PermitClient.Api.Resources.Search(ctx, 1, 10, "document")`
 func (r *Resources) Search(ctx context.Context, page int, perPage int, query string) ([]models.ResourceRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing resources - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing resources - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 
@@ -124,8 +125,8 @@ func (r *Resources) GetById(ctx context.Context, resourceId uuid.UUID) (*models.
 // Usage Example:
 // ```
 //
-//	resourceCreate := models.NewResourceCreate("document", "Document", map[string]models.ActionBlockEditable{"read": {}, "write": {}}
-//	resource, err := PermitClient.Api.Resources.Create(ctx, resourceCreate)
+//	resourceCreate := models.NewResourceCreate("document", "Document", map[string]models.ActionBlockEditable{"read": {}, "write": {}})
+//	resource, err := PermitClient.Api.Resources.Create(ctx, *resourceCreate)
 //
 // ```
 func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCreate) (*models.ResourceRead, error) {
@@ -148,8 +149,8 @@ func (r *Resources) Create(ctx context.Context, resourceCreate models.ResourceCr
 // ```
 //
 //	resourceUpdate := models.NewResourceUpdate()
-//	resourceUpdate.SetActions(map[string]models.ActionBlockEditable{"read": {}, "write": {}}
-//	resource, err := PermitClient.Api.Resources.Update(ctx, "my-resource", resourceUpdate)
+//	resourceUpdate.SetActions(map[string]models.ActionBlockEditable{"read": {}, "write": {}})
+//	resource, err := PermitClient.Api.Resources.Update(ctx, "my-resource", *resourceUpdate)
 //
 // ```
 func (r *Resources) Update(ctx context.Context, resourceKey string, resourceUpdate models.ResourceUpdate) (*models.ResourceRead, error) {

@@ -25,6 +25,14 @@ those secrets too.
   instance-level roles or relationships in Permit. Check the calls that pass resources built with
   `WithID`, and the objects you pass to `FilterObjects`: the IDs they send must be the resource
   instance keys you use in Permit. To keep a type-level check, leave both the ID and the key empty.
+- `Check`, `BulkCheck`, `FilterObjects`, `AllTenantsCheck`, `GetUserPermissions` and
+  `GetUserPermissionsWithOptions` return a `PermitError` with `ErrorCode` `UnexpectedError` and the
+  status when the PDP answers with a status the SDK did not handle, such as 400, 421 or 429.
+  Before, `Check` returned `false` with a nil error, so a failure looked like a deny, and
+  `AllTenantsCheck` returned no tenants. `errors.HttpErrorHandle(nil, response)` now returns this
+  error, instead of nil, for a status outside 200-299 that it does not map to another code.
+  A rate-limited check (429) now returns an error instead of `false`: handle the error, for
+  example by retrying with a backoff, instead of treating it as a deny.
 - A JSON document in `PermitError.ResponseBody` that has a key naming a credential (see Fixes), or
   a credential written with JSON escapes, is now stored encoded again: compact, with the keys of
   each object sorted. Other bodies keep their bytes, apart from the values replaced in them.
@@ -96,12 +104,6 @@ those secrets too.
   (`ContextError`) or on the message constants, such as `errors.UnauthorizedMessage`, not on the
   full text. `PermitError` has a new `Unwrap` method, and `errors.NewPermitContextErrorWithCause`
   is new.
-- `Check`, `BulkCheck`, `FilterObjects`, `AllTenantsCheck`, `GetUserPermissions` and
-  `GetUserPermissionsWithOptions` return a `PermitError` with `ErrorCode` `UnexpectedError` and the
-  status when the PDP answers with a status the SDK did not handle, such as 400, 421 or 429.
-  Before, `Check` returned `false` with a nil error, so a failure looked like a deny, and
-  `AllTenantsCheck` returned no tenants. `errors.HttpErrorHandle(nil, response)` now returns this
-  error, instead of nil, for a status outside 200-299 that it does not map to another code.
 - Errors from `BulkCheck`, `FilterObjects`, `AllTenantsCheck`, `GetUserPermissions` and
   `GetUserPermissionsWithOptions` include the PDP response body in `ResponseBody`; it was empty.
 - `AllTenantsCheck` returns only the tenants where the PDP allowed the action. Before, it also
@@ -141,3 +143,28 @@ those secrets too.
   partly read list. Now they return a nil list with the error: a `PermitError` with the status
   code when a response arrived, or else the error from sending the request, such as a connection
   failure or a cancelled context.
+- The context error that a method returns when the client has no project or environment, such as
+  with an organization API key and no `SetContext` call, names the call that sets them,
+  `client.Api.SetContext(ctx, project, environment)`, and what to pass to it. Before, it named
+  `PermitClient.SetPermitContext()`, which does not exist. The `ErrorCode` is still
+  `ContextError`: match on `ErrorCode`, not on the text.
+- When `SetContext` fails, its Error log line names the project and environment it could not set;
+  the message was empty. With a project API key and no project, the logged error also asks for an
+  environment.
+- The list methods' log line for a page or page size out of range gives the page size limit as
+  `100` and names what the method lists. Before, it gave `d`, and some methods named the wrong
+  objects.
+
+### Documentation
+
+- The README examples compile. The `SyncUser` example checks the error before it reads the user,
+  and the `Check` example prints the error and passes a resource type to `ResourceBuilder`. New
+  README sections say which methods use the API URL and which use the PDP URL, with their
+  defaults, and when to call `SetContext` for each API key level.
+- The usage examples in the `pkg/api` doc comments call the method they document, with arguments
+  of the right types, and the examples this release changes render as code in godoc. godoc now
+  shows the `Environments.Update` doc comment. The doc comments of the `ResourceActionGroups`
+  methods, of `ListByAttributes` on `Tenants`, `Roles` and `ResourceActions`, and of
+  `ProxyConfigs.GetByKey` name their own method and object. `ProxyConfigs.List` says it lists the
+  proxy configs of the context's environment, the `Projects` methods give the API key level each
+  one needs, and `SetContext` has a doc comment.

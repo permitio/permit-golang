@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -24,14 +25,16 @@ func NewProxyConfigsApi(client *openapi.APIClient, config *config.PermitConfig) 
 	}
 }
 
-// List all ProxyConfigs in the organization, requires Environment level API key, or higher.
+// List the proxy configs in the environment of your context, requires Environment level API
+// key, or higher.
 // Usage Example:
-// `ProxyConfigs, err := PermitClient.Api.ProxyConfigs.List(ctx, 1, 10)`
+//
+//	`ProxyConfigs, err := PermitClient.Api.ProxyConfigs.List(ctx, 1, 10)`
 func (p *ProxyConfigs) List(ctx context.Context, page int, perPage int) ([]models.ProxyConfigRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		p.logger.Error("error listing ProxyConfigs - max per page: "+string(perPageLimit), zap.Error(err))
+		p.logger.Error("error listing ProxyConfigs - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := p.lazyLoadPermitContext(ctx, config.EnvironmentAPIKeyLevel)
@@ -67,9 +70,10 @@ func (p *ProxyConfigs) Get(ctx context.Context, proxyConfigKey string) (*models.
 	return proxyConfig, nil
 }
 
-// GetByKey get a project by key, requires Environment level API key, or higher.
+// GetByKey gets a proxy config by key, requires Environment level API key, or higher.
 // Usage Example:
-// `proxyConfig, err := PermitClient.Api.ProxyConfigs.GetByKey(ctx, "proxyconfig-key")`
+//
+//	`proxyConfig, err := PermitClient.Api.ProxyConfigs.GetByKey(ctx, "proxyconfig-key")`
 func (p *ProxyConfigs) GetByKey(ctx context.Context, ProxyConfigKey string) (*models.ProxyConfigRead, error) {
 	return p.Get(ctx, ProxyConfigKey)
 }
@@ -84,8 +88,10 @@ func (p *ProxyConfigs) GetById(ctx context.Context, ProxyConfigId uuid.UUID) (*m
 // Create a new proxy config, requires Environment level API key, or higher.
 // Usage Example:
 // ```
-// proxyConfigCreate := models.NewProxyConfigCreate("user:pass", "proxyConfigKey", "proxyConfigName")
-// proxyConfig, err := PermitClient.Api.ProxyConfigs.Create(ctx, proxyConfigCreate)
+//
+//	proxyConfigCreate := models.NewProxyConfigCreate("user:pass", "proxyConfigKey", "proxyConfigName")
+//	proxyConfig, err := PermitClient.Api.ProxyConfigs.Create(ctx, *proxyConfigCreate)
+//
 // ```
 func (p *ProxyConfigs) Create(ctx context.Context, proxyConfigCreate models.ProxyConfigCreate) (*models.ProxyConfigRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.EnvironmentAPIKeyLevel)
@@ -105,9 +111,11 @@ func (p *ProxyConfigs) Create(ctx context.Context, proxyConfigCreate models.Prox
 // Update a proxy config, requires Environment level API key, or higher.
 // Usage Example:
 // ```
-// proxyConfigUpdate := models.NewProxyConfigUpdate()
-// proxyConfigUpdate.SetName("new-proxy-config-name")
-// proxyConfig, err := PermitClient.Api.ProxyConfigs.Update(ctx, "proxy-config-key", proxyConfigUpdate)
+//
+//	proxyConfigUpdate := models.NewProxyConfigUpdate()
+//	proxyConfigUpdate.SetName("new-proxy-config-name")
+//	proxyConfig, err := PermitClient.Api.ProxyConfigs.Update(ctx, "proxy-config-key", *proxyConfigUpdate)
+//
 // ```
 func (p *ProxyConfigs) Update(ctx context.Context, proxyConfigKey string, proxyConfigUpdate models.ProxyConfigUpdate) (*models.ProxyConfigRead, error) {
 	err := p.lazyLoadPermitContext(ctx, config.EnvironmentAPIKeyLevel)

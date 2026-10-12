@@ -121,7 +121,7 @@ func (r *ResourceRelations) List(
 
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing relationship tuples - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing resource relations - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 

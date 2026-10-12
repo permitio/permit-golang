@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
@@ -32,7 +33,7 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		a.logger.Error("error listing resource actions - max per page: "+string(perPageLimit), zap.Error(err))
+		a.logger.Error("error listing resource actions - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := a.lazyLoadPermitContext(ctx)
@@ -47,14 +48,16 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	return resourceActions, nil
 }
 
-// List all actions in the current environment by attributes filter
+// ListByAttributes lists the actions of a resource in the current environment by an attributes
+// filter.
 // Usage Example:
-// `actions, err := PermitClient.Api.ResourceActions.List(ctx,1, 10, map[string]string{"attribute": "xyz"})`
+//
+//	`actions, err := PermitClient.Api.ResourceActions.ListByAttributes(ctx, "resource-key", 1, 10, map[string]interface{}{"attribute": "xyz"})`
 func (r *ResourceActions) ListByAttributes(ctx context.Context, resourceKey string, page int, perPage int, attributesFilter map[string]interface{}) ([]models.ResourceActionRead, error) {
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		r.logger.Error("error listing roles - max per page: "+string(perPageLimit), zap.Error(err))
+		r.logger.Error("error listing resource actions - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := r.lazyLoadPermitContext(ctx)
@@ -115,7 +118,7 @@ func (a *ResourceActions) GetById(ctx context.Context, resourceKey uuid.UUID, ac
 // ```
 //
 //	resourceActionCreate := models.NewResourceActionCreate("action-key", "action-name")
-//	resourceAction, err := PermitClient.Api.ResourceActions.Create(ctx, "resource-key", resourceActionCreate)
+//	resourceAction, err := PermitClient.Api.ResourceActions.Create(ctx, "resource-key", *resourceActionCreate)
 //
 // ```
 func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resourceActionCreate models.ResourceActionCreate) (*models.ResourceActionRead, error) {
@@ -138,7 +141,7 @@ func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resour
 //
 //	resourceActionUpdate := models.NewResourceActionUpdate()
 //	resourceActionUpdate.SetName("new-action-name")
-//	resourceAction, err := PermitClient.Api.ResourceActions.Update(ctx, "resource-key", "action-key", resourceActionUpdate)
+//	resourceAction, err := PermitClient.Api.ResourceActions.Update(ctx, "resource-key", "action-key", *resourceActionUpdate)
 //
 // ```
 func (a *ResourceActions) Update(ctx context.Context, resourceKey string, actionKey string, resourceActionUpdate models.ResourceActionUpdate) (*models.ResourceActionRead, error) {

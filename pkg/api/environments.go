@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/permitio/permit-golang/pkg/config"
@@ -33,7 +34,7 @@ func (e *Environments) List(ctx context.Context, page int, perPage int) ([]model
 	perPageLimit := int32(DefaultPerPageLimit)
 	if !isPaginationInLimit(int32(page), int32(perPage), perPageLimit) {
 		err := errors.NewPermitPaginationError()
-		e.logger.Error("error listing environments - max per page: "+string(perPageLimit), zap.Error(err))
+		e.logger.Error("error listing environments - max per page: "+fmt.Sprint(perPageLimit), zap.Error(err))
 		return nil, err
 	}
 	err := e.lazyLoadPermitContext(ctx)
@@ -111,12 +112,13 @@ func (e *Environments) Create(ctx context.Context, environmentCreate models.Envi
 
 // Update an environment in the project of your context.
 // Usage Example:
-//  ```
-//  environmentUpdate := models.NewEnvironmentUpdate()
-//  environmentUpdate.SetName("Production")
-// 	environment, err := PermitClient.Api.Environments.Update(ctx, "production", *environmentUpdate)
-//  ```
-
+// ```
+//
+//	environmentUpdate := models.NewEnvironmentUpdate()
+//	environmentUpdate.SetName("Production")
+//	environment, err := PermitClient.Api.Environments.Update(ctx, "production", *environmentUpdate)
+//
+// ```
 func (e *Environments) Update(ctx context.Context, environmentKey string, environmentUpdate models.EnvironmentUpdate) (*models.EnvironmentRead, error) {
 	err := e.lazyLoadPermitContext(ctx)
 	if err != nil {

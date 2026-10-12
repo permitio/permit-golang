@@ -2,6 +2,14 @@
 
 ## v1.3.0 (unreleased)
 
+### API keys and proxy config secrets in logs from v1.2.8 and earlier
+
+If your application printed the SDK configuration or a client, or logged the SDK's errors or its
+log output, with v1.2.8 or earlier, those logs may contain your Permit API key. Rotate the API key
+and delete those logs. If you read proxy configs whose secret is a set of headers, and logged
+`PermitError.ResponseBody` or debug output, those logs may also contain the header values: rotate
+those secrets too.
+
 ### Behaviour changes
 
 - Checks send a resource key for resources that have an ID and no key, so the PDP checks the
@@ -17,6 +25,14 @@
   instance-level roles or relationships in Permit. Check the calls that pass resources built with
   `WithID`, and the objects you pass to `FilterObjects`: the IDs they send must be the resource
   instance keys you use in Permit. To keep a type-level check, leave both the ID and the key empty.
+- A JSON document in `PermitError.ResponseBody` that has a key naming a credential (see Fixes), or
+  a credential written with JSON escapes, is now stored encoded again: compact, with the keys of
+  each object sorted. Other bodies keep their bytes, apart from the values replaced in them.
+- `Check`, `BulkCheck`, `FilterObjects`, `AllTenantsCheck`, `GetUserPermissions` and
+  `GetUserPermissionsWithOptions` log the PDP response body of a failed request only at Debug
+  level, with credentials replaced as in `PermitError.ResponseBody`. Before, they logged the whole
+  body at Error level, and all but `Check` used it as the log message. The Error level line now
+  has a fixed message, the error and the status code (`status_code`), without the body.
 
 ### Dependencies
 
@@ -90,3 +106,32 @@
   `GetUserPermissionsWithOptions` include the PDP response body in `ResponseBody`; it was empty.
 - `AllTenantsCheck` returns only the tenants where the PDP allowed the action. Before, it also
   returned tenants whose decision was `"allow": false`.
+- Printing the SDK configuration or a client with `fmt` (the `%v`, `%+v`, `%#v`, `%s`, `%q`,
+  `%x`, `%X` and `%d` verbs, with any flags and width) no longer shows the API key:
+  - `PermitConfig` holds the API key behind a pointer, so a `PermitConfig`, the config builder, a
+    `permit.Client`, its `Api` and the APIs in it such as `Users`, and an enforcer print an
+    address in place of the key. Their other fields print as before. Two `PermitConfig` values
+    from separate `NewPermitConfig` calls with the same arguments are no longer equal with `==`,
+    because the key is compared by its pointer; copies of one config are still equal.
+  - `openapi.Configuration`, such as the ones that `api.NewClientConfig` and
+    `api.NewFactsClientConfig` return, and `openapi.APIClient` print `[REDACTED]` in place of the
+    values of credential headers such as `Authorization`. They have new `Format` methods, and
+    `openapi.Configuration` also has new `String`, `GoString` and `MarshalJSON` methods, so
+    `encoding/json` and loggers that encode it as JSON show `[REDACTED]` for those headers too. A
+    pointer to either type now prints without the leading `&`. A struct that embeds either type
+    prints as that value alone, and one that embeds `openapi.Configuration` also encodes to JSON
+    as it alone. If you set `Debug` on an `openapi.Configuration`, the generated client still
+    logs each request with its headers; the SDK never sets it.
+- The text and `ResponseBody` of a `PermitError` made from an API or PDP response have the API
+  key the request was sent with, and any value that starts with `permit_key_`, replaced with
+  `[REDACTED]`, also where a JSON body writes them with escapes. In a JSON `ResponseBody`, the
+  strings and numbers under keys named `secret`, `token`, `api_key`, `apikey`, `password`,
+  `passwd`, `pwd`, `authorization`, `secret_key`, `private_key`, `access_key`, `credential`,
+  `credentials` or `cookie`, or ending in one of them such as `access_token`, `X-API-Key`,
+  `aws_secret_access_key` or `Set-Cookie` (ignoring case, `-` and `_`), are replaced with
+  `[REDACTED]` at any depth, and the rest of the body is kept. This includes the body kept when
+  `ProxyConfigs` cannot read a proxy config whose secret is a set of headers. An API key shorter
+  than 16 characters is not replaced, and a body nested more than 1000 levels deep is replaced
+  with `[REDACTED]` as a whole. `ResourceActions`, `ResourceActionGroups` and
+  `ResourceAttributes` still return the generated client's error type unchanged, as in v1.2.8;
+  the SDK's own log line for those errors has the API key and `permit_key_` values replaced.

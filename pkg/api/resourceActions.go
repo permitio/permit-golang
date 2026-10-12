@@ -41,7 +41,7 @@ func (a *ResourceActions) List(ctx context.Context, resourceKey string, page int
 	}
 	resourceActions, _, err := a.client.ResourceActionsApi.ListResourceActions(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	if err != nil {
-		a.logger.Error("error listing resource actions for resource: "+resourceKey, zap.Error(err))
+		a.logGeneratedClientError("error listing resource actions for resource: "+resourceKey, err)
 		return nil, err
 	}
 	return resourceActions, nil
@@ -88,7 +88,7 @@ func (a *ResourceActions) Get(ctx context.Context, resourceKey string, actionKey
 	}
 	resourceActions, _, err := a.client.ResourceActionsApi.GetResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
 	if err != nil {
-		a.logger.Error("error getting resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logGeneratedClientError("error getting resource action: "+resourceKey+":"+actionKey, err)
 		return nil, err
 	}
 	return resourceActions, nil
@@ -125,7 +125,8 @@ func (a *ResourceActions) Create(ctx context.Context, resourceKey string, resour
 	}
 	resourceAction, _, err := a.client.ResourceActionsApi.CreateResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).ResourceActionCreate(resourceActionCreate).Execute()
 	if err != nil {
-		a.logger.Error("error creating resource action: "+resourceKey+":"+resourceActionCreate.GetKey(), zap.Error(err))
+		a.logGeneratedClientError("error creating resource action: "+resourceKey+":"+
+			resourceActionCreate.GetKey(), err)
 		return nil, err
 	}
 	return resourceAction, nil
@@ -147,7 +148,7 @@ func (a *ResourceActions) Update(ctx context.Context, resourceKey string, action
 	}
 	resourceAction, _, err := a.client.ResourceActionsApi.UpdateResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).ResourceActionUpdate(resourceActionUpdate).Execute()
 	if err != nil {
-		a.logger.Error("error updating resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logGeneratedClientError("error updating resource action: "+resourceKey+":"+actionKey, err)
 		return nil, err
 	}
 	return resourceAction, nil
@@ -164,7 +165,7 @@ func (a *ResourceActions) Delete(ctx context.Context, resourceKey string, action
 	}
 	_, err = a.client.ResourceActionsApi.DeleteResourceAction(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
 	if err != nil {
-		a.logger.Error("error deleting resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logGeneratedClientError("error deleting resource action: "+resourceKey+":"+actionKey, err)
 		return err
 	}
 	return nil

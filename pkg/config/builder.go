@@ -15,7 +15,7 @@ func NewConfigBuilder(token string) *PermitBuilder {
 	return &PermitBuilder{
 		PermitConfig: PermitConfig{
 			apiUrl:           DefaultApiUrl,
-			token:            token,
+			token:            &token,
 			pdpUrl:           DefaultPdpUrl,
 			debug:            DefaultDebugMode,
 			Context:          nil,

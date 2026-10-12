@@ -57,11 +57,7 @@ func (e *PermitEnforcer) parseResponse(res *http.Response) (*CheckResponse, erro
 	var result CheckResponse
 	err := errors.HttpErrorHandle(nil, res)
 	if err != nil {
-		responseBodyZap := zap.String("response_body", "")
-		if permitErr, ok := err.(errors.PermitError); ok {
-			responseBodyZap = zap.String("response_body", permitErr.ResponseBody)
-		}
-		e.logger.Error("erroneous http response from PDP for Permit.Check()", zap.Error(err), responseBodyZap)
+		e.logErrorResponse("Permit.Check()", err)
 		return nil, err
 	}
 

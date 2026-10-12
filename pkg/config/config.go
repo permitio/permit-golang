@@ -19,7 +19,7 @@ const (
 
 type PermitConfig struct {
 	apiUrl                 string
-	token                  string
+	token                  *string // a pointer, so that fmt prints an address, never the API key
 	pdpUrl                 string
 	opaUrl                 string
 	debug                  bool
@@ -52,7 +52,7 @@ func NewPermitConfig(apiUrl string, token string, pdpUrl string, debug bool, con
 	}
 	return &PermitConfig{
 		apiUrl:  apiUrl,
-		token:   token,
+		token:   &token,
 		pdpUrl:  pdpUrl,
 		debug:   debug,
 		Context: context,
@@ -65,7 +65,10 @@ func (c *PermitConfig) GetApiUrl() string {
 }
 
 func (c *PermitConfig) GetToken() string {
-	return c.token
+	if c.token == nil {
+		return ""
+	}
+	return *c.token
 }
 
 func (c *PermitConfig) GetPdpUrl() string {

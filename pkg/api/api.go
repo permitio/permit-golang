@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/permitio/permit-golang/internal/redact"
 	"github.com/permitio/permit-golang/pkg/config"
 	"github.com/permitio/permit-golang/pkg/errors"
 	"github.com/permitio/permit-golang/pkg/openapi"
@@ -15,6 +16,13 @@ type permitBaseApi struct {
 	client *openapi.APIClient
 	config *config.PermitConfig
 	logger *zap.Logger
+}
+
+// logGeneratedClientError logs err, an error that the generated client returned and that the
+// calling method returns as it is, at Error level, with the API key and permit_key_ values in its
+// text replaced by [REDACTED].
+func (a *permitBaseApi) logGeneratedClientError(message string, err error) {
+	a.logger.Error(message, zap.String("error", redact.Text(err.Error(), a.config.GetToken())))
 }
 
 type PermitBaseFactsApi struct {

@@ -72,7 +72,7 @@ func (e *PermitEnforcer) parseBulkResponse(res *http.Response) ([]CheckResponse,
 	res.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	err = errors.HttpErrorHandle(err, res)
 	if err != nil {
-		e.logger.Error(string(bodyBytes), zap.Error(err))
+		e.logErrorResponse("Permit.BulkCheck()", err)
 		return nil, err
 	}
 	if e.config.GetOpaUrl() != "" {

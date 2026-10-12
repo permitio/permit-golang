@@ -41,7 +41,8 @@ func (a *ResourceAttributes) List(ctx context.Context, resourceKey string, page 
 	}
 	resourceAttributes, _, err := a.client.ResourceAttributesApi.ListResourceAttributes(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	if err != nil {
-		a.logger.Error("error listing resource attributes for resource: "+resourceKey, zap.Error(err))
+		a.logGeneratedClientError("error listing resource attributes for resource: "+
+			resourceKey, err)
 		return nil, err
 	}
 	return resourceAttributes, nil
@@ -58,7 +59,8 @@ func (a *ResourceAttributes) Get(ctx context.Context, resourceKey string, attrib
 	}
 	resourceAttribute, _, err := a.client.ResourceAttributesApi.GetResourceAttribute(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, attributeKey).Execute()
 	if err != nil {
-		a.logger.Error("error getting resource attribute: "+resourceKey+":"+attributeKey, zap.Error(err))
+		a.logGeneratedClientError("error getting resource attribute: "+resourceKey+":"+
+			attributeKey, err)
 		return nil, err
 	}
 	return resourceAttribute, nil
@@ -95,7 +97,8 @@ func (a *ResourceAttributes) Create(ctx context.Context, resourceKey string, res
 	}
 	resourceAttribute, _, err := a.client.ResourceAttributesApi.CreateResourceAttribute(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).ResourceAttributeCreate(resourceAttributeCreate).Execute()
 	if err != nil {
-		a.logger.Error("error creating resource attribute: "+resourceKey+":"+resourceAttributeCreate.GetKey(), zap.Error(err))
+		a.logGeneratedClientError("error creating resource attribute: "+resourceKey+":"+
+			resourceAttributeCreate.GetKey(), err)
 		return nil, err
 	}
 	return resourceAttribute, nil
@@ -117,7 +120,8 @@ func (a *ResourceAttributes) Update(ctx context.Context, resourceKey string, att
 	}
 	resourceAttribute, _, err := a.client.ResourceAttributesApi.UpdateResourceAttribute(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, attributeKey).ResourceAttributeUpdate(resourceAttributeUpdate).Execute()
 	if err != nil {
-		a.logger.Error("error updating resource attribute: "+resourceKey+":"+attributeKey, zap.Error(err))
+		a.logGeneratedClientError("error updating resource attribute: "+resourceKey+":"+
+			attributeKey, err)
 		return nil, err
 	}
 	return resourceAttribute, nil
@@ -134,7 +138,8 @@ func (a *ResourceAttributes) Delete(ctx context.Context, resourceKey string, att
 	}
 	_, err = a.client.ResourceAttributesApi.DeleteResourceAttribute(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, attributeKey).Execute()
 	if err != nil {
-		a.logger.Error("error deleting resource attribute: "+resourceKey+":"+attributeKey, zap.Error(err))
+		a.logGeneratedClientError("error deleting resource attribute: "+resourceKey+":"+
+			attributeKey, err)
 		return err
 	}
 	return nil

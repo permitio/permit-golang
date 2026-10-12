@@ -41,7 +41,8 @@ func (a *ResourceActionGroups) List(ctx context.Context, resourceKey string, pag
 	}
 	resourceActionGroups, _, err := a.client.ResourceActionGroupsApi.ListResourceActionGroups(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).Page(int32(page)).PerPage(int32(perPage)).Execute()
 	if err != nil {
-		a.logger.Error("error listing resource action groups for resource: "+resourceKey, zap.Error(err))
+		a.logGeneratedClientError("error listing resource action groups for resource: "+
+			resourceKey, err)
 		return nil, err
 	}
 	return resourceActionGroups, nil
@@ -86,7 +87,7 @@ func (a *ResourceActionGroups) Get(ctx context.Context, resourceKey string, acti
 	}
 	resourceActionsGroups, _, err := a.client.ResourceActionGroupsApi.GetResourceActionGroup(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
 	if err != nil {
-		a.logger.Error("error getting resource action: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logGeneratedClientError("error getting resource action: "+resourceKey+":"+actionKey, err)
 		return nil, err
 	}
 	return resourceActionsGroups, nil
@@ -123,7 +124,8 @@ func (a *ResourceActionGroups) Create(ctx context.Context, resourceKey string, r
 	}
 	resourceActionGroup, _, err := a.client.ResourceActionGroupsApi.CreateResourceActionGroup(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey).ResourceActionGroupCreate(resourceActionCreate).Execute()
 	if err != nil {
-		a.logger.Error("error creating resource action: "+resourceKey+":"+resourceActionCreate.GetKey(), zap.Error(err))
+		a.logGeneratedClientError("error creating resource action: "+resourceKey+":"+
+			resourceActionCreate.GetKey(), err)
 		return nil, err
 	}
 	return resourceActionGroup, nil
@@ -162,7 +164,8 @@ func (a *ResourceActionGroups) Delete(ctx context.Context, resourceKey string, a
 	}
 	_, err = a.client.ResourceActionGroupsApi.DeleteResourceActionGroup(ctx, a.config.Context.GetProject(), a.config.Context.GetEnvironment(), resourceKey, actionKey).Execute()
 	if err != nil {
-		a.logger.Error("error deleting resource action group: "+resourceKey+":"+actionKey, zap.Error(err))
+		a.logGeneratedClientError("error deleting resource action group: "+resourceKey+":"+
+			actionKey, err)
 		return err
 	}
 	return nil

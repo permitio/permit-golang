@@ -116,7 +116,8 @@ jobs:
   # release. The floor legs use go.mod and go.sum as committed; the ceiling legs first move every
   # dependency to its newest version in the runner's copy, as an application that requires newer
   # versions would. GOTOOLCHAIN=local keeps the go command from switching to go.mod's toolchain.
-  # The modules are downloaded first, and the tests then run offline.
+  # The modules, and the gitleaks that the tests of gitleaks-range.sh run, are downloaded first,
+  # and the tests then run offline.
   test:
     name: test (${{ matrix.go }}, ${{ matrix.deps }} tree)
     if: >-
@@ -170,6 +171,7 @@ jobs:
           fi
           go mod download
           go -C tools mod download
+          .github/scripts/fetch-tool.sh gitleaks
           go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
           root=0 tools=0
@@ -249,6 +251,56 @@ jobs:
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: .github/scripts/vuln.sh
 
+  # Scans the commits that are new in the run for secrets, with .github/scripts/gitleaks-range.sh
+  # and the gitleaks that tools/binaries.lock pins. The script gives gitleaks its own configuration
+  # and reads none from the checkout. The range depends on the run:
+  #   - a pull request: its commits, from its base to its head. A pull request always adds a
+  #     commit, so a range without one did not run.
+  #   - a push: from before to after. A push may add no commit, which passes with a notice. A push
+  #     sends the zero SHA as before only when it creates master, and the script fails on it: the
+  #     commits not on master would be none, so nothing would be scanned.
+  #   - the pr mode, a manual run: the commits that are not on master. A run on master has none,
+  #     which passes with a notice.
+  #   - the release mode: the commits since the last release, from the newest tag that matches
+  #     v[0-9]* and comes before the release commit (--since-last-tag), as the commits of a
+  #     release are on master already. The range always holds the release commit, and no such tag
+  #     fails the scan; fetch-depth: 0 fetches the tags too.
+  secrets:
+    name: secrets
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install gitleaks
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh gitleaks
+      - name: Scan the new commits
+        if: inputs.mode != 'release'
+        env:
+          RANGE_BASE: >-
+            ${{ inputs.mode && 'origin/master'
+            || github.event.pull_request.base.sha || github.event.before }}
+          RANGE_HEAD: >-
+            ${{ inputs.mode && 'HEAD'
+            || github.event.pull_request.head.sha || github.event.after }}
+          IF_EMPTY: >-
+            ${{ !inputs.mode && github.event_name == 'pull_request' && 'error' || 'notice' }}
+        run: .github/scripts/gitleaks-range.sh --if-empty "$IF_EMPTY" "$RANGE_BASE" "$RANGE_HEAD"
+      - name: Scan the commits since the last release
+        if: inputs.mode == 'release'
+        run: .github/scripts/gitleaks-range.sh --since-last-tag HEAD
+
   # On a pull request only: mutation tests of the Go lines that changed in both modules, with
   # tools/cmd/mutationgate and the gremlins that tools/binaries.lock pins. The range starts at the
   # newest commit of the pull request whose mutation check succeeded, or at the merge base when
@@ -314,6 +366,26 @@ jobs:
             -skip '^(TestLive|TestRepository)' -gremlins bin/gremlins -workers 2 \
             -timeout-coefficient 5 -cap 3m -memory-mib 4096 -summary "$GITHUB_STEP_SUMMARY" \
             . tools
+
+  # On a pull request only: fails when the pull request adds a dependency with a known
+  # vulnerability of high or critical severity, from GitHub's dependency graph, and on a failure
+  # comments the summary on the pull request, which needs pull-requests: write. A fork's token is
+  # read-only: the action then warns that it cannot comment, and the result is still the review's.
+  # It reads no configuration file from the checkout, and checks out nothing.
+  dependency-review:
+    name: dependency-review
+    if: >-
+      !inputs.mode && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write  # the action comments its summary on the pull request on a failure
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
 
   # Weekly, runs every hook twice: with prek's built-in versions of the pre-commit-hooks hooks,
   # as the prek job does, and with PREK_NO_FAST_PATH=1, the upstream hooks. It fails when the
@@ -394,7 +466,16 @@ jobs:
   ci:
     name: CI
     if: always()
-    needs: [prek, test, crossbuild, vuln, mutation, prek-upstream, mutation-weekly]
+    needs:
+      - prek
+      - test
+      - crossbuild
+      - vuln
+      - secrets
+      - mutation
+      - dependency-review
+      - prek-upstream
+      - mutation-weekly
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -409,8 +490,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 7
-          PULL_REQUEST_JOBS: mutation
+          EXPECTED_JOBS: 9
+          PULL_REQUEST_JOBS: mutation dependency-review
           SCHEDULED_JOBS: prek-upstream:weekly mutation-weekly:weekly
           ADVISORY_JOBS: ""
         run: .github/scripts/ci-aggregate.sh

@@ -66,7 +66,9 @@ ones written in Go, so it needs the network; later runs work offline. The hooks 
 - spelling with typos (`_typos.toml`), shell scripts with shellcheck and shfmt, GitHub Actions
   workflows with actionlint and zizmor (`.github/zizmor.yml`);
 - staged changes for secrets with gitleaks (`.gitleaks.toml`, which adds a rule for Permit API
-  keys: use fake keys that start with `permit_key_FAKE`);
+  keys: use fake keys that start with `permit_key_FAKE`); CI scans the commits of each pull
+  request with the same rules (see
+  [Secret scan and dependency review](#secret-scan-and-dependency-review));
 - that `.gitignore` still ignores credential files, with `.github/scripts/check-ignore.sh`;
 - each commit message, with `.github/scripts/check-commit-msg.sh` (see
   [Commits and pull requests](#commits-and-pull-requests));
@@ -140,7 +142,9 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
+| `secrets` | Scans the commits that are new in the run for secrets with gitleaks, through `.github/scripts/gitleaks-range.sh`; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
+| `dependency-review` | Pull requests only: fails when the pull request adds a dependency with a known vulnerability of high or critical severity; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
 | `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary and fails only when the run does not complete. |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
@@ -148,7 +152,8 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
-  `test`, `crossbuild` and `vuln`. A pull request runs `mutation` too.
+  `test`, `crossbuild`, `vuln` and `secrets`. A pull request runs `mutation` and
+  `dependency-review` too.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, and `security` and `e2e` the jobs of those modes *(added in later commits on this
   branch)*. The release workflow *(added in a later commit on this branch)* calls CI with the
@@ -206,7 +211,8 @@ bin/cicheck -print-pins  # every pinned action and release binary, with its vers
 ```
 
 The CI scripts run locally too. Each says in its header what it reads and what its exit codes
-mean, and the tests in `tools/scripts` run them; those tests need bash, git, jq, diff and od.
+mean, and the tests in `tools/scripts` run them; those tests need bash, git, jq, diff and od, and
+the gitleaks that `.github/scripts/fetch-tool.sh gitleaks` installs as `bin/gitleaks`.
 
 ```sh
 EXPECTED_HOOKS=25 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
@@ -328,6 +334,58 @@ Every Go module in the repository outside testdata directories is scanned unless
 `.github/vulnscan-trees.txt` lists it with the reason it never ships; a module that is neither
 makes the scan exit 2. Trivy gets every setting on its command line, and cicheck fails on a
 committed `trivy.yaml`, `.trivyignore` or `.trivyignore.yaml` anywhere in the repository.
+
+## Secret scan and dependency review
+
+The `secrets` job scans the commits that are new in the run with the gitleaks release that
+`tools/binaries.lock` pins, through `.github/scripts/gitleaks-range.sh`. Which commits depends on
+the run:
+
+- A pull request: its commits, from its base to its head. A pull request always adds a commit, so
+  a range without one fails.
+- A push to `master`: the commits it adds. A push that adds none passes with a notice.
+- The `pr` mode: the commits that are not on `master`. A run on `master` has none, which passes
+  with a notice.
+- The `release` mode: the commits since the last release. `--since-last-tag` starts the range at
+  the newest tag that matches `v[0-9]*` and comes before the release commit, so a release that is
+  tagged already still scans from the release before it. The range always holds the release
+  commit, and the scan fails when there is no such tag. The job's checkout fetches the full
+  history and the tags.
+
+It fails on any finding, and reports each with its file, line, rule and commit, never the
+secret. gitleaks gets the rules of `.gitleaks.toml` from the script, so no configuration file,
+ignore file or comment in a commit changes how it is scanned: no `.gitleaks.toml`,
+`.gitleaksignore`, `.gitattributes` or `GITLEAKS_` variable is read, a `gitleaks:allow` comment
+hides nothing, a file that git takes for binary because it holds a NUL byte is scanned as text,
+and what a merge commit adds is scanned too. A change to the scan itself shows in the diff of the
+script, `ci.yml` or `tools/binaries.lock`. When you change the rules in `.gitleaks.toml`, change
+them in the script as well; a test checks that they match.
+
+The rules extend gitleaks' default rules, and with them its default allowlist of paths, which
+applies to every rule, the Permit API key rule too: a secret in a path such as `.gitleaks.toml`,
+`go.mod`, `go.sum`, an image, font or executable file, or a module under `vendor/` is not
+reported, by the script or by the gitleaks git hook.
+
+The script exits 0 when no secret is found, 1 when one is, and 2 when the scan did not run, such
+as in a shallow clone, when base or head is not a commit of the repository, or when the range
+holds no commit. With `--if-empty notice`, which CI gives on a push and in the `pr` mode, a range
+without a commit passes with a notice. Scan your branch's commits, or those since the last
+release, from the repository root:
+
+```sh
+.github/scripts/fetch-tool.sh gitleaks
+.github/scripts/gitleaks-range.sh origin/master HEAD
+.github/scripts/gitleaks-range.sh --since-last-tag HEAD
+```
+
+When it reports a key, revoke the key and remove it from your branch's history; tests, examples
+and docs use fake keys that start with `permit_key_FAKE`.
+
+The `dependency-review` job runs on pull requests only. It compares the dependencies of the pull
+request with those of its base in GitHub's dependency graph, and fails when the pull request adds
+a dependency with a known vulnerability of high or critical severity; on a failure it also
+comments a summary on the pull request. It has no local command; locally, the [vulnerability
+scan](#vulnerability-scan) checks the dependencies of both modules.
 
 ## Adding or changing an API method
 

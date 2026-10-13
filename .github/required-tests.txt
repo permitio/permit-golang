@@ -126,3 +126,6 @@ github.com/permitio/permit-golang/v2/tools/cmd/secreport TestNoGH
 
 github.com/permitio/permit-golang/v2/tools/scripts TestTrivy
 github.com/permitio/permit-golang/v2/tools/scripts TestVuln
+
+github.com/permitio/permit-golang/v2/tools/scripts TestGitleaksRange
+github.com/permitio/permit-golang/v2/tools/scripts TestGitleaksRangeScans

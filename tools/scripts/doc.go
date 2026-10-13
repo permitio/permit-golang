@@ -2,5 +2,6 @@
 // The tests run each script in a temporary copy of the repository layout and serve every download
 // from a local server, so they never reach the network. The .editorconfig test builds the
 // editorconfig-checker that tools/go.mod pins, so its module must be in the module cache, as
-// go -C tools mod download leaves it.
+// go -C tools mod download leaves it. The scan tests of gitleaks-range.sh run the gitleaks that
+// tools/binaries.lock pins, which .github/scripts/fetch-tool.sh gitleaks installs as bin/gitleaks.
 package scripts

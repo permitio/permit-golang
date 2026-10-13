@@ -16,10 +16,13 @@ the repository root does not run its tests.
 | `scripts` | Tests of the shell scripts in `.github/scripts`, and of `.editorconfig` with the pinned editorconfig-checker. |
 | `binaries.lock` | Release binaries that are not Go modules, pinned by version and by sha256 for each platform. |
 
-Check this module the way you check the root module, with `go -C tools`:
+Check this module the way you check the root module, with `go -C tools`. The tests run offline,
+so first download the modules and the gitleaks that the tests of `gitleaks-range.sh` run:
 
 ```sh
 go -C tools vet ./...
+go -C tools mod download
+.github/scripts/fetch-tool.sh gitleaks
 HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
   go -C tools test -race -count=1 -shuffle=on -p 2 -timeout 5m ./...
 go -C tools mod tidy -diff

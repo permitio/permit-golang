@@ -26,9 +26,34 @@ go mod tidy -diff                  # must print nothing
 The tests that `go test ./...` runs never reach the Permit API, a PDP, Docker or the network:
 every URL such a test gives a client points at a local `net/http/httptest` server.
 
+Then run every git hook on every file, with the prek that `tools/binaries.lock` pins. The hooks
+include golangci-lint over every module (`.github/scripts/golangci-all.sh`); the first run needs
+the network to download and build them:
+
+```sh
+.github/scripts/fetch-tool.sh prek
+bin/prek run --all-files           # must pass with no file changed
+```
+
+Install the hooks with `bin/prek install` only in the main clone. Do not run it from a git
+worktree: a worktree shares its hooks directory with the main clone. In a worktree, check each
+commit message with the commit-msg hook before you commit:
+
+```sh
+bin/prek run --stage commit-msg --commit-msg-filename <file>  # the file that holds the message
+```
+
+The hook skips lines that start with `#`, as git removes them from a message you edit. CI *(added
+in a later commit on this branch)* checks each commit's message as `git log --format=%B` prints
+it with `.github/scripts/check-commit-msg.sh --committed <file>`, which checks every line; run it
+the same way on each commit before you push.
+
 ## Working rules
 
 - One commit per ticket. The subject is `PER-<id>: <imperative summary>`, at most 72 characters.
+- A lint or format fix that changes no behaviour and is found after the code it fixes goes in its
+  own commit, with `testdata/api-surface.txt` *(added in a later commit on this branch)*
+  byte-identical.
 - Run mutation tests only through mutationgate *(added in a later commit on this branch)*, within
   its caps on workers, memory and time; never run a mutation tool directly.
 - Run at most one Docker stack at a time.

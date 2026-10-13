@@ -321,8 +321,10 @@ type failedPackage struct {
 // check reads the events from each input in turn, echoes the test output, prints what it found
 // and returns the exit code.
 func check(inputs []input, output io.Writer, cfg config) int {
-	r := results{testFailedIn: map[string]bool{}, started: map[string]bool{},
-		passedNames: map[string]bool{}}
+	r := results{
+		testFailedIn: map[string]bool{}, started: map[string]bool{},
+		passedNames: map[string]bool{},
+	}
 	for _, in := range inputs {
 		testEvents, err := r.read(in.r, output)
 		if err != nil {

@@ -1,0 +1,247 @@
+# golangci-lint v2 configuration for every Go module in the repository. The release binary that
+# tools/binaries.lock pins runs it through .github/scripts/golangci-all.sh; CONTRIBUTING.md says
+# how to run it. Paths in exclusion rules are relative to this file.
+version: "2"
+
+run:
+  # Lint the end-to-end tests too; they build only with this tag.
+  build-tags: [e2e]
+
+linters:
+  default: none
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - depguard
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - fatcontext
+    - forbidigo
+    - forcetypeassert
+    - gochecknoinits
+    - godoclint
+    - godot
+    - gomoddirectives
+    - gosec
+    - govet
+    - ineffassign
+    - intrange
+    - lll
+    - makezero
+    - misspell
+    - modernize
+    - musttag
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - perfsprint
+    - predeclared
+    - reassign
+    - recvcheck
+    - revive
+    - sloglint
+    - staticcheck
+    - tagliatelle
+    - testableexamples
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+  settings:
+    depguard:
+      rules:
+        logging:
+          files: ["$all", "!**/internal/logging/**", "!${base-path}/options.go"]
+          deny:
+            - pkg: log$
+              desc: log through internal/logging, which keeps credentials out of the logs
+            - pkg: log/slog
+              desc: log through internal/logging, which keeps credentials out of the logs
+        dependencies:
+          deny:
+            - pkg: go.uber.org/zap
+              desc: the SDK logs with log/slog, through internal/logging
+            - pkg: github.com/sirupsen/logrus
+              desc: the SDK logs with log/slog, through internal/logging
+            - pkg: github.com/stretchr/testify
+              desc: use the standard testing package and go-cmp
+            - pkg: github.com/google/uuid
+              desc: the SDK takes IDs as strings and does not generate them
+            - pkg: github.com/gofrs/uuid
+              desc: the SDK takes IDs as strings and does not generate them
+            - pkg: github.com/pkg/errors
+              desc: use errors and fmt.Errorf with %w
+            - pkg: io/ioutil
+              desc: deprecated; use io and os
+            - pkg: math/rand$
+              desc: use math/rand/v2
+        test-only:
+          files: ["$all", "!$test", "!**/internal/testkit/**"]
+          deny:
+            - pkg: github.com/google/go-cmp
+              desc: only tests and internal/testkit may compare with go-cmp
+            - pkg: github.com/permitio/permit-golang/v2/internal/testkit
+              desc: only tests may use internal/testkit
+    errcheck:
+      check-type-assertions: true
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    exhaustive:
+      default-signifies-exhaustive: true
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: ^(fmt\.Print(f|ln)?|print|println)$
+          msg: a library does not write to standard output; return the value instead
+        - pattern: ^os\.(Getenv|LookupEnv)$
+          msg: read the environment only in options.go
+        - pattern: ^http\.DefaultClient$
+          pkg: ^net/http$
+          msg: use the http.Client of the Permit client
+    godoclint:
+      default: basic
+      enable:
+        - require-doc
+        - require-pkg-doc
+        - deprecated
+        - no-unused-link
+    gomoddirectives:
+      go-version-pattern: ^1\.26\.0$
+      toolchain-pattern: ^go1\.27\.\d+$
+      tool-forbidden: true
+      exclude-forbidden: true
+      ignore-forbidden: true
+      go-debug-forbidden: true
+      check-module-path: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+    lll:
+      line-length: 100
+      tab-width: 4
+    nilnil:
+      detect-opposite: true
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: package-naming
+        - name: var-naming
+        - name: receiver-naming
+        - name: error-strings
+        - name: error-naming
+        - name: error-return
+        - name: errorf
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: unexported-return
+        - name: deep-exit
+        - name: redefines-builtin-id
+        - name: use-any
+        - name: use-errors-new
+        - name: time-naming
+    sloglint:
+      no-global: all
+      static-msg: true
+      key-naming-case: snake
+      forbidden-keys:
+        - api_key
+        - token
+        - authorization
+        - password
+        - secret
+    staticcheck:
+      checks: ["all"]
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+    usetesting:
+      context-background: true
+      context-todo: true
+      os-temp-dir: true
+  exclusions:
+    generated: strict
+    presets:
+      - std-error-handling
+    rules:
+      - path: _test\.go$
+        linters:
+          - errchkjson
+          - forcetypeassert
+          - gosec
+      # Test, benchmark, fuzz and example functions are not API; their names say what they do.
+      - path: _test\.go$
+        linters:
+          - godoclint
+        text: symbol should have a godoc \("(Test|Benchmark|Fuzz|Example)
+      # options.go reads the environment variables that configure a client.
+      - path: ^options\.go$
+        linters:
+          - forbidigo
+        text: os\.(Getenv|LookupEnv)
+      # The tools module pins its tools with tool directives and builds against the SDK in the
+      # parent directory; the SDK's own go.mod may do neither.
+      - path: ^tools/go\.mod$
+        linters:
+          - gomoddirectives
+        text: ^tool directive is not allowed$
+      - path: ^tools/go\.mod$
+        linters:
+          - gomoddirectives
+        text: '^local replacement are not allowed: github\.com/permitio/permit-golang/v2$'
+      # The programs in tools/cmd read the files named on their command line.
+      - path: ^tools/cmd/
+        linters:
+          - gosec
+        text: G304
+      # checkgotest decodes go test -json events, whose JSON names are the Go field names.
+      - path: ^tools/cmd/checkgotest/main\.go$
+        linters:
+          - musttag
+
+formatters:
+  enable:
+    - gci
+    - gofumpt
+    - golines
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/permitio/permit-golang/v2)
+    gofumpt:
+      module-path: github.com/permitio/permit-golang/v2
+    golines:
+      max-len: 100
+      tab-len: 4
+  exclusions:
+    generated: strict
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  # Report every linter's finding on a line, not only the first.
+  uniq-by-line: false

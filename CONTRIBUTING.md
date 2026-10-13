@@ -42,7 +42,56 @@ GOTOOLCHAIN=go1.26.0 go test -race -count=1 -shuffle=on ./...
 
 Follow `.editorconfig`: UTF-8, LF line endings, a final newline, no trailing whitespace, and lines
 of at most 100 characters (Markdown has no limit). Go files use tabs and are formatted with
-gofmt. Every exported identifier has a doc comment.
+`bin/golangci-lint fmt` (gofumpt, gci and golines), shell scripts with `shfmt -i 2`. Every exported
+identifier has a doc comment.
+
+## Git hooks
+
+The hooks in `.pre-commit-config.yaml` run with [prek](https://prek.j178.dev). Install the
+version that `tools/binaries.lock` pins as `bin/prek`, then install the hooks from your main clone
+(a git worktree shares its hooks directory with the main clone) and run them once on every file:
+
+```sh
+.github/scripts/fetch-tool.sh prek
+bin/prek install            # runs the hooks on each commit and checks each commit message
+bin/prek run --all-files    # every hook on every file
+```
+
+CI *(added in a later commit on this branch)* runs the same hooks. The first run downloads the
+hooks and builds the ones written in Go, so it needs the network; later runs work offline. The
+hooks check:
+
+- formatting and lint with golangci-lint, through `.github/scripts/golangci-all.sh` (below);
+- that `go mod tidy -diff` prints nothing, in the root and in `tools/`;
+- `.editorconfig`, with editorconfig-checker;
+- spelling with typos (`_typos.toml`), shell scripts with shellcheck and shfmt, GitHub Actions
+  workflows with actionlint and zizmor (`.github/zizmor.yml`);
+- staged changes for secrets with gitleaks (`.gitleaks.toml`, which adds a rule for Permit API
+  keys: use fake keys that start with `permit_key_FAKE`);
+- that `.gitignore` still ignores credential files, with `.github/scripts/check-ignore.sh`;
+- each commit message, with `.github/scripts/check-commit-msg.sh` (see
+  [Commits and pull requests](#commits-and-pull-requests));
+- whitespace, line endings, merge conflict markers, large files, private keys, symlinks, and that
+  scripts are executable.
+
+A hook that rewrites a file, such as the whitespace and spelling fixers, fails the run; check its
+change and run the hooks again. Each script exits 0 when the check passes, 1 when it found a
+problem, and 2 when it could not run the check; its header says when.
+
+`.github/scripts/golangci-all.sh` runs the golangci-lint release that `tools/binaries.lock` pins,
+which it installs as `bin/golangci-lint` when that is missing or another version, with
+`.golangci.yml`: it verifies the configuration, checks the formatting of every Go file and lints
+every module that git tracks a `go.mod` for, including the `e2e`-tagged tests. Run it directly to
+lint without prek, and run `bin/golangci-lint fmt` to fix the formatting it reports.
+
+To move the hooks to their newest releases that are at least 7 days old, run `bin/prek update`;
+`.pre-commit-config.yaml` sets the 7-day cooldown and frozen commit SHAs for it. golangci-lint and
+prek are updated in `tools/binaries.lock`, and editorconfig-checker in `tools/go.mod`, as
+[tools/README.md](tools/README.md) describes.
+
+A lint or format fix that changes no behaviour and is found after the code it fixes goes in its
+own commit, and `testdata/api-surface.txt` *(added in a later commit on this branch)* stays
+byte-identical in that commit.
 
 ## Tests run offline
 
@@ -107,8 +156,18 @@ is marked *(added in a later commit on this branch)* does not exist yet.
 - Write the commit subject in the imperative mood, in at most 72 characters, for example
   `Return an error for an empty user key`. Maintainers start the subject with an internal ticket
   ID, `PER-<id>: `; outside contributors leave it out.
-- Commit messages must not contain `#N` references, closing keywords such as `Fixes` or `Closes`,
-  or `@handles`. Link the issue in the pull request description instead.
+- Commit messages must not contain `#N` or `GH-N` references, closing keywords such as `Fixes` or
+  `Closes`, `@handles` or e-mail addresses. Link the issue in the pull request description
+  instead. An e-mail address may appear only inside `<...>` on a `Co-authored-by`,
+  `Signed-off-by`, `Reviewed-by`, `Tested-by`, `Acked-by`, `Reported-by`, `Suggested-by` or
+  `Helped-by` line at the end of the message, such as `Co-authored-by: Name <email>`; a module
+  version such as `golang.org/x/vuln@v1.8.0` is fine.
+- `.github/scripts/check-commit-msg.sh` checks these rules in two modes. The commit-msg hook runs
+  it on the message before git cleans it up, so it skips the lines that start with `#` and the
+  diff that `git commit --verbose` adds, as git removes both. CI *(added in a later commit on
+  this branch)* runs it with `--committed` on the message of every commit of a pull request, as
+  `git log --format=%B` prints it, and checks every line: `git commit -m` and `-F` keep lines that
+  start with `#`.
 - Maintainers merge pull requests, and close the issue when the release that contains the change
   ships.
 - CI *(added in a later commit on this branch)* runs on a pull request from a fork only after a

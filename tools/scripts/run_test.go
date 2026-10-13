@@ -1,0 +1,98 @@
+package scripts
+
+import (
+	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// scriptResult is a script's exit code and what it printed.
+type scriptResult struct {
+	exit           int
+	stdout, stderr string
+}
+
+// runScript runs the program at path with args in dir, in the test's environment plus env.
+func runScript(t *testing.T, dir string, env []string, path string, args ...string) scriptResult {
+	t.Helper()
+	cmd := exec.CommandContext(t.Context(), path, args...)
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), env...)
+	var stdout, stderr strings.Builder
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	err := cmd.Run()
+	result := scriptResult{stdout: stdout.String(), stderr: stderr.String()}
+	if exitErr := (*exec.ExitError)(nil); errors.As(err, &exitErr) {
+		result.exit = exitErr.ExitCode()
+	} else if err != nil {
+		t.Fatal(err)
+	}
+	return result
+}
+
+// repositoryFile returns the path of a file in the repository, given relative to its root.
+func repositoryFile(name string) string {
+	return filepath.Join("..", "..", filepath.FromSlash(name))
+}
+
+// copyScripts copies the named scripts from .github/scripts into the same place under root,
+// keeping their file modes.
+func copyScripts(t *testing.T, root string, names ...string) {
+	t.Helper()
+	dir := filepath.Join(root, ".github", "scripts")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		source := repositoryFile(".github/scripts/" + name)
+		info, err := os.Stat(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		script, err := os.ReadFile(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), script, info.Mode().Perm()); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// writeFiles writes each file in files, a map from a path relative to root to its content.
+func writeFiles(t *testing.T, root string, files map[string]string) {
+	t.Helper()
+	for name, content := range files {
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// gitEnv returns environment variables that keep git from reading the configuration of the
+// machine that runs the test, and from finding a repository above root.
+func gitEnv(root string) []string {
+	return []string{
+		"GIT_CONFIG_GLOBAL=" + os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
+		"GIT_CEILING_DIRECTORIES=" + filepath.Dir(root),
+	}
+}
+
+// gitInit makes root a git repository that tracks every file in it.
+func gitInit(t *testing.T, root string) {
+	t.Helper()
+	for _, args := range [][]string{{"init", "--quiet"}, {"add", "--all"}} {
+		result := runScript(t, root, gitEnv(root), "git", args...)
+		if result.exit != 0 {
+			t.Fatalf("git %s exited %d: %s", strings.Join(args, " "), result.exit,
+				result.stderr)
+		}
+	}
+}

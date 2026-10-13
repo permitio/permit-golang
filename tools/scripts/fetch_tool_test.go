@@ -44,8 +44,10 @@ func tarGz(t *testing.T, name string, content []byte) []byte {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)
-	header := &tar.Header{Name: name, Mode: 0o644, Size: int64(len(content)),
-		Typeflag: tar.TypeReg}
+	header := &tar.Header{
+		Name: name, Mode: 0o644, Size: int64(len(content)),
+		Typeflag: tar.TypeReg,
+	}
 	if err := tw.WriteHeader(header); err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +159,8 @@ func TestFetchTool(t *testing.T) {
 	}))
 	defer plain.Close()
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter,
-		r *http.Request) {
+		r *http.Request,
+	) {
 		switch r.URL.Path {
 		case "/v1.2.3/" + file:
 			_, _ = w.Write(archive)
@@ -226,6 +229,7 @@ func TestFetchTool(t *testing.T) {
 			name: "a correct download over an installed version",
 			lock: lockEntry(template, binary, sumsFor(good)),
 			setup: func(t *testing.T, root string) {
+				t.Helper()
 				bin := filepath.Join(root, "bin")
 				if err := os.MkdirAll(bin, 0o755); err != nil {
 					t.Fatal(err)
@@ -270,6 +274,7 @@ func TestFetchTool(t *testing.T) {
 			name: "no lock",
 			lock: lockEntry(template, binary, sumsFor(good)),
 			setup: func(t *testing.T, root string) {
+				t.Helper()
 				if err := os.Remove(filepath.Join(root, "tools", "binaries.lock")); err != nil {
 					t.Fatal(err)
 				}
@@ -345,6 +350,7 @@ func TestFetchTool(t *testing.T) {
 			name: "a bin/fake-tool that is a directory",
 			lock: lockEntry(template, binary, sumsFor(good)),
 			setup: func(t *testing.T, root string) {
+				t.Helper()
 				if err := os.MkdirAll(filepath.Join(root, "bin", "fake-tool"), 0o755); err != nil {
 					t.Fatal(err)
 				}
@@ -407,8 +413,8 @@ func TestFetchTool(t *testing.T) {
 				tt.setup(t, root)
 			}
 			tmp := t.TempDir()
-			cmd := exec.Command(filepath.Join(root, ".github", "scripts", "fetch-tool.sh"),
-				tt.args...)
+			cmd := exec.CommandContext(t.Context(),
+				filepath.Join(root, ".github", "scripts", "fetch-tool.sh"), tt.args...)
 			cmd.Env = append(os.Environ(), "CURL_CA_BUNDLE="+caFile, "TMPDIR="+tmp,
 				"NO_PROXY=127.0.0.1", "no_proxy=127.0.0.1")
 			var stdout, stderr strings.Builder

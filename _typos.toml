@@ -1,0 +1,4 @@
+# typos configuration (https://github.com/crate-ci/typos). Add a word here only when it is spelled
+# as intended, with a comment that says why.
+[files]
+extend-exclude = ["go.sum"]

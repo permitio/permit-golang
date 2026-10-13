@@ -37,3 +37,27 @@
 #   sha256.linux/arm64 = <64 hex digits>
 #
 # tools/README.md says how to add or update an entry.
+
+[golangci-lint]
+version = 2.14.0
+url = https://github.com/golangci/golangci-lint/releases/download/v{version}/golangci-lint-{version}-{os}-{arch}.tar.gz
+archive = tar.gz
+binary = golangci-lint-{version}-{os}-{arch}/golangci-lint
+sha256.darwin/arm64 = 5ef5f36a7147e91dc58ef9ef4d11bb7bad5ead0c76eb6c01327a73c641d1dcc3
+sha256.darwin/amd64 = a5667c1c3536be1740133213e1e822bfb8f0d98ea12903174d6d5f635e4ed68d
+sha256.linux/amd64 = ab90aeb7b066f92a33415b638a50fe5344bbb75a0d32ad30cc248d88f81032ab
+sha256.linux/arm64 = ee7ec5f3453d15ddf106fae5a4d6c71737712348a979d1fe9cd52ec7ea299bae
+
+[prek]
+version = 0.5.5
+url = https://github.com/j178/prek/releases/download/v{version}/prek-{arch}-{os}.tar.gz
+archive = tar.gz
+binary = prek-{arch}-{os}/prek
+os.darwin = apple-darwin
+os.linux = unknown-linux-gnu
+arch.amd64 = x86_64
+arch.arm64 = aarch64
+sha256.darwin/arm64 = e4bc3132023b50020e62b073bc3147082828bf250d8b9282850c6f2bed5471b6
+sha256.darwin/amd64 = 9ea09639374a34b6f0b7d2a2567c175221cd37e44004e9b1cf591f31f9dda1b3
+sha256.linux/amd64 = 5470e4aa0fc0ad9d3de7dfaf088fb746d59c2eda3b173c06418e7c8861a520eb
+sha256.linux/arm64 = 420451a13aaf3de670dfe73b25e18dbca0d96bc3b153cc3924b9d01c3b7caa12

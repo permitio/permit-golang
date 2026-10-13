@@ -7,9 +7,9 @@ the repository root does not run its tests.
 
 | Path | What it is |
 | --- | --- |
-| `go.mod`, `go.sum` | `tool` directives that pin govulncheck, apidiff and gorelease. The `replace` directive points the SDK module at the repository root, so code here can import the SDK's packages, `internal/` ones included. |
+| `go.mod`, `go.sum` | `tool` directives that pin govulncheck, apidiff, gorelease and editorconfig-checker. The `replace` directive points the SDK module at the repository root, so code here can import the SDK's packages, `internal/` ones included. |
 | `cmd/checkgotest` | Reads `go test -json` output and fails a run in which a test failed or skipped, no test passed, no test ran in one of the input files, or a required test did not run. |
-| `scripts` | Tests of the shell scripts in `.github/scripts`. |
+| `scripts` | Tests of the shell scripts in `.github/scripts`, and of `.editorconfig` with the pinned editorconfig-checker. |
 | `binaries.lock` | Release binaries that are not Go modules, pinned by version and by sha256 for each platform. |
 
 Check this module the way you check the root module, with `go -C tools`:
@@ -30,8 +30,8 @@ this module, and the tool runs in the root, so it checks the SDK:
 go tool -modfile=tools/go.mod govulncheck ./...
 ```
 
-apidiff and gorelease run the same way. To move a tool to a new version, choose a release that is
-at least 7 days old:
+apidiff, gorelease and editorconfig-checker, which a prek hook runs, run the same way. To move a
+tool to a new version, choose a release that is at least 7 days old:
 
 ```sh
 go -C tools get -tool golang.org/x/vuln/cmd/govulncheck@v1.8.0

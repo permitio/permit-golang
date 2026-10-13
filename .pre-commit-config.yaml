@@ -1,0 +1,107 @@
+# Git hooks, run by prek (https://prek.j178.dev). CONTRIBUTING.md says how to install and run
+# them. Each remote rev is a commit SHA, and its "# frozen:" comment names the tag it points at;
+# prek update moves them to the newest release that is at least 7 days old.
+minimum_prek_version: "0.5.5"
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit, manual]
+update:
+  cooldown_days: 7
+  freeze: true
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+        # go test -json output: one JSON object per line, not one JSON document.
+        exclude: ^tools/cmd/checkgotest/testdata/
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-yaml
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: go-mod-tidy
+        name: go mod tidy -diff
+        entry: go mod tidy -diff
+        language: system
+        files: (^|/)go\.(mod|sum)$|\.go$
+        pass_filenames: false
+      - id: go-mod-tidy-tools
+        name: go mod tidy -diff (tools module)
+        entry: go -C tools mod tidy -diff
+        language: system
+        files: (^|/)go\.(mod|sum)$|\.go$
+        pass_filenames: false
+      - id: golangci-lint
+        name: golangci-lint (every module)
+        entry: .github/scripts/golangci-all.sh
+        language: script
+        files: |
+          (?x)\.go$
+            |(^|/)go\.(mod|sum)$
+            |^\.golangci\.yml$
+            |^tools/binaries\.lock$
+            |^\.github/scripts/golangci-all\.sh$
+        pass_filenames: false
+        require_serial: true
+      - id: check-ignore
+        name: .gitignore covers credential files
+        entry: .github/scripts/check-ignore.sh
+        language: script
+        files: (^|/)\.gitignore$|^\.github/scripts/check-ignore\.sh$
+        pass_filenames: false
+      - id: check-commit-msg
+        name: commit message names nothing private
+        entry: .github/scripts/check-commit-msg.sh
+        language: script
+        stages: [commit-msg]
+      # tools/go.mod pins editorconfig-checker, which the tests in tools/scripts run too.
+      - id: editorconfig-checker
+        name: editorconfig-checker
+        entry: go tool -modfile=tools/go.mod editorconfig-checker
+        language: system
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # frozen: v1.7.12
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: fa412071e4f5d44d44f9e365f4676f9df92456a2  # frozen: v1.30.1
+    hooks:
+      # zizmor runs its online audits when GH_TOKEN or GITHUB_TOKEN is set, as CI does.
+      - id: zizmor
+        args: [--no-progress, --config, .github/zizmor.yml]
+
+  - repo: https://github.com/crate-ci/typos
+    rev: 00f422f3b19c57bc6338715ebfe3316d38768461  # frozen: v1.50.3
+    hooks:
+      - id: typos
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: a6564f5d57444e123433a5c9af733e3975c77229  # frozen: v0.11.0.1-1
+    hooks:
+      - id: shellcheck
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: 479be5958357ba5ab65ce47172117348516860e9  # frozen: v3.14.1-1
+    hooks:
+      - id: shfmt
+        args: [--write, -i, "2"]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # frozen: v8.30.1
+    hooks:
+      - id: gitleaks

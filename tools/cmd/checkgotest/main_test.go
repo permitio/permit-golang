@@ -53,8 +53,10 @@ func allowSkip(test, expiry string) allowedSkip {
 	if err != nil {
 		panic(err)
 	}
-	return allowedSkip{test: test, ticket: "TICKET-1", expiry: date,
-		condition: "the fixture passes"}
+	return allowedSkip{
+		test: test, ticket: "TICKET-1", expiry: date,
+		condition: "the fixture passes",
+	}
 }
 
 // assertResult checks the exit code, that the output contains want, and that the output ends
@@ -323,8 +325,10 @@ func TestCheckFixtures(t *testing.T) {
 		},
 		{
 			fixture: "parallel.json", name: "parallel tests",
-			required: []string{"example.com/fixture/parallel TestC",
-				"example.com/fixture/parallel TestD"},
+			required: []string{
+				"example.com/fixture/parallel TestC",
+				"example.com/fixture/parallel TestD",
+			},
 			wantExit: exitPassed,
 			wantOutput: "=== PAUSE TestD\n" +
 				"=== CONT  TestC\n" +
@@ -467,16 +471,20 @@ func TestRun(t *testing.T) {
 			wantStdout: "checkgotest: 1 passed, 0 failed, 0 skipped\ncheckgotest: PASS\n",
 		},
 		{
-			name: "input files instead of stdin", args: []string{"-require-file", required,
-				firstRun, otherRun},
+			name: "input files instead of stdin", args: []string{
+				"-require-file", required,
+				firstRun, otherRun,
+			},
 			stdin: "not read", wantExit: exitPassed,
 			wantStdout: "checkgotest: 2 passed, 0 failed, 0 skipped\n" +
 				"checkgotest: 2 of 2 required tests passed\n",
 		},
 		{
 			name: "-require-file and -require together",
-			args: []string{"-require", "m/a TestC", "-require-file", required,
-				firstRun, otherRun},
+			args: []string{
+				"-require", "m/a TestC", "-require-file", required,
+				firstRun, otherRun,
+			},
 			wantExit: exitDidNotRun,
 			wantStdout: "checkgotest: 2 of 3 required tests passed\n" +
 				"checkgotest: DID NOT RUN: required tests never ran:\n    m/a TestC\n",
@@ -570,8 +578,10 @@ func TestRunRejects(t *testing.T) {
 			wantReason: "flag provided but not defined",
 		},
 		{
-			name: "a test required twice", args: []string{"-require", "m/a TestA",
-				"-require-file", writeFile(t, "twice.txt", "m/a TestA\n")},
+			name: "a test required twice", args: []string{
+				"-require", "m/a TestA",
+				"-require-file", writeFile(t, "twice.txt", "m/a TestA\n"),
+			},
 			wantReason: `checkgotest: DID NOT RUN: required test "m/a TestA" is named twice`,
 		},
 		{
@@ -587,8 +597,10 @@ func TestRunRejects(t *testing.T) {
 		},
 		{
 			name: "-require-file with a comment after the test",
-			args: []string{"-require-file",
-				writeFile(t, "r.txt", "m/a TestA # why\n")},
+			args: []string{
+				"-require-file",
+				writeFile(t, "r.txt", "m/a TestA # why\n"),
+			},
 			wantReason: "r.txt:1: want an import path and a test name",
 		},
 		{
@@ -676,8 +688,11 @@ func TestRunExpiryIsUTC(t *testing.T) {
 		now      time.Time
 		wantExit int
 	}{
-		{"the last day in UTC, the next day in UTC+3", time.Date(2026, 10, 14, 2, 59, 0, 0, east),
-			exitPassed},
+		{
+			"the last day in UTC, the next day in UTC+3",
+			time.Date(2026, 10, 14, 2, 59, 0, 0, east),
+			exitPassed,
+		},
 		{"the next day in UTC", time.Date(2026, 10, 14, 3, 0, 0, 0, east), exitFailed},
 	}
 	for _, tt := range tests {

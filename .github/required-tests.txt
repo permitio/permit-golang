@@ -99,3 +99,30 @@ github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregate
 github.com/permitio/permit-golang/v2/tools/scripts TestPrekCount
 github.com/permitio/permit-golang/v2/tools/scripts TestCommitsCheck
 github.com/permitio/permit-golang/v2/tools/scripts TestMutationRange
+
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckUntrackedTrivyFiles
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckOutsideGitRepository
+
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestScanWithoutFindingsPasses
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestFindings
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestStaleEntry
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestScanThatDidNotCompleteExits2
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestIncompleteScanOutranksFindings
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestModules
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestBadInputExits2WithoutScanning
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestRunCommand
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestRepositoryFiles
+
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestReport
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestReportWithoutSummary
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestSummaryThatCannotBeWritten
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestAnnotationEscapes
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestTableEscapesPipes
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestRenderCutsLongOutputs
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestBadArgs
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestComment
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestCommentFitsGitHub
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestNoGH
+
+github.com/permitio/permit-golang/v2/tools/scripts TestTrivy
+github.com/permitio/permit-golang/v2/tools/scripts TestVuln

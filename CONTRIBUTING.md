@@ -139,6 +139,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `prek` | Checks the workflows with cicheck, runs every git hook on every file through `.github/scripts/prek-count.sh`, and on a pull request checks the message of each of its commits through `.github/scripts/commits-check.sh`. |
 | `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
+| `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
 | `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
 | `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
 | `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary and fails only when the run does not complete. |
@@ -147,7 +148,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
-  `test` and `crossbuild`. A pull request runs `mutation` too.
+  `test`, `crossbuild` and `vuln`. A pull request runs `mutation` too.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, and `security` and `e2e` the jobs of those modes *(added in later commits on this
   branch)*. The release workflow *(added in a later commit on this branch)* calls CI with the
@@ -275,6 +276,58 @@ cancelled are tested in the next one. Changed lines in `tools/`, the programs th
 SDK, are tested like SDK code. Maintainers push a pull request's next commit only after CI
 passed on the previous one, so that each commit's lines get a run. The weekly job tests every Go
 file of both modules and only reports.
+
+## Vulnerability scan
+
+The `vuln` job runs `.github/scripts/vuln.sh`, which scans three trees:
+
+- the floor: the root module with the dependency versions `go.mod` requires, the lowest an
+  application can build the SDK with;
+- the ceiling: a copy of the root module in which `go get -u -t ./...` and `go mod tidy` moved
+  every dependency to its newest version;
+- `tools/`: the programs that build and check the SDK, and the ones the `tool` directives of
+  `tools/go.mod` pin, such as govulncheck.
+
+Two scanners look at each tree:
+
+- govulncheck, the version `tools/go.mod` pins, through vulnscan (`tools/cmd/vulnscan`). It fails
+  on every vulnerability in a module the build uses, whether or not the code calls the vulnerable
+  part, unless `.github/vulnscan-accept.txt` accepts it. A vulnerability in the standard library
+  never fails: vulnscan reports it with the Go release that fixes it.
+- Trivy, the release `tools/binaries.lock` pins, through `.github/scripts/trivy.sh`. It reads
+  `go.mod`, so it also sees a module that `go.mod` requires but no package imports. A
+  vulnerability of HIGH or CRITICAL severity that has a fixed version fails the floor and the
+  ceiling; in `tools/` it is reported only.
+
+secreport (`tools/cmd/secreport`) decides the job's result from the scans and writes the job
+summary. On a pull request from a branch of this repository, it posts a comment when a scan fails
+or does not run, and updates that comment on every later run. When every scan passes and there is
+no comment to update, it posts none, so findings that are reported only appear in the job summary
+only: vulnerabilities in the standard library, Trivy's findings in `tools/`, and Trivy's findings
+below HIGH or without a fixed version.
+
+Each scan exits 0 when it passes, 1 when it finds a vulnerability that fails it, and 2 when it did
+not run: a scanner failed, its output was incomplete, govulncheck's module list lacks a module that
+the scanned packages use (`go list -deps`), or Trivy listed a different number of packages than
+`go.mod` has require directives, not counting the ones a replace directive points at a local
+directory. The job fails on 1 and on 2. Run the whole scan from the repository root; it needs `jq`,
+and the network to download Trivy, the vulnerability databases and, for the ceiling, the newest
+version of each dependency:
+
+```sh
+.github/scripts/vuln.sh
+```
+
+To accept a vulnerability the SDK is not exposed to, add a line to `.github/vulnscan-accept.txt`
+with its ID, its module, the reason and the last day the entry applies; the file's header
+describes the format. Called code and the standard library cannot be accepted, an entry fails
+after its last day, and an entry whose vulnerability is gone fails until you remove it. Trivy has
+no accept list: fix a HIGH or CRITICAL finding by raising the version `go.mod` requires.
+
+Every Go module in the repository outside testdata directories is scanned unless
+`.github/vulnscan-trees.txt` lists it with the reason it never ships; a module that is neither
+makes the scan exit 2. Trivy gets every setting on its command line, and cicheck fails on a
+committed `trivy.yaml`, `.trivyignore` or `.trivyignore.yaml` anywhere in the repository.
 
 ## Adding or changing an API method
 

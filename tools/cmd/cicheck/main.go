@@ -50,6 +50,10 @@
 //     scripts read versions from tools/binaries.lock.
 //   - No file under .github holds a string shaped like a gitleaks fingerprint,
 //     <commit>:<path>:<rule>:<line>.
+//   - No committed file, one that git ls-files lists, is named trivy.yaml, .trivyignore or
+//     .trivyignore.yaml anywhere in the repository: .github/scripts/trivy.sh gives Trivy every
+//     setting on its command line, and such a file could weaken a scan that reads it. Files git
+//     does not track, such as those of another worktree, are not checked.
 //
 // A run: stops workflow commands when its first three command lines, after any blank and
 // comment lines, are these, with one variable name in all three:
@@ -75,7 +79,8 @@
 //	0  every rule holds, or the -print output was written
 //	1  a rule does not hold
 //	2  cicheck did not run: the command line is wrong, the workflows directory holds no
-//	   workflow or no job, a file cannot be read or parsed, or git cannot read a ref
+//	   workflow or no job, a file cannot be read or parsed, or git cannot read a ref or list the
+//	   committed files
 //
 // The last line cicheck prints when it checks is its verdict: PASS, FAIL or DID NOT RUN. Build it
 // before use, because go run reports every non-zero exit as 1:
@@ -96,6 +101,7 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -217,7 +223,11 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return abort(stdout, err)
 	}
-	return check(stdout, workflows, scripts, files)
+	trivyFiles, err := findTrivyFiles(ctx, root)
+	if err != nil {
+		return abort(stdout, err)
+	}
+	return check(stdout, workflows, scripts, files, trivyFiles)
 }
 
 func parseArgs(args []string, stderr io.Writer) (options, error) {
@@ -332,7 +342,7 @@ func readWorkflowsAt(ctx context.Context, root, ref, dir string) ([]workflow, er
 // gitOutput runs git in dir and returns what it printed, or an error with what it printed on
 // stderr.
 func gitOutput(ctx context.Context, dir string, args ...string) (string, error) {
-	//nolint:gosec // G204: git reads the ref named on the command line, as -include-ref says.
+	//nolint:gosec // G204: git lists the files, or reads the ref -include-ref names.
 	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", dir}, args...)...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
@@ -409,6 +419,27 @@ func readTree(root, dir string) (map[string]string, error) {
 		return nil, walkErr
 	}
 	return files, nil
+}
+
+// trivyFileNames are the names of the files Trivy reads its settings and ignored findings from.
+var trivyFileNames = []string{"trivy.yaml", ".trivyignore", ".trivyignore.yaml"}
+
+// findTrivyFiles returns the slash path, relative to root, of every committed file under root
+// named like a Trivy settings or ignore file. It lists every file git tracks and compares the
+// names itself, since git pathspec patterns change meaning with GIT_LITERAL_PATHSPECS and
+// GIT_GLOB_PATHSPECS.
+func findTrivyFiles(ctx context.Context, root string) ([]string, error) {
+	listed, err := gitOutput(ctx, root, "ls-files", "-z")
+	if err != nil {
+		return nil, fmt.Errorf("listing the committed files to find Trivy's: %w", err)
+	}
+	var found []string
+	for name := range strings.SplitSeq(listed, "\x00") {
+		if slices.Contains(trivyFileNames, path.Base(name)) {
+			found = append(found, name)
+		}
+	}
+	return found, nil
 }
 
 // resolve follows an alias to the node it names.
@@ -513,7 +544,9 @@ func (c *checker) add(path string, line int, format string, args ...any) {
 }
 
 // check checks every rule and prints the findings, the counts and the verdict.
-func check(output io.Writer, workflows []workflow, scripts, files map[string]string) int {
+func check(output io.Writer, workflows []workflow, scripts, files map[string]string,
+	trivyFiles []string,
+) int {
 	c := &checker{}
 	var ciWorkflows []string
 	for _, w := range workflows {
@@ -536,6 +569,11 @@ func check(output io.Writer, workflows []workflow, scripts, files map[string]str
 	c.checkPrefixes()
 	c.checkScripts(scripts)
 	c.checkFingerprints(files)
+	for _, path := range trivyFiles {
+		c.add(path, 0, "Trivy reads its settings or ignored findings from a file of this name; "+
+			".github/scripts/trivy.sh gives Trivy every setting on its command line, and this "+
+			"file could weaken a scan that reads it; remove it")
+	}
 
 	slices.SortStableFunc(c.findings, func(a, b finding) int {
 		if a.path != b.path {

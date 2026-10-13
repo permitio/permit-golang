@@ -1,0 +1,16 @@
+# Vulnerabilities that vulnscan (tools/cmd/vulnscan) reports without failing. CONTRIBUTING.md
+# says when to add an entry.
+#
+# One vulnerability per line, with four or more fields separated by spaces:
+#
+#   <ID> <module> <reason> <last day>
+#
+#   ID        the Go vulnerability database ID, such as GO-2026-1234
+#   module    the module govulncheck reports it in, such as golang.org/x/net
+#   reason    why the SDK is not exposed, in one or more words
+#   last day  the last day the entry applies, in UTC, as YYYY-MM-DD
+#
+# vulnscan prints each accepted vulnerability with its reason, never accepts one in called code or
+# in the standard library, fails on an entry after its last day, and fails on an entry that no
+# tree reports any more, so remove an entry once its vulnerability is gone. Blank lines and lines
+# that start with # are ignored.

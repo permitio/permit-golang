@@ -97,11 +97,22 @@ func withChanges(t *testing.T, changes []change) map[string]string {
 	return files
 }
 
-// writeRepository writes a repository layout under a new directory: files maps a slash path
-// relative to the root to its content. It returns the workflows directory.
+// writeRepository makes a new directory a git repository on branch main whose index tracks the
+// files, which map a slash path relative to the root to its content. It returns the workflows
+// directory.
 func writeRepository(t *testing.T, files map[string]string) string {
 	t.Helper()
 	root := t.TempDir()
+	gitIn(t, root, "init", "--quiet", "--initial-branch=main")
+	writeFiles(t, root, files)
+	gitIn(t, root, "add", "--all")
+	return filepath.Join(root, ".github", "workflows")
+}
+
+// writeFiles writes the files under root: files maps a slash path relative to root to its
+// content.
+func writeFiles(t *testing.T, root string, files map[string]string) {
+	t.Helper()
 	for name, content := range files {
 		path := filepath.Join(root, filepath.FromSlash(name))
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -111,7 +122,6 @@ func writeRepository(t *testing.T, files map[string]string) string {
 			t.Fatal(err)
 		}
 	}
-	return filepath.Join(root, ".github", "workflows")
 }
 
 // runCicheck runs cicheck with args and returns its exit code, stdout and stderr.
@@ -1063,6 +1073,47 @@ func TestCheck(t *testing.T) {
 			},
 		},
 		{
+			name:     "a committed trivy.yaml",
+			changes:  []change{{file: "trivy.yaml", to: "severity: [CRITICAL]\n"}},
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: trivy.yaml: Trivy reads its settings or ignored findings from a file " +
+					"of this name; .github/scripts/trivy.sh gives Trivy every setting on its " +
+					"command line, and this file could weaken a scan that reads it; remove it\n",
+			},
+		},
+		{
+			name: "Trivy ignore files in subdirectories",
+			changes: []change{
+				{file: "internal/x/.trivyignore", to: "CVE-2025-22868\n"},
+				{file: "tools/.trivyignore.yaml", to: "vulnerabilities: []\n"},
+			},
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: internal/x/.trivyignore: Trivy reads its settings",
+				"cicheck: tools/.trivyignore.yaml: Trivy reads its settings",
+				"cicheck: rules that do not hold: 2\n",
+			},
+		},
+		{
+			name: "files named like Trivy's in .git and with other names",
+			changes: []change{
+				{file: ".git/trivy.yaml", to: "severity: [CRITICAL]\n"},
+				{file: "docs/trivy.yaml.md", to: "# Trivy\n"},
+				{file: "docs/mytrivy.yaml", to: "severity: [CRITICAL]\n"},
+				{file: "docs/my.trivyignore", to: "CVE-2025-22868\n"},
+			},
+			wantExit: exitPassed,
+		},
+		{
+			name: "a Trivy settings file in a directory git ignores",
+			changes: []change{
+				{file: ".gitignore", to: "/worktrees/\n"},
+				{file: "worktrees/other/trivy.yaml", to: "severity: [CRITICAL]\n"},
+			},
+			wantExit: exitPassed,
+		},
+		{
 			name: "a workflow with no jobs",
 			changes: []change{
 				{file: ciYML, remove: true},
@@ -1241,6 +1292,39 @@ func TestCheckDidNotRun(t *testing.T) {
 	}
 }
 
+// TestCheckUntrackedTrivyFiles checks that the Trivy file rule reads the files git tracks, not
+// the working tree: files that are not committed, such as those of another worktree, pass.
+func TestCheckUntrackedTrivyFiles(t *testing.T) {
+	workflows := writeRepository(t, validFiles())
+	writeFiles(t, filepath.Dir(filepath.Dir(workflows)), map[string]string{
+		"trivy.yaml":            "severity: [CRITICAL]\n",
+		"internal/.trivyignore": "CVE-2025-22868\n",
+	})
+
+	exit, stdout, _ := runCicheck(t, "-workflows", workflows)
+
+	if exit != exitPassed {
+		t.Errorf("exit = %d, want %d; stdout:\n%s", exit, exitPassed, stdout)
+	}
+}
+
+func TestCheckOutsideGitRepository(t *testing.T) {
+	root := t.TempDir()
+	writeFiles(t, root, validFiles())
+	// git must not find a repository above root.
+	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(root))
+
+	exit, stdout, _ := runCicheck(t, "-workflows", filepath.Join(root, ".github", "workflows"))
+
+	if exit != exitDidNotRun || !strings.HasPrefix(stdout,
+		"cicheck: DID NOT RUN: listing the committed files to find Trivy's: git ls-files -z: ") ||
+		!strings.Contains(stdout, "not a git repository") ||
+		!strings.HasSuffix(stdout, verdicts[exitDidNotRun]) {
+		t.Errorf("exit = %d, stdout:\n%s\nwant exit 2 because git cannot list the files", exit,
+			stdout)
+	}
+}
+
 func TestPrintPins(t *testing.T) {
 	files := validFiles()
 	files[".github/workflows/third-party.yml"] = thirdParty
@@ -1287,8 +1371,6 @@ func TestPrintAllowedActions(t *testing.T) {
 	files[".github/workflows/third-party.yml"] = thirdParty
 	workflows := writeRepository(t, files)
 	root := filepath.Dir(filepath.Dir(workflows))
-	gitIn(t, root, "init", "--quiet", "--initial-branch=main")
-	gitIn(t, root, "add", "--all")
 	gitIn(t, root, "commit", "--quiet", "-m", "valid")
 	gitIn(t, root, "checkout", "--quiet", "-b", "v1")
 	if err := os.WriteFile(filepath.Join(workflows, "scan.yaml"), []byte(scan),

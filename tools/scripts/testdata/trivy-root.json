@@ -1,0 +1,23 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.75.0"
+  },
+  "ArtifactName": "go.mod",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod",
+      "Packages": [
+        {
+          "ID": "github.com/permitio/permit-golang/v2",
+          "Name": "github.com/permitio/permit-golang/v2",
+          "Relationship": "root",
+          "AnalyzedBy": "gomod"
+        }
+      ]
+    }
+  ]
+}

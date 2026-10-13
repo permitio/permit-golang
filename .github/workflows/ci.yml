@@ -219,6 +219,36 @@ jobs:
           echo "$(go env GOVERSION) for $GOOS/$GOARCH"
           go build ./...
 
+  # Scans for known vulnerabilities with govulncheck and Trivy through .github/scripts/vuln.sh:
+  # the SDK's floor (go.mod as committed), its ceiling (every dependency at its newest version)
+  # and tools/. secreport decides the result and writes the job summary; on a pull request from
+  # this repository it also keeps a comment up to date, which needs pull-requests: write. A
+  # fork's token is read-only, so secreport skips the comment there with a notice.
+  vuln:
+    name: vuln
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write  # secreport posts and updates its comment on the pull request
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Scan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: .github/scripts/vuln.sh
+
   # On a pull request only: mutation tests of the Go lines that changed in both modules, with
   # tools/cmd/mutationgate and the gremlins that tools/binaries.lock pins. The range starts at the
   # newest commit of the pull request whose mutation check succeeded, or at the merge base when
@@ -364,7 +394,7 @@ jobs:
   ci:
     name: CI
     if: always()
-    needs: [prek, test, crossbuild, mutation, prek-upstream, mutation-weekly]
+    needs: [prek, test, crossbuild, vuln, mutation, prek-upstream, mutation-weekly]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -379,7 +409,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 6
+          EXPECTED_JOBS: 7
           PULL_REQUEST_JOBS: mutation
           SCHEDULED_JOBS: prek-upstream:weekly mutation-weekly:weekly
           ADVISORY_JOBS: ""

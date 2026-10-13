@@ -73,3 +73,17 @@ sha256.darwin/arm64 = e4bc3132023b50020e62b073bc3147082828bf250d8b9282850c6f2bed
 sha256.darwin/amd64 = 9ea09639374a34b6f0b7d2a2567c175221cd37e44004e9b1cf591f31f9dda1b3
 sha256.linux/amd64 = 5470e4aa0fc0ad9d3de7dfaf088fb746d59c2eda3b173c06418e7c8861a520eb
 sha256.linux/arm64 = 420451a13aaf3de670dfe73b25e18dbca0d96bc3b153cc3924b9d01c3b7caa12
+
+[trivy]
+version = 0.75.0
+url = https://github.com/aquasecurity/trivy/releases/download/v{version}/trivy_{version}_{os}-{arch}.tar.gz
+archive = tar.gz
+binary = trivy
+os.darwin = macOS
+os.linux = Linux
+arch.amd64 = 64bit
+arch.arm64 = ARM64
+sha256.darwin/arm64 = 4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621ed69e4568
+sha256.darwin/amd64 = 291edaa9778acbe4693d067b5ad60ee11570e5ac68296e85595417528ca641e4
+sha256.linux/amd64 = c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f
+sha256.linux/arm64 = a1ee9f6ffb7d112b64ff726a2a0717c21175c1114361391f4a132956751a13b3

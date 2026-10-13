@@ -129,3 +129,5 @@ github.com/permitio/permit-golang/v2/tools/scripts TestVuln
 
 github.com/permitio/permit-golang/v2/tools/scripts TestGitleaksRange
 github.com/permitio/permit-golang/v2/tools/scripts TestGitleaksRangeScans
+
+github.com/permitio/permit-golang/v2/tools/internal/execfile TestWriteFileWhileProcessesStart

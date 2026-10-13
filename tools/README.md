@@ -13,6 +13,7 @@ the repository root does not run its tests.
 | `cmd/mutationgate` | Runs mutation tests with gremlins on the changed Go lines, or every Go file, of the packages in the directories it is given, with every test process bounded in time, memory and output, and fails when the tests detect fewer than a threshold of the mutants. [CONTRIBUTING.md](../CONTRIBUTING.md#mutation-tests) says how to run it; it is the only way to run mutation tests here. |
 | `cmd/vulnscan` | Runs govulncheck on the SDK's floor and ceiling and on this module, and fails on a vulnerability outside the standard library that `.github/vulnscan-accept.txt` does not accept. |
 | `cmd/secreport` | Decides the result of a CI job's security scans, and writes the job summary, the annotations and the pull request comment. The [vulnerability scan](../CONTRIBUTING.md#vulnerability-scan) section of CONTRIBUTING.md says how both run. |
+| `internal/execfile` | Writes a file that the program, or a process it starts, runs next, while the program starts no other process, so that running it on Linux does not fail with "text file busy". Every file that the programs in this module and their tests write and then run is written with it. |
 | `scripts` | Tests of the shell scripts in `.github/scripts`, and of `.editorconfig` with the pinned editorconfig-checker. |
 | `binaries.lock` | Release binaries that are not Go modules, pinned by version and by sha256 for each platform. |
 

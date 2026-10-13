@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"slices"
 	"syscall"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // commandGit is the subcommand the gate puts first on gremlins' PATH as git.
@@ -82,6 +84,5 @@ func parseGitShimArgs(args []string, stderr io.Writer) (gitShimOptions, error) {
 func writeGitShim(dir, self, realGit, logPath, diffPath string) error {
 	script := fmt.Sprintf("#!/bin/sh\nexec '%s' %s -real-git='%s' -log='%s' -diff='%s' -- \"$@\"\n",
 		self, commandGit, realGit, logPath, diffPath)
-	//nolint:gosec // G306: the shim is a script gremlins runs, so it must be executable.
-	return os.WriteFile(filepath.Join(dir, commandGit), []byte(script), 0o700)
+	return execfile.WriteFile(filepath.Join(dir, commandGit), []byte(script), 0o700)
 }

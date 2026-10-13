@@ -137,10 +137,7 @@ func TestCheckIgnore(t *testing.T) {
 			env := gitEnv(root)
 			if tt.stubGit != "" {
 				bin := t.TempDir()
-				writeFiles(t, bin, map[string]string{"git": tt.stubGit})
-				if err := os.Chmod(filepath.Join(bin, "git"), 0o755); err != nil {
-					t.Fatal(err)
-				}
+				writeExecutable(t, bin, "git", tt.stubGit)
 				inherited := os.Getenv("PATH") //nolint:forbidigo // the stub goes before it
 				env = append(env, "PATH="+bin+string(os.PathListSeparator)+inherited)
 			}

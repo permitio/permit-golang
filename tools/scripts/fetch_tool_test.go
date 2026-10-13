@@ -19,6 +19,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // platforms are the platforms every tools/binaries.lock entry has a sha256 for.
@@ -126,7 +128,7 @@ func newRoot(t *testing.T, lock string) string {
 		}
 	}
 	scriptPath := filepath.Join(root, ".github", "scripts", "fetch-tool.sh")
-	if err := os.WriteFile(scriptPath, script, info.Mode().Perm()); err != nil {
+	if err := execfile.WriteFile(scriptPath, script, info.Mode().Perm()); err != nil {
 		t.Fatal(err)
 	}
 	lockPath := filepath.Join(root, "tools", "binaries.lock")

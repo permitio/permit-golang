@@ -83,11 +83,7 @@ func TestGolangciAll(t *testing.T) {
 		return func(t *testing.T, root string) {
 			t.Helper()
 			stub := strings.Replace(golangciStub, "echo 2.14.0", "echo "+version, 1)
-			writeFiles(t, root, map[string]string{"bin/golangci-lint": stub})
-			path := filepath.Join(root, "bin", "golangci-lint")
-			if err := os.Chmod(path, 0o755); err != nil {
-				t.Fatal(err)
-			}
+			writeExecutable(t, root, "bin/golangci-lint", stub)
 		}
 	}
 	// allSteps are the steps the script runs on the modules above, in order.

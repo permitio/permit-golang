@@ -12,6 +12,8 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // commandGo is the subcommand the gate puts first on gremlins' PATH as go.
@@ -150,6 +152,5 @@ func writeGoShim(dir, self, realGo, logPath, pkg string) error {
 		logPath,
 		pkg,
 	)
-	//nolint:gosec // G306: the shim is a script gremlins runs, so it must be executable.
-	return os.WriteFile(filepath.Join(dir, commandGo), []byte(script), 0o700)
+	return execfile.WriteFile(filepath.Join(dir, commandGo), []byte(script), 0o700)
 }

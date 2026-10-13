@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // scan is what one scan leaves in the results directory; a nil field leaves its file out.
@@ -449,7 +451,7 @@ esac
 func ghBin(t *testing.T) string {
 	t.Helper()
 	bin := t.TempDir()
-	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(ghStub), 0o700); err != nil {
+	if err := execfile.WriteFile(filepath.Join(bin, "gh"), []byte(ghStub), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	return bin

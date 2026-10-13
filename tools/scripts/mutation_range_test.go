@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // fakeGH is a gh that answers gh api from the files in $FAKE_GH: commits.json for the commits
@@ -84,7 +86,7 @@ func rangeBin(t *testing.T, fake bool, without string) string {
 		scripts["git"] = fakeGit
 	}
 	for name, script := range scripts {
-		if err := os.WriteFile(filepath.Join(bin, name), []byte(script), 0o755); err != nil {
+		if err := execfile.WriteFile(filepath.Join(bin, name), []byte(script), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // scriptResult is a script's exit code and what it printed.
@@ -56,9 +58,22 @@ func copyScripts(t *testing.T, root string, names ...string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, name), script, info.Mode().Perm()); err != nil {
+		err = execfile.WriteFile(filepath.Join(dir, name), script, info.Mode().Perm())
+		if err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// writeExecutable writes content to an executable file at name, a path relative to root.
+func writeExecutable(t *testing.T, root, name, content string) {
+	t.Helper()
+	path := filepath.Join(root, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := execfile.WriteFile(path, []byte(content), 0o755); err != nil {
+		t.Fatal(err)
 	}
 }
 

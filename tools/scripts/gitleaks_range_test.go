@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // gitleaksStub is a stand-in for gitleaks. For version it prints STUB_VERSION. For a scan it
@@ -443,7 +445,7 @@ func TestGitleaksRange(t *testing.T) {
 	// Every repository links bin/gitleaks to one stub, since some systems check each new
 	// executable the first time it runs, which is slow.
 	stub := filepath.Join(t.TempDir(), "gitleaks")
-	if err := os.WriteFile(stub, []byte(gitleaksStub), 0o700); err != nil {
+	if err := execfile.WriteFile(stub, []byte(gitleaksStub), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	for _, tt := range tests {

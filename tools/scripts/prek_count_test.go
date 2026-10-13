@@ -170,10 +170,7 @@ func TestPrekCount(t *testing.T) {
 			files := t.TempDir()
 			writeFiles(t, files, map[string]string{"fast": tt.fast, "upstream": tt.upstream})
 			if !tt.noPrek {
-				writeFiles(t, root, map[string]string{"bin/prek": prekStub})
-				if err := os.Chmod(filepath.Join(root, "bin", "prek"), 0o755); err != nil {
-					t.Fatal(err)
-				}
+				writeExecutable(t, root, "bin/prek", prekStub)
 			}
 			log := filepath.Join(files, "log")
 			env := []string{

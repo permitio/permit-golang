@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // vulnStub stands in for every program vuln.sh runs: go on PATH, fetch-tool.sh and trivy.sh in
@@ -172,7 +174,7 @@ func TestVuln(t *testing.T) {
 		},
 	}
 	stub := filepath.Join(t.TempDir(), "stub")
-	if err := os.WriteFile(stub, []byte(vulnStub), 0o700); err != nil {
+	if err := execfile.WriteFile(stub, []byte(vulnStub), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	bin := t.TempDir()

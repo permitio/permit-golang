@@ -17,6 +17,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // fakeMutant is a mutant the fake gremlins finds, and the status a test run of it
@@ -803,7 +805,7 @@ func writeExecutable(t *testing.T, dir, name, script string) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(script), 0o700); err != nil {
+	if err := execfile.WriteFile(filepath.Join(dir, name), []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
 }

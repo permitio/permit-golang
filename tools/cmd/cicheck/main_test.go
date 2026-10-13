@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -629,6 +630,21 @@ func TestCheck(t *testing.T) {
 			},
 		},
 		{
+			name: "a fixed delimiter after a random one on one line",
+			changes: []change{inCI("go test ./...", `echo "a<<$token" >>"$GITHUB_OUTPUT"; `+
+				`echo "b<<EOF" >>"$GITHUB_OUTPUT"`)},
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: .github/workflows/ci.yml:43: the multi-line value b uses the fixed " +
+					"delimiter \"EOF\"",
+			},
+		},
+		{
+			name:     "a run: of only the three lines that stop workflow commands",
+			changes:  []change{inCI(trapLine+"          go test ./...\n", trapLine)},
+			wantExit: exitPassed,
+		},
+		{
 			name: "a fixed GITHUB_OUTPUT delimiter in a script",
 			changes: []change{
 				{file: ".github/scripts/wrap.sh", from: "report<<$delimiter", to: "report<<'END'"},
@@ -757,6 +773,20 @@ func TestCheck(t *testing.T) {
 				"cicheck: .github/workflows/ci.yml:15: the concurrency group " +
 					"\"${{ github.workflow }}-${{ github.sha }}\" does not start with a literal " +
 					"prefix",
+			},
+		},
+		{
+			name: "a concurrency group that starts with an expression, after another key",
+			changes: []change{
+				inCI(
+					"  group: ci-${{ github.sha }}",
+					"  cancel-in-progress: true\n  group: ${{ github.sha }}",
+				),
+			},
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: .github/workflows/ci.yml:16: the concurrency group " +
+					"\"${{ github.sha }}\" does not start with a literal prefix",
 			},
 		},
 		{
@@ -1344,4 +1374,64 @@ func TestRepository(t *testing.T) {
 	if exit != exitPassed {
 		t.Errorf("exit = %d, want %d; stdout:\n%s", exit, exitPassed, stdout)
 	}
+}
+
+// TestRepositoryMutationCheckName checks that the one job that calls mutation-range.sh passes
+// it the job's id, ${{ github.job }}, as the name of the check run to look for. The job has no
+// name:, so GitHub names its check run by that id, and it is in PULL_REQUEST_JOBS, because the
+// script reads the commits of a pull request. A renamed job would otherwise start every range
+// at the merge base without a word.
+func TestRepositoryMutationCheckName(t *testing.T) {
+	root := filepath.Join("..", "..", "..")
+	workflows, err := readWorkflows(filepath.Join(root, ".github", "workflows"), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var callers []string
+	for _, w := range workflows {
+		jobs := pairs(field(w.doc, "jobs"))
+		for _, job := range jobs {
+			for _, step := range items(field(job.value, "steps")) {
+				run, _ := scalar(field(step, "run"))
+				if !strings.Contains(run, "mutation-range.sh") {
+					continue
+				}
+				callers = append(callers, w.path+" "+job.key)
+				if field(job.value, "name") != nil {
+					t.Errorf("%s: job %s has a name:, so its check run is not named %s, the "+
+						"name it passes mutation-range.sh", w.path, job.key, job.key)
+				}
+				if !slices.ContainsFunc(pairs(field(step, "env")), func(p pair) bool {
+					value, _ := scalar(p.value)
+					return value == "${{ github.job }}"
+				}) {
+					t.Errorf("%s: the step of job %s that calls mutation-range.sh has no env: "+
+						"value ${{ github.job }} to pass as the check name", w.path, job.key)
+				}
+				if !slices.Contains(pullRequestJobs(jobs), job.key) {
+					t.Errorf("%s: job %s calls mutation-range.sh but is not in PULL_REQUEST_JOBS",
+						w.path, job.key)
+				}
+			}
+		}
+	}
+	if len(callers) != 1 {
+		t.Errorf("jobs that call mutation-range.sh: %q; want exactly one", callers)
+	}
+}
+
+// pullRequestJobs returns the jobs that PULL_REQUEST_JOBS names in the env of a step of the ci
+// job.
+func pullRequestJobs(jobs []pair) []string {
+	for _, job := range jobs {
+		if job.key != ciJob {
+			continue
+		}
+		for _, step := range items(field(job.value, "steps")) {
+			if value, ok := scalar(field(field(step, "env"), "PULL_REQUEST_JOBS")); ok {
+				return strings.Fields(value)
+			}
+		}
+	}
+	return nil
 }

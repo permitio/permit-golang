@@ -219,6 +219,72 @@ jobs:
           echo "$(go env GOVERSION) for $GOOS/$GOARCH"
           go build ./...
 
+  # On a pull request only: mutation tests of the Go lines that changed in both modules, with
+  # tools/cmd/mutationgate and the gremlins that tools/binaries.lock pins. The range starts at the
+  # newest commit of the pull request whose mutation check succeeded, or at the merge base when
+  # none did (.github/scripts/mutation-range.sh, which reads the check runs with GH_TOKEN in a
+  # step of its own), so the lines of a run that a newer push cancelled are in the next one. The
+  # job has no name:, so its check run is named by its id, which the range step passes the script
+  # as ${{ github.job }}. The job fails when the tests detect fewer than 90% of the mutants that
+  # ran, and tests a sample of the changed lines, fixed by the head commit, with a budget of 400
+  # mutants. Every test process is bounded to 3 minutes, 4096 MiB and 64 MiB of output, two at a
+  # time. The tests run offline, without GH_TOKEN, skipping the live tests and the tests that
+  # read files outside their module, which fail in the module copies gremlins tests mutants in.
+  # The report is in the job summary.
+  mutation:
+    if: >-
+      !inputs.mode && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      checks: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install gremlins
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh gremlins
+      - name: Find the start of the range
+        id: range
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHECK_NAME: ${{ github.job }}
+        run: |
+          .github/scripts/mutation-range.sh "$REPOSITORY" "$PULL_REQUEST" "$BASE_SHA" "$HEAD_SHA" \
+            "$CHECK_NAME"
+      - name: Run the mutation tests
+        env:
+          START_SHA: ${{ steps.range.outputs.start }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools mod download
+          go -C tools build -o "$RUNNER_TEMP/mutationgate" ./cmd/mutationgate
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          "$RUNNER_TEMP/mutationgate" -base "$START_SHA" -threshold 90 -max-mutants 400 \
+            -skip '^(TestLive|TestRepository)' -gremlins bin/gremlins -workers 2 \
+            -timeout-coefficient 5 -cap 3m -memory-mib 4096 -summary "$GITHUB_STEP_SUMMARY" \
+            . tools
+
   # Weekly, runs every hook twice: with prek's built-in versions of the pre-commit-hooks hooks,
   # as the prek job does, and with PREK_NO_FAST_PATH=1, the upstream hooks. It fails when the
   # two runs report a hook differently. A called run sees its caller's schedule, so the cron
@@ -249,6 +315,45 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: .github/scripts/prek-count.sh --upstream
 
+  # Weekly, mutation tests of every Go file of both modules, with the limits of the mutation job
+  # and no threshold or budget: it reports the efficacy in the job summary and fails only when
+  # the run does not complete.
+  mutation-weekly:
+    name: mutation (weekly)
+    if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install gremlins
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh gremlins
+      - name: Run the mutation tests on every Go file
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools mod download
+          go -C tools build -o "$RUNNER_TEMP/mutationgate" ./cmd/mutationgate
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          "$RUNNER_TEMP/mutationgate" -all -threshold 0 -skip '^(TestLive|TestRepository)' \
+            -gremlins bin/gremlins -workers 2 -timeout-coefficient 5 -cap 3m -memory-mib 4096 \
+            -summary "$GITHUB_STEP_SUMMARY" . tools
+
   # The one check to require. It runs whatever happened to the jobs it needs, since GitHub counts
   # a skipped required check as passing. ci-aggregate.sh says how it decides; in short, each job
   # must succeed in the runs that select it: the pull request checks on pull_request, push and
@@ -259,7 +364,7 @@ jobs:
   ci:
     name: CI
     if: always()
-    needs: [prek, test, crossbuild, prek-upstream]
+    needs: [prek, test, crossbuild, mutation, prek-upstream, mutation-weekly]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -274,8 +379,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 4
-          PULL_REQUEST_JOBS: ""
-          SCHEDULED_JOBS: prek-upstream:weekly
+          EXPECTED_JOBS: 6
+          PULL_REQUEST_JOBS: mutation
+          SCHEDULED_JOBS: prek-upstream:weekly mutation-weekly:weekly
           ADVISORY_JOBS: ""
         run: .github/scripts/ci-aggregate.sh

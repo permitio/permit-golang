@@ -139,13 +139,15 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `prek` | Checks the workflows with cicheck, runs every git hook on every file through `.github/scripts/prek-count.sh`, and on a pull request checks the message of each of its commits through `.github/scripts/commits-check.sh`. |
 | `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
+| `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
 | `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
+| `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary and fails only when the run does not complete. |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
 
 Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
-  `test` and `crossbuild`.
+  `test` and `crossbuild`. A pull request runs `mutation` too.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, and `security` and `e2e` the jobs of those modes *(added in later commits on this
   branch)*. The release workflow *(added in a later commit on this branch)* calls CI with the
@@ -209,6 +211,70 @@ mean, and the tests in `tools/scripts` run them; those tests need bash, git, jq,
 EXPECTED_HOOKS=25 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
 .github/scripts/commits-check.sh "$(git merge-base origin/master HEAD)" "$(git rev-parse HEAD)"
 ```
+
+## Mutation tests
+
+Mutation tests change the code, one small change (a mutant) at a time, and run its package's
+tests on each: a mutant the tests do not detect shows code they do not check. Run them only
+through `tools/cmd/mutationgate`, with the limits below, and never run gremlins or another
+mutation tool directly: a mutant can allocate memory or run without end, and nothing else bounds
+it. mutationgate runs [gremlins](https://gremlins.dev), the version that `tools/binaries.lock`
+pins, and:
+
+- bounds every test process to `-cap` (3 minutes), `-memory-mib` (4096 MiB; the kernel enforces
+  it on Linux, and mutationgate polls on macOS) and 64 MiB of output, and runs `-workers` (2) at a
+  time; before it starts, a probe that allocates without end must be stopped by the memory limit;
+- runs gremlins once per package, so a mutant is tested with its own package's tests, and leaves
+  mutants that do not compile out of the count;
+- with `-base <ref>`, mutates the lines changed since the merge base with `<ref>`, and with
+  `-all` every Go file, of the packages in the directories it is given;
+- with `-max-mutants`, tests at most that many mutants, or the mutants of the sample's first line
+  when that line alone holds more: a sample of the changed lines, fixed by the commit `HEAD`
+  names, spread over the files first. The report states the share of the mutants, lines and
+  files that the sample covers;
+- skips the tests that `-skip` matches; and
+- exits 0 when the tests detect at least `-threshold` percent (90) of the mutants that ran, 1 when
+  they detect fewer, and 2 when the run did not complete: the limits do not hold, gremlins failed,
+  or Go lines changed and no mutant on them ran. With `-base`, nothing to mutate passes; with
+  `-all`, a module with nothing to mutate is a notice, and a run in which no mutant ran is DID
+  NOT RUN.
+
+gremlins tests each mutant in a copy of the package's module, without the rest of the
+repository. A test that reads a file outside its module, such as the workflows, fails there for
+every mutant, which would then count as detected; mutationgate fails a run in which a package's
+tests fail in such a copy. Name such a test `TestRepository...`, so that the `-skip` below leaves
+it out. Live tests that need Permit are named `TestLive...` and are left out too.
+
+Install gremlins and build mutationgate from the repository root:
+
+```sh
+.github/scripts/fetch-tool.sh gremlins
+go -C tools build -o ../bin/mutationgate ./cmd/mutationgate
+```
+
+Then run it there, offline, on the changes of your branch, and on a whole package when you check
+its tests:
+
+```sh
+export HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9
+bin/mutationgate -gremlins bin/gremlins -workers 2 -memory-mib 4096 -cap 3m \
+  -timeout-coefficient 5 -skip '^(TestLive|TestRepository)' -base origin/master . tools
+bin/mutationgate -gremlins bin/gremlins -workers 2 -memory-mib 4096 -cap 3m \
+  -timeout-coefficient 5 -skip '^(TestLive|TestRepository)' -all tools/cmd/cicheck  # a package
+```
+
+Give a lower `-memory-mib` when a memory watchdog on your machine would stop a process first.
+`bin/mutationgate -h` lists the flags, and `go -C tools doc ./cmd/mutationgate` describes the
+gate and its exit codes.
+
+In CI, the `mutation` job runs the same command on a pull request with `-max-mutants 400`. Its
+range starts at the newest commit of the pull request whose `mutation` check succeeded and that
+the head still contains, or at the merge base when there is none, as
+`.github/scripts/mutation-range.sh` works it out; so the lines of a run that a newer push
+cancelled are tested in the next one. Changed lines in `tools/`, the programs that check the
+SDK, are tested like SDK code. Maintainers push a pull request's next commit only after CI
+passed on the previous one, so that each commit's lines get a run. The weekly job tests every Go
+file of both modules and only reports.
 
 ## Adding or changing an API method
 

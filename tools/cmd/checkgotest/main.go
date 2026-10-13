@@ -326,24 +326,24 @@ func check(inputs []input, output io.Writer, cfg config) int {
 		passedNames: map[string]bool{},
 	}
 	for _, in := range inputs {
-		testEvents, err := r.read(in.r, output)
+		sawTest, err := r.read(in.r, output)
 		if err != nil {
 			r.printCounts(output)
 			return abort(output, fmt.Errorf("reading %s: %w", in.name, err))
 		}
-		if testEvents == 0 {
+		if !sawTest {
 			r.inputsWithoutTests = append(r.inputsWithoutTests, in.name)
 		}
 	}
 	return r.verdict(output, cfg)
 }
 
-// read echoes the test output from the events on input, sorts the test results, and returns the
-// number of events for a test.
-func (r *results) read(input io.Reader, output io.Writer) (int, error) {
+// read echoes the test output from the events on input, sorts the test results, and returns
+// whether any event was for a test.
+func (r *results) read(input io.Reader, output io.Writer) (bool, error) {
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(nil, maxLineBytes)
-	testEvents := 0
+	sawTest := false
 	for scanner.Scan() {
 		var event testEvent
 		if err := json.Unmarshal(scanner.Bytes(), &event); err != nil || event.Action == "" {
@@ -359,7 +359,7 @@ func (r *results) read(input io.Reader, output io.Writer) (int, error) {
 			}
 			continue
 		}
-		testEvents++
+		sawTest = true
 		name := event.Package + " " + event.Test
 		r.started[name] = true
 		switch event.Action {
@@ -373,7 +373,7 @@ func (r *results) read(input io.Reader, output io.Writer) (int, error) {
 			r.skipped = append(r.skipped, name)
 		}
 	}
-	return testEvents, scanner.Err()
+	return sawTest, scanner.Err()
 }
 
 // packageFailures returns the packages that failed to build, and those that failed with no failed

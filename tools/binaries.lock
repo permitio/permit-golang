@@ -48,6 +48,18 @@ sha256.darwin/amd64 = a5667c1c3536be1740133213e1e822bfb8f0d98ea12903174d6d5f635e
 sha256.linux/amd64 = ab90aeb7b066f92a33415b638a50fe5344bbb75a0d32ad30cc248d88f81032ab
 sha256.linux/arm64 = ee7ec5f3453d15ddf106fae5a4d6c71737712348a979d1fe9cd52ec7ea299bae
 
+# Run gremlins only through tools/cmd/mutationgate, which bounds its test runs; CONTRIBUTING.md
+# says how.
+[gremlins]
+version = 0.6.0
+url = https://github.com/go-gremlins/gremlins/releases/download/v{version}/gremlins_{version}_{os}_{arch}.tar.gz
+archive = tar.gz
+binary = gremlins
+sha256.darwin/arm64 = 90de858ffad3eea5018e41cdf28747b7003966684b9420f4605eb10bdad0c301
+sha256.darwin/amd64 = 6b00937bb51a9ac994371b9835572320f1f26f4e3ffce7b212b8b85afa0a12ae
+sha256.linux/amd64 = b02a42e47935f891c9a411d68c07e211c7082609e79c2435b67c85ee9658c538
+sha256.linux/arm64 = 686542674e54559afb7e86d6994d342c19a856cfd970c315748989537936664c
+
 [prek]
 version = 0.5.5
 url = https://github.com/j178/prek/releases/download/v{version}/prek-{arch}-{os}.tar.gz

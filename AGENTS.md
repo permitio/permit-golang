@@ -58,8 +58,8 @@ over the branch's new commits:
 - A lint or format fix that changes no behaviour and is found after the code it fixes goes in its
   own commit, with `testdata/api-surface.txt` *(added in a later commit on this branch)*
   byte-identical.
-- Run mutation tests only through mutationgate *(added in a later commit on this branch)*, within
-  its caps on workers, memory and time; never run a mutation tool directly.
+- Run mutation tests only through `tools/cmd/mutationgate`, within its caps on workers, memory
+  and time, as CONTRIBUTING.md shows; never run a mutation tool directly.
 - Run at most one Docker stack at a time.
 - Push the next ticket's commit only after CI is green on the previous one.
 

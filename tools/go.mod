@@ -13,6 +13,8 @@ tool (
 	golang.org/x/vuln/cmd/govulncheck
 )
 
+require go.yaml.in/yaml/v3 v3.0.5
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/editorconfig-checker/editorconfig-checker/v4 v4.0.2 // indirect

@@ -7,8 +7,9 @@ the repository root does not run its tests.
 
 | Path | What it is |
 | --- | --- |
-| `go.mod`, `go.sum` | `tool` directives that pin govulncheck, apidiff, gorelease and editorconfig-checker. The `replace` directive points the SDK module at the repository root, so code here can import the SDK's packages, `internal/` ones included. |
+| `go.mod`, `go.sum` | `tool` directives that pin govulncheck, apidiff, gorelease and editorconfig-checker, and the requirement on `go.yaml.in/yaml/v3`, the YAML parser that cicheck uses. The `replace` directive points the SDK module at the repository root, so code here can import the SDK's packages, `internal/` ones included. |
 | `cmd/checkgotest` | Reads `go test -json` output and fails a run in which a test failed or skipped, no test passed, no test ran in one of the input files, or a required test did not run. |
+| `cmd/cicheck` | Checks the workflows in `.github/workflows` and the scripts in `.github/scripts` against the rules CI depends on, and prints the pinned actions and release binaries. The CI section of [CONTRIBUTING.md](../CONTRIBUTING.md#ci) says how to run it. |
 | `scripts` | Tests of the shell scripts in `.github/scripts`, and of `.editorconfig` with the pinned editorconfig-checker. |
 | `binaries.lock` | Release binaries that are not Go modules, pinned by version and by sha256 for each platform. |
 

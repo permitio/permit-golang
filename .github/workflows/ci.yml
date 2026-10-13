@@ -1,0 +1,281 @@
+# Every check of this repository. The ci job at the end, named CI, is the one check the ruleset
+# requires: it fails unless every job it needs succeeded or was not selected for the run.
+# CONTRIBUTING.md describes the jobs and how to run each check locally.
+name: CI
+
+# Pull requests into any branch, with no path filter, so a stacked pull request is checked and a
+# required check always starts. Pushes to master, so a regression shows there. workflow_dispatch
+# and workflow_call take a mode: pr runs the pull request checks, release (which release.yml
+# passes) runs them for a release, and e2e, security and weekly run the periodic jobs. Each cron
+# in on.schedule is declared once more as <MODE>_CRON in env, which cicheck and ci-aggregate.sh
+# read; GitHub does not allow expressions in on:.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  schedule:
+    - cron: "23 4 * * 1,4"
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Which jobs to run
+        type: choice
+        options: [pr, e2e, security, weekly]
+        default: pr
+  workflow_call:
+    inputs:
+      mode:
+        description: Which jobs to run; release.yml passes release
+        type: string
+        required: true
+
+permissions: {}
+
+# One run per pull request: a new push cancels the older run. Other runs wait for each other per
+# commit and mode. The group starts with a literal prefix because a called run has its caller's
+# github.workflow, and a group shared with the caller would deadlock; release.yml uses release-.
+concurrency:
+  group: >-
+    ci-${{ inputs.mode || github.event_name }}-${{
+    github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && !inputs.mode }}
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+env:
+  # The Go releases the test legs run, as exact patch releases: the minimum that go.mod's go line
+  # allows, and the newest patch of each supported Go release that is at least 7 days old.
+  GO_FLOOR: "1.26.0"
+  GO_126: "1.26.8"
+  GO_127: "1.27.1"
+  # The crons in on.schedule, by mode: security twice a week, weekly once a week.
+  SECURITY_CRON: "23 4 * * 1,4"
+  WEEKLY_CRON: "41 6 * * 1"
+  # The number of hooks in .pre-commit-config.yaml that run on every file; change it when a hook
+  # is added or removed.
+  EXPECTED_HOOKS: "25"
+  # A proxy address that refuses connections. The tests run with it, so a request that tries to
+  # leave the runner fails; requests to loopback addresses, such as httptest servers, go direct.
+  OFFLINE_PROXY: http://127.0.0.1:9
+
+jobs:
+  # Checks the workflows with cicheck, runs every hook in .pre-commit-config.yaml on every file,
+  # and on a pull request checks the message of each of its commits. setup-go installs the
+  # toolchain line of go.mod; the hooks that build Go programs use it. zizmor runs its online
+  # audits with GH_TOKEN.
+  prek:
+    name: prek
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the workflows
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o ../bin/cicheck ./cmd/cicheck
+          bin/cicheck
+      - name: Install prek
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh prek
+      - name: Run the hooks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/prek-count.sh
+      # The commits of a pull request only. A check on a push to master could only turn master
+      # red after the merge, and master is never rewritten: a rebase merge keeps the commits
+      # checked here, and a maintainer who squashes writes the message to the same rules.
+      - name: Check the commit messages
+        if: >-
+          !inputs.mode && github.event_name == 'pull_request'
+        env:
+          RANGE_BASE: ${{ github.event.pull_request.base.sha }}
+          RANGE_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: .github/scripts/commits-check.sh "$RANGE_BASE" "$RANGE_HEAD"
+
+  # The tests of both modules on the minimum Go release and the newest patch of each supported
+  # release. The floor legs use go.mod and go.sum as committed; the ceiling legs first move every
+  # dependency to its newest version in the runner's copy, as an application that requires newer
+  # versions would. GOTOOLCHAIN=local keeps the go command from switching to go.mod's toolchain.
+  # The modules are downloaded first, and the tests then run offline.
+  test:
+    name: test (${{ matrix.go }}, ${{ matrix.deps }} tree)
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {go: GO_FLOOR, deps: floor}
+          - {go: GO_126, deps: floor}
+          - {go: GO_127, deps: floor}
+          - {go: GO_126, deps: ceiling}
+          - {go: GO_127, deps: ceiling}
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version: ${{ env[matrix.go] }}
+          cache: false
+      # checkgotest exits 1 when a test failed or skipped, and 2 when a required test or a
+      # module's tests did not run. go test's own exit code is reported after it.
+      - name: Test
+        env:
+          GO_VERSION: ${{ env[matrix.go] }}
+          DEPS: ${{ matrix.deps }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          have=$(go env GOVERSION)
+          echo "Go: $have, dependencies: $DEPS"
+          if [[ $have != "go$GO_VERSION" ]]; then
+            echo "This leg must run go$GO_VERSION, but go env GOVERSION is $have."
+            exit 2
+          fi
+          if [[ $DEPS == ceiling ]]; then
+            go get -u -t ./...
+            go mod tidy
+            go -C tools mod tidy
+            git diff --stat
+          fi
+          go mod download
+          go -C tools mod download
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          root=0 tools=0
+          go test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/root.json" || root=$?
+          go -C tools test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/tools.json" ||
+            tools=$?
+          "$RUNNER_TEMP/checkgotest" -require-file .github/required-tests.txt \
+            -allow-skips .github/allowed-skips.txt \
+            "$RUNNER_TEMP/root.json" "$RUNNER_TEMP/tools.json"
+          if [[ $root -ne 0 || $tools -ne 0 ]]; then
+            echo "go test exited $root in the root module and $tools in tools/."
+            exit 1
+          fi
+
+  # Compiles the SDK for every platform that applications commonly build for.
+  crossbuild:
+    name: crossbuild (${{ matrix.goos }}/${{ matrix.goarch }})
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOFLAGS: -mod=readonly
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          echo "$(go env GOVERSION) for $GOOS/$GOARCH"
+          go build ./...
+
+  # Weekly, runs every hook twice: with prek's built-in versions of the pre-commit-hooks hooks,
+  # as the prek job does, and with PREK_NO_FAST_PATH=1, the upstream hooks. It fails when the
+  # two runs report a hook differently. A called run sees its caller's schedule, so the cron
+  # selects the job only in a run without a mode.
+  prek-upstream:
+    name: prek (upstream hooks)
+    if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install prek
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh prek
+      - name: Compare the built-in hooks with the upstream ones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/prek-count.sh --upstream
+
+  # The one check to require. It runs whatever happened to the jobs it needs, since GitHub counts
+  # a skipped required check as passing. ci-aggregate.sh says how it decides; in short, each job
+  # must succeed in the runs that select it: the pull request checks on pull_request, push and
+  # the pr and release modes, and each job in SCHEDULED_JOBS (job:mode) on its cron or mode only.
+  # PULL_REQUEST_JOBS run on pull requests only, and a job in ADVISORY_JOBS may fail. cicheck
+  # fails when needs leaves out a job, EXPECTED_JOBS is not the number of jobs in needs, or a
+  # job's if: is not the one its list calls for.
+  ci:
+    name: CI
+    if: always()
+    needs: [prek, test, crossbuild, prek-upstream]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the needed jobs
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          EVENT: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
+          EXPECTED_JOBS: 4
+          PULL_REQUEST_JOBS: ""
+          SCHEDULED_JOBS: prek-upstream:weekly
+          ADVISORY_JOBS: ""
+        run: .github/scripts/ci-aggregate.sh

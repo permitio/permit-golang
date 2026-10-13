@@ -57,9 +57,8 @@ bin/prek install            # runs the hooks on each commit and checks each comm
 bin/prek run --all-files    # every hook on every file
 ```
 
-CI *(added in a later commit on this branch)* runs the same hooks. The first run downloads the
-hooks and builds the ones written in Go, so it needs the network; later runs work offline. The
-hooks check:
+The prek job in [CI](#ci) runs the same hooks. The first run downloads the hooks and builds the
+ones written in Go, so it needs the network; later runs work offline. The hooks check:
 
 - formatting and lint with golangci-lint, through `.github/scripts/golangci-all.sh` (below);
 - that `go mod tidy -diff` prints nothing, in the root and in `tools/`;
@@ -130,6 +129,87 @@ is not `go test -json` output. A test may skip only with an entry in `.github/al
 that names its ticket, the last day the skip is allowed and what must happen before the test can
 run again.
 
+## CI
+
+`.github/workflows/ci.yml` runs every check. Its last job, `CI`, is the one check the ruleset
+requires: it fails unless every job it needs succeeded, or was not selected for the run.
+
+| Job | What it does |
+| --- | --- |
+| `prek` | Checks the workflows with cicheck, runs every git hook on every file through `.github/scripts/prek-count.sh`, and on a pull request checks the message of each of its commits through `.github/scripts/commits-check.sh`. |
+| `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. |
+| `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
+| `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
+| `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
+
+Which jobs a run selects depends on its mode:
+
+- A pull request into any branch and a push to `master` run the pull request checks: `prek`,
+  `test` and `crossbuild`.
+- A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
+  weekly jobs, and `security` and `e2e` the jobs of those modes *(added in later commits on this
+  branch)*. The release workflow *(added in a later commit on this branch)* calls CI with the
+  mode `release`, which runs the pull request checks.
+- Two crons start the periodic modes: `SECURITY_CRON` twice a week and `WEEKLY_CRON` once a week.
+  Each cron is listed in `on.schedule` and set once more in the workflow's `env`, as
+  `<MODE>_CRON`, which cicheck and ci-aggregate.sh read.
+
+The `CI` job fails when a job it needs failed or was cancelled, or was skipped in a run that
+selects it, and passes a job that the run does not select. Three lists in its step change that:
+`PULL_REQUEST_JOBS` run on pull requests only, each job in `SCHEDULED_JOBS` (`job:mode`) runs in
+its mode only, and a job in `ADVISORY_JOBS` may fail without failing CI. ci-aggregate.sh exits 0
+when CI passes, 1 when a job did not succeed, and 2 when it could not decide: the job results
+cannot be read, there are not `EXPECTED_JOBS` of them, a list names a job CI does not need, or
+the mode, event or cron is unknown.
+
+When you add a job, add it to `CI`'s `needs` and change `EXPECTED_JOBS`; when it runs only on
+pull requests, on a cron or as an advisory check, add it to the list for that. Give the job the
+`if:` of its kind, exactly as `ci.yml` writes it:
+
+- a pull request check, advisory or not:
+  `(!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push')) || inputs.mode == 'pr' || inputs.mode == 'release'`;
+- a job in `PULL_REQUEST_JOBS`: `!inputs.mode && github.event_name == 'pull_request'`;
+- a job in `SCHEDULED_JOBS`:
+  `(!inputs.mode && github.event.schedule == '<cron>') || inputs.mode == '<mode>'`, with the cron
+  its `<MODE>_CRON` declares. A run that another workflow calls sees its caller's schedule, so
+  `!inputs.mode` keeps the cron from selecting the job in a run that has a mode.
+
+When you add or remove a git hook, change `EXPECTED_HOOKS`.
+
+cicheck checks these rules and the workflows' hardening: every action pinned to a commit SHA with
+a version comment, `persist-credentials: false`, `cache: false` and an exact Go version on every
+`setup-go`, a pinned runner and a timeout on every job, no `${{` in a `run:`, and the rest that
+`go -C tools doc ./cmd/cicheck` lists. Tool output must not be able to issue workflow commands,
+so a `run:` that does more than call scripts in `.github/scripts` starts with these three lines,
+after any blank and comment lines, with one variable name in all three:
+
+```sh
+token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+echo "::stop-commands::$token"
+trap 'echo "::$token::"' EXIT
+```
+
+A line that calls a script counts as a script call only with plain or quoted arguments: a `&`,
+`|`, `;`, `<`, `>`, backtick or `$(` after the script's path makes it an ordinary command. A
+script that CI calls prints a `::stop-commands::` line with its token in a variable.
+
+cicheck exits 0 when every rule holds, 1 when one does not, and 2 when it could not check. Run it
+from the repository root:
+
+```sh
+go -C tools build -o ../bin/cicheck ./cmd/cicheck
+bin/cicheck              # checks .github/workflows and .github/scripts
+bin/cicheck -print-pins  # every pinned action and release binary, with its version
+```
+
+The CI scripts run locally too. Each says in its header what it reads and what its exit codes
+mean, and the tests in `tools/scripts` run them; those tests need bash, git, jq, diff and od.
+
+```sh
+EXPECTED_HOOKS=25 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
+.github/scripts/commits-check.sh "$(git merge-base origin/master HEAD)" "$(git rev-parse HEAD)"
+```
+
 ## Adding or changing an API method
 
 There is no code generator to run: the models in `models/` are written by hand, and a drift test
@@ -164,14 +244,16 @@ is marked *(added in a later commit on this branch)* does not exist yet.
   version such as `golang.org/x/vuln@v1.8.0` is fine.
 - `.github/scripts/check-commit-msg.sh` checks these rules in two modes. The commit-msg hook runs
   it on the message before git cleans it up, so it skips the lines that start with `#` and the
-  diff that `git commit --verbose` adds, as git removes both. CI *(added in a later commit on
-  this branch)* runs it with `--committed` on the message of every commit of a pull request, as
-  `git log --format=%B` prints it, and checks every line: `git commit -m` and `-F` keep lines that
-  start with `#`.
+  diff that `git commit --verbose` adds, as git removes both. CI runs it with `--committed` on
+  the message of every commit of a pull request, as `git log --format=%B` prints it, and checks
+  every line: `git commit -m` and `-F` keep lines that start with `#`.
+- What lands on `master` is the merge of a pull request whose commits CI checked. A rebase merge
+  keeps those commits. A maintainer who squashes writes the squash commit's message to the same
+  rules, and deletes the `(#N)` that GitHub appends to its title.
 - Maintainers merge pull requests, and close the issue when the release that contains the change
   ships.
-- CI *(added in a later commit on this branch)* runs on a pull request from a fork only after a
-  maintainer approves the run, and the end-to-end tests against Permit do not run on forks.
+- CI runs on a pull request from a fork only after a maintainer approves the run, and the
+  end-to-end tests against Permit *(added in a later commit on this branch)* do not run on forks.
 
 ## Public repository rules
 

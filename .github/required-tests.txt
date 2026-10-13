@@ -13,8 +13,17 @@ github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestRunRejects
 github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestRunExpiryIsUTC
 github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestRepositoryLists
 
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheck
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckDidNotRun
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestPrintPins
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestPrintAllowedActions
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestRepository
+
 github.com/permitio/permit-golang/v2/tools/scripts TestFetchTool
 github.com/permitio/permit-golang/v2/tools/scripts TestCheckCommitMsg
 github.com/permitio/permit-golang/v2/tools/scripts TestCheckIgnore
 github.com/permitio/permit-golang/v2/tools/scripts TestEditorconfig
 github.com/permitio/permit-golang/v2/tools/scripts TestGolangciAll
+github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregate
+github.com/permitio/permit-golang/v2/tools/scripts TestPrekCount
+github.com/permitio/permit-golang/v2/tools/scripts TestCommitsCheck

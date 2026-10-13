@@ -43,10 +43,14 @@ commit message with the commit-msg hook before you commit:
 bin/prek run --stage commit-msg --commit-msg-filename <file>  # the file that holds the message
 ```
 
-The hook skips lines that start with `#`, as git removes them from a message you edit. CI *(added
-in a later commit on this branch)* checks each commit's message as `git log --format=%B` prints
-it with `.github/scripts/check-commit-msg.sh --committed <file>`, which checks every line; run it
-the same way on each commit before you push.
+The hook skips lines that start with `#`, as git removes them from a message you edit. CI checks
+each commit message of a pull request with `.github/scripts/check-commit-msg.sh --committed`,
+which checks every line as `git log --format=%B` prints it. Before you push, run the same check
+over the branch's new commits:
+
+```sh
+.github/scripts/commits-check.sh <base> <head>  # the commit the branch starts from, and its tip
+```
 
 ## Working rules
 

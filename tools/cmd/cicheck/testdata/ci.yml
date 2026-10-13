@@ -1,0 +1,74 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [master]
+  schedule:
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [pr, weekly]
+permissions: {}
+concurrency:
+  group: ci-${{ github.sha }}
+env:
+  GO_OLD: "1.26.8"
+  GO_NEW: "1.27.1"
+  WEEKLY_CRON: "0 1 * * 1"
+jobs:
+  test:
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        include:
+          - {go: GO_OLD}
+          - {go: GO_NEW}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version: ${{ env[matrix.go] }}
+          cache: false
+      - name: Test
+        env:
+          GO_VERSION: ${{ env[matrix.go] }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go test ./...
+  weekly:
+    if: (!inputs.mode && github.event.schedule == '0 1 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - run: |
+          # A comment line.
+          .github/scripts/wrap.sh \
+            --flag
+  ci:
+    name: CI
+    if: always()
+    needs: [test, weekly]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check the needed jobs
+        env:
+          EXPECTED_JOBS: 2
+          SCHEDULED_JOBS: weekly:weekly
+          PULL_REQUEST_JOBS: ""
+          ADVISORY_JOBS: ""
+        run: .github/scripts/wrap.sh

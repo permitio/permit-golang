@@ -62,8 +62,8 @@ those secrets too.
   fail when `go.mod` or `go.sum` is not tidy. The tests that need live Permit credentials now build
   only with the `integration` build tag.
 - A separate workflow runs the integration tests against Permit for pushes to `master` and release
-  branches and for pull requests from branches of this repository, after a reviewer approves the
-  run. It runs them with a PDP container pinned by digest, and deletes what each run created.
+  branches and for pull requests from branches of this repository. It runs them with a PDP
+  container pinned by digest, and deletes what each run created.
 - The GoReleaser and pre-commit workflows and `.pre-commit-config.yaml` are removed.
 
 ### Fixes

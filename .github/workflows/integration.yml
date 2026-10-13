@@ -1,13 +1,13 @@
 # Integration tests for the v1 line: the tests in pkg/tests, run against the Permit API and a PDP
 # container. They need the GitHub environment `integration`, with the secret PERMIT_API_KEY (an
 # API key of one Permit environment) and the variables PERMIT_PROJECT and PERMIT_ENV (the keys of
-# that environment's project and of the environment). A reviewer of the GitHub environment
-# approves each run before it gets them. Before approving a run of a pull request, read its
-# changes to .github/workflows/, pkg/tests/ and internal/testcleanup/.
+# that environment's project and of the environment). The environment gives them only to runs
+# for master, release branches and pull requests; no one approves the runs.
 #
 # It runs for pushes to master and release branches, and for pull requests from branches of this
-# repository. Pull requests from forks get no secrets, so the job is skipped for them. The CI
-# check that branch protection requires does not depend on this workflow.
+# repository, which run their own copy of this workflow and of the tests with the key. Pull
+# requests from forks get no secrets, so the job is skipped for them. The CI check that branch
+# protection requires does not depend on this workflow.
 #
 # The key of every object a run creates starts with the run prefix and a hyphen. Each test
 # deletes what it created, and the last step deletes what is left with that prefix and nothing

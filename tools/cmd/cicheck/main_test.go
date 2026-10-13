@@ -62,6 +62,10 @@ func validFiles() map[string]string {
 		".github/zizmor.yml":          "rules: {}\n",
 		"tools/binaries.lock":         validLock,
 		".github/workflows/README.md": "not a workflow\n",
+		"go.mod":                      "module example.com/sdk\n",
+		"tools/go.mod":                "module example.com/sdk/tools\n",
+		dependabotFile:                validDependabot,
+		hooksFile:                     validHooks,
 	}
 }
 
@@ -1317,7 +1321,7 @@ func TestCheckOutsideGitRepository(t *testing.T) {
 	exit, stdout, _ := runCicheck(t, "-workflows", filepath.Join(root, ".github", "workflows"))
 
 	if exit != exitDidNotRun || !strings.HasPrefix(stdout,
-		"cicheck: DID NOT RUN: listing the committed files to find Trivy's: git ls-files -z: ") ||
+		"cicheck: DID NOT RUN: listing the committed files: git ls-files -z:") ||
 		!strings.Contains(stdout, "not a git repository") ||
 		!strings.HasSuffix(stdout, verdicts[exitDidNotRun]) {
 		t.Errorf("exit = %d, stdout:\n%s\nwant exit 2 because git cannot list the files", exit,

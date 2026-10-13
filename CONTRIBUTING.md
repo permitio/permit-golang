@@ -389,6 +389,46 @@ a dependency with a known vulnerability of high or critical severity; on a failu
 comments a summary on the pull request. It has no local command; locally, the [vulnerability
 scan](#vulnerability-scan) checks the dependencies of both modules.
 
+## Dependency updates
+
+Dependabot (`.github/dependabot.yml`) looks for new versions every Monday and opens pull requests
+into `master`:
+
+| Entry | What it updates | Commit prefix | Groups |
+| --- | --- | --- | --- |
+| `gomod` in `/` | The SDK's requirements in `go.mod`. | `deps` | `minor-and-patch`, `security` |
+| `gomod` in `/tools` | Every requirement in `tools/go.mod`, the indirect ones too, so the programs its `tool` directives pin move as well. | `deps-dev` | `tooling`, `security` |
+| `github-actions` in `/` | The actions in `.github/workflows`, pinned to commit SHAs with version comments. | `deps-dev` | `tooling`, `security` |
+| `pre-commit` in `/` | The hooks in `.pre-commit-config.yaml`, pinned to commit SHAs with `# frozen:` comments. | `deps-dev` | `tooling` |
+
+- A new version gets a pull request only once it is at least 7 days old (the cooldown), and a new
+  major version of a Go module once it is 14 days old. A group takes the minor and patch updates
+  of its entry; a major update gets a pull request of its own. Each entry keeps at most 5 version
+  update pull requests open.
+- Security updates are a repository setting. Each entry's `security` group puts its security
+  updates in one pull request, which waits for no cooldown. Dependabot has no security updates
+  for pre-commit hooks.
+- The `go` line of a `go.mod` is the minimum Go version and changes only on purpose. Dependabot
+  does not move it or the `toolchain` line to new Go releases, and does not read
+  `tools/binaries.lock`. Move the `toolchain` line and `tools/binaries.lock` by hand to the
+  newest release that is at least 7 days old; a weekly digest *(added in a later commit on this
+  branch)* reports newer releases. A dependency update whose new version needs a newer Go raises
+  the `go` line: the Go 1.26.0 test leg then fails, and the pull request is not merged as it is.
+- v1 gets no dependency updates: it receives no fixes after v1.4.0.
+
+Every Go module that git tracks, outside testdata directories, needs a `gomod` entry for its
+directory and a hook in `.pre-commit-config.yaml` whose entry is `go mod tidy -diff` (the root)
+or `go -C <dir> mod tidy -diff`. When you add a module, add both, or list it in
+`moduleExceptions` in `tools/cmd/cicheck/modules.go` with the reason it gets neither. Only an
+entry without a `target-branch` counts. cicheck fails when a module lacks one, when an exception
+has no reason, names no module or still has an entry, when an entry names no module, when any
+of an entry's cooldown days is shorter than the times above, and when a cooldown has an
+`include` or `exclude` list. Run it as the [CI](#ci) section shows.
+
+CI checks the message of every commit of a pull request, Dependabot's included. The test
+`TestCheckCommitMsgDependabot` in `tools/scripts` checks that the messages Dependabot writes for
+these entries pass.
+
 ## Adding or changing an API method
 
 There is no code generator to run: the models in `models/` are written by hand, and a drift test

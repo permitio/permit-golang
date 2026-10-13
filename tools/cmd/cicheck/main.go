@@ -1,6 +1,6 @@
 // Command cicheck checks the GitHub Actions workflows in .github/workflows and the scripts in
 // .github/scripts against the rules this repository's CI depends on, beyond what actionlint and
-// zizmor check.
+// zizmor check, and that Dependabot and the git hooks cover every Go module.
 //
 // Usage:
 //
@@ -54,6 +54,18 @@
 //     .trivyignore.yaml anywhere in the repository: .github/scripts/trivy.sh gives Trivy every
 //     setting on its command line, and such a file could weaken a scan that reads it. Files git
 //     does not track, such as those of another worktree, are not checked.
+//   - Every Go module, a directory with a go.mod that git tracks outside testdata directories,
+//     has a gomod entry in .github/dependabot.yml whose directory, or one of whose directories,
+//     is / followed by the module's directory, such as /tools, and that has no target-branch, so
+//     it updates master. It also has a hook in .pre-commit-config.yaml whose entry is
+//     go mod tidy -diff for the root, or go -C <dir> mod tidy -diff. A module in
+//     moduleExceptions needs neither and must not have such an entry; each exception names a
+//     module and gives the reason. Every such gomod entry names a module.
+//   - Every entry of .github/dependabot.yml has a cooldown.default-days of at least 7, and every
+//     gomod entry a cooldown.semver-major-days of at least 14; a semver-minor-days or
+//     semver-patch-days that is set is at least 7, a semver-major-days at least 14, and no
+//     cooldown has an include or exclude list. So Dependabot proposes a release only once it is
+//     that many days old.
 //
 // A run: stops workflow commands when its first three command lines, after any blank and
 // comment lines, are these, with one variable name in all three:
@@ -79,8 +91,9 @@
 //	0  every rule holds, or the -print output was written
 //	1  a rule does not hold
 //	2  cicheck did not run: the command line is wrong, the workflows directory holds no
-//	   workflow or no job, a file cannot be read or parsed, or git cannot read a ref or list the
-//	   committed files
+//	   workflow or no job, a file cannot be read or parsed, such as .github/dependabot.yml or
+//	   .pre-commit-config.yaml, git cannot read a ref or list the committed files, or git
+//	   tracks no go.mod at the repository root
 //
 // The last line cicheck prints when it checks is its verdict: PASS, FAIL or DID NOT RUN. Build it
 // before use, because go run reports every non-zero exit as 1:
@@ -223,11 +236,16 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return abort(stdout, err)
 	}
-	trivyFiles, err := findTrivyFiles(ctx, root)
+	committed, err := listCommitted(ctx, root)
 	if err != nil {
 		return abort(stdout, err)
 	}
-	return check(stdout, workflows, scripts, files, trivyFiles)
+	modules, err := readModuleSetup(root, committed)
+	if err != nil {
+		return abort(stdout, err)
+	}
+	return check(stdout, workflows, scripts, files,
+		repository{trivyFiles: findTrivyFiles(committed), modules: modules})
 }
 
 func parseArgs(args []string, stderr io.Writer) (options, error) {
@@ -424,22 +442,26 @@ func readTree(root, dir string) (map[string]string, error) {
 // trivyFileNames are the names of the files Trivy reads its settings and ignored findings from.
 var trivyFileNames = []string{"trivy.yaml", ".trivyignore", ".trivyignore.yaml"}
 
-// findTrivyFiles returns the slash path, relative to root, of every committed file under root
-// named like a Trivy settings or ignore file. It lists every file git tracks and compares the
-// names itself, since git pathspec patterns change meaning with GIT_LITERAL_PATHSPECS and
-// GIT_GLOB_PATHSPECS.
-func findTrivyFiles(ctx context.Context, root string) ([]string, error) {
+// listCommitted returns the slash path, relative to root, of every file git tracks. The rules
+// about file names compare the names themselves, since git pathspec patterns change meaning with
+// GIT_LITERAL_PATHSPECS and GIT_GLOB_PATHSPECS.
+func listCommitted(ctx context.Context, root string) ([]string, error) {
 	listed, err := gitOutput(ctx, root, "ls-files", "-z")
 	if err != nil {
-		return nil, fmt.Errorf("listing the committed files to find Trivy's: %w", err)
+		return nil, fmt.Errorf("listing the committed files: %w", err)
 	}
+	return strings.Split(strings.TrimSuffix(listed, "\x00"), "\x00"), nil
+}
+
+// findTrivyFiles returns the committed files named like a Trivy settings or ignore file.
+func findTrivyFiles(committed []string) []string {
 	var found []string
-	for name := range strings.SplitSeq(listed, "\x00") {
+	for _, name := range committed {
 		if slices.Contains(trivyFileNames, path.Base(name)) {
 			found = append(found, name)
 		}
 	}
-	return found, nil
+	return found
 }
 
 // resolve follows an alias to the node it names.
@@ -543,9 +565,18 @@ func (c *checker) add(path string, line int, format string, args ...any) {
 	c.findings = append(c.findings, finding{path: path, line: line, msg: msg})
 }
 
+// repository is what cicheck reads from the repository besides the workflows, the scripts and
+// the files under .github.
+type repository struct {
+	// trivyFiles are the committed files named like Trivy's settings or ignore files.
+	trivyFiles []string
+	// modules are the Go modules and the configurations that update and tidy them.
+	modules moduleSetup
+}
+
 // check checks every rule and prints the findings, the counts and the verdict.
 func check(output io.Writer, workflows []workflow, scripts, files map[string]string,
-	trivyFiles []string,
+	repo repository,
 ) int {
 	c := &checker{}
 	var ciWorkflows []string
@@ -569,11 +600,12 @@ func check(output io.Writer, workflows []workflow, scripts, files map[string]str
 	c.checkPrefixes()
 	c.checkScripts(scripts)
 	c.checkFingerprints(files)
-	for _, path := range trivyFiles {
+	for _, path := range repo.trivyFiles {
 		c.add(path, 0, "Trivy reads its settings or ignored findings from a file of this name; "+
 			".github/scripts/trivy.sh gives Trivy every setting on its command line, and this "+
 			"file could weaken a scan that reads it; remove it")
 	}
+	entries := c.checkModules(repo.modules)
 
 	slices.SortStableFunc(c.findings, func(a, b finding) int {
 		if a.path != b.path {
@@ -588,6 +620,8 @@ func check(output io.Writer, workflows []workflow, scripts, files map[string]str
 		}
 		fmt.Fprintf(output, "cicheck: %s:%d: %s\n", f.path, f.line, f.msg)
 	}
+	fmt.Fprintf(output, "cicheck: checked %d Go modules and %d Dependabot entries\n",
+		len(repo.modules.dirs), entries)
 	fmt.Fprintf(output, "cicheck: checked %d workflows, %d jobs, %d steps and %d scripts\n",
 		len(workflows), c.jobs, c.steps, len(scripts))
 	switch {

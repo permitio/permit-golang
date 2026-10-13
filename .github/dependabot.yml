@@ -1,0 +1,117 @@
+# Dependabot version and security updates. CONTRIBUTING.md says what each entry updates, and
+# https://docs.github.com/code-security/reference/supply-chain-security/dependabot-options-reference
+# describes the options.
+#
+# - Every Go module that git tracks has a gomod entry here and a go mod tidy -diff hook in
+#   .pre-commit-config.yaml; cicheck (tools/cmd/cicheck) fails when one is missing, unless its
+#   exception list names the module with the reason. cicheck also fails when an entry waits
+#   less than 7 days for any release, or a gomod entry less than 14 days for a major release,
+#   and when a cooldown has an include or exclude list.
+# - The go line of a go.mod is the minimum Go version and changes only on purpose. Dependabot
+#   does not move it or the toolchain line to new Go releases, and does not read
+#   tools/binaries.lock. The toolchain line and tools/binaries.lock move by hand to the newest
+#   release that is at least 7 days old; a weekly digest (added in a later commit on this branch)
+#   reports newer releases. A dependency update whose new version needs a newer Go does raise
+#   the go line; in the root module the Go 1.26.0 test leg then fails, and such a pull request is
+#   not merged as it is.
+# - No versioning-strategy: Dependabot supports it only for other ecosystems. A go.mod requirement
+#   is a minimum, and a gomod update always raises it.
+# - No labels: Dependabot applies its default labels, dependencies and one for the ecosystem, and
+#   creates them when the repository does not have them.
+# - No ignore entries. An ignore entry needs a comment that says why, and when it can go.
+# - No entry targets another branch: v1 receives no fixes after v1.4.0, so it gets no dependency
+#   updates. Security updates always target the default branch.
+# - Security updates are a repository setting. The security group of an entry puts all of its
+#   security updates in one pull request; cooldown and open-pull-requests-limit do not apply to
+#   them.
+# - The version update groups take minor and patch releases only: a major release gets a pull
+#   request of its own.
+version: 2
+updates:
+  # The SDK's own requirements, which every application that imports it builds with.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # The tools module: the programs that build and check the SDK. go.mod marks the modules that
+  # its tool directives pin, such as golang.org/x/vuln, as indirect requirements, and Dependabot
+  # updates indirect requirements only when allow names them; dependency-type: all takes both
+  # the direct and the indirect ones.
+  - package-ecosystem: gomod
+    directory: /tools
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    allow:
+      - dependency-type: all
+    commit-message:
+      prefix: deps-dev
+    groups:
+      tooling:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # The actions that the workflows in .github/workflows use, each pinned to a commit SHA with a
+  # version comment, which Dependabot updates together. The cooldown has no per-level days here.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps-dev
+    groups:
+      tooling:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # The hooks in .pre-commit-config.yaml. Each rev is a commit SHA with a "# frozen: <tag>"
+  # comment: Dependabot moves the SHA to the newest tag's commit and rewrites the comment.
+  # Dependabot has no security updates for pre-commit, so this entry has no security group, and
+  # the cooldown has no per-level days.
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps-dev
+    groups:
+      tooling:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]

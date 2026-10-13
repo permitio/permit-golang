@@ -1,0 +1,16 @@
+deps-dev: bump actions/checkout from 7.0.1 to 8.0.0
+
+Bumps [actions/checkout](https://github.com/actions/checkout) from 7.0.1 to 8.0.0.
+- [Release notes](https://github.com/actions/checkout/releases)
+- [Changelog](https://github.com/actions/checkout/blob/main/CHANGELOG.md)
+- [Commits](https://github.com/actions/checkout/compare/3d3c42e5aac5ba805825da76410c181273ba90b1...08eba0b27e820071cde6df949e0beb9ba4906955)
+
+---
+updated-dependencies:
+- dependency-name: actions/checkout
+  dependency-version: 8.0.0
+  dependency-type: direct:production
+  update-type: version-update:semver-major
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>

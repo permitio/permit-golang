@@ -57,6 +57,30 @@ connections. Go sends requests for loopback addresses directly, so `httptest` se
 HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 go test -count=1 ./...
 ```
 
+## Checks
+
+`tools/` is a separate Go module with the programs that check the SDK;
+[tools/README.md](tools/README.md) describes them. Run the go commands above in it too, with
+`go -C tools`, for example `go -C tools test -race -count=1 -shuffle=on ./...`.
+
+`go test` passes a run in which tests skip or no test runs at all. checkgotest does not: run the
+tests of both modules with `-json` and check their output together.
+
+```sh
+go -C tools build -o ../bin/checkgotest ./cmd/checkgotest
+go test -race -count=1 -shuffle=on -json ./... >bin/root.json
+go -C tools test -race -count=1 -shuffle=on -json ./... >bin/tools.json
+bin/checkgotest -require-file .github/required-tests.txt \
+  -allow-skips .github/allowed-skips.txt bin/root.json bin/tools.json
+```
+
+It exits 0 when every test passed; 1 when a test failed or skipped, or an entry in
+`.github/allowed-skips.txt` expired or its test did not skip; and 2 when no test passed, no test
+ran in one of the files, a test that `.github/required-tests.txt` lists did not run, or the input
+is not `go test -json` output. A test may skip only with an entry in `.github/allowed-skips.txt`
+that names its ticket, the last day the skip is allowed and what must happen before the test can
+run again.
+
 ## Adding or changing an API method
 
 There is no code generator to run: the models in `models/` are written by hand, and a drift test

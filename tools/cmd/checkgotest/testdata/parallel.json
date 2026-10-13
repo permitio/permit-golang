@@ -1,0 +1,20 @@
+{"Time":"2026-10-13T15:08:47.809396+03:00","Action":"start","Package":"example.com/fixture/parallel"}
+{"Time":"2026-10-13T15:08:48.126563+03:00","Action":"run","Package":"example.com/fixture/parallel","Test":"TestC"}
+{"Time":"2026-10-13T15:08:48.126595+03:00","Action":"output","Package":"example.com/fixture/parallel","Test":"TestC","Output":"=== RUN   TestC\n"}
+{"Time":"2026-10-13T15:08:48.126664+03:00","Action":"output","Package":"example.com/fixture/parallel","Test":"TestC","Output":"=== PAUSE TestC\n"}
+{"Time":"2026-10-13T15:08:48.126669+03:00","Action":"pause","Package":"example.com/fixture/parallel","Test":"TestC"}
+{"Time":"2026-10-13T15:08:48.126673+03:00","Action":"run","Package":"example.com/fixture/parallel","Test":"TestD"}
+{"Time":"2026-10-13T15:08:48.126675+03:00","Action":"output","Package":"example.com/fixture/parallel","Test":"TestD","Output":"=== RUN   TestD\n"}
+{"Time":"2026-10-13T15:08:48.126678+03:00","Action":"output","Package":"example.com/fixture/parallel","Test":"TestD","Output":"=== PAUSE TestD\n"}
+{"Time":"2026-10-13T15:08:48.126681+03:00","Action":"pause","Package":"example.com/fixture/parallel","Test":"TestD"}
+{"Time":"2026-10-13T15:08:48.126688+03:00","Action":"cont","Package":"example.com/fixture/parallel","Test":"TestC"}
+{"Time":"2026-10-13T15:08:48.126693+03:00","Action":"output","Package":"example.com/fixture/parallel","Test":"TestC","Output":"=== CONT  TestC\n"}
+{"Time":"2026-10-13T15:08:48.126706+03:00","Action":"output","Package":"example.com/fixture/parallel","Test":"TestC","Output":"--- PASS: TestC (0.00s)\n"}
+{"Time":"2026-10-13T15:08:48.12671+03:00","Action":"pass","Package":"example.com/fixture/parallel","Test":"TestC","Elapsed":0}
+{"Time":"2026-10-13T15:08:48.126714+03:00","Action":"cont","Package":"example.com/fixture/parallel","Test":"TestD"}
+{"Time":"2026-10-13T15:08:48.126716+03:00","Action":"output","Package":"example.com/fixture/parallel","Test":"TestD","Output":"=== CONT  TestD\n"}
+{"Time":"2026-10-13T15:08:48.126719+03:00","Action":"output","Package":"example.com/fixture/parallel","Test":"TestD","Output":"--- PASS: TestD (0.00s)\n"}
+{"Time":"2026-10-13T15:08:48.126721+03:00","Action":"pass","Package":"example.com/fixture/parallel","Test":"TestD","Elapsed":0}
+{"Time":"2026-10-13T15:08:48.126724+03:00","Action":"output","Package":"example.com/fixture/parallel","Output":"PASS\n"}
+{"Time":"2026-10-13T15:08:48.126948+03:00","Action":"output","Package":"example.com/fixture/parallel","Output":"ok  \texample.com/fixture/parallel\t0.317s\n"}
+{"Time":"2026-10-13T15:08:48.126966+03:00","Action":"pass","Package":"example.com/fixture/parallel","Elapsed":0.318}

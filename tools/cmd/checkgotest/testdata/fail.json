@@ -1,0 +1,16 @@
+{"Time":"2026-10-13T14:16:01.559321+03:00","Action":"start","Package":"example.com/fixture/a"}
+{"Time":"2026-10-13T14:16:01.559451+03:00","Action":"start","Package":"example.com/fixture/empty"}
+{"Time":"2026-10-13T14:16:01.559479+03:00","Action":"output","Package":"example.com/fixture/empty","Output":"?   \texample.com/fixture/empty\t[no test files]\n"}
+{"Time":"2026-10-13T14:16:01.559495+03:00","Action":"skip","Package":"example.com/fixture/empty","Elapsed":0}
+{"Time":"2026-10-13T14:16:01.781939+03:00","Action":"run","Package":"example.com/fixture/a","Test":"TestA"}
+{"Time":"2026-10-13T14:16:01.781967+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestA","Output":"=== RUN   TestA\n"}
+{"Time":"2026-10-13T14:16:01.782001+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestA","Output":"--- PASS: TestA (0.00s)\n"}
+{"Time":"2026-10-13T14:16:01.782007+03:00","Action":"pass","Package":"example.com/fixture/a","Test":"TestA","Elapsed":0}
+{"Time":"2026-10-13T14:16:01.782013+03:00","Action":"run","Package":"example.com/fixture/a","Test":"TestB"}
+{"Time":"2026-10-13T14:16:01.782017+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestB","Output":"=== RUN   TestB\n"}
+{"Time":"2026-10-13T14:16:01.78202+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestB","Output":"    a_test.go:13: planted failure\n"}
+{"Time":"2026-10-13T14:16:01.782023+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestB","Output":"--- FAIL: TestB (0.00s)\n"}
+{"Time":"2026-10-13T14:16:01.782026+03:00","Action":"fail","Package":"example.com/fixture/a","Test":"TestB","Elapsed":0}
+{"Time":"2026-10-13T14:16:01.782029+03:00","Action":"output","Package":"example.com/fixture/a","Output":"FAIL\n"}
+{"Time":"2026-10-13T14:16:01.782363+03:00","Action":"output","Package":"example.com/fixture/a","Output":"FAIL\texample.com/fixture/a\t0.223s\n"}
+{"Time":"2026-10-13T14:16:01.782384+03:00","Action":"fail","Package":"example.com/fixture/a","Elapsed":0.223}

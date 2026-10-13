@@ -1,0 +1,2 @@
+ok  	example.com/fixture/a	0.229s
+?   	example.com/fixture/empty	[no test files]

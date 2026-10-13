@@ -1,0 +1,16 @@
+# Tests that must run and pass in every offline test run, checked by checkgotest -require-file
+# (tools/cmd/checkgotest). One test per line: its package import path and its name, separated by
+# a space. Blank lines and lines that start with # are ignored.
+
+github.com/permitio/permit-golang/v2 TestVersion
+github.com/permitio/permit-golang/v2 TestVersionMatchesModulePath
+
+github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestCheck
+github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestCheckFixtures
+github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestCheckReadError
+github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestRun
+github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestRunRejects
+github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestRunExpiryIsUTC
+github.com/permitio/permit-golang/v2/tools/cmd/checkgotest TestRepositoryLists
+
+github.com/permitio/permit-golang/v2/tools/scripts TestFetchTool

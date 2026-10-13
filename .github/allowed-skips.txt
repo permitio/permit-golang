@@ -1,0 +1,15 @@
+# Tests that may skip in an offline test run, checked by checkgotest -allow-skips
+# (tools/cmd/checkgotest). Any other skip fails the run, and so does an entry that has expired or
+# whose test did not skip.
+#
+# One test per line, with five or more fields separated by spaces:
+#
+#   <import path> <test name> <ticket> <expiry> <un-skip condition>
+#
+#   import path        the test's package, such as github.com/permitio/permit-golang/v2
+#   test name          the test or subtest as go test names it, such as TestGet/not_found
+#   ticket             the issue that tracks the skip, such as TICKET-123
+#   expiry             the last day the skip is allowed, in UTC, as YYYY-MM-DD
+#   un-skip condition  the rest of the line: what must happen before the test can run again
+#
+# Blank lines and lines that start with # are ignored.

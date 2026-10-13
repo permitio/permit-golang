@@ -1,0 +1,39 @@
+# Release binaries that CI and the git hooks download, each pinned by version and sha256. Go
+# tools are pinned in tools/go.mod instead.
+#
+# .github/scripts/fetch-tool.sh <name> reads this file. It downloads the entry's release for the
+# machine it runs on, checks the sha256 before it unpacks anything, and installs the binary as
+# bin/<name>. It exits 2 when the lock is missing, has no complete entry for the name or this
+# platform, bin/<name> exists and is not a regular file, the download fails, the sha256 does not
+# match, or the binary cannot be unpacked or installed.
+#
+# Each entry starts with a [name] line and holds "key = value" lines. Blank lines and lines that
+# start with # are ignored.
+#
+#   version                 the release version, as the URL spells it without a "v" prefix
+#   url                     the download URL, https only; {version}, {os} and {arch} are
+#                           replaced with the version and the platform's names
+#   archive                 the download's format: tar.gz, the only one fetch-tool.sh unpacks
+#   binary                  the binary's path inside the archive, as tar -tzf lists it; the same
+#                           placeholders are replaced
+#   os.<goos>               optional: the release's name for a Go OS (darwin, linux) when it
+#                           differs, such as os.darwin = macOS
+#   arch.<goarch>           optional: the release's name for a Go architecture (amd64, arm64)
+#                           when it differs, such as arch.amd64 = x86_64
+#   sha256.<goos>/<goarch>  the download's sha256 in lowercase hex; every entry has one for each
+#                           of darwin/arm64, darwin/amd64, linux/amd64 and linux/arm64
+#
+# For example:
+#
+#   [example-tool]
+#   version = 1.2.3
+#   url = https://example.com/releases/v{version}/example-tool_{version}_{os}_{arch}.tar.gz
+#   archive = tar.gz
+#   binary = example-tool_{version}_{os}_{arch}/example-tool
+#   arch.amd64 = x86_64
+#   sha256.darwin/arm64 = <64 hex digits>
+#   sha256.darwin/amd64 = <64 hex digits>
+#   sha256.linux/amd64 = <64 hex digits>
+#   sha256.linux/arm64 = <64 hex digits>
+#
+# tools/README.md says how to add or update an entry.

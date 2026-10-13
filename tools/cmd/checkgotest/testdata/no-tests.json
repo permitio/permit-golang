@@ -1,0 +1,8 @@
+{"Time":"2026-10-13T14:16:02.242383+03:00","Action":"start","Package":"example.com/fixture/a"}
+{"Time":"2026-10-13T14:16:02.242509+03:00","Action":"start","Package":"example.com/fixture/empty"}
+{"Time":"2026-10-13T14:16:02.242536+03:00","Action":"output","Package":"example.com/fixture/empty","Output":"?   \texample.com/fixture/empty\t[no test files]\n"}
+{"Time":"2026-10-13T14:16:02.24255+03:00","Action":"skip","Package":"example.com/fixture/empty","Elapsed":0}
+{"Time":"2026-10-13T14:16:02.485386+03:00","Action":"output","Package":"example.com/fixture/a","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-13T14:16:02.48546+03:00","Action":"output","Package":"example.com/fixture/a","Output":"PASS\n"}
+{"Time":"2026-10-13T14:16:02.485731+03:00","Action":"output","Package":"example.com/fixture/a","Output":"ok  \texample.com/fixture/a\t0.243s [no tests to run]\n"}
+{"Time":"2026-10-13T14:16:02.485756+03:00","Action":"pass","Package":"example.com/fixture/a","Elapsed":0.243}

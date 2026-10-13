@@ -27,7 +27,9 @@ var fixturePackages = map[string][]goPackage{
 	"extra": {{importPath: "m/extra", files: []string{"e.go"}}},
 }
 
-const fiveLines = "package x\n\nfunc f() int {\n\treturn 1 + 2\n}\n"
+// fiveLines is a Go file each of whose five lines holds code, which the gate
+// mutates when it changes.
+const fiveLines = "package x; func f() int {\n\tn := 1\n\tn += 2\n\treturn n\n}\n"
 
 // writeRepository writes the files under root, Go files with five lines.
 func writeRepository(t *testing.T, root string, files []string) {
@@ -40,6 +42,15 @@ func writeRepository(t *testing.T, root string, files []string) {
 		if err := os.WriteFile(p, []byte(fiveLines), 0o600); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// writeFile replaces the content of the file name, relative to root.
+func writeFile(t *testing.T, root, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(name)), []byte(content),
+		0o600); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -174,14 +185,147 @@ func TestPlanRunAll(t *testing.T) {
 		t.Errorf("modules %+v", p.modules)
 	}
 
-	// An empty Go file has no line to mutate.
-	if err = os.WriteFile(filepath.Join(root, "cmd", "tool", "main.go"), nil, 0o600); err != nil {
+	// Only the lines that hold code are mutated.
+	writeFile(t, root, "a.go", codeFile)
+	p, err = planRun(tl, gateOptions{all: true, dirs: []string{"."}}, root)
+	if err != nil {
 		t.Fatal(err)
 	}
+	want := []lineRange{{9, 9}, {12, 15}, {18, 18}}
+	if got := p.units[0].lines["a.go"]; !slices.Equal(got, want) {
+		t.Errorf("a.go lines %v, want %v", got, want)
+	}
+
+	// A package whose Go files hold no code, such as one of only a doc.go, has no
+	// line to mutate and is not a unit; the packages beside it still are.
+	writeFile(t, root, "cmd/tool/main.go", "// Command tool is a fixture.\npackage main\n")
 	p, err = planRun(tl, gateOptions{all: true, dirs: []string{"."}}, root)
 	if got := unitSummary(p); err != nil || !slices.Equal(got, []string{"m a.go"}) ||
 		p.modules[0].changedFiles != 2 {
-		t.Errorf("with an empty file: units %q, %v", got, err)
+		t.Errorf("with a file of no code: units %q, %v", got, err)
+	}
+
+	// A Go file that does not parse stops the run.
+	writeFile(t, root, "cmd/tool/main.go", "package main\n\nfunc {\n")
+	_, err = planRun(tl, gateOptions{all: true, dirs: []string{"."}}, root)
+	wantErr := "cannot tell the code lines of a Go file that does not parse: " +
+		"cmd/tool/main.go:3:6: "
+	if err == nil || !strings.HasPrefix(err.Error(), wantErr) {
+		t.Errorf("with a file that does not parse: got %v, want an error that starts with %q",
+			err, wantErr)
+	}
+}
+
+// declFile is a Go file of declarations other than functions, the first of them
+// right after the imports.
+const declFile = "package x\n" + // 1: the package clause
+	"\n" + // 2
+	"import \"fmt\"\n" + // 3: an import
+	"\n" + // 4
+	"// Limit is two.\n" + // 5: a comment
+	"const Limit = 1 + 1\n" + // 6: code
+	"\n" + // 7
+	"type pair struct{ a, b int }\n" + // 8: code
+	"\n" + // 9
+	"var s = fmt.Sprint(Limit - 1)\n" // 10: code
+
+// codeFile is a Go file with lines of each kind.
+const codeFile = "// Package x is a fixture.\n" + // 1: a comment
+	"package x\n" + // 2: the package clause
+	"\n" + // 3
+	"import (\n" + // 4: an import
+	"\t\"fmt\"\n" + // 5
+	")\n" + // 6
+	"\n" + // 7
+	"//line other.go:100\n" + // 8: a comment that changes the lines go reports
+	"func f() {\n" + // 9: code
+	"\t// a comment in a function\n" + // 10
+	"\n" + // 11
+	"\tfmt.Println(`a raw string\n" + // 12: code, and a raw string over three lines
+	"over\n" + // 13
+	"three lines`)\n" + // 14
+	"} /* a comment\n" + // 15: code, and a comment over two lines
+	"on two lines */\n" + // 16
+	"// v is one.\n" + // 17
+	"var v = 1\n" // 18: code
+
+// The gate mutates only the changed lines that hold code: a token of a declaration
+// other than an import. A changed file with none of them is not mutated, and its
+// package is not a unit.
+func TestPlanRunChangedCode(t *testing.T) {
+	tests := []struct {
+		name  string
+		hunks string
+		// file is a.go, codeFile when empty.
+		file string
+		// want are the lines of a.go to mutate, none when it is not mutated.
+		want []lineRange
+	}{
+		{
+			name: "a file of constant, type and variable declarations", file: declFile,
+			hunks: "@@ -0,0 +1,10 @@\n" + strings.Repeat("+y\n", 10),
+			want:  []lineRange{{6, 6}, {8, 8}, {10, 10}},
+		},
+		{name: "a comment", hunks: "@@ -1 +1 @@\n-x\n+y\n"},
+		{name: "the package clause", hunks: "@@ -2 +2 @@\n-x\n+y\n"},
+		{name: "an import", hunks: "@@ -5 +5 @@\n-x\n+y\n"},
+		{
+			name:  "a comment and a blank line in a function",
+			hunks: "@@ -10,2 +10,2 @@\n-x\n-x\n+y\n+y\n",
+		},
+		{name: "the end of a comment after code", hunks: "@@ -16 +16 @@\n-x\n+y\n"},
+		{
+			name: "a comment and the code below it", hunks: "@@ -8,2 +8,2 @@\n-x\n-x\n+y\n+y\n",
+			want: []lineRange{{9, 9}},
+		},
+		{
+			name:  "two hunks, one of them with code",
+			hunks: "@@ -1 +1 @@\n-x\n+y\n@@ -9 +9 @@\n-x\n+y\n",
+			want:  []lineRange{{9, 9}},
+		},
+		{
+			name: "the inside of a raw string", hunks: "@@ -13 +13 @@\n-x\n+y\n",
+			want: []lineRange{{13, 13}},
+		},
+		{
+			name: "a new file", hunks: "@@ -0,0 +1,18 @@\n" + strings.Repeat("+y\n", 18),
+			want: []lineRange{{9, 9}, {12, 15}, {18, 18}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root, tl := fixtureRepository(t, changedDiff(map[string]string{"a.go": tt.hunks}))
+			file := tt.file
+			if file == "" {
+				file = codeFile
+			}
+			writeFile(t, root, "a.go", file)
+			t.Chdir(root)
+			p, err := planRun(tl, gateOptions{base: "main", dirs: []string{"."}}, root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if p.modules[0].changedFiles != 1 {
+				t.Errorf("%d changed files, want 1", p.modules[0].changedFiles)
+			}
+			if tt.want != nil {
+				got := unitSummary(p)
+				if !slices.Equal(got, []string{"m a.go"}) || len(p.modules[0].notMutated) != 0 {
+					t.Fatalf("units %q, not mutated %q; want a unit of a.go", got,
+						p.modules[0].notMutated)
+				}
+				if lines := p.units[0].lines["a.go"]; !slices.Equal(lines, tt.want) {
+					t.Errorf("a.go lines %v, want %v", lines, tt.want)
+				}
+				return
+			}
+			want := []notMutated{{"a.go", "no code on the changed lines (comments, blank lines, " +
+				"the package clause or imports)"}}
+			if len(p.units) != 0 || !slices.Equal(p.modules[0].notMutated, want) {
+				t.Errorf("units %q, not mutated %q; want no unit and %q", unitSummary(p),
+					p.modules[0].notMutated, want)
+			}
+		})
 	}
 }
 
@@ -321,6 +465,15 @@ func TestPlanRunErrors(t *testing.T) {
 				}
 			},
 			want: "unknown revision",
+		},
+		{
+			name: "a changed Go file that does not parse", dirs: []string{"."},
+			diff: changedDiff(map[string]string{"a.go": "@@ -3 +3 @@\n-x\n+y\n"}),
+			edit: func(t *testing.T, root string, _ *tools) {
+				t.Helper()
+				writeFile(t, root, "a.go", "package x\n\nfunc {\n")
+			},
+			want: "cannot tell the code lines of a Go file that does not parse: a.go:3:6: ",
 		},
 		{
 			name: "a diff the gate cannot read", dirs: []string{"."},

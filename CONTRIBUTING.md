@@ -235,6 +235,8 @@ pins, and:
   mutants that do not compile out of the count;
 - with `-base <ref>`, mutates the lines changed since the merge base with `<ref>`, and with
   `-all` every Go file, of the packages in the directories it is given;
+- never mutates comments, blank lines, the package clause or imports, so a change of only those
+  passes with nothing to mutate;
 - with `-max-mutants`, tests at most that many mutants, or the mutants of the sample's first line
   when that line alone holds more: a sample of the changed lines, fixed by the commit `HEAD`
   names, spread over the files first. The report states the share of the mutants, lines and

@@ -292,6 +292,7 @@ func TestRunGate(t *testing.T) {
 		dirs       []string
 		diff       string
 		mutants    map[string][]fakeMutant
+		files      map[string]string // new content of fixture files, by path in the repository
 		edit       func(g *gateFixture)
 		wantExit   int
 		wantCalls  int
@@ -321,6 +322,37 @@ func TestRunGate(t *testing.T) {
 				"**PASS**: Go files changed since the merge base with main, but none that the gate",
 				"- `testdata/fix.go`: test data",
 			},
+		},
+		{
+			name: "only comments changed",
+			args: base, dirs: both,
+			diff: changedDiff(map[string]string{
+				"cmd/tool/main.go": "@@ -1 +1,2 @@\n-a\n+b\n+c\n",
+			}),
+			files: map[string]string{
+				"cmd/tool/main.go": "// Command tool is a fixture,\n// with a comment.\n" +
+					"package main\n",
+			},
+			wantExit: exitPassed,
+			wantOutput: []string{
+				"### Mutation tests: `.` (m)\n\n**PASS**: Go files changed since the merge base " +
+					"with main, but none that the gate mutates (listed below); nothing was " +
+					"mutated.",
+				"- `cmd/tool/main.go`: no code on the changed lines (comments, blank lines, the " +
+					"package clause or imports)\n",
+				"mutationgate: PASS\n",
+			},
+		},
+		{
+			name: "a changed Go file that does not parse",
+			args: base, dirs: both, diff: rootDiff,
+			files:    map[string]string{"a.go": "package x\n\nfunc {\n"},
+			wantExit: exitDidNotRun,
+			wantOutput: []string{
+				"cannot tell the code lines of a Go file that does not parse: a.go:3:6: ",
+				"mutationgate: DID NOT RUN\n",
+			},
+			wantSummary: []string{"**DID NOT RUN**: cannot tell the code lines of a Go file"},
 		},
 		{
 			name: "a change in a module not given",
@@ -475,6 +507,19 @@ func TestRunGate(t *testing.T) {
 			},
 		},
 		{
+			name: "every Go file: a package with no code beside one with code",
+			args: []string{"-all"}, dirs: []string{"."}, mutants: killedEverywhere,
+			files: map[string]string{
+				"cmd/tool/main.go": "// Command tool is a fixture.\npackage main\n",
+			},
+			wantExit: exitPassed, wantCalls: 1, wantProbes: 1, wantCopies: 1,
+			wantOutput: []string{
+				"**PASS**: The tests detected 3 of the 3 mutants that ran: 100.00%",
+				"Scope: every Go file of the packages in `.`; files: 2.",
+				"gremlins ran 1 times on 1 packages",
+			},
+		},
+		{
 			name: "every Go file: no mutant ran in any module",
 			args: []string{"-all"}, dirs: both, mutants: map[string][]fakeMutant{},
 			wantExit: exitDidNotRun, wantCalls: 3, wantProbes: 1,
@@ -553,6 +598,9 @@ func TestRunGate(t *testing.T) {
 			mutants := map[string][]fakeMutant{}
 			maps.Copy(mutants, tt.mutants)
 			g := newGateFixture(t, tt.diff, mutants)
+			for name, content := range tt.files {
+				writeFile(t, g.root, name, content)
+			}
 			if tt.edit != nil {
 				tt.edit(g)
 			}

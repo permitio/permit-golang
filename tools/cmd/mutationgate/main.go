@@ -112,12 +112,12 @@
 //	   that ran
 //	2  the run did not complete: the command line is wrong, a directory is in no
 //	   module, a changed Go file is in a module that none of the directories is in,
-//	   the memory limit is not enforced, gremlins failed, a mutant was left unrun
-//	   or on other lines than the gate chose, exec or the shims could not do their
-//	   part, a package's tests fail without a mutant in a copy of its module, Go
-//	   lines changed and no mutant on them ran, or with -all a directory holds no
-//	   Go file, none of a module's mutants ran, or no mutant ran in any module; 2
-//	   wins over 1
+//	   a Go file to mutate does not parse, the memory limit is not enforced,
+//	   gremlins failed, a mutant was left unrun or on other lines than the gate
+//	   chose, exec or the shims could not do their part, a package's tests fail
+//	   without a mutant in a copy of its module, Go lines changed and no mutant on
+//	   them ran, or with -all a directory holds no Go code, none of a module's
+//	   mutants ran, or no mutant ran in any module; 2 wins over 1
 package main
 
 import (

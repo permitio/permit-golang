@@ -3,6 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/scanner"
+	"go/token"
 	"maps"
 	"os"
 	"path"
@@ -209,9 +213,10 @@ func (m moduleScope) isBuilt(file string) bool {
 	})
 }
 
-// classify sorts the changed Go files: lines to mutate go in scoped, the files not
-// mutated in their module's notMutated, and a file in a module that no directory
-// given is in is an error.
+// classify sorts the changed Go files: the changed lines that hold code go in
+// scoped, the files not mutated in their module's notMutated, and a file in a module
+// that no directory given is in, or a file to mutate that does not parse, is an
+// error.
 func (p *plan) classify(changed, scoped map[string][]lineRange) error {
 	var outside []string
 	for _, file := range slices.Sorted(maps.Keys(changed)) {
@@ -232,7 +237,20 @@ func (p *plan) classify(changed, scoped map[string][]lineRange) error {
 			m.notMutated = append(m.notMutated, notMutated{file, "go does not build it here " +
 				"(another platform, a build tag or an ignored name)"})
 		default:
-			scoped[file] = changed[file]
+			data, err := os.ReadFile(filepath.Join(p.root, filepath.FromSlash(file)))
+			if err != nil {
+				return err
+			}
+			code, err := codeLines(file, data)
+			if err != nil {
+				return err
+			}
+			if lines := keepLines(changed[file], code); len(lines) > 0 {
+				scoped[file] = lines
+			} else {
+				m.notMutated = append(m.notMutated, notMutated{file, "no code on the changed " +
+					"lines (comments, blank lines, the package clause or imports)"})
+			}
 		}
 	}
 	if len(outside) > 0 {
@@ -242,8 +260,8 @@ func (p *plan) classify(changed, scoped map[string][]lineRange) error {
 	return nil
 }
 
-// allLines puts every line of every Go file of the packages in module i's
-// directories in scoped, and returns how many files there are.
+// allLines puts every line that holds code of every Go file of the packages in
+// module i's directories in scoped, and returns how many files there are.
 func (p *plan) allLines(i int, scoped map[string][]lineRange) (int, error) {
 	m := p.modules[i]
 	files := 0
@@ -252,17 +270,87 @@ func (p *plan) allLines(i int, scoped map[string][]lineRange) (int, error) {
 			continue
 		}
 		for _, name := range pkg.files {
+			file := path.Join(pkg.rel, name)
 			data, err := os.ReadFile(filepath.Join(pkg.dir, name))
 			if err != nil {
 				return 0, err
 			}
 			files++
-			if n := lineCount(data); n > 0 {
-				scoped[path.Join(pkg.rel, name)] = []lineRange{{1, n}}
+			code, err := codeLines(file, data)
+			if err != nil {
+				return 0, err
+			}
+			if lines := keepLines([]lineRange{{1, lineCount(data)}}, code); len(lines) > 0 {
+				scoped[file] = lines
 			}
 		}
 	}
 	return files, nil
+}
+
+// codeLines returns the lines of the Go source src that hold code: a token of a
+// declaration other than an import, or the inside of a raw string that starts in
+// one. Comments, blank lines, the package clause and imports hold no mutant, so the
+// gate does not mutate them. name names the file in the error when src does not
+// parse.
+func codeLines(name string, src []byte) (map[int]bool, error) {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, name, src, parser.SkipObjectResolution)
+	if err != nil {
+		return nil, fmt.Errorf("cannot tell the code lines of a Go file that does not parse: %w",
+			err)
+	}
+	// Imports come before the other declarations, and between two declarations
+	// there is only the semicolon that ends the first, on its last line: the lines
+	// with code are those with a token from the first other declaration on. Lines
+	// are those in src, not the ones a //line directive names.
+	i := slices.IndexFunc(f.Decls, func(d ast.Decl) bool {
+		g, ok := d.(*ast.GenDecl)
+		return !ok || g.Tok != token.IMPORT
+	})
+	lines := map[int]bool{}
+	if i < 0 {
+		return lines, nil
+	}
+	start := fset.PositionFor(f.Decls[i].Pos(), false).Line
+	file := fset.AddFile(name, -1, len(src))
+	var s scanner.Scanner
+	s.Init(file, src, nil, 0)
+	for {
+		pos, tok, lit := s.Scan()
+		if tok == token.EOF {
+			return lines, nil
+		}
+		first := file.PositionFor(pos, false).Line
+		if first < start {
+			continue
+		}
+		last := first
+		if tok == token.STRING {
+			last += strings.Count(lit, "\n")
+		}
+		for line := first; line <= last; line++ {
+			lines[line] = true
+		}
+	}
+}
+
+// keepLines returns the lines of ranges that are in keep, as ranges.
+func keepLines(ranges []lineRange, keep map[int]bool) []lineRange {
+	var kept []lineRange
+	for _, r := range ranges {
+		for line := r.first; line <= r.last; line++ {
+			if !keep[line] {
+				continue
+			}
+			if n := len(kept); n > 0 && kept[n-1].last == line-1 {
+				kept[n-1].last = line
+			} else {
+				kept = append(kept, lineRange{line, line})
+			}
+		}
+	}
+	return kept
 }
 
 func lineCount(data []byte) int {

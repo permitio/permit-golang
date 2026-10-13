@@ -23,10 +23,22 @@ _testmain.go
 *.test
 *.prof
 
-permit-golang
 .idea
-permit-golang.iml
+
+# Build and test output
+/bin/
+coverage.out
 
 # Secrets
-.env
+.env*
+!.env.example
 .secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.tfstate*
+credentials*
+
+# Local agent settings
+.claude/

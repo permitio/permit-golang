@@ -18,7 +18,9 @@
 // to, and with [Server.AssertUntouched] that the other one got nothing. NewPDP(t, Cloud) fakes
 // the cloud PDP, which answers 404 with an empty body on the routes that only the PDP container
 // serves. StartExample starts the servers for the Examples of a package, which have no
-// testing.TB.
+// testing.TB. When a package's TestMain runs its tests through RunRecorded and the environment
+// variable PERMIT_API_COVERAGE_RECORD names a file, the servers also write each request they
+// receive to that request record, which tools/cmd/apicoverage reads.
 //
 // The strict route matching, the request recording, the scripted faults with their check that
 // they fired, and the canonical Bearer check are adapted from the offline fake of the Permit API
@@ -39,6 +41,8 @@ import (
 	"sync"
 	"testing"
 	"unicode"
+
+	"github.com/permitio/permit-golang/v2/internal/testhook"
 )
 
 // APIKey is the API key the servers accept: every request must carry the header
@@ -114,6 +118,11 @@ type Server struct {
 	// replies that no request used, for the servers of StartExample.
 	cycle bool
 	srv   *httptest.Server
+	// target is the server's target in the request record; record is the record that it writes
+	// the requests it receives to, or nil; test is the name of the test that started it.
+	target testhook.Target
+	record *testhook.File
+	test   string
 
 	mu          sync.Mutex
 	routes      []*route
@@ -145,7 +154,8 @@ type refusal struct {
 // stops it when the test ends.
 func NewAPI(tb testing.TB) *Server {
 	tb.Helper()
-	s := &Server{name: "API", report: tb}
+	s := &Server{name: "API", report: tb, target: testhook.API}
+	s.recordAs(tb)
 	s.start()
 	tb.Cleanup(s.finish)
 	return s
@@ -155,7 +165,7 @@ func NewAPI(tb testing.TB) *Server {
 // when the test ends. It fakes the PDP container, or the cloud PDP with NewPDP(tb, Cloud).
 func NewPDP(tb testing.TB, kind ...PDPKind) *Server {
 	tb.Helper()
-	s := &Server{name: "PDP", report: tb}
+	s := &Server{name: "PDP", report: tb, target: testhook.PDP}
 	switch {
 	case len(kind) > 1:
 		tb.Fatalf("mockpermit: NewPDP takes at most one PDPKind, got %v", kind)
@@ -167,6 +177,7 @@ func NewPDP(tb testing.TB, kind ...PDPKind) *Server {
 			kind[0],
 		)
 	}
+	s.recordAs(tb)
 	s.start()
 	tb.Cleanup(s.finish)
 	return s
@@ -297,9 +308,13 @@ func (s *Server) AssertUntouched() {
 }
 
 // serve records a request, then answers it with its route's next reply, or fails the test and
-// answers with an error.
+// answers with an error. When the server writes a request record, the request goes there too.
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	rawPath, rawQuery, _ := strings.Cut(r.RequestURI, "?")
+	answer := &statusWriter{ResponseWriter: w}
+	w = answer
+	template := ""
+	defer func() { s.recordRequest(r, template, rawPath, answer.status) }()
 	body, readErr := io.ReadAll(r.Body)
 	s.mu.Lock()
 	s.requests = append(s.requests, Request{
@@ -332,7 +347,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	reply, refused := s.pick(r.Method, segments)
+	reply, matched, refused := s.pick(r.Method, segments)
+	template = matched
 	if refused != nil {
 		s.refuse(w, *refused, request)
 		return
@@ -340,8 +356,9 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	writeReply(w, reply)
 }
 
-// pick returns the reply to a request, or why the server cannot answer it.
-func (s *Server) pick(method string, segments []string) (Reply, *refusal) {
+// pick returns the reply to a request and the path of the route it is for, or why the server
+// cannot answer it. The path is empty when no route has the request's method and path.
+func (s *Server) pick(method string, segments []string) (Reply, string, *refusal) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var others []string
@@ -353,16 +370,18 @@ func (s *Server) pick(method string, segments []string) (Reply, *refusal) {
 			others = append(others, rt.method)
 			continue
 		}
+		_, template, _ := strings.Cut(rt.pattern, " ")
 		if f := s.firingFault(rt); f != nil {
-			return Reply{Status: f.status, Body: faultBody}, nil
+			return Reply{Status: f.status, Body: faultBody}, template, nil
 		}
-		return rt.next(s.cycle)
+		reply, refused := rt.next(s.cycle)
+		return reply, template, refused
 	}
 	if len(others) > 0 {
-		return Reply{}, &refusal{http.StatusMethodNotAllowed, fmt.Sprintf(
+		return Reply{}, "", &refusal{http.StatusMethodNotAllowed, fmt.Sprintf(
 			"the route has no %s, only %s", method, strings.Join(others, " and "))}
 	}
-	return Reply{}, &refusal{
+	return Reply{}, "", &refusal{
 		http.StatusNotImplemented,
 		"no route; register it with Handle if the SDK should send this request",
 	}

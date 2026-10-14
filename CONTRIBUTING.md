@@ -151,7 +151,10 @@ the servers in its `TestMain` with `mockpermit.StartExample()`, registers the ro
 use, and puts the servers' URLs in package variables, such as `exampleAPIURL` and
 `examplePDPURL`, that the Examples pass to the client. `os.Exit(servers.Run(m))` then runs the
 tests and exits 1 when a server found a problem. `internal/testkit/mockpermit/exampletest` shows
-how.
+how. A package whose `TestMain` also writes the request record, as the root package's does,
+runs its tests through both:
+`os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))`; see
+[API coverage](#api-coverage).
 
 ## Public surface and wire cases
 
@@ -336,6 +339,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `zipcheck` | Builds the module zip of the commit and checks what it holds with zipcheck, offline; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
+| `api-coverage` | Runs the root package's tests offline with the request record on, and checks the record and `tools/specs/coverage.yaml` with apicoverage, which writes its report to the job summary; see [API coverage](#api-coverage). |
 | `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
 | `secrets` | Scans the commits that are new in the run for secrets with gitleaks, through `.github/scripts/gitleaks-range.sh`; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
@@ -344,15 +348,15 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
 | `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
-| `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, and posts the result to Slack; see [Spec snapshots](#spec-snapshots). |
+| `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
 | `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: posts one line to Slack. `CI` does not need it. |
 
 Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
-  `test`, `crossbuild`, `consumer`, `zipcheck`, `vuln` and `secrets`. A pull request runs
-  `mutation` and `dependency-review` too.
+  `test`, `crossbuild`, `consumer`, `zipcheck`, `api-coverage`, `vuln` and `secrets`. A pull
+  request runs `mutation` and `dependency-review` too.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, `security` the security scan, and `e2e` the jobs of that mode *(added in a later
   commit on this branch)*. The release workflow *(added in a later commit on this branch)* calls
@@ -732,6 +736,7 @@ specs never reach the module that applications download.
 | `pdp-container.extra.json` | What the container PDP serves without listing it in its `/openapi.json`: the AuthZEN, health and Trino routes, the facts catch-all and the compatibility mount of the facts routes, each with the file and line of the [PDP repository](https://github.com/permitio/PDP) at the image's tag that declares it. |
 | `v1-routes.json` | The 91 routes of the control plane that v1.2.8 sent and the spec has, each with its operation ID, the line of v1.2.8 that holds the route, and the methods that send it. |
 | `v1-route-fixes.yaml` | The routes that v2 changes on purpose, each with the v1 method, the route v1 sent and v2's route, and the reason. |
+| `coverage.yaml` | The SDK's decision for every operation of the specs; see [API coverage](#api-coverage). |
 
 [tools/cmd/specsnap](tools/cmd/specsnap) writes and checks the three snapshots. A snapshot is the
 spec in canonical form, without its descriptions, summaries, titles and examples, with sorted keys
@@ -785,12 +790,99 @@ digest of Docker Hub's `latest` `permitio/pdp-v2` with the image of `pdp-contain
 uploads the live snapshots as the `spec-snapshots` artifact, and posts the result to
 `SLACK_WEBHOOK_URL`. When something drifted, the post names the owner, `@permitio/r-d`, and the
 day, 7 days on, by which a pull request must refresh `tools/specs`; when specsnap exits 2, it
-says the check did not complete. The job fails in both cases. To run the check yourself, which
-needs the network:
+says the check did not complete. The job fails in both cases. A step after the check runs the
+[API coverage](#api-coverage) report with `-live`, against the live snapshots, and adds it to
+the job summary without changing the job's result, so that an operation the published specs add
+shows there before the snapshots are refreshed. To run the check yourself, which needs the
+network:
 
 ```sh
 bin/specsnap -check-live -out "$(mktemp -d)"
 ```
+
+## API coverage
+
+Which operations of the Permit API and the PDP the SDK covers is measured from the requests its
+tests send, and [tools/cmd/apicoverage](tools/cmd/apicoverage) checks them against the
+decisions in `tools/specs/coverage.yaml`.
+
+`coverage.yaml` has a row for each operation of the control plane's spec, `control-plane`, and
+for each route of the PDP, `pdp`: those of the container's and the cloud PDP's specs and of
+`pdp-container.extra.json`, with one row for a route that more than one of them lists. A row
+names the operation (`op`, its operationId), its `route` and its `stage`, the spec's: GA, EAP or
+deprecated. Its `status` is one of these:
+
+| Status | Meaning |
+| --- | --- |
+| `covered` | A public method sends it, and an offline wire test records a request to it. |
+| `planned` | The SDK is to send it, and no public method does yet. |
+| `excluded` | The SDK does not send it. `reason` is a key of `reasons` at the top of the file, each with a sentence that says why, such as `account-admin` or `operator`. |
+| `deferred` | The SDK does not send it yet. `reason` says why, and `trigger` when to decide again. |
+
+A covered or planned row whose route no published spec lists, such as the login-as route of
+Permit Elements or the container PDP's facts catch-all, has `sdk_only` with the reason the SDK
+sends it. `stage_override` gives the stage the SDK treats an operation as when the spec marks it
+in a way the snapshot does not keep, such as "(EAP)" in a summary. `sdk_only_params` lists the
+query parameters that the SDK sends to an operation whose spec does not list them. The file's
+header describes each key.
+
+To classify an operation that a spec adds, which apicoverage reports as undecided, add its row:
+`planned` when the SDK is to send it; `excluded` when an application has no use for it, with a
+reason of the vocabulary (add a key to `reasons` only with a public sentence, as a key that no
+row gives fails); or `deferred` with a reason and a trigger when the decision waits for
+something. When a public method starts to send a planned operation, its wire case records the
+request: change the row to `covered` in the same commit, and rewrite the operation map. A
+planned row that a request or a wire case reaches fails as stale.
+
+`main_test.go` runs the root package's tests through `mockpermit.RunRecorded`, with
+`os.Exit(mockpermit.RunRecorded(m.Run))`. When `PERMIT_API_COVERAGE_RECORD` names a file that
+does not exist yet, each request that a `mockpermit` server receives goes there as a line of
+JSON (JSONL): the mode, `wire`; the target, `api` or `pdp`; the method, the template of the route
+that answered it, the path as the client sent it, the status and the name of the test, but never
+the query, the headers or the body. A session trailer with the exit code of the tests and the
+number of tests that wrote to the record ends it, so a record without it comes from a run that
+did not finish. That count is not the number of tests that ran: a test writes to the record when
+it starts a server or calls `mockpermit.RecordTest`. `internal/testhook` writes the format; the
+end-to-end scenarios record through it in the modes `dryrun`, run offline, and `live`, against
+the Permit cloud *(added in a later commit on this branch)*. Requests to the test-only routes,
+under `/__test/`, are never recorded.
+
+A record holds no method names, so `testdata/operation-map.json` maps each public method to the
+operations its wire cases send. `TestOperationMap` fails when the map is stale; rewrite it and
+review its diff:
+
+```sh
+go test -run TestOperationMap -update .
+```
+
+Build apicoverage, record the requests of the root package's tests, and run the report from the
+repository root. The record file must not exist, so delete it before you record again:
+
+```sh
+go -C tools build -o ../bin/apicoverage ./cmd/apicoverage
+PERMIT_API_COVERAGE_RECORD="$PWD/bin/api-coverage.jsonl" go test -count=1 .
+bin/apicoverage bin/api-coverage.jsonl
+```
+
+apicoverage prints the rows of each section by stage and status, each covered row with the
+methods that send it, and every problem, then its verdict. Each covered row also gets an
+end-to-end state: `cloud` when a live request reached it, `local` when the record that `-local`
+names did, `advisory` when one of its methods is on the list that `-advisory` names, `dry run`
+when only a scenario run offline did, and `none`. `-local` takes the record of a run against a
+full local stack in the same JSONL format, with every request in the mode `local`, as that run
+will write it *(added in a later commit on this branch)*. A dry-run request is no end-to-end
+evidence, and a report of records without a live request says so. apicoverage exits 0 when
+every rule holds; 1 on an undecided GA operation, a stale or untested row, a stage change, an
+SDK-only request that no row explains, an unused `sdk_only` entry, a row whose route the specs
+no longer list, a route of another shape than the one v1 sent (the names of parameters do not
+count) without an entry in `v1-route-fixes.yaml`, a template that does not fit its path or is
+the route of another row, a request to a test-only route, or a reason outside the vocabulary;
+and 2 when it could not check, such as on a record without its trailer, from tests that failed,
+with a path that holds a query, or with fewer requests than covered rows.
+`go -C tools doc ./cmd/apicoverage` describes every rule.
+
+The `api-coverage` job of `ci.yml` runs these steps offline on every pull request and push to
+`master`, and writes the report to the job summary, where the end-to-end column is a dry run.
 
 ## Dependency updates
 
@@ -851,7 +943,9 @@ is marked *(added in a later commit on this branch)* does not exist yet.
 4. Add a wire test case for the method and a fixture with the API's reply, and rewrite the surface
    snapshot; see [Wire tests](#wire-tests) and
    [Public surface and wire cases](#public-surface-and-wire-cases).
-5. Run the update targets and the API coverage report *(added in a later commit on this branch)*.
+5. Rewrite `testdata/operation-map.json`, mark the operation's row of
+   `tools/specs/coverage.yaml` covered, and run the API coverage report; see
+   [API coverage](#api-coverage).
 6. Add an end-to-end scenario for the method, or mark it pending or local-only *(the end-to-end
    tests are added in a later commit on this branch)*.
 7. Add its entries to `CHANGELOG.md` and `MIGRATION.md` *(`MIGRATION.md` is added in a later commit

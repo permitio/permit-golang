@@ -302,6 +302,43 @@ jobs:
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
           "$RUNNER_TEMP/zipcheck"
 
+  # Runs the root package's tests offline with PERMIT_API_COVERAGE_RECORD set, so that they
+  # record the requests they send to the mockpermit servers, then checks the record and
+  # tools/specs/coverage.yaml against the committed specs and testdata/operation-map.json with
+  # tools/cmd/apicoverage, which writes its report to the job summary. The record holds no live
+  # request, so the report marks its e2e column dry run. apicoverage exits 1 when a decision of
+  # coverage.yaml does not hold, and 2 when the record is incomplete or an input is malformed.
+  api-coverage:
+    name: api-coverage
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Record the requests of the tests and report the API coverage
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools build -o "$RUNNER_TEMP/apicoverage" ./cmd/apicoverage
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          record=$RUNNER_TEMP/api-coverage.jsonl
+          PERMIT_API_COVERAGE_RECORD=$record go test -count=1 -shuffle=on .
+          "$RUNNER_TEMP/apicoverage" -summary "$GITHUB_STEP_SUMMARY" "$record"
+
   # Scans for known vulnerabilities with govulncheck and Trivy through .github/scripts/vuln.sh:
   # the SDK's floor (go.mod as committed), its ceiling (every dependency at its newest version)
   # and tools/. secreport decides the result and writes the job summary; on a pull request from
@@ -672,6 +709,25 @@ jobs:
           go -C tools build -o "$RUNNER_TEMP/specsnap" ./cmd/specsnap
           "$RUNNER_TEMP/specsnap" -check-live -out "$RUNNER_TEMP/spec-snapshots" |
             tee "$RUNNER_TEMP/spec-drift.txt"
+      # Report only: as the api-coverage job does, but with apicoverage -live, which reads the
+      # control plane's and the cloud PDP's specs from the live snapshots the step above wrote.
+      # An operation that the live specs add, change the stage of or drop shows in the job
+      # summary before tools/specs is refreshed. The drift decides the job's result, so this
+      # step's result does not change it.
+      - name: Report the API coverage against the live specs
+        if: always()
+        continue-on-error: true
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools build -o "$RUNNER_TEMP/apicoverage" ./cmd/apicoverage
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          record=$RUNNER_TEMP/api-coverage.jsonl
+          PERMIT_API_COVERAGE_RECORD=$record go test -count=1 .
+          "$RUNNER_TEMP/apicoverage" -live "$RUNNER_TEMP/spec-snapshots" \
+            -summary "$GITHUB_STEP_SUMMARY" "$record"
       - name: Upload the live snapshots
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -734,6 +790,7 @@ jobs:
       - crossbuild
       - consumer
       - zipcheck
+      - api-coverage
       - vuln
       - secrets
       - mutation
@@ -757,7 +814,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 14
+          EXPECTED_JOBS: 15
           PULL_REQUEST_JOBS: mutation dependency-review
           SCHEDULED_JOBS: >-
             prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly

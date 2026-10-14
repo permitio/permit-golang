@@ -1,0 +1,4 @@
+{"type":"header","format":1}
+{"type":"request","mode":"wire","target":"api","method":"GET","template":"/v2/facts/{proj_id}/{env_id}/users/{user_id}","path":"/v2/facts/p/e/users/a%2Fb","status":200,"test":"TestUsers/get"}
+{"type":"request","mode":"wire","target":"pdp","method":"POST","template":"/allowed","path":"/allowed","status":200,"test":"TestCheck"}
+{"type":"session","exit_status":0,"tests":2}

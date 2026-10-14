@@ -1,0 +1,21 @@
+{
+  "openapi": "3.1.0",
+  "paths": {
+    "/access/v1/evaluation": {
+      "post": {
+        "operationId": "access_evaluation_handler",
+        "tags": [
+          "authzen"
+        ]
+      }
+    },
+    "/allowed": {
+      "post": {
+        "operationId": "allowed_handler",
+        "tags": [
+          "authz"
+        ]
+      }
+    }
+  }
+}

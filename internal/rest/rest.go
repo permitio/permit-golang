@@ -57,8 +57,8 @@ type Op struct {
 	Route string
 
 	// Idempotent says that sending the request twice does what sending it once does, so that a
-	// retry may send it again after a 5xx reply or a request without a reply: the GET, PUT and
-	// DELETE operations, and the PDP's decisions, which change nothing.
+	// retry may send it again after a 500, 502, 503 or 504 reply or a request without a complete
+	// reply: the GET, PUT and DELETE operations, and the PDP's decisions, which change nothing.
 	Idempotent bool
 
 	// Facts says that the operation is one of the facts API, /v2/facts/{proj_id}/{env_id}/...,

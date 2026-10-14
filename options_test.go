@@ -115,6 +115,16 @@ var optionEffects = map[string]optionEffect{
 		// default does.
 		unset: []Option{WithLogger(nil), WithLogger(&slog.Logger{})},
 	},
+	"WithRetry": {
+		option:  WithRetry(RetryPolicy{MaxRetries: 5, MaxBackoff: 2 * time.Second}),
+		setting: retryPolicy,
+		want:    RetryPolicy{MaxRetries: 5, MaxBackoff: 2 * time.Second},
+		// The default policy, also with the MaxBackoff of 0 that stands for the default.
+		unset: []Option{
+			WithRetry(RetryPolicy{MaxRetries: 3, MaxBackoff: 5 * time.Second}),
+			WithRetry(RetryPolicy{MaxRetries: 3}),
+		},
+	},
 	"WithTimeout": {
 		option:  WithTimeout(7 * time.Second),
 		setting: func(c *Client) any { return c.timeout },
@@ -298,6 +308,41 @@ func TestDefaultTimeout(t *testing.T) {
 	clearEnv(t)
 	if c := mustNew(t, localOptions()...); c.timeout != 30*time.Second {
 		t.Errorf("the default timeout is %v, want 30s", c.timeout)
+	}
+}
+
+// retryPolicy returns the retry policy of c as a RetryPolicy.
+func retryPolicy(c *Client) any {
+	return RetryPolicy{MaxRetries: c.retry.MaxRetries, MaxBackoff: c.retry.MaxBackoff}
+}
+
+// TestRetryPolicies checks the retry policy of a client: up to 3 retries with waits of up to 5
+// seconds by default; the policy that WithRetry gives, with 5 seconds for a MaxBackoff of 0; and
+// a client's own random waits.
+func TestRetryPolicies(t *testing.T) {
+	clearEnv(t)
+	for _, tc := range []struct {
+		opts []Option
+		want RetryPolicy
+	}{
+		{nil, RetryPolicy{MaxRetries: 3, MaxBackoff: 5 * time.Second}},
+		{[]Option{WithRetry(RetryPolicy{})}, RetryPolicy{MaxBackoff: 5 * time.Second}},
+		{
+			[]Option{WithRetry(RetryPolicy{MaxRetries: 1, MaxBackoff: time.Nanosecond})},
+			RetryPolicy{MaxRetries: 1, MaxBackoff: time.Nanosecond},
+		},
+		{
+			[]Option{WithRetry(RetryPolicy{MaxRetries: 9}), WithRetry(RetryPolicy{MaxRetries: 2})},
+			RetryPolicy{MaxRetries: 2, MaxBackoff: 5 * time.Second},
+		},
+	} {
+		c := mustNew(t, append(localOptions(), tc.opts...)...)
+		if got := retryPolicy(c); got != tc.want {
+			t.Errorf("with %v, the retry policy is %+v, want %+v", tc.opts, got, tc.want)
+		}
+		if c.retry.Jitter != nil {
+			t.Errorf("with %v, the client's waits are not random", tc.opts)
+		}
 	}
 }
 
@@ -507,6 +552,21 @@ func TestInvalidConfiguration(t *testing.T) {
 			setting: "WithTimeout", rule: validate.TimeoutNotPositive,
 		},
 		{
+			name:    "a negative MaxRetries",
+			opts:    []Option{WithRetry(RetryPolicy{MaxRetries: -1, MaxBackoff: time.Second})},
+			setting: "WithRetry", rule: validate.RetryMaxRetriesNegative,
+		},
+		{
+			name:    "a negative MaxBackoff",
+			opts:    []Option{WithRetry(RetryPolicy{MaxRetries: 1, MaxBackoff: -1})},
+			setting: "WithRetry", rule: validate.RetryMaxBackoffNegative,
+		},
+		{
+			name:    "a negative MaxRetries and MaxBackoff",
+			opts:    []Option{WithRetry(RetryPolicy{MaxRetries: -3, MaxBackoff: -time.Second})},
+			setting: "WithRetry", rule: validate.RetryMaxRetriesNegative,
+		},
+		{
 			name: "a nil http.Client", opts: []Option{WithHTTPClient(nil)},
 			setting: "WithHTTPClient", rule: validate.HTTPClientNil,
 		},
@@ -577,6 +637,18 @@ func TestOptionsPrintNoKey(t *testing.T) {
 		{WithLogger(logger), fmt.Sprintf("permit.WithLogger(%p)", logger)},
 		{WithTimeout(1500 * time.Millisecond), "permit.WithTimeout(1.5s)"},
 		{WithTimeout(-time.Second), "permit.WithTimeout(-1s)"},
+		{
+			WithRetry(RetryPolicy{MaxRetries: 5, MaxBackoff: 1500 * time.Millisecond}),
+			"permit.WithRetry(permit.RetryPolicy{MaxRetries: 5, MaxBackoff: 1.5s})",
+		},
+		{
+			WithRetry(RetryPolicy{}),
+			"permit.WithRetry(permit.RetryPolicy{MaxRetries: 0, MaxBackoff: 0s})",
+		},
+		{
+			WithRetry(RetryPolicy{MaxRetries: -1, MaxBackoff: -time.Second}),
+			"permit.WithRetry(permit.RetryPolicy{MaxRetries: -1, MaxBackoff: -1s})",
+		},
 		{Option{}, "permit.Option{}"},
 	} {
 		if got := tc.option.String(); got != tc.want {

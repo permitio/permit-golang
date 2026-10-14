@@ -122,11 +122,12 @@ func doList[T any](ctx context.Context, c *Client, r request, shape listShape) (
 	return list, nil
 }
 
-// exchange sends the request of a call, once, and returns its operation and its reply in
-// 200-299, whose body it reads when readBody is set. Before it sends anything, it returns
-// ErrClosed after Close, and an error that matches ErrInvalidConfig for a path parameter that is
-// empty, . or .., naming its placeholder, and for a body that cannot be JSON. It bounds the call
-// by the client's timeout when ctx has no deadline, and writes one Debug line for the attempt.
+// exchange sends the request of a call, and again as the client's retry policy allows, and
+// returns its operation and its reply in 200-299, whose body it reads when readBody is set.
+// Before it sends anything, it returns ErrClosed after Close, and an error that matches
+// ErrInvalidConfig for a path parameter that is empty, . or .., naming its placeholder, and for a
+// body that cannot be JSON. It bounds the call, every attempt and every wait between them, by the
+// client's timeout when ctx has no deadline, and writes one Debug line for each attempt.
 //
 // The reply's credentials, the values that redact.Set.AddFields finds in a body it reads under a
 // credential name or one of the operation's SensitiveBodyFields, join the client's Set. exchange
@@ -134,7 +135,8 @@ func doList[T any](ctx context.Context, c *Client, r request, shape listShape) (
 // complete reply, with these exceptions: nil for a 404 to a DeleteSelf operation when readBody
 // is not set, as the object is gone already, and an Error that wraps ErrContainerPDPOnly, not
 // ErrNotFound, for a 404 with an empty body to a ContainerOnly operation, which the cloud PDP
-// does not serve.
+// does not serve. A call that fails returns the error of its last attempt, or, when ctx ends
+// while it waits to send the request again, a *Error that wraps the error of ctx.
 func (c *Client) exchange(ctx context.Context, r request, readBody bool) (rest.Op,
 	transport.Reply, error,
 ) {
@@ -155,15 +157,7 @@ func (c *Client) exchange(ctx context.Context, r request, readBody bool) (rest.O
 		ctx, cancel = context.WithTimeout(ctx, c.timeout)
 		defer cancel()
 	}
-	reply, err := c.sender.Send(ctx, attempt)
-	err = c.attemptError(op, reply, err, readBody)
-	c.logger.Request(ctx, logging.Request{
-		Route:    op.Route,
-		Status:   reply.Status,
-		Attempt:  1,
-		Duration: reply.Duration,
-		Err:      err,
-	})
+	reply, err := c.sendWithRetries(ctx, op, attempt, readBody)
 	if err != nil {
 		return op, reply, err
 	}
@@ -171,6 +165,41 @@ func (c *Client) exchange(ctx context.Context, r request, readBody bool) (rest.O
 		c.secrets.AddFields(reply.Body, op.SensitiveBodyFields...)
 	}
 	return op, reply, nil
+}
+
+// sendWithRetries sends r, the request of a call of op, and sends it again after each attempt
+// that failed for as long as the client's retry policy allows, waiting before each retry as the
+// policy says. It writes one Debug line for each attempt, and returns the reply of the last
+// attempt and its error, as attemptError returns it; or a *Error that wraps the error of ctx when
+// ctx ends while it waits.
+func (c *Client) sendWithRetries(ctx context.Context, op rest.Op, r transport.Request,
+	readBody bool,
+) (transport.Reply, error) {
+	for attempt := 1; ; attempt++ {
+		reply, sendErr := c.sender.Send(ctx, r)
+		err := c.attemptError(op, reply, sendErr, readBody)
+		c.logger.Request(ctx, logging.Request{
+			Route:    op.Route,
+			Status:   reply.Status,
+			Attempt:  attempt,
+			Duration: reply.Duration,
+			Err:      err,
+		})
+		if err == nil {
+			return reply, nil
+		}
+		wait, again := c.retry.Next(ctx, op, attempt, reply, sendErr)
+		if !again {
+			return reply, err
+		}
+		if waitErr := transport.Sleep(ctx, wait); waitErr != nil {
+			return reply, opCall(op).transportError(waitErr, c.secrets)
+		}
+		// A client closed while the call waited sends no other request.
+		if c.checkOpen() != nil {
+			return reply, err
+		}
+	}
 }
 
 // attempt returns the attempt of r, a call of op, or the error of a request that the client

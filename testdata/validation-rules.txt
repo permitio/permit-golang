@@ -8,6 +8,8 @@ config.api-key.empty the API key is empty; pass a Permit API key, or leave the o
 config.api-key.missing no API key; pass WithAPIKey, or set PERMIT_API_KEY
 config.http-client.nil the *http.Client is nil; pass a client, or leave the option out to use one of the SDK's own
 config.option.zero the Option is the zero value; build options with the With functions
+config.retry.max-backoff.negative MaxBackoff is less than zero; give 0 or more, where 0 is the default, 5 seconds
+config.retry.max-retries.negative MaxRetries is less than zero; give 0 or more, where 0 sends each request once
 config.timeout.not-positive the timeout must be more than zero, such as 30 * time.Second
 config.url.empty the URL is empty; leave the option out to read the environment variable or to use the default
 config.url.fragment the URL has a fragment (#...); give the URL without it

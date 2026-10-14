@@ -22,7 +22,8 @@ var unreadBody = `{"message":"` + strings.Repeat("x", 100<<10) + `"}`
 // TestKeepAlive sends 50 requests, one after the other, whose replies mix 200, 404 and 500 with
 // bodies that the client does not read in full, and checks that they all go over one
 // connection: the client drains each body before it closes it. Without the drain, on Go 1.26,
-// each request opens a connection of its own.
+// each request opens a connection of its own. The client sends each request once;
+// TestRetryKeepsTheConnection checks the connection of a call that retries.
 func TestKeepAlive(t *testing.T) {
 	const requests = 50
 	api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
@@ -40,7 +41,7 @@ func TestKeepAlive(t *testing.T) {
 	api.Handle(route(opFire), fired...)
 	api.Handle(route(opDeleteSelf), deleted...)
 	api.Handle(route(opGet), failed...)
-	c := wireClient(t, api, pdp)
+	c := wireClient(t, api, pdp, WithRetry(RetryPolicy{}))
 	for i := range requests {
 		var err error
 		switch i % 3 {

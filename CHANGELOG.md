@@ -8,17 +8,18 @@ change from v1 and what to use instead.
 ### Client
 
 - `permit.New(opts ...permit.Option)` builds a `*permit.Client` from the options `WithAPIKey`,
-  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient`, `WithTimeout` and `WithLogger`, and returns an
-  error when the configuration is not one the SDK can use.
+  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient`, `WithTimeout`, `WithRetry` and `WithLogger`, and
+  returns an error when the configuration is not one the SDK can use.
 - A setting that no option gives comes from the environment variables `PERMIT_API_KEY`,
   `PERMIT_API_URL` and `PERMIT_PDP_URL`, and else from its default: `https://api.permit.io` for
   the API, `http://localhost:7766` for the PDP and 30 seconds for the timeout. A variable that is
   set to the empty string counts as unset. There is no default API key.
 - `New` sends no request. It returns an error that matches `ErrInvalidConfig`, and names the
   option or the variable, when there is no API key; when an option gives an empty key or URL, a
-  nil `*http.Client` or a timeout of zero or less; when a URL does not use `http` or `https` (in
-  any case), has no host, or has a user name or a password, a query or a fragment; and for the
-  zero `Option`. A path after the host of a URL is kept, and one slash at its end is removed.
+  nil `*http.Client`, a timeout of zero or less, or a `MaxRetries` or `MaxBackoff` of less than
+  zero; when a URL does not use `http` or `https` (in any case), has no host, or has a user name
+  or a password, a query or a fragment; and for the zero `Option`. A path after the host of a URL
+  is kept, and one slash at its end is removed.
 - `WithTimeout` sets the longest that a call may take, across all the requests it sends. When the
   context of a call has a deadline, the deadline bounds the call instead. A call that runs out of
   time returns an error that matches `context.DeadlineExceeded`.
@@ -29,7 +30,8 @@ change from v1 and what to use instead.
 - `Client.Close` closes the idle connections of the client's own `*http.Client`, and not those of
   one that `WithHTTPClient` gave. It returns nil, also when called again, and a call that starts
   after it fails with an error that matches `ErrClosed` and sends no request. A call in flight
-  when `Close` is called runs on and returns its result or its error. A client that is garbage
+  when `Close` is called runs on and returns its result or its error; it sends no other attempt,
+  and a retry it was waiting for returns the error of its last attempt. A client that is garbage
   collected without `Close` has the idle connections of its own `*http.Client` closed too.
 - A `Client` and an `Option` print with `[REDACTED]` in place of the API key: `fmt` with every
   verb, `String`, `GoString` and the `LogValue` that `log/slog` calls.
@@ -102,6 +104,26 @@ change from v1 and what to use instead.
 - A list reply is read by its first byte, as a JSON array or as the paginated object that holds
   the array in `data`, so both shapes give the same items, and a reply of another shape is an
   error rather than an empty list.
+
+### Retries
+
+- A call sends its request again after a reply with status 429, to any operation except one whose
+  documentation says that it is sent once, after the wait that the reply's `Retry-After` header
+  asks for, in seconds or as an HTTP-date.
+- A call sends its request again after a reply with status 500, 502, 503 or 504, or a request
+  that got no complete reply, only to an operation that does the same when it is sent twice, such
+  as a GET, a PUT or a DELETE. A POST that creates an object is not sent again after these
+  replies; only a 429 makes the client send it again.
+- Without a `Retry-After` header, the wait before a retry is random: up to 200 milliseconds
+  before the first, and up to twice as long before each later one, up to 5 seconds.
+- `WithRetry(permit.RetryPolicy{MaxRetries: n, MaxBackoff: d})` sets the most retries of a call,
+  3 by default, and the longest wait without a `Retry-After` header, 5 seconds by default (and
+  for a `MaxBackoff` of 0). A `MaxRetries` of 0 sends each request once.
+- The timeout of a call covers every attempt and every wait between them. A call never waits past
+  its deadline, nor for a `Retry-After` of more than 60 seconds: it returns the error of its last
+  attempt at once, which matches `ErrRateLimited` for a 429. A call whose context ends while it
+  waits returns an error that matches the context's error.
+- Each attempt has its own Debug line, with its number, from 1, in `attempt`.
 
 ## v1.3.0 (2026-10-13)
 

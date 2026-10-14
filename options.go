@@ -1,6 +1,7 @@
 package permit
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/permitio/permit-golang/v2/internal/redact"
+	"github.com/permitio/permit-golang/v2/internal/transport"
 	"github.com/permitio/permit-golang/v2/internal/validate"
 )
 
@@ -24,9 +26,11 @@ const (
 
 // The defaults of the settings that neither an option nor an environment variable gives.
 const (
-	defaultAPIURL  = "https://api.permit.io"
-	defaultPDPURL  = "http://localhost:7766"
-	defaultTimeout = 30 * time.Second
+	defaultAPIURL     = "https://api.permit.io"
+	defaultPDPURL     = "http://localhost:7766"
+	defaultTimeout    = 30 * time.Second
+	defaultMaxRetries = 3
+	defaultMaxBackoff = 5 * time.Second
 )
 
 // Option configures a [Client]: pass options to [New]. Build an Option with a With function,
@@ -56,6 +60,10 @@ type settings struct {
 	httpClient *http.Client
 	timeout    time.Duration
 	logger     *slog.Logger
+
+	// retry is the retry policy, with the default MaxBackoff in place of 0, or nil when no option
+	// gave one.
+	retry *transport.Policy
 }
 
 // WithAPIKey sets the Permit API key that the client sends with each request. Without it, [New]
@@ -163,6 +171,66 @@ func WithTimeout(timeout time.Duration) Option {
 	}}
 }
 
+// RetryPolicy says how many times a call sends its request again after an attempt that failed,
+// and how long it waits at most before it does; [WithRetry] takes it, and describes when a call
+// sends its request again. The zero RetryPolicy sends each request once.
+type RetryPolicy struct {
+	// MaxRetries is how many times, at most, a call sends its request again after its first
+	// attempt: 0 sends each request once. The default, without WithRetry, is 3.
+	MaxRetries int
+
+	// MaxBackoff is the longest wait before a retry when the reply has no Retry-After header: 0
+	// is the default, 5 seconds.
+	MaxBackoff time.Duration
+}
+
+// WithRetry sets how many times a call sends its request again after an attempt that failed,
+// and how long it waits at most before it does. Without it, a call sends its request again up to
+// 3 times, and waits up to 5 seconds before each retry when the reply has no Retry-After header.
+// policy replaces both: WithRetry(permit.RetryPolicy{}) sends each request once. A MaxRetries or
+// a MaxBackoff less than zero is an error that matches [ErrInvalidConfig].
+//
+// A call sends its request again:
+//
+//   - after a reply with status 429 Too Many Requests, to any operation, as the server did not
+//     act on the request, except an operation whose documentation says that it is sent once;
+//   - after a reply with status 500, 502, 503 or 504, or when the request got no complete reply,
+//     such as when the connection failed, only to an operation that does the same when it is
+//     sent twice, such as a GET, a PUT or a DELETE. A request that the server may have acted on
+//     and that would repeat what it did, such as a POST that creates an object, is not sent
+//     again after these replies; only a 429 makes the client send it again.
+//
+// Any other status whose reply arrived complete, such as 400, 401, 404 or 409, ends the call,
+// as does a reply in 200-299. A reply whose body was cut short counts as no complete reply.
+// A call in flight when [Client.Close] is called sends no other attempt.
+//
+// Before a retry, the call waits for what the reply's Retry-After header asks, in seconds or as
+// an HTTP-date. Without the header, it waits for a random time from 0 to 200 milliseconds before
+// the first retry, and from 0 to twice the limit of the wait before each later one, up to
+// MaxBackoff. The waits count toward the call's timeout, [WithTimeout], or the deadline of its
+// context: a call never waits past it, nor for a Retry-After of more than 60 seconds. It returns
+// the error of its last attempt at once instead, which matches [ErrRateLimited] for a 429. A call
+// whose context ends while it waits returns an error that matches the context's error, such as
+// [context.Canceled]. The client writes the Debug line of each attempt, as [WithLogger]
+// describes, with the attempt's number, from 1, in attempt.
+func WithRetry(policy RetryPolicy) Option {
+	shown := "permit.RetryPolicy{MaxRetries: " + strconv.Itoa(policy.MaxRetries) +
+		", MaxBackoff: " + policy.MaxBackoff.String() + "}"
+	return Option{name: "WithRetry", shown: shown, apply: func(s *settings) error {
+		if policy.MaxRetries < 0 {
+			return &configError{setting: "WithRetry", rule: validate.RetryMaxRetriesNegative}
+		}
+		if policy.MaxBackoff < 0 {
+			return &configError{setting: "WithRetry", rule: validate.RetryMaxBackoffNegative}
+		}
+		s.retry = &transport.Policy{
+			MaxRetries: policy.MaxRetries,
+			MaxBackoff: cmp.Or(policy.MaxBackoff, defaultMaxBackoff),
+		}
+		return nil
+	}}
+}
+
 // WithLogger sets the *slog.Logger that the client logs to. By default the client logs nothing,
 // and so does a nil logger, or one whose handler is nil, such as the zero slog.Logger.
 //
@@ -266,6 +334,9 @@ func (s *settings) resolve() error {
 	}
 	if s.timeout == 0 {
 		s.timeout = defaultTimeout
+	}
+	if s.retry == nil {
+		s.retry = &transport.Policy{MaxRetries: defaultMaxRetries, MaxBackoff: defaultMaxBackoff}
 	}
 	return nil
 }

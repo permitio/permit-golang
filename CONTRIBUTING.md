@@ -1264,7 +1264,7 @@ its own:
 
 | Field | Meaning |
 | --- | --- |
-| `Idempotent` | A retry may send it again after a 5xx reply or a request without a reply: the GET, PUT and DELETE operations, and the PDP's decisions. |
+| `Idempotent` | A retry may send it again after a 500, 502, 503 or 504 reply or a request without a complete reply: the GET, PUT and DELETE operations, and the PDP's decisions. |
 | `Facts` | A route of the facts API that the PDP container also serves under `/facts`. |
 | `WaitsForSync` | The PDP container can hold its answer until the change reaches its policy. Only a `Facts` operation can wait. |
 | `ContainerOnly` | Only the PDP container serves it; the cloud PDP answers 404 with an empty body. |
@@ -1329,6 +1329,12 @@ is marked *(added in a later commit on this branch)* does not exist yet.
    that the [operation registry](#operation-registry) lists. The method makes its call with one
    of the functions of `transport.go`: `do` for a reply that holds an object, `doList` for one
    that holds a list, with the list's shape, and `doNoValue` for one whose body it does not read.
+   Two of the fields decide when a call sends the request again: `Idempotent` for an operation
+   that does the same when it is sent twice, which a call sends again after a 429, a 500, 502,
+   503 or 504, or a request without a complete reply; `NoRetry` for one that a call never sends
+   twice, not even after a 429, such as rotating an API key; and neither for any other
+   operation, such as a create, which a call sends again after a 429 only, as the server did not
+   act on it.
 4. Document it, with the phrases that `docRules` asks of it. Give a new service type, and a new
    decision method, an Example with an output comment in `package permit_test`, and list a
    decision method in `decisionMethods`; see [API reference](#api-reference).
@@ -1343,6 +1349,16 @@ is marked *(added in a later commit on this branch)* does not exist yet.
 8. Add its entries to `CHANGELOG.md` and `MIGRATION.md`, and remove what the `MIGRATION.md` entries
    cover from `tools/migration/pending.txt`; see
    [Public surface and migration](#public-surface-and-migration).
+
+A call sends its request again as `internal/transport/retry.go` decides from the operation's
+fields, and each attempt has its own Debug line and line of the request record. A wire test
+against `mockpermit` registers a reply for each attempt, since the server fails a test that sends
+more requests to a route than it has replies; a test about one attempt gives its client
+`WithRetry(RetryPolicy{})`, which sends each request once. To test the retries of an operation,
+and the waits between them, call it in a `testing/synctest` bubble with an in-memory
+`http.RoundTripper` that `WithHTTPClient` passes, as `retry_test.go` does: the bubble's clock
+moves only while every goroutine in it waits, which a request over a network connection never
+lets it do, so a wait of seconds takes no real time and is exact.
 
 ## Commits and pull requests
 

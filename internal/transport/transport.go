@@ -1,5 +1,7 @@
 // Package transport sends one attempt of a request of the SDK to the Permit API or to a PDP, and
-// reads the reply. It decodes nothing: the permit package decides what a reply means.
+// reads the reply. It decodes nothing: the permit package decides what a reply means. Its
+// [Policy] decides whether a call sends its request again after an attempt that failed, by the
+// facts of the call's operation, and how long the call waits before it does.
 //
 // Every request carries the client's API key in Authorization, the SDK's name and version in
 // User-Agent, X-Permit-Sdk-Language and X-Permit-Sdk-Version, and Accept: application/json; a
@@ -27,6 +29,7 @@ const (
 	headerAccept        = "Accept"
 	headerAuthorization = "Authorization"
 	headerContentType   = "Content-Type"
+	headerRetryAfter    = "Retry-After"
 	headerSDKLanguage   = "X-Permit-Sdk-Language"
 	headerSDKVersion    = "X-Permit-Sdk-Version"
 	headerUserAgent     = "User-Agent"
@@ -111,6 +114,9 @@ type Reply struct {
 	// Duration is how long the attempt took, from its start until the body was closed or the
 	// request failed.
 	Duration time.Duration
+
+	// RetryAfter is the reply's Retry-After header, or empty when it has none or no reply came.
+	RetryAfter string
 }
 
 // Send sends one attempt of r, which ctx bounds, and returns the reply. It returns an error when
@@ -157,7 +163,7 @@ func (s *Sender) send(ctx context.Context, r Request) (Reply, error) {
 		// The close of a reply's body reports nothing that the caller could act on.
 		_ = resp.Body.Close()
 	}()
-	reply := Reply{Status: resp.StatusCode}
+	reply := Reply{Status: resp.StatusCode, RetryAfter: resp.Header.Get(headerRetryAfter)}
 	// The checks are if statements, not the cases of a switch, so that coverage, and with it
 	// the mutation tests, reach each condition.
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {

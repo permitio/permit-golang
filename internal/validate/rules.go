@@ -48,6 +48,19 @@ var (
 		Message: "the Option is the zero value; build options with the With functions",
 	}
 
+	// RetryMaxBackoffNegative rejects a RetryPolicy whose MaxBackoff is less than zero.
+	RetryMaxBackoffNegative = Rule{
+		ID: "config.retry.max-backoff.negative",
+		Message: "MaxBackoff is less than zero; give 0 or more, where 0 is the default, " +
+			"5 seconds",
+	}
+
+	// RetryMaxRetriesNegative rejects a RetryPolicy whose MaxRetries is less than zero.
+	RetryMaxRetriesNegative = Rule{
+		ID:      "config.retry.max-retries.negative",
+		Message: "MaxRetries is less than zero; give 0 or more, where 0 sends each request once",
+	}
+
 	// TimeoutNotPositive rejects a timeout of zero or less.
 	TimeoutNotPositive = Rule{
 		ID:      "config.timeout.not-positive",
@@ -126,6 +139,8 @@ var rules = []Rule{
 	APIKeyMissing,
 	HTTPClientNil,
 	OptionZero,
+	RetryMaxBackoffNegative,
+	RetryMaxRetriesNegative,
 	TimeoutNotPositive,
 	URLEmpty,
 	URLFragment,

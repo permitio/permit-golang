@@ -259,7 +259,8 @@ func TestErrorReplies(t *testing.T) {
 // TestDoNoValue checks a call that reads no value: a reply in 200-299 is nil, whatever its body;
 // a 404 to an operation whose path names the object it deletes is nil, as the object is gone;
 // a 404 to a removal whose body names what it removes is ErrNotFound, and any other error status
-// is an error whatever the operation.
+// is an error whatever the operation. The client sends each request once, so that the 500 is the
+// call's result.
 func TestDoNoValue(t *testing.T) {
 	notFound := `{"error_code":"NOT_FOUND","title":"Not Found","message":"no such object"}`
 	for _, tc := range []struct {
@@ -304,7 +305,7 @@ func TestDoNoValue(t *testing.T) {
 			if strings.Contains(tc.op.Route, "{object_id}") {
 				r.params = []string{"a"}
 			}
-			err := wireClient(t, api, pdp).doNoValue(t.Context(), r)
+			err := wireClient(t, api, pdp, WithRetry(RetryPolicy{})).doNoValue(t.Context(), r)
 			if tc.wantStatus == 0 {
 				if err != nil {
 					t.Errorf("doNoValue returned %v, want nil", err)
@@ -587,7 +588,8 @@ func TestCutReply(t *testing.T) {
 		_ = buf.Flush()
 	}))
 	t.Cleanup(srv.Close)
-	_, err := do[testObject](t.Context(), urlClient(t, canary.Key("cut"), srv.URL), get("a"))
+	_, err := do[testObject](t.Context(), urlClient(t, canary.Key("cut"), srv.URL,
+		WithRetry(RetryPolicy{})), get("a"))
 	e := mustError(t, err)
 	if e.StatusCode != http.StatusNotFound || !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Errorf("do returned %v with the status %d, want the 404 and an unexpected EOF", err,
@@ -600,7 +602,8 @@ func TestCutReply(t *testing.T) {
 func TestNoReply(t *testing.T) {
 	srv := httptest.NewServer(http.NotFoundHandler())
 	srv.Close()
-	_, err := do[testObject](t.Context(), urlClient(t, canary.Key("noreply"), srv.URL),
+	_, err := do[testObject](t.Context(), urlClient(t, canary.Key("noreply"), srv.URL,
+		WithRetry(RetryPolicy{})),
 		get("alice@example.com"))
 	e := mustError(t, err)
 	if _, ok := errors.AsType[*url.Error](err); !ok || e.StatusCode != 0 ||
@@ -637,15 +640,17 @@ func (f writerFunc) Write(p []byte) (int, error) { return f(p) }
 
 // TestDebugLineForEachAttempt checks the Debug line of each attempt: the route template, never
 // the path with its parameters; the status, 0 without a reply; the attempt; the duration; and
-// the error of an attempt that failed, with the credentials replaced.
+// the error of an attempt that failed, with the credentials replaced. The clients send each
+// request once; TestRetryDebugLines checks the lines of a call that retries.
 func TestDebugLineForEachAttempt(t *testing.T) {
 	logger, logged := debugLog()
+	once := WithRetry(RetryPolicy{})
 	api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
 	api.Handle(route(opGet),
 		mockpermit.Reply{Body: `{"key":"a"}`},
 		mockpermit.Reply{Status: 500, Body: `{"message":"refused ` + mockpermit.APIKey + `"}`},
 	)
-	c := wireClient(t, api, pdp, WithLogger(logger))
+	c := wireClient(t, api, pdp, WithLogger(logger), once)
 	if _, err := do[testObject](t.Context(), c, get("alice")); err != nil {
 		t.Fatal(err)
 	}
@@ -654,7 +659,7 @@ func TestDebugLineForEachAttempt(t *testing.T) {
 	}
 	gone := httptest.NewServer(http.NotFoundHandler())
 	gone.Close()
-	offline := urlClient(t, canary.Key("debugoffline"), gone.URL, WithLogger(logger))
+	offline := urlClient(t, canary.Key("debugoffline"), gone.URL, WithLogger(logger), once)
 	if _, err := do[testObject](t.Context(), offline, get("alice")); err == nil {
 		t.Fatal("a closed server gave no error")
 	}

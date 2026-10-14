@@ -9,6 +9,7 @@ permit: func WithAPIURL(apiURL string) Option
 permit: func WithHTTPClient(httpClient *http.Client) Option
 permit: func WithLogger(logger *slog.Logger) Option
 permit: func WithPDPURL(pdpURL string) Option
+permit: func WithRetry(policy RetryPolicy) Option
 permit: func WithTimeout(timeout time.Duration) Option
 permit: method (*Client) Close() error
 permit: method (*Client) Format(f fmt.State, verb rune)
@@ -35,6 +36,9 @@ permit: type Error struct, Route string
 permit: type Error struct, StatusCode int
 permit: type Error struct, Title string
 permit: type Option struct
+permit: type RetryPolicy struct
+permit: type RetryPolicy struct, MaxBackoff time.Duration
+permit: type RetryPolicy struct, MaxRetries int
 permit: var ErrClosed = errors.New("permit: the client is closed")
 permit: var ErrConflict = errors.New("permit: conflict")
 permit: var ErrContainerPDPOnly = errors.New("permit: only the PDP container serves this route")

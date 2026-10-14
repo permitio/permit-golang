@@ -476,6 +476,31 @@ can tell the Go SDK's requests apart. A proxy, a firewall rule or a log filter t
 User-Agent must match the new one. Every request also carries `Accept: application/json`, and a
 request with a body `Content-Type: application/json`.
 
+<a id="M-wire-5"></a>
+### M-wire-5: A request is sent again after a 429, and after a failure when it is safe to repeat
+
+- v1: each request sent once, so a 429, a 5xx reply or a failed connection was the result of the call
+- v2: a request sent again after a 429, and after a 500, 502, 503 or 504 reply or a failed connection when sending it twice does what sending it once does; `permit.WithRetry` sets how many times
+
+v1 sent each request once. v2 sends a request again, up to 3 times by default:
+
+- after a reply with status 429, to any operation except one whose documentation says that it is
+  sent once, as the server did not act on the request. It waits for what the reply's
+  `Retry-After` header asks, in seconds or as an HTTP-date; a `Retry-After` of more than 60
+  seconds, or one that would pass the call's deadline, ends the call at once with the 429, which
+  matches `permit.ErrRateLimited`;
+- after a reply with status 500, 502, 503 or 504, or a request that got no complete reply, only
+  to an operation that does the same when it is sent twice, such as a GET, a PUT or a DELETE. A
+  POST that creates an object is not sent again after these replies; only a 429 makes the client
+  send it again.
+
+Without a `Retry-After` header, the wait before a retry is random: up to 200 milliseconds before
+the first, and up to twice as long before each later one, up to 5 seconds. The timeout of a call,
+`permit.WithTimeout`, covers every attempt and every wait, and a call never waits past it: it
+returns the error of its last attempt at once instead. A server, a proxy or a log that counts
+requests sees each attempt, and the client writes a Debug line for each. To send each request
+once, as v1 did, pass `permit.WithRetry(permit.RetryPolicy{})`.
+
 ## Kept on purpose
 
 What v2 keeps from v1 although a new major version could change it:

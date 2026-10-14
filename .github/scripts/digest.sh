@@ -28,7 +28,10 @@
 #                             a newer patch that is at least 7 days old needs attention
 #   Release binaries          for each entry of tools/binaries.lock, the newest stable release of
 #                             its GitHub project; a newer one published at least 7 days (168
-#                             hours) ago needs attention
+#                             hours) ago needs attention. When GitHub refuses the token because
+#                             the IP allow list of the project's organization does not permit
+#                             the runner's address, the public releases are read once more with
+#                             curl, without the token, and the run's log says so
 #
 # A section that cannot be read says so in the digest. notify posts the digest under the line
 # "<repo> security digest: <result>. <run URL>", where the result counts what needs attention, or
@@ -98,12 +101,12 @@ api() {
 }
 
 # section <title> <function> writes a section of the digest. The function prints its lines and
-# returns 0, or 2 when it could not read what it reports; it runs with errexit off, so it checks
-# each command it runs.
+# returns 0, or 2 when it could not read what it reports, and writes any line for the run's log to
+# file descriptor 3. It runs with errexit off, so it checks each command it runs.
 section() {
   local code=0
   printf '*%s*\n' "$1" >>"$digest"
-  "$2" >>"$digest" 2>"$work/error" || code=$?
+  "$2" 3>&1 >>"$digest" 2>"$work/error" || code=$?
   if [[ $code -ne 0 ]]; then
     problems=$((problems + 1))
     echo "• Could not be read; the run's log says why." >>"$digest"
@@ -236,7 +239,7 @@ go_release() {
 }
 
 release_binaries() {
-  local name version url project
+  local name version url project path
   awk '/^\[/ { if (name != "") print name, version, url; name = substr($0, 2, length($0) - 2)
       version = ""; url = ""; next }
     /^version[[:space:]]*=/ { sub(/^version[[:space:]]*=[[:space:]]*/, ""); version = $0 }
@@ -255,9 +258,26 @@ release_binaries() {
       continue
     fi
     project=${BASH_REMATCH[1]}
-    api "repos/$project/releases?per_page=30" >"$work/releases.json" || return 2
+    path="repos/$project/releases?per_page=30"
+    if ! api "$path" >"$work/releases.json" 2>"$work/api-error"; then
+      # Only this refusal is read again without the token: such reads share the rate limit of
+      # the runner's address. The read uses curl, not gh: without GH_TOKEN, gh would use any
+      # credentials it has stored.
+      if ! grep -qE 'IP allow list enabled.*\(HTTP 403\)$' "$work/api-error"; then
+        cat -- "$work/api-error" >&2
+        return 2
+      fi
+      echo "digest: GitHub refused the token for $project, whose organization has an IP allow" \
+        "list; reading its public releases without the token" >&3
+      if ! curl --disable --fail --silent --show-error --location --proto '=https' \
+        --max-time 60 --header 'Accept: application/vnd.github+json' \
+        --output "$work/releases.json" "https://api.github.com/$path" 2>"$work/curl-error"; then
+        cat -- "$work/api-error" "$work/curl-error" >&2
+        return 2
+      fi
+    fi
     jq -r --argjson now "$now" --arg name "$name" --arg version "$version" "$defs"'
-      if type != "array" then error("gh returned something other than a list of releases")
+      if type != "array" then error("GitHub returned something other than a list of releases")
       else . end
       | [.[] | select(.draft == false and .prerelease == false and .published_at != null)
         | {version: (.tag_name | ltrimstr("v")), date: .published_at,

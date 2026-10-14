@@ -18,7 +18,9 @@ import (
 //   - go: -C tools build links the program it builds to the stub.
 //   - gh and curl: print, or for curl write to the file after --output, the file in STUB_DIR named
 //     like the API path or URL, their last argument, with each of / ? & = . : as _. Without that
-//     file they fail as a missing page does.
+//     file they fail as a missing page does. When the file named like the API path with .error
+//     appended exists too, gh then prints it to standard error and fails, as gh does for an
+//     HTTP error.
 //   - notify: copies the file after -body to STUB_DIR/posted, and exits with STUB_NOTIFY.
 const digestStub = `#!/bin/sh
 name=${0##*/}
@@ -34,6 +36,10 @@ gh)
 		exit 1
 	fi
 	cat "$page"
+	if [ -f "${page}_error" ]; then
+		cat "${page}_error" >&2
+		exit 1
+	fi
 	;;
 curl)
 	out=
@@ -75,6 +81,7 @@ const (
 	manualPath = "repos/octo/repo/actions/workflows/ci.yml/runs?branch=master&" +
 		"event=workflow_dispatch&per_page=30"
 	gitleaksPath = "repos/gitleaks/gitleaks/releases?per_page=30"
+	gitleaksURL  = "https://api.github.com/" + gitleaksPath
 	dlURL        = "https://go.dev/dl/?mode=json&include=all"
 	releasesURL  = "https://go.dev/doc/devel/release"
 	digestLock   = "# Release binaries.\n[gitleaks]\nversion = 8.30.1\nurl = https://github.com/" +
@@ -111,6 +118,9 @@ type digestCase struct {
 	// wantResult is the -result notify gets, when it runs; wantDigest is the posted digest.
 	wantResult, wantDigest string
 	wantStdout             []string
+	// notStdout must not be in stdout; wantLog and notLog must and must not be in the stub's
+	// log, which holds a line for each command the stubs ran.
+	notStdout, wantLog, notLog []string
 }
 
 func TestDigest(t *testing.T) {
@@ -134,6 +144,15 @@ func TestDigest(t *testing.T) {
 		"• 1.26.9, GO_126" + inCI + ", is the newest go1.26.\n" +
 		"• 1.27.1, GO_127" + inCI + ", is the newest go1.27.\n" +
 		"*Release binaries*\n• gitleaks 8.30.1 is the newest release.\n"
+	// ipBlocked is GitHub's message when it refuses the token for the releases of gitleaks
+	// because the IP allow list of the gitleaks organization does not permit the address.
+	const ipBlocked = "Although you appear to have the correct authorization credentials, the " +
+		"`gitleaks` organization has an IP allow list enabled, and your IP address is not " +
+		"permitted to access this resource."
+	newerGitleaks := "[" + release("v8.31.0", ago(30*day), false, false) + "," +
+		release("v8.30.1", ago(60*day), false, false) + "]"
+	readWithoutToken := "digest: GitHub refused the token for gitleaks/gitleaks, whose " +
+		"organization has an IP allow list; reading its public releases without the token\n"
 	tests := []digestCase{
 		{
 			name: "nothing needs attention", wantExit: 0,
@@ -299,9 +318,60 @@ func TestDigest(t *testing.T) {
 				"digest: Dependabot pull requests could not be read:\nHTTP 404: Not Found (" +
 					pullsPath + ")\n",
 				"digest: Release binaries could not be read:\njq: error",
-				"gh returned something other than a list of releases",
+				"GitHub returned something other than a list of releases",
 				"digest: DID NOT COMPLETE: 2 sections could not be read\n",
 			},
+		},
+		{
+			name: "releases behind an IP allow list, read without the token",
+			pages: map[string]string{
+				gitleaksPath:            `{"message":"` + ipBlocked + `","status":"403"}`,
+				gitleaksPath + ".error": "gh: " + ipBlocked + " (HTTP 403)\n",
+				gitleaksURL:             newerGitleaks,
+			},
+			wantExit: 0, wantResult: "1 items need attention",
+			wantDigest: strings.Replace(clean, "• gitleaks 8.30.1 is the newest release.\n",
+				"• gitleaks 8.30.1: 8.31.0, published 2026-09-14, can be adopted.\n", 1),
+			wantStdout: []string{readWithoutToken},
+			wantLog: []string{
+				"curl|--disable --fail --silent --show-error --location --proto =https " +
+					"--max-time 60 --header Accept: application/vnd.github+json --output ",
+				" " + gitleaksURL + "|GH_TOKEN=unset|",
+			},
+		},
+		{
+			name: "releases refused with another 403", wantExit: 2,
+			pages: map[string]string{
+				gitleaksPath: `{"message":"Resource not accessible by integration",` +
+					`"status":"403"}`,
+				gitleaksPath + ".error": "gh: Resource not accessible by integration (HTTP 403)\n",
+				gitleaksURL:             newerGitleaks,
+			},
+			wantResult: "did not complete: 1 sections could not be read",
+			wantDigest: strings.Replace(clean, "• gitleaks 8.30.1 is the newest release.\n",
+				"• Could not be read; the run's log says why.\n", 1),
+			wantStdout: []string{
+				"digest: Release binaries could not be read:\ngh: Resource not accessible by " +
+					"integration (HTTP 403)\n",
+			},
+			notStdout: []string{readWithoutToken},
+			notLog:    []string{gitleaksURL},
+		},
+		{
+			name: "releases behind an IP allow list that cannot be read without the token either",
+			pages: map[string]string{
+				gitleaksPath:            `{"message":"` + ipBlocked + `","status":"403"}`,
+				gitleaksPath + ".error": "gh: " + ipBlocked + " (HTTP 403)\n",
+			},
+			wantExit: 2, wantResult: "did not complete: 1 sections could not be read",
+			wantDigest: strings.Replace(clean, "• gitleaks 8.30.1 is the newest release.\n",
+				"• Could not be read; the run's log says why.\n", 1),
+			wantStdout: []string{
+				readWithoutToken,
+				"digest: Release binaries could not be read:\ngh: " + ipBlocked +
+					" (HTTP 403)\ncurl: (22) The requested URL returned error: 404\n",
+			},
+			notStdout: []string{"jq: error"},
 		},
 		{
 			name: "pull requests that are not a list", wantExit: 2,
@@ -446,6 +516,25 @@ func runDigest(t *testing.T, tt digestCase, stub, bin string, now time.Time) {
 			t.Errorf("stdout does not contain %q:\n%s", want, got.stdout)
 		}
 	}
+	for _, unwanted := range tt.notStdout {
+		if strings.Contains(got.stdout, unwanted) {
+			t.Errorf("stdout contains %q:\n%s", unwanted, got.stdout)
+		}
+	}
+	ran, err := os.ReadFile(log)
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	for _, want := range tt.wantLog {
+		if !strings.Contains(string(ran), want) {
+			t.Errorf("the stubs' log does not contain %q:\n%s", want, ran)
+		}
+	}
+	for _, unwanted := range tt.notLog {
+		if strings.Contains(string(ran), unwanted) {
+			t.Errorf("the stubs' log contains %q:\n%s", unwanted, ran)
+		}
+	}
 	stopped, _ := splitStopped(t, got.stdout)
 	posted, _ := os.ReadFile(filepath.Join(stubDir, "posted"))
 	if tt.wantDigest != "" && string(posted) != tt.wantDigest {
@@ -461,8 +550,9 @@ func runDigest(t *testing.T, tt digestCase, stub, bin string, now time.Time) {
 	}
 }
 
-// checkDigestLog checks that the token reached gh only, the webhook notify only, and that notify
-// got the digest with the result and the run's URL.
+// checkDigestLog checks that the token reached gh only, in its environment and never in the
+// arguments of a command, the webhook notify only, and that notify got the digest with the result
+// and the run's URL.
 func checkDigestLog(t *testing.T, log, wantResult string) {
 	t.Helper()
 	data, err := os.ReadFile(log)
@@ -481,8 +571,11 @@ func checkDigestLog(t *testing.T, log, wantResult string) {
 			notified = append(notified, line)
 			secrets = "|GH_TOKEN=unset|GITHUB_TOKEN=unset|WEBHOOK=https://hooks.example.com/x"
 		}
-		if !strings.HasSuffix(line, secrets) {
+		switch {
+		case !strings.HasSuffix(line, secrets):
 			t.Errorf("%s ran with %s, want %s", name, line, secrets)
+		case strings.Contains(strings.TrimSuffix(line, secrets), "gh-token"):
+			t.Errorf("%s got the token in its arguments: %s", name, line)
 		}
 	}
 	if wantResult == "" {

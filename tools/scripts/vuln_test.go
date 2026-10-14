@@ -99,6 +99,8 @@ func TestVuln(t *testing.T) {
 		args  []string
 		env   []string
 		codes string
+		// prepare runs vuln.sh --prepare PREP, a directory that does not exist yet.
+		prepare bool
 		// wantExit is vuln.sh's exit code, and wantLog the lines the stub logs.
 		wantExit   int
 		wantLog    []string
@@ -166,11 +168,33 @@ func TestVuln(t *testing.T) {
 			},
 		},
 		{
+			name: "prepare only", prepare: true, wantExit: 0,
+			wantLog: slices.Concat(prepared[:4], []string{
+				"go|PREP|get -u -t ./... " + scanned,
+				"ceiling has .github", "ceiling has go.mod", "ceiling has tools",
+				"go|PREP|mod tidy " + scanned,
+			}),
+			wantStdout: []string{
+				"vuln: prepared the programs, Trivy and the ceiling in PREP\n::TOKEN::\n",
+			},
+		},
+		{
+			name: "prepare in a directory that exists", args: []string{"--prepare", "."},
+			wantExit: 2, wantLog: prepared[:4],
+			wantStdout: []string{
+				"vuln: creating the ceiling's directory . failed\nvuln: DID NOT RUN\n",
+			},
+		},
+		{
 			name: "an argument", args: []string{"--fast"}, wantExit: 2,
 			wantStdout: []string{
-				"::stop-commands::TOKEN\nvuln: usage: vuln.sh (it takes no arguments)\n" +
+				"::stop-commands::TOKEN\nvuln: usage: vuln.sh [--prepare <directory>]\n" +
 					"vuln: DID NOT RUN\n::TOKEN::\n",
 			},
+		},
+		{
+			name: "--prepare without a directory", args: []string{"--prepare", ""}, wantExit: 2,
+			wantStdout: []string{"vuln: usage: vuln.sh [--prepare <directory>]\n"},
 		},
 	}
 	stub := filepath.Join(t.TempDir(), "stub")
@@ -208,10 +232,17 @@ func TestVuln(t *testing.T) {
 				"PR_HEAD_REPO=",
 			}, tt.env...)
 
+			args := tt.args
+			prep := filepath.Join(t.TempDir(), "ceiling")
+			if tt.prepare {
+				args = []string{"--prepare", prep}
+			}
+
 			got := runScript(t, root, env, filepath.Join(root, ".github", "scripts", "vuln.sh"),
-				tt.args...)
+				args...)
 
 			normalize := func(s string) string {
+				s = strings.ReplaceAll(s, prep, "PREP")
 				s = strings.ReplaceAll(s, tmp, "TMP")
 				s = strings.ReplaceAll(s, root, "ROOT")
 				return workDir.ReplaceAllString(token.ReplaceAllString(s, "TOKEN"), "WORK")

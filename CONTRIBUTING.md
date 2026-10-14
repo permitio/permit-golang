@@ -191,8 +191,11 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
 | `dependency-review` | Pull requests only: fails when the pull request adds a dependency with a known vulnerability of high or critical severity; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
-| `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary and fails only when the run does not complete. |
+| `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
+| `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
+| `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
+| `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: posts one line to Slack. `CI` does not need it. |
 
 Which jobs a run selects depends on its mode:
 
@@ -200,9 +203,9 @@ Which jobs a run selects depends on its mode:
   `test`, `crossbuild`, `vuln` and `secrets`. A pull request runs `mutation` and
   `dependency-review` too.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
-  weekly jobs, and `security` and `e2e` the jobs of those modes *(added in later commits on this
-  branch)*. The release workflow *(added in a later commit on this branch)* calls CI with the
-  mode `release`, which runs the pull request checks.
+  weekly jobs, `security` the security scan, and `e2e` the jobs of that mode *(added in a later
+  commit on this branch)*. The release workflow *(added in a later commit on this branch)* calls
+  CI with the mode `release`, which runs the pull request checks.
 - Two crons start the periodic modes: `SECURITY_CRON` twice a week and `WEEKLY_CRON` once a week.
   Each cron is listed in `on.schedule` and set once more in the workflow's `env`, as
   `<MODE>_CRON`, which cicheck and ci-aggregate.sh read.
@@ -226,6 +229,11 @@ pull requests, on a cron or as an advisory check, add it to the list for that. G
   `(!inputs.mode && github.event.schedule == '<cron>') || inputs.mode == '<mode>'`, with the cron
   its `<MODE>_CRON` declares. A run that another workflow calls sees its caller's schedule, so
   `!inputs.mode` keeps the cron from selecting the job in a run that has a mode.
+
+A job that needs `CI` runs after it, so `CI` does not need it; only `notify-gate-failure` does,
+and its `if:` is
+`failure() && ((!inputs.mode && github.event_name == 'push') || inputs.mode == 'release')`. A
+scheduled job posts its own result, and a failed scheduled run is red in Actions.
 
 When you add or remove a git hook, change `EXPECTED_HOOKS`.
 
@@ -406,7 +414,8 @@ ignore file or comment in a commit changes how it is scanned: no `.gitleaks.toml
 hides nothing, a file that git takes for binary because it holds a NUL byte is scanned as text,
 and what a merge commit adds is scanned too. A change to the scan itself shows in the diff of the
 script, `ci.yml` or `tools/binaries.lock`. When you change the rules in `.gitleaks.toml`, change
-them in the script as well; a test checks that they match.
+them in both scripts that copy them, `gitleaks-range.sh` and `security-scan.sh`; tests check that
+they match.
 
 The rules extend gitleaks' default rules, and with them its default allowlist of paths, which
 applies to every rule, the Permit API key rule too: a secret in a path such as `.gitleaks.toml`,
@@ -426,13 +435,134 @@ release, from the repository root:
 ```
 
 When it reports a key, revoke the key and remove it from your branch's history; tests, examples
-and docs use fake keys that start with `permit_key_FAKE`.
+and docs use fake keys that start with `permit_key_FAKE`. The scheduled
+[security scan](#scheduled-scans-and-alerts) scans the whole history with the same rules and
+hardening, except what a merge commit changes itself, which this scan covers when the merge is
+pushed.
 
 The `dependency-review` job runs on pull requests only. It compares the dependencies of the pull
 request with those of its base in GitHub's dependency graph, and fails when the pull request adds
 a dependency with a known vulnerability of high or critical severity; on a failure it also
 comments a summary on the pull request. It has no local command; locally, the [vulnerability
 scan](#vulnerability-scan) checks the dependencies of both modules.
+
+## Scheduled scans and alerts
+
+These jobs of `ci.yml` post to Slack:
+
+| Job | When | Channel |
+| --- | --- | --- |
+| `security-scan` | Mondays and Thursdays (`SECURITY_CRON`), and in a manual run with the mode `security` | `SECURITY_SLACK_WEBHOOK_URL` |
+| `digest` | Mondays (`WEEKLY_CRON`), and in the mode `weekly` | `SECURITY_SLACK_WEBHOOK_URL` |
+| `mutation (weekly)` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
+| `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release | `SLACK_WEBHOOK_URL` |
+
+Each post starts with one line, `<repo> <check>: <result>. <details>. <run URL>`, which
+`tools/cmd/notify` writes and posts; the security scan and the digest put their report under it,
+and the weekly mutation tests give each module's efficacy and count of mutants that lived as the
+details. notify escapes the line for Slack, and does not follow a redirect or print the webhook.
+Without the webhook secret it prints a warning and exits 0; when Slack does not accept the post,
+it exits 1 and the job fails. Only the step that posts gets the webhook, and only the step that
+reads the alerts gets their token; no pull request job reads a secret.
+
+### Security scan
+
+`.github/scripts/security-scan.sh` reports each source with a result and a state of its own:
+
+| Source | What it scans |
+| --- | --- |
+| `master-floor`, `master-ceiling`, `tools` | The three trees of the `vuln` job, one each, with vulnscan (`-only`) and Trivy. |
+| `consumer-v2-latest` | A throwaway module that requires the latest release of `github.com/permitio/permit-golang/v2`, as an application resolves it with the default module proxy, and imports its packages; vulnscan (`-consumer`) and Trivy scan it. Before the first v2 release its state is "no release yet", which is not a failure. |
+| `dependabot-alerts` | The open Dependabot alerts, read with `DEPENDABOT_ALERTS_TOKEN`; the job's own token cannot read them. The log and the job summary give their count only, and the Slack report lists them. |
+| `history-secrets` | gitleaks over the full history of a mirror of every ref, with the rules of `.gitleaks.toml` and the hardening of the [secret scan](#secret-scan-and-dependency-review), except that what a merge commit changes itself is not scanned; the secret scan of each pull request and push covers it. |
+| `verified-secrets` | In a manual run only: TruffleHog with `--results=verified` over the same mirror. Verification tries each candidate against its service. |
+
+Findings are reported and pass. The job fails when a source did not complete, which secreport
+reports as DID NOT RUN, and when TruffleHog verified a secret. secreport (`-findings report`)
+writes the standard report to the job summary and in Slack's format: a headline with the findings
+by severity, one line per source, the high and critical findings with their package, advisory
+link and fix, the findings without a score ("Unscored"), and every source that did not complete.
+It says "Clean" only when every source completed and none found anything. A value that a scanner
+or GitHub reports is cut to fit the report, so that no finding is lost. A vulnerability that
+`.github/vulnscan-accept.txt` accepts is listed with its fix `accepted until <last day>: <reason>`.
+
+The history scan prints counts only: `history: N findings, M accepted, K new`; without
+`GITLEAKS_HISTORY_ACCEPT_SHA256` its state says that every finding is new. Where a new finding is
+goes to the Slack report only. A finding is accepted when the sha256 of its gitleaks fingerprint
+is in the secret `GITLEAKS_HISTORY_ACCEPT_SHA256`, one digest per line. The list is a secret, not
+a file, so the repository names no commit or file of an accepted finding. Every digest must match
+a finding, or the source did not complete: the scan may have missed part of the history. Accept a
+finding only once the secret it holds is revoked. TruffleHog's log must count a scan that read
+something and verified as many secrets as it printed, or `verified-secrets` did not complete.
+
+To list the digests of the findings, with where each is, run this on your own clone with the full
+history. It refuses to run in GitHub Actions, whose log is public, and to write the file inside
+the clone, where it could be committed:
+
+```sh
+.github/scripts/fetch-tool.sh gitleaks
+digests="$(mktemp -d)/digests.txt"
+.github/scripts/security-scan.sh --history-digests "$digests"
+```
+
+Keep in the file only the lines of the findings to accept, set the secret from it, and trash the
+file:
+
+```sh
+gh secret set GITLEAKS_HISTORY_ACCEPT_SHA256 -R permitio/permit-golang < "$digests"
+trash "$digests"
+```
+
+Run the whole scan from the repository root. It needs jq, gh, Go and the network. Without
+`SECURITY_SLACK_WEBHOOK_URL` it posts nothing, and the report, without the private findings, goes
+to the file that `GITHUB_STEP_SUMMARY` names:
+
+```sh
+GITHUB_REPOSITORY=permitio/permit-golang DEPENDABOT_ALERTS_TOKEN="$(gh auth token)" \
+  GITHUB_STEP_SUMMARY=report.md .github/scripts/security-scan.sh --trufflehog skip
+```
+
+The scan needs these settings, which a maintainer makes before its first run on `master`:
+
+- the secrets `SECURITY_SLACK_WEBHOOK_URL` and `SLACK_WEBHOOK_URL`, the incoming webhooks of the
+  security channel and of the channel for releases, failures and the weekly mutation report;
+- the environment `security-scan`, which deploys only from `master`, with the secret
+  `DEPENDABOT_ALERTS_TOKEN`: a fine-grained token that can read this repository's Dependabot
+  alerts and nothing else. Create the environment before the job first runs, since GitHub
+  creates an environment that a job names without any rule. Until the token is set,
+  `dependabot-alerts` does not complete and the job fails;
+- the secret `GITLEAKS_HISTORY_ACCEPT_SHA256`, once the secrets of the findings it accepts are
+  revoked. Without it, every finding is new.
+
+### Digest
+
+`.github/scripts/digest.sh` posts the digest every Monday, even when nothing needs attention. It
+lists the open pull requests of Dependabot, and flags the ones open 14 days or more; the entries of
+`.github/vulnscan-accept.txt` whose last day is within 30 days or past; the result of the last
+security scan, the newest of the 30 newest scheduled runs and the 30 newest manual runs; a newer
+patch of the Go release in `go.mod`'s `toolchain` line and of each Go release that a test leg of
+`ci.yml` pins (`GO_126`, `GO_127`), from go.dev; and every entry of `tools/binaries.lock` whose
+GitHub project has a newer release. A new Go patch or release can be adopted once it is at least
+7 days old, and the digest says from which day. A section that cannot be read says so, and the
+job fails after posting the digest. Run it from the repository root; without
+`SECURITY_SLACK_WEBHOOK_URL` it only prints the digest:
+
+```sh
+GITHUB_REPOSITORY=permitio/permit-golang GH_TOKEN="$(gh auth token)" .github/scripts/digest.sh
+```
+
+### Posting a notice
+
+```sh
+go -C tools build -o ../bin/notify ./cmd/notify
+SLACK_WEBHOOK_URL=... bin/notify -channel ops -repo permitio/permit-golang -check CI \
+  -result FAIL -details "what happened" -run-url "https://github.com/..."
+```
+
+`-channel security` posts to `SECURITY_SLACK_WEBHOOK_URL` and `-channel ops` to
+`SLACK_WEBHOOK_URL`; `-body <file>` adds a report that its writer escaped for Slack. notify exits
+0 when Slack accepted the post or the webhook is not set, 1 when the post failed, and 2 when its
+command line or body is wrong. `go -C tools doc ./cmd/notify` describes it.
 
 ## Dependency updates
 
@@ -456,8 +586,8 @@ into `master`:
 - The `go` line of a `go.mod` is the minimum Go version and changes only on purpose. Dependabot
   does not move it or the `toolchain` line to new Go releases, and does not read
   `tools/binaries.lock`. Move the `toolchain` line and `tools/binaries.lock` by hand to the
-  newest release that is at least 7 days old; a weekly digest *(added in a later commit on this
-  branch)* reports newer releases. A dependency update whose new version needs a newer Go raises
+  newest release that is at least 7 days old; the weekly [digest](#scheduled-scans-and-alerts)
+  reports newer releases. A dependency update whose new version needs a newer Go raises
   the `go` line: the Go 1.26.0 test leg then fails, and the pull request is not merged as it is.
 - v1 gets no dependency updates: it receives no fixes after v1.4.0.
 

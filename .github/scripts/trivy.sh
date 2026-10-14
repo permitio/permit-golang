@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-# trivy.sh <block|report> <module directory> scans the go.mod in the directory with the Trivy
-# release that tools/binaries.lock pins, which .github/scripts/fetch-tool.sh trivy installs as
-# bin/trivy, and prints every vulnerability Trivy reports. With block, a vulnerability of HIGH or
-# CRITICAL severity that has a fixed version fails the scan; with report, none does. Lower and
-# UNKNOWN severities are printed and never fail: vulnscan (tools/cmd/vulnscan) fails on every
-# vulnerability govulncheck finds in the modules a build uses, whatever its severity.
+# trivy.sh <block|report> <module directory> [<findings file>] scans the go.mod in the directory
+# with the Trivy release that tools/binaries.lock pins, which .github/scripts/fetch-tool.sh trivy
+# installs as bin/trivy, and prints every vulnerability Trivy reports. With block, a vulnerability
+# of HIGH or CRITICAL severity that has a fixed version fails the scan; with report, none does.
+# Lower and UNKNOWN severities are printed and never fail: vulnscan (tools/cmd/vulnscan) fails on
+# every vulnerability govulncheck finds in the modules a build uses, whatever its severity.
+#
+# With a findings file, it also writes each vulnerability there as a JSON line in the format
+# secreport (tools/cmd/secreport) reads: its ID, package, installed and fixed versions, severity
+# in lowercase (empty for UNKNOWN) and Trivy's https link for it. A value longer than secreport
+# accepts is cut, and a link it would reject is left out. The file is written only when the scan
+# counts.
 #
 # Trivy reads go.mod as it is: it lists the module itself and one package for each module a
 # require directive names, except a module that a replace directive points at a local directory,
@@ -18,8 +24,8 @@
 # Exit codes: 0 when nothing fails the scan; 1 when block finds a HIGH or CRITICAL vulnerability
 # with a fixed version; 2 when the scan did not run: the arguments are wrong, the directory has no
 # go.mod, jq is missing, bin/trivy is missing or is not the version the lock pins, go mod edit or
-# Trivy failed, Trivy's output is not a JSON report, or its package count is not the number of
-# requirements.
+# Trivy failed, Trivy's output is not a JSON report, its package count is not the number of
+# requirements, or the findings file cannot be written.
 set -euo pipefail
 
 fail() {
@@ -28,9 +34,11 @@ fail() {
   exit 2
 }
 
-[[ $# -eq 2 ]] || fail "usage: trivy.sh <block|report> <module directory>"
+[[ $# -eq 2 || $# -eq 3 ]] ||
+  fail "usage: trivy.sh <block|report> <module directory> [<findings file>]"
 policy=$1
 dir=$2
+findings=${3:-}
 [[ $policy == block || $policy == report ]] || fail "the policy \"$policy\" is not block or report"
 [[ -f $dir/go.mod ]] || fail "$dir has no go.mod"
 command -v jq >/dev/null 2>&1 || fail "jq is not installed, so Trivy's report cannot be read"
@@ -107,6 +115,21 @@ jq -r --arg policy "$policy" "$vulns"'
 ' "$work/report.json"
 fixable=$(jq "$vulns"' | map(select(fixable)) | length' "$work/report.json")
 total=$(jq "$vulns"' | length' "$work/report.json")
+if [[ -n $findings ]]; then
+  # clip($n) turns each control character into a space and cuts a value to at most $n bytes, the
+  # last three of them "..."; link drops a URL that is not an https link secreport accepts or is
+  # longer than 300 bytes. So a long or odd value never makes the findings invalid.
+  # shellcheck disable=SC2016 # $n is a jq variable
+  fit='def clip($n): gsub("\\p{Cc}"; " ") | if utf8bytelength <= $n then .
+      else .[0:$n] | until(utf8bytelength <= $n - 3; .[0:-1]) + "..." end;
+    def link: if test("^https://[^\\s<>|()\\[\\]\"]+$") and utf8bytelength <= 300 then .
+      else "" end;'
+  jq -c "$fit$vulns"' | .[] | {id: .VulnerabilityID, package: (.PkgName | clip(200)),
+    version: (.InstalledVersion // "" | clip(200)), fix: (.FixedVersion | clip(200)),
+    severity: (.Severity // "" | ascii_downcase | if . == "unknown" then "" else . end),
+    url: (.PrimaryURL // "" | link)}' \
+    "$work/report.json" >"$findings" || fail "writing the findings to $findings failed"
+fi
 
 echo
 echo "trivy: $dir/go.mod: Trivy $want; packages: $packages, require directives: $requires$note"

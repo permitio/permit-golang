@@ -5,7 +5,11 @@
 //
 // Usage, from the repository root:
 //
-//	vulnscan -ceiling dir [-govulncheck path] [-accept file] [-trees file]
+//	vulnscan -ceiling dir [-govulncheck path] [-accept file] [-trees file] [-findings file]
+//	vulnscan -only floor|tools [-govulncheck path] [-accept file] [-trees file] [-findings file]
+//	vulnscan -only ceiling -ceiling dir [-govulncheck path] [-accept file] [-trees file]
+//	    [-findings file]
+//	vulnscan -consumer dir [-govulncheck path] [-accept file] [-findings file]
 //
 // vulnscan scans three trees, each with govulncheck -mode source -scan symbol -format json and the
 // tree's package patterns:
@@ -22,6 +26,16 @@
 // in the trees file with the reason it is not scanned, such as a test-only module that never
 // ships. The trees file has one directory per line, relative to the repository root, followed by
 // the reason.
+//
+// -only scans one of the three trees, so that each gets a result of its own, as the scheduled
+// security scan reports them. -consumer scans only the module in dir, with ./..., and checks no
+// module of the repository: a module outside the repository, such as a throwaway one that
+// requires the latest release of the SDK and imports its packages, the way an application
+// resolves it. With either, the accept entries are not checked for staleness, since an entry may
+// accept a vulnerability of a tree the run does not scan. -findings writes each vulnerability to
+// the file as a JSON line in the format secreport (tools/cmd/secreport) reads, with no severity,
+// since the Go vulnerability database has none. The fix of an accepted vulnerability is "accepted
+// until <last day>: <reason>".
 //
 // govulncheck itself fails only on vulnerable code that is called, and with -format json it exits 0
 // whatever it finds. vulnscan also fails on a vulnerable module that is required or imported but
@@ -145,6 +159,12 @@ type options struct {
 	skipped    map[string]string
 	treesFile  string
 	acceptFile string
+	// partial says which tree a run of one tree scans; it is empty when the run scans all three.
+	partial string
+	// consumer is set when the run scans a module outside the repository.
+	consumer bool
+	// findings is the file to write the findings to, when it is set.
+	findings string
 }
 
 // run parses the command line, scans every tree and prints the report. A command line or file it
@@ -161,11 +181,21 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, sys syste
 		today: time.Date(year, month, day, 0, 0, 0, 0, time.UTC),
 		vulns: map[vulnKey]*vuln{},
 	}
-	r.checkModules(ctx, sys.command)
+	if !opts.consumer {
+		r.checkModules(ctx, sys.command)
+	}
 	for _, t := range opts.trees {
 		r.scan(ctx, sys.command, t)
 	}
-	return r.print(stdout)
+	code := r.print(stdout)
+	if opts.findings != "" {
+		if err := r.writeFindings(opts.findings); err != nil {
+			fmt.Fprintf(stdout, "vulnscan: DID NOT RUN: writing the findings: %v\n"+
+				"vulnscan: DID NOT RUN\n", err)
+			return exitDidNotRun
+		}
+	}
+	return code
 }
 
 func parseArgs(args []string, stderr io.Writer) (options, error) {
@@ -179,49 +209,75 @@ func parseArgs(args []string, stderr io.Writer) (options, error) {
 		"the accept `file`")
 	treesFile := flags.String("trees", filepath.Join(".github", "vulnscan-trees.txt"),
 		"the `file` that lists the modules vulnscan does not scan")
+	only := flags.String("only", "", "scan only this `tree`: floor, ceiling or tools")
+	consumer := flags.String("consumer", "",
+		"scan only the module in this `directory`, which is outside the repository")
+	findings := flags.String("findings", "", "write the findings to this `file` as JSON lines")
 	if err := flags.Parse(args); err != nil {
 		return options{}, err
 	}
 	if flags.NArg() > 0 {
 		return options{}, fmt.Errorf("unexpected arguments %q", flags.Args())
 	}
-	if *ceiling == "" {
-		return options{}, errors.New("-ceiling is missing: name the copy of the root in which " +
-			"go get -u -t ./... and go mod tidy moved every dependency to its newest version")
+	trees := []tree{
+		{name: "floor", dir: ".", patterns: []string{"./..."}},
+		{name: "ceiling", dir: *ceiling, patterns: []string{"./..."}},
+		{name: "tools", dir: "tools", patterns: []string{"./...", "tool"}},
 	}
-	info, err := os.Stat(filepath.Join(*ceiling, "go.mod"))
-	if err != nil || !info.Mode().IsRegular() {
-		return options{}, fmt.Errorf("-ceiling %s has no go.mod", *ceiling)
+	opts := options{findings: *findings}
+	switch {
+	case *consumer != "" && (*only != "" || *ceiling != ""):
+		return options{}, errors.New("-consumer scans one module; drop -only and -ceiling")
+	case *consumer != "":
+		trees = []tree{{name: "consumer", dir: *consumer, patterns: []string{"./..."}}}
+		opts.consumer = true
+		opts.partial = "only the consumer module was scanned"
+	case *only == "":
+	case *only != "floor" && *only != "ceiling" && *only != "tools":
+		return options{}, fmt.Errorf("-only %q is not floor, ceiling or tools", *only)
+	default:
+		index := slices.IndexFunc(trees, func(t tree) bool { return t.name == *only })
+		trees = trees[index : index+1]
+		opts.partial = "only the " + *only + " tree was scanned"
+	}
+	for _, t := range trees {
+		info, err := os.Stat(filepath.Join(t.dir, "go.mod"))
+		switch {
+		case t.name == "ceiling" && *ceiling == "":
+			return options{}, errors.New("-ceiling is missing: name the copy of the root in " +
+				"which go get -u -t ./... and go mod tidy moved every dependency to its newest " +
+				"version")
+		case t.name == "ceiling" && (err != nil || !info.Mode().IsRegular()):
+			return options{}, fmt.Errorf("-ceiling %s has no go.mod", *ceiling)
+		case t.name == "consumer" && (err != nil || !info.Mode().IsRegular()):
+			return options{}, fmt.Errorf("-consumer %s has no go.mod", *consumer)
+		}
+	}
+	if *ceiling != "" && !slices.ContainsFunc(trees, func(t tree) bool {
+		return t.name == "ceiling"
+	}) {
+		return options{}, fmt.Errorf("-ceiling is set, but -only %s does not scan it", *only)
 	}
 	binary, err := filepath.Abs(*govulncheck)
 	if err != nil {
 		return options{}, err
 	}
-	if info, err = os.Stat(binary); err != nil || !info.Mode().IsRegular() {
+	if info, statErr := os.Stat(binary); statErr != nil || !info.Mode().IsRegular() {
 		return options{}, fmt.Errorf("govulncheck %s is missing; build it with "+
 			"go -C tools build -o ../bin/govulncheck golang.org/x/vuln/cmd/govulncheck",
 			*govulncheck)
 	}
-	accepted, err := readAcceptFile(*acceptFile)
-	if err != nil {
+	if opts.accepted, err = readAcceptFile(*acceptFile); err != nil {
 		return options{}, err
 	}
-	skipped, err := readTreesFile(*treesFile)
-	if err != nil {
-		return options{}, err
+	if !opts.consumer {
+		if opts.skipped, err = readTreesFile(*treesFile); err != nil {
+			return options{}, err
+		}
 	}
-	return options{
-		govulncheck: binary,
-		trees: []tree{
-			{name: "floor", dir: ".", patterns: []string{"./..."}},
-			{name: "ceiling", dir: *ceiling, patterns: []string{"./..."}},
-			{name: "tools", dir: "tools", patterns: []string{"./...", "tool"}},
-		},
-		accepted:   accepted,
-		skipped:    skipped,
-		treesFile:  *treesFile,
-		acceptFile: *acceptFile,
-	}, nil
+	opts.govulncheck, opts.trees = binary, trees
+	opts.treesFile, opts.acceptFile = *treesFile, *acceptFile
+	return opts, nil
 }
 
 // acceptEntry is one line of the accept file.
@@ -351,6 +407,9 @@ type vuln struct {
 	// found lists the trees that report the vulnerability, each with the module's version there
 	// and the version that fixes it, which can differ: Go 1.26 and Go 1.27 get separate fixes.
 	found []string
+	// versions and fixes are the module's versions and the versions that fix it, without
+	// duplicates, for the findings file.
+	versions, fixes []string
 }
 
 // message is one object of govulncheck's -format json output, a stream of objects that each have
@@ -613,7 +672,9 @@ func (r *report) add(t tree, f finding, summary string) {
 	fixed := "no fixed version"
 	if f.FixedVersion != "" {
 		fixed = "fixed in " + version(top.Module, f.FixedVersion)
+		v.fixes = appendNew(v.fixes, version(top.Module, f.FixedVersion))
 	}
+	v.versions = appendNew(v.versions, version(top.Module, top.Version))
 	where := strings.TrimSpace(t.name+" "+version(top.Module, top.Version)) + ", " + fixed
 	if !slices.Contains(v.found, where) {
 		v.found = append(v.found, where)
@@ -657,9 +718,9 @@ func (r *report) print(w io.Writer) int {
 		}
 	}
 
-	// An entry is stale only when every scan completed: a scan that did not may have missed the
-	// vulnerability it accepts.
-	allScanned := r.scanned == len(r.opts.trees)
+	// An entry is stale only when every scan of every tree completed: a scan that did not, or a
+	// tree that was not scanned, may hold the vulnerability it accepts.
+	allScanned := r.scanned == len(r.opts.trees) && r.opts.partial == ""
 	expired, stale := 0, 0
 	for _, e := range r.opts.accepted {
 		_, reported := r.vulns[vulnKey{id: e.id, module: e.module}]
@@ -675,7 +736,12 @@ func (r *report) print(w io.Writer) int {
 				"remove it from %s\n", e.id, e.module, r.opts.acceptFile)
 		}
 	}
-	if !allScanned && len(r.opts.accepted) > 0 {
+	switch {
+	case allScanned || len(r.opts.accepted) == 0:
+	case r.opts.partial != "":
+		fmt.Fprintf(&out, "\nvulnscan: accept entries not checked for staleness: %s\n",
+			r.opts.partial)
+	default:
 		out.WriteString("\nvulnscan: accept entries not checked for staleness: not every scan " +
 			"completed\n")
 	}
@@ -700,17 +766,63 @@ func (r *report) print(w io.Writer) int {
 	return code
 }
 
-// printVuln writes one vulnerability and reports whether it is accepted.
-func (r *report) printVuln(out io.Writer, v *vuln) bool {
-	var entry acceptEntry
-	listed := false
+// appendNew appends s to list unless s is empty or in the list already.
+func appendNew(list []string, s string) []string {
+	if s == "" || slices.Contains(list, s) {
+		return list
+	}
+	return append(list, s)
+}
+
+// findingLine is one line of the findings file, in the format secreport reads.
+type findingLine struct {
+	ID      string `json:"id"`
+	Package string `json:"package"`
+	Version string `json:"version"`
+	Fix     string `json:"fix"`
+	URL     string `json:"url"`
+}
+
+// writeFindings writes every vulnerability the scans found to the file, one JSON line each.
+func (r *report) writeFindings(name string) error {
+	keys := slices.SortedFunc(maps.Keys(r.vulns), func(a, b vulnKey) int {
+		return strings.Compare(a.id+" "+a.module, b.id+" "+b.module)
+	})
+	var b bytes.Buffer
+	encoder := json.NewEncoder(&b)
+	for _, k := range keys {
+		v := r.vulns[k]
+		fix := strings.Join(v.fixes, ", ")
+		if entry, _, accepted := r.acceptedBy(v); accepted {
+			fix = "accepted until " + entry.expiry.Format(time.DateOnly) + ": " + entry.reason
+		}
+		err := encoder.Encode(findingLine{
+			ID: v.id, Package: v.module, Version: strings.Join(v.versions, ", "),
+			Fix: fix, URL: "https://pkg.go.dev/vuln/" + v.id,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return os.WriteFile(name, b.Bytes(), 0o600)
+}
+
+// acceptedBy returns the accept entry that lists the vulnerability, whether there is one, and
+// whether it accepts the vulnerability: the entry has not expired, and the code is not called.
+func (r *report) acceptedBy(v *vuln) (entry acceptEntry, listed, accepted bool) {
 	for _, e := range r.opts.accepted {
 		if e.id == v.id && e.module == v.module {
 			entry, listed = e, true
 		}
 	}
+	accepted = listed && !r.today.After(entry.expiry) && v.level != levelCalled
+	return entry, listed, accepted
+}
+
+// printVuln writes one vulnerability and reports whether it is accepted.
+func (r *report) printVuln(out io.Writer, v *vuln) bool {
+	entry, listed, isAccepted := r.acceptedBy(v)
 	expired := listed && r.today.After(entry.expiry)
-	isAccepted := listed && !expired && v.level != levelCalled
 	verdict := "FAIL, " + v.level.String() + ", not accepted"
 	switch {
 	case v.module == stdlib:

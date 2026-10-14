@@ -2,6 +2,7 @@ package scripts
 
 import (
 	"encoding/json"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,6 +94,10 @@ func TestTrivy(t *testing.T) {
 		args          []string
 		wantExit      int
 		wantStdout    []string
+		// findings passes a findings file, whose lines must be wantFindings; findingsDir
+		// passes a directory instead.
+		findings, findingsDir bool
+		wantFindings          []string
 	}{
 		{
 			name: "Results null and no requirements", gomod: noRequires,
@@ -191,6 +196,77 @@ func TestTrivy(t *testing.T) {
 					"    golang.org/x/net v0.23.0\n\n",
 				"with a fixed version: 7, other vulnerabilities: 11 (block)\ntrivy: FAIL\n",
 			},
+		},
+		{
+			name: "findings of every severity", policy: "report", gomod: xnet,
+			report: trivyReport(t, "trivy-xnet.json", firstVuln(func(v map[string]any) {
+				v["PrimaryURL"] = "http://avd.aquasec.com/nvd/cve-2024-45338"
+			})),
+			findings: true, wantExit: 0,
+			wantStdout: []string{"(report)\ntrivy: PASS\n"},
+			wantFindings: []string{
+				`{"id":"CVE-2024-45338","package":"golang.org/x/net","version":"v0.23.0",` +
+					`"fix":"0.33.0","severity":"high","url":""}`,
+				`{"id":"CVE-2025-22870","package":"golang.org/x/net","version":"v0.23.0",` +
+					`"fix":"0.36.0","severity":"medium",` +
+					`"url":"https://avd.aquasec.com/nvd/cve-2025-22870"}`,
+				`{"id":"CVE-2026-78659","package":"golang.org/x/net","version":"v0.23.0",` +
+					`"fix":"0.60.0","severity":"",` +
+					`"url":"https://avd.aquasec.com/nvd/cve-2026-78659"}`,
+			},
+		},
+		{
+			// Values that secreport would reject are cut or dropped, so that no finding is lost.
+			name: "findings with values longer than secreport accepts", policy: "report",
+			gomod: xnet,
+			report: trivyReport(t, "trivy-xnet.json", func(report map[string]any) {
+				results, _ := report["Results"].([]any)
+				result, _ := results[0].(map[string]any)
+				vulns, _ := result["Vulnerabilities"].([]any)
+				for i, change := range []map[string]any{
+					{
+						"PrimaryURL": "https://x.test/" + strings.Repeat("u", 286),
+						"PkgName":    strings.Repeat("p", 250), "InstalledVersion": "v0.23.0\t",
+					},
+					{"PrimaryURL": "https://x.test/a)b"},
+					{"PrimaryURL": "https://x.test/" + strings.Repeat("u", 285)},
+				} {
+					v, _ := vulns[i].(map[string]any)
+					maps.Copy(v, change)
+				}
+			}),
+			findings: true, wantExit: 0,
+			wantFindings: []string{
+				`{"id":"CVE-2024-45338","package":"` + strings.Repeat("p", 197) + `...",` +
+					`"version":"v0.23.0 ","fix":"0.33.0","severity":"high","url":""}`,
+				`{"id":"CVE-2026-25681","package":"golang.org/x/net","version":"v0.23.0",` +
+					`"fix":"0.55.0","severity":"high","url":""}`,
+				`{"id":"CVE-2026-27136","package":"golang.org/x/net","version":"v0.23.0",` +
+					`"fix":"0.55.0","severity":"high","url":"https://x.test/` +
+					strings.Repeat("u", 285) + `"}`,
+			},
+		},
+		{
+			name: "findings that block", gomod: oneRequire,
+			report: trivyReport(t, "trivy-oauth2.json", firstVuln(func(v map[string]any) {
+				delete(v, "PrimaryURL")
+				delete(v, "InstalledVersion")
+			})),
+			findings: true, wantExit: 1,
+			wantFindings: []string{
+				`{"id":"CVE-2025-22868","package":"golang.org/x/oauth2","version":"",` +
+					`"fix":"0.27.0","severity":"high","url":""}`,
+			},
+		},
+		{
+			name: "no findings", gomod: noRequires, findings: true,
+			report: trivyReport(t, "trivy-root.json", nil), wantExit: 0,
+			wantFindings: []string{},
+		},
+		{
+			name: "a findings file that cannot be written", gomod: noRequires, findingsDir: true,
+			report: trivyReport(t, "trivy-root.json", nil), wantExit: 2,
+			wantStdout: []string{"trivy: writing the findings to FINDINGS failed\n" + didNotRun},
 		},
 		{
 			name: "fewer packages than requirements",
@@ -305,7 +381,13 @@ func TestTrivy(t *testing.T) {
 		},
 		{
 			name: "no arguments", args: []string{}, wantExit: 2,
-			wantStdout: []string{"trivy: usage: trivy.sh <block|report> <module directory>\n"},
+			wantStdout: []string{
+				"trivy: usage: trivy.sh <block|report> <module directory> [<findings file>]\n",
+			},
+		},
+		{
+			name: "four arguments", args: []string{"block", ".", "f", "g"}, wantExit: 2,
+			wantStdout: []string{"trivy: usage: trivy.sh <block|report> <module directory> "},
 		},
 	}
 	// Every repository links bin/trivy to one stub, since some systems check each new executable
@@ -351,8 +433,15 @@ func TestTrivy(t *testing.T) {
 				policy = tt.policy
 			}
 			args := []string{policy, module}
-			if tt.args != nil {
+			findings := filepath.Join(work, "findings.jsonl")
+			switch {
+			case tt.args != nil:
 				args = tt.args
+			case tt.findings:
+				args = append(args, findings)
+			case tt.findingsDir:
+				findings = t.TempDir()
+				args = append(args, findings)
 			}
 			env := []string{
 				"STUB_LOG=" + logFile, "STUB_REPORT=" + reportFile, "STUB_EXIT=" + code,
@@ -363,6 +452,9 @@ func TestTrivy(t *testing.T) {
 				args...)
 
 			stdout := strings.ReplaceAll(got.stdout, module, "MODULE")
+			if tt.findingsDir {
+				stdout = strings.ReplaceAll(stdout, findings, "FINDINGS")
+			}
 			if got.exit != tt.wantExit {
 				t.Errorf("exit = %d, want %d; stdout:\n%s\nstderr:\n%s", got.exit, tt.wantExit,
 					stdout, got.stderr)
@@ -379,6 +471,9 @@ func TestTrivy(t *testing.T) {
 			}
 			if tt.wantExit != 2 || strings.Contains(stdout, "packages:") {
 				checkTrivyCall(t, logFile, module, root)
+			}
+			if tt.findings {
+				checkFindings(t, findings, tt.wantFindings)
 			}
 		})
 	}
@@ -417,6 +512,25 @@ func TestTrivy(t *testing.T) {
 				want)
 		}
 	})
+}
+
+// checkFindings checks that the findings file holds a line for each vulnerability and every line
+// of want.
+func checkFindings(t *testing.T, path string, want []string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSuffix(string(data), "\n"), "\n")
+	if len(want) == 0 && len(data) != 0 {
+		t.Errorf("the findings file holds %q, want nothing", data)
+	}
+	for _, line := range want {
+		if !slices.Contains(lines, line) {
+			t.Errorf("the findings file does not hold\n%s\nit holds:\n%s", line, data)
+		}
+	}
 }
 
 // checkTrivyCall checks that the stub ran once, in an empty directory outside the repository and

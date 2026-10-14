@@ -131,6 +131,10 @@ github.com/permitio/permit-golang/v2/tools/scripts TestGitleaksRange
 github.com/permitio/permit-golang/v2/tools/scripts TestGitleaksRangeScans
 
 github.com/permitio/permit-golang/v2/tools/internal/execfile TestWriteFileWhileProcessesStart
+github.com/permitio/permit-golang/v2/tools/internal/execfile TestWriteFile
+github.com/permitio/permit-golang/v2/tools/internal/execfile TestWriteFileHoldsTheLockWhileTheFileIsOpen
+github.com/permitio/permit-golang/v2/tools/internal/execfile TestWriteFileSharesTheLock
+github.com/permitio/permit-golang/v2/tools/internal/execfile TestWriteFileWaitsWhileAProcessStarts
 
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckModules
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckUntrackedModules
@@ -230,3 +234,26 @@ github.com/permitio/permit-golang/v2/internal/testkit/mockpermit TestExpectBytes
 github.com/permitio/permit-golang/v2/internal/testkit/mockpermit TestExpectBytesReportsAMissingFile
 
 github.com/permitio/permit-golang/v2/internal/testkit/mockpermit/exampletest Example
+
+github.com/permitio/permit-golang/v2/tools/cmd/notify TestPost
+github.com/permitio/permit-golang/v2/tools/cmd/notify TestPostWithABody
+github.com/permitio/permit-golang/v2/tools/cmd/notify TestFitText
+github.com/permitio/permit-golang/v2/tools/cmd/notify TestNotDelivered
+github.com/permitio/permit-golang/v2/tools/cmd/notify TestRedacter
+github.com/permitio/permit-golang/v2/tools/cmd/notify TestMissingWebhook
+github.com/permitio/permit-golang/v2/tools/cmd/notify TestBadArgs
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestStandardReport
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestStandardMerge
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestStandardFilesThatAreNotValid
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestStandardTextAtTheLimit
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestStandardArgs
+github.com/permitio/permit-golang/v2/tools/cmd/secreport TestSlackReportThatCannotBeWritten
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestOnlyOneTree
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestConsumer
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestFindingsFile
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestPartialArgs
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckJobAfterCI
+github.com/permitio/permit-golang/v2/tools/scripts TestSecurityScan
+github.com/permitio/permit-golang/v2/tools/scripts TestSecurityScanHistoryDigests
+github.com/permitio/permit-golang/v2/tools/scripts TestSecurityScanGitleaksRules
+github.com/permitio/permit-golang/v2/tools/scripts TestDigest

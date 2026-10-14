@@ -418,8 +418,9 @@ jobs:
         run: .github/scripts/prek-count.sh --upstream
 
   # Weekly, mutation tests of every Go file of both modules, with the limits of the mutation job
-  # and no threshold or budget: it reports the efficacy in the job summary and fails only when
-  # the run does not complete.
+  # and no threshold or budget: it reports the efficacy in the job summary, posts each module's
+  # efficacy and count of mutants that lived to the ops channel, and fails only when the run does
+  # not complete or its result cannot be posted.
   mutation-weekly:
     name: mutation (weekly)
     if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
@@ -444,6 +445,7 @@ jobs:
           trap 'echo "::$token::"' EXIT
           .github/scripts/fetch-tool.sh gremlins
       - name: Run the mutation tests on every Go file
+        id: mutation
         run: |
           token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
           echo "::stop-commands::$token"
@@ -454,15 +456,117 @@ jobs:
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
           "$RUNNER_TEMP/mutationgate" -all -threshold 0 -skip '^(TestLive|TestRepository)' \
             -gremlins bin/gremlins -workers 2 -timeout-coefficient 5 -cap 3m -memory-mib 4096 \
-            -summary "$GITHUB_STEP_SUMMARY" . tools
+            -summary "$GITHUB_STEP_SUMMARY" . tools | tee "$RUNNER_TEMP/mutation.txt"
+      # notify posts one line to the ops channel, SLACK_WEBHOOK_URL: each module's efficacy and
+      # count of mutants that lived, or that the run did not complete; without the webhook it
+      # warns and posts nothing. mutationgate prints "### Mutation tests: `<dir>` (<module>)" for
+      # each module, then "**<verdict>**: The tests detected <D> of the <N> mutants that ran:
+      # <efficacy>%, ...". The step fails when it finds no efficacy.
+      - name: Post the result
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          OUTCOME: ${{ steps.mutation.outcome }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          result="DID NOT RUN"
+          details="the mutation tests did not complete ($OUTCOME)"
+          if [[ $OUTCOME == success ]]; then
+            efficacy=$(awk '/^### Mutation tests: / {
+                module = $4; gsub(/`/, "", module); if (module == ".") module = "the root module"
+              }
+              /^\*\*(PASS|FAIL)\*\*: The tests detected [0-9]+ of the [0-9]+ mutants/ {
+                percent = $12; sub(/,$/, "", percent)
+                line = line (line == "" ? "" : "; ") module " " percent ", " ($8 - $5) " lived"
+              }
+              END { print line }' "$RUNNER_TEMP/mutation.txt")
+            result=PASS
+            details="efficacy and mutants that lived: $efficacy"
+            if [[ -z $efficacy ]]; then
+              result="DID NOT RUN"
+              details="mutationgate printed no efficacy; the job summary has its report"
+            fi
+          fi
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" \
+            -check "mutation (weekly)" -result "$result" -details "$details" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          [[ $result == PASS ]]
+
+  # Twice a week (SECURITY_CRON) and in the security mode: .github/scripts/security-scan.sh scans
+  # master's floor, ceiling and tools/, the SDK's latest release as an application resolves it,
+  # the open Dependabot alerts and the full history, writes the report to the job summary and
+  # posts it to SECURITY_SLACK_WEBHOOK_URL. Findings are reported and pass; a source that did not
+  # complete fails the job, and so does a secret that TruffleHog verified. TruffleHog runs only in
+  # a manual run. The job runs in the security-scan environment, which deploys only from master
+  # and holds DEPENDABOT_ALERTS_TOKEN, a token that can read the alerts, which the GITHUB_TOKEN
+  # cannot; the job's own token only checks out the repository. Only the step that runs the
+  # script gets the secrets, and the script passes each to the one command that needs it.
+  security-scan:
+    name: security-scan
+    if: (!inputs.mode && github.event.schedule == '23 4 * * 1,4') || inputs.mode == 'security'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: security-scan
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Scan and report
+        env:
+          TRUFFLEHOG: ${{ github.event_name == 'workflow_dispatch' && 'run' || 'skip' }}
+          DEPENDABOT_ALERTS_TOKEN: ${{ secrets.DEPENDABOT_ALERTS_TOKEN }}
+          GITLEAKS_HISTORY_ACCEPT_SHA256: ${{ secrets.GITLEAKS_HISTORY_ACCEPT_SHA256 }}
+          SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
+        run: .github/scripts/security-scan.sh --trufflehog "$TRUFFLEHOG"
+
+  # Weekly: .github/scripts/digest.sh posts the security digest to SECURITY_SLACK_WEBHOOK_URL,
+  # even when nothing needs attention: the open Dependabot pull requests, the accepted
+  # vulnerabilities whose last day is near, the last security scan, and newer Go and release
+  # binary versions that are at least 7 days old. The job's token reads the pull requests and the
+  # runs.
+  digest:
+    name: digest
+    if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read  # the open Dependabot pull requests
+      actions: read  # the runs of CI, for the last security scan
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Write and post the digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
+        run: .github/scripts/digest.sh
 
   # The one check to require. It runs whatever happened to the jobs it needs, since GitHub counts
   # a skipped required check as passing. ci-aggregate.sh says how it decides; in short, each job
   # must succeed in the runs that select it: the pull request checks on pull_request, push and
   # the pr and release modes, and each job in SCHEDULED_JOBS (job:mode) on its cron or mode only.
   # PULL_REQUEST_JOBS run on pull requests only, and a job in ADVISORY_JOBS may fail. cicheck
-  # fails when needs leaves out a job, EXPECTED_JOBS is not the number of jobs in needs, or a
-  # job's if: is not the one its list calls for.
+  # fails when needs leaves out a job other than notify-gate-failure, which runs after CI,
+  # EXPECTED_JOBS is not the number of jobs in needs, or a job's if: is not the one its list calls
+  # for.
   ci:
     name: CI
     if: always()
@@ -476,6 +580,8 @@ jobs:
       - dependency-review
       - prek-upstream
       - mutation-weekly
+      - security-scan
+      - digest
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -490,8 +596,47 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 9
+          EXPECTED_JOBS: 11
           PULL_REQUEST_JOBS: mutation dependency-review
-          SCHEDULED_JOBS: prek-upstream:weekly mutation-weekly:weekly
+          SCHEDULED_JOBS: >-
+            prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly
           ADVISORY_JOBS: ""
         run: .github/scripts/ci-aggregate.sh
+
+  # After CI, when CI failed on a push to master or in a release: posts one line to the ops
+  # channel, SLACK_WEBHOOK_URL, that names the check and links the run. A pull request, a
+  # scheduled run and a manual run post nothing here; each scheduled job posts its own result, and
+  # a failed scheduled run is red in Actions. This job needs CI, so CI does not need it, and a
+  # pull request never runs it or reads its secret.
+  notify-gate-failure:
+    name: notify-gate-failure
+    needs: ci
+    if: >-
+      failure() && ((!inputs.mode && github.event_name == 'push') ||
+      inputs.mode == 'release')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Post the failure
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          MODE: ${{ inputs.mode || github.event_name }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" -check CI -result FAIL \
+            -details "a job that CI needs did not succeed in a $MODE run of $GITHUB_REF_NAME" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

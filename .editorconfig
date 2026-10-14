@@ -22,6 +22,7 @@ indent_size = 2
 indent_style = space
 indent_size = 2
 
-# API spec snapshots, test fixtures and the release binary lock have lines that cannot be wrapped.
-[{testdata/**,**/testdata/**,tools/specs/**,tools/binaries.lock}]
+# API spec snapshots, test fixtures, the release binary lock and the list of required tests have
+# lines that cannot be wrapped.
+[{testdata/**,**/testdata/**,tools/specs/**,tools/binaries.lock,.github/required-tests.txt}]
 max_line_length = off

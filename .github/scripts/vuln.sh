@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# vuln.sh scans the SDK and the tools module for known vulnerabilities, then reports the result
-# and decides it with secreport (tools/cmd/secreport). The vuln job in .github/workflows/ci.yml
-# runs it, and it runs the same way on any clone. It needs the network: it downloads Trivy, the
-# vulnerability databases and, for the ceiling, the newest version of every dependency.
+# vuln.sh [--prepare <directory>] scans the SDK and the tools module for known vulnerabilities,
+# then reports the result and decides it with secreport (tools/cmd/secreport). The vuln job in
+# .github/workflows/ci.yml runs it, and it runs the same way on any clone. It needs the network:
+# it downloads Trivy, the vulnerability databases and, for the ceiling, the newest version of
+# every dependency.
+#
+# With --prepare, it only builds the programs, installs Trivy and prepares the ceiling in the
+# directory, which must not exist, then exits 0 without scanning; .github/scripts/security-scan.sh
+# prepares its scans of the same trees this way.
 #
 # It builds bin/govulncheck (the version tools/go.mod pins), bin/vulnscan and bin/secreport,
 # installs bin/trivy with fetch-tool.sh, and copies the repository without .git and bin/ to a
@@ -26,8 +31,9 @@
 #   PR_HEAD_REPO                                            its head repository's owner/name
 #
 # Exit codes are secreport's: 0 when every scan passed, 1 when a scan failed and every scan ran,
-# 2 when a scan did not run or the report could not be written. vuln.sh exits 2 itself when it was
-# given arguments, or could not build the programs, install Trivy or prepare the ceiling.
+# 2 when a scan did not run or the report could not be written. vuln.sh exits 2 itself when its
+# arguments are wrong, or it could not build the programs, install Trivy or prepare the ceiling;
+# with --prepare, it exits 0 once it prepared them.
 set -euo pipefail
 
 token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
@@ -40,7 +46,12 @@ fail() {
   exit 2
 }
 
-[[ $# -eq 0 ]] || fail "usage: vuln.sh (it takes no arguments)"
+prepare=''
+if [[ $# -eq 2 && $1 == --prepare && -n $2 ]]; then
+  prepare=$2
+elif [[ $# -ne 0 ]]; then
+  fail "usage: vuln.sh [--prepare <directory>]"
+fi
 root=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 cd -- "$root"
 gh_token=${GH_TOKEN:-}
@@ -57,12 +68,16 @@ go -C tools build -o "$root/bin/secreport" ./cmd/secreport || fail "building sec
   fail "installing Trivy with .github/scripts/fetch-tool.sh failed"
 
 echo "vuln: preparing the ceiling: the root module with every dependency at its newest version"
-ceiling=$work/ceiling
-mkdir "$ceiling"
+ceiling=${prepare:-$work/ceiling}
+mkdir -- "$ceiling" || fail "creating the ceiling's directory $ceiling failed"
 tar -C "$root" --exclude ./.git --exclude ./bin -cf - . | tar -C "$ceiling" -xf - ||
   fail "copying the repository to the ceiling failed"
 (cd -- "$ceiling" && go get -u -t ./... && go mod tidy) ||
   fail "moving the dependencies of the ceiling to their newest versions failed"
+if [[ -n $prepare ]]; then
+  echo "vuln: prepared the programs, Trivy and the ceiling in $ceiling"
+  exit 0
+fi
 
 results=$work/results
 mkdir "$results"

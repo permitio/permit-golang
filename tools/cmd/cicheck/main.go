@@ -15,9 +15,13 @@
 // line:
 //
 //   - One workflow has a job with the id ci and the name CI, the check the ruleset requires. Its
-//     if: is always(), its needs lists every other job of that workflow, and a step's env sets
-//     EXPECTED_JOBS to the number of jobs it needs. PULL_REQUEST_JOBS and ADVISORY_JOBS name
-//     only jobs CI needs, as does SCHEDULED_JOBS, whose entries are job:mode.
+//     if: is always(), its needs lists every other job of that workflow but the jobs that need
+//     CI, and a step's env sets EXPECTED_JOBS to the number of jobs it needs. PULL_REQUEST_JOBS
+//     and ADVISORY_JOBS name only jobs CI needs, as does SCHEDULED_JOBS, whose entries are
+//     job:mode.
+//   - A job that needs CI runs after it, to post a notice when CI failed on a push or in a
+//     release: its if: is failure() && ((!inputs.mode && github.event_name == 'push') ||
+//     inputs.mode == 'release'), and CI does not need it.
 //   - A job in SCHEDULED_JOBS runs on exactly one cron and one mode: its if: is
 //     (!inputs.mode && github.event.schedule == '<cron>') || inputs.mode == '<mode>', where the
 //     workflow's env declares <cron> as <MODE>_CRON. A called run sees its caller's schedule;
@@ -145,6 +149,10 @@ const (
 		"github.event_name == 'push')) || inputs.mode == 'pr' || inputs.mode == 'release'"
 	// pullRequestIf is the if: of a job in PULL_REQUEST_JOBS, which runs on pull_request only.
 	pullRequestIf = "!inputs.mode && github.event_name == 'pull_request'"
+	// afterCIIf is the if: of a job that needs CI: it runs when CI failed on a push or in a
+	// release. A scheduled job posts its own result.
+	afterCIIf = "failure() && ((!inputs.mode && github.event_name == 'push') || " +
+		"inputs.mode == 'release')"
 	// stopLines lists, for messages, the three lines that start a run: that stops workflow
 	// commands.
 	stopLines = `token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n'), ` +
@@ -983,10 +991,17 @@ func (c *checker) checkHeredoc(path string, line int, text string) {
 func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 	var ci pair
 	byID := map[string]*yaml.Node{}
+	// after holds the jobs that need CI, which run after it.
+	after := map[string]bool{}
 	for _, job := range jobs {
 		byID[job.key] = job.value
 		if job.key == ciJob {
 			ci = job
+		}
+		for _, need := range items(field(job.value, "needs")) {
+			if need.Value == ciJob && job.key != ciJob {
+				after[job.key] = true
+			}
 		}
 	}
 	if name, _ := scalar(field(ci.value, "name")); name != ciName {
@@ -1006,11 +1021,14 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 		case byID[need.Value] == nil || need.Value == ciJob:
 			c.add(w.path, need.Line, "CI's needs lists %s, which is not another job of this "+
 				"workflow", need.Value)
+		case after[need.Value]:
+			c.add(w.path, need.Line, "CI's needs lists %s, which needs CI; a job that runs "+
+				"after CI cannot be one CI waits for", need.Value)
 		}
 		needs[need.Value] = true
 	}
 	for _, job := range jobs {
-		if job.key != ciJob && !needs[job.key] {
+		if job.key != ciJob && !needs[job.key] && !after[job.key] {
 			c.add(w.path, job.line, "CI's needs does not list job %s, so CI would pass "+
 				"whatever it does", job.key)
 		}
@@ -1041,7 +1059,14 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 		}
 	}
 	for _, job := range jobs {
-		if job.key != ciJob && !scheduled[job.key] {
+		switch {
+		case job.key == ciJob || scheduled[job.key]:
+		case after[job.key]:
+			if cond, _ := scalar(field(job.value, "if")); expression(cond) != afterCIIf {
+				c.add(w.path, job.line, "job %s needs CI, so it runs after CI to report a "+
+					"failure, and its if: must be %s", job.key, afterCIIf)
+			}
+		default:
 			c.checkGateIf(w.path, job, pullRequest[job.key])
 		}
 	}

@@ -680,6 +680,13 @@ func TestGitleaksRangeScans(t *testing.T) {
 	if err = os.WriteFile(allowFile, []byte(allowAll), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	// prettyConfig is a user's git configuration that changes the format of git log, which
+	// gitleaks reads.
+	prettyConfig := filepath.Join(t.TempDir(), "gitconfig")
+	err = os.WriteFile(prettyConfig, []byte("[format]\n\tpretty = oneline\n"), 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
 	finding := func(file string, line int, commit string) string {
 		return fmt.Sprintf("%s:%d: permit-api-key (Permit API key), commit %s\n", file, line,
 			commit[:12])
@@ -790,6 +797,14 @@ func TestGitleaksRangeScans(t *testing.T) {
 				}, "Add a build of an example")
 				return []string{finding("example", 2, added)}
 			},
+		},
+		{
+			name: "a user git configuration that sets the format of git log",
+			commit: func(t *testing.T, root string) []string {
+				t.Helper()
+				return []string{finding("key.go", 1, commitFiles(t, root, keyFile, "Add a key"))}
+			},
+			env: []string{"GIT_CONFIG_GLOBAL=" + prettyConfig},
 		},
 		{
 			name: "a key added while resolving a merge",

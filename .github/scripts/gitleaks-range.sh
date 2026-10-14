@@ -21,6 +21,9 @@
 #   - --ignore-gitleaks-allow reports a secret on a line with a gitleaks:allow comment, and
 #     --diff-merges=first-parent scans what a merge commit changes, so a secret added while
 #     resolving a merge is found.
+#   - gitleaks reads the output of git log, which runs with GIT_CONFIG_GLOBAL=/dev/null and
+#     GIT_CONFIG_NOSYSTEM=1, so no user or system git configuration, such as a format.pretty
+#     that changes how git log prints a commit, keeps it from reading a finding's commit.
 #
 # A change to the scan itself, such as to this script, ci.yml or tools/binaries.lock, shows in the
 # diff of the commits. The default rules come with gitleaks' default allowlist of paths, which
@@ -175,7 +178,8 @@ TOML
 # gitleaks exits 1 on a fatal error too, so a finding gets an exit code of its own.
 leak_exit=10
 code=0
-(cd -- "$work/empty" && "$bin" git --no-banner --redact --exit-code "$leak_exit" \
+(cd -- "$work/empty" && GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
+  "$bin" git --no-banner --redact --exit-code "$leak_exit" \
   --config "$work/config.toml" --gitleaks-ignore-path "$work/ignore" --ignore-gitleaks-allow \
   --report-format json --report-path "$work/report.json" \
   "--log-opts=--text --diff-merges=first-parent $range" "$git_dir") >"$work/log" 2>&1 || code=$?

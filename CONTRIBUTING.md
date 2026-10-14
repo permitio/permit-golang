@@ -1183,6 +1183,27 @@ it cannot decode, and for a request that got no reply.
   example `go test -run '^$' -fuzz '^FuzzError$' -fuzztime 1m .`, and add each input that fails
   to `testdata/fuzz` with the fix.
 
+## Adding a client option
+
+`options.go` holds the options of `permit.New`, each a `With` function that returns an `Option`,
+and it is the one file that reads the environment: forbidigo fails `os.Getenv` and
+`os.LookupEnv` anywhere else. To add an option:
+
+1. Write its `With` function in `options.go`, with a doc comment that gives its default and what
+   it rejects. The option sets a field of `settings`. For an argument that the SDK cannot use, its
+   `apply` returns a `*configError`, so that `New` returns an error that matches
+   `ErrInvalidConfig` and sends no request. The text the option prints must not hold a
+   credential.
+2. Give each check a rule in `internal/validate`: an ID that never changes and a one-line message,
+   in the sorted `rules` list. Rewrite `testdata/validation-rules.txt` with
+   `go test -run TestValidationRules -update .`; diff mode counts a new ID as a breaking change.
+3. Add the option to `optionEffects` in `options_test.go`: the option with a value other than the
+   default, how to read its setting from a `Client`, and the value the option gives it.
+   `TestOptionsHaveEffect` lists the exported `With` functions through `internal/surface` and
+   fails for one without an entry; its count sentinel fails when the two lists differ.
+4. Add each input that the option rejects to `TestInvalidConfiguration`, rewrite the surface
+   snapshot, and add the option to `CHANGELOG.md` and `MIGRATION.md`.
+
 ## Adding or changing an API method
 
 There is no code generator to run: the models in `models/` are written by hand, and a drift test

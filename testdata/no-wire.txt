@@ -3,3 +3,9 @@
 # <Type>.<Method>, such as UsersService.WaitForSync, then a space and the reason it needs no wire
 # case. Blank lines and lines that start with # are ignored. A line without a reason, a line that
 # names no public method and a line that names a method with a wire case fail the test.
+
+Client.Close closes the client's own idle connections; it sends no request
+Client.Format prints the client's settings; it sends no request
+Client.GoString prints the client's settings; it sends no request
+Client.LogValue gives slog the client's settings; it sends no request
+Client.String prints the client's settings; it sends no request

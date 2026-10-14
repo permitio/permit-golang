@@ -516,3 +516,26 @@ github.com/permitio/permit-golang/v2/internal/wire TestSummaryListsTenValidation
 github.com/permitio/permit-golang/v2/internal/wire TestLocation
 
 github.com/permitio/permit-golang/v2/internal/testkit/mockpermit TestExampleServersRunFailsTheRun
+
+github.com/permitio/permit-golang/v2 TestOptionsHaveEffect
+github.com/permitio/permit-golang/v2 TestAPIKeyPrecedence
+github.com/permitio/permit-golang/v2 TestURLPrecedence
+github.com/permitio/permit-golang/v2 TestDefaultTimeout
+github.com/permitio/permit-golang/v2 TestURLNormalization
+github.com/permitio/permit-golang/v2 TestInvalidConfiguration
+github.com/permitio/permit-golang/v2 TestOptionsPrintNoKey
+github.com/permitio/permit-golang/v2 TestPrintingNeverShowsTheKey
+github.com/permitio/permit-golang/v2 TestOwnHTTPClient
+github.com/permitio/permit-golang/v2 TestCallerHTTPClientIsUsedAsIs
+github.com/permitio/permit-golang/v2 TestReplacedDefaultTransport
+github.com/permitio/permit-golang/v2 TestCloseTwiceReturnsNil
+github.com/permitio/permit-golang/v2 TestCallAfterCloseIsClosed
+github.com/permitio/permit-golang/v2 TestCloseIsSafeForConcurrentUse
+github.com/permitio/permit-golang/v2 TestCloseOfNoClient
+github.com/permitio/permit-golang/v2 TestCloseClosesIdleConnections
+github.com/permitio/permit-golang/v2 TestCollectedClientClosesIdleConnections
+github.com/permitio/permit-golang/v2 TestCollectedClientLeavesCallerConnections
+github.com/permitio/permit-golang/v2 TestClientString
+github.com/permitio/permit-golang/v2 TestClientInLogsAndJSON
+github.com/permitio/permit-golang/v2 ExampleNew
+github.com/permitio/permit-golang/v2 ExampleNew_invalidConfiguration

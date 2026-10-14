@@ -5,6 +5,32 @@
 v2 is the module `github.com/permitio/permit-golang/v2`. [MIGRATION.md](MIGRATION.md) lists each
 change from v1 and what to use instead.
 
+### Client
+
+- `permit.New(opts ...permit.Option)` builds a `*permit.Client` from the options `WithAPIKey`,
+  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient` and `WithTimeout`, and returns an error when the
+  configuration is not one the SDK can use.
+- A setting that no option gives comes from the environment variables `PERMIT_API_KEY`,
+  `PERMIT_API_URL` and `PERMIT_PDP_URL`, and else from its default: `https://api.permit.io` for
+  the API, `http://localhost:7766` for the PDP and 30 seconds for the timeout. A variable that is
+  set to the empty string counts as unset. There is no default API key.
+- `New` sends no request. It returns an error that matches `ErrInvalidConfig`, and names the
+  option or the variable, when there is no API key; when an option gives an empty key or URL, a
+  nil `*http.Client` or a timeout of zero or less; when a URL does not use `http` or `https` (in
+  any case), has no host, or has a user name or a password, a query or a fragment; and for the
+  zero `Option`. A path after the host of a URL is kept, and one slash at its end is removed.
+- `WithTimeout` sets the longest that a call may take, across all the requests it sends.
+- Each client has an `*http.Client` of its own, whose transport is a copy of
+  `http.DefaultTransport`: it uses the proxy that the environment names and the default TLS
+  settings, and keeps up to 64 idle connections to each host. `WithHTTPClient` sends the requests
+  through the `*http.Client` given, and changes none of its fields.
+- `Client.Close` closes the idle connections of the client's own `*http.Client`, and not those of
+  one that `WithHTTPClient` gave. It returns nil, also when called again, and a call that starts
+  after it fails with an error that matches `ErrClosed`. A client that is garbage collected
+  without `Close` has the idle connections of its own `*http.Client` closed too.
+- A `Client` and an `Option` print with `[REDACTED]` in place of the API key: `fmt` with every
+  verb, `String`, `GoString` and the `LogValue` that `log/slog` calls.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

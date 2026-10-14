@@ -78,6 +78,33 @@ The Go module proxy keeps every published version, so a build that requires a v1
 working after v2 is released. v1 and v2 are separate modules: an application can require both and
 move one package at a time.
 
+<a id="M-client-1"></a>
+### M-client-1: New reads the configuration from the environment
+
+- v1: a configuration given in code only
+- v2: the environment variables `PERMIT_API_KEY`, `PERMIT_API_URL` and `PERMIT_PDP_URL`
+
+`permit.New` reads the API key from `PERMIT_API_KEY`, the API URL from `PERMIT_API_URL` and the
+PDP URL from `PERMIT_PDP_URL` when no option gives them. An option wins over its variable, and a
+variable that is set to the empty string counts as unset. A process that sets these variables for
+another program gives them to the SDK too: to keep a setting from coming from the environment,
+pass its option. The SDK for Node.js reads the same variables, but takes an empty one as its
+value.
+
+<a id="M-client-2"></a>
+### M-client-2: New checks the configuration before it returns
+
+- v1: no check of the configuration when the client is built
+- v2: `permit.ErrInvalidConfig` from `permit.New`
+
+`permit.New` returns an error that matches `permit.ErrInvalidConfig`, and no client, when there is
+no API key; when an option gives an empty key or URL, a nil `*http.Client` or a timeout of zero or
+less; and when a URL does not start with `http://` or `https://`, has no host, or has a user name
+or a password, a query or a fragment. The error names the option or the environment variable, and
+`permit.New` sends no request. A path after the host of a URL, such as `/permit` in
+`https://proxy.example.com/permit`, starts every route, and one slash at the end of a URL is
+removed.
+
 ## API
 
 <a id="M-errors-1"></a>
@@ -222,6 +249,129 @@ text: use `errors.Is` with the sentinels, or read `StatusCode` and `Code`.
 
 A test that needs an error of the SDK builds a `*permit.Error` literal, such as
 `&permit.Error{StatusCode: 404}`, which matches `permit.ErrNotFound`.
+
+<a id="M-client-3"></a>
+### M-client-3: New and options replace the configuration builder
+
+- v1: `config.NewConfigBuilder`
+- v1: `config.PermitBuilder`
+- v1: `config.NewPermitConfig`
+- v1: `config.PermitConfig`
+- v1: `config.IPermitConfig`
+- v1: `config.PermitConfig.Build`
+- v1: `permit.NewPermit`
+- v1: `permit.New`
+- v2: `permit.New`
+
+Pass options to `permit.New`, which returns the client and an error, instead of building a
+`config.PermitConfig` and passing it to `permit.NewPermit`:
+
+```go
+client, err := permit.New(
+	permit.WithAPIKey(apiKey),
+	permit.WithPDPURL("http://localhost:7766"),
+)
+if err != nil {
+	return err
+}
+defer client.Close()
+```
+
+The client keeps its configuration to itself, so v2 has no getters such as `GetApiUrl`: printing
+the client shows its settings, with a marker in place of the API key. The entries below map the
+methods of the builder to options.
+
+<a id="M-client-4"></a>
+### M-client-4: WithApiUrl becomes WithAPIURL
+
+- v1: `config.PermitConfig.WithApiUrl`
+- v1: `config.PermitConfig.GetApiUrl`
+- v1: `config.DefaultApiUrl`
+- v2: `permit.WithAPIURL`
+
+The default API URL stays `https://api.permit.io`. Without the option, `permit.New` reads
+`PERMIT_API_URL`, as [M-client-1](#M-client-1) says. An empty URL is an error: leave the option
+out to use the variable or the default.
+
+<a id="M-client-5"></a>
+### M-client-5: WithPdpUrl becomes WithPDPURL
+
+- v1: `config.PermitConfig.WithPdpUrl`
+- v1: `config.PermitConfig.GetPdpUrl`
+- v1: `config.DefaultPdpUrl`
+- v2: `permit.WithPDPURL`
+
+The default PDP URL stays `http://localhost:7766`, a PDP container next to the application.
+Without the option, `permit.New` reads `PERMIT_PDP_URL`. An empty URL is an error, as it is for
+`permit.WithAPIURL`.
+
+<a id="M-client-6"></a>
+### M-client-6: The API key is an option
+
+- v1: `config.PermitConfig.GetToken`
+- v2: `permit.WithAPIKey`
+
+Give the API key with `permit.WithAPIKey`, or set `PERMIT_API_KEY`, instead of passing it to
+`config.NewConfigBuilder` or `config.NewPermitConfig`. v2 has no getter for the key, and the
+client prints a marker in its place.
+
+<a id="M-client-7"></a>
+### M-client-7: WithHTTPClient takes the http.Client as it is
+
+- v1: `config.PermitConfig.WithHTTPClient`
+- v1: `config.PermitConfig.GetHTTPClient`
+- v2: `permit.WithHTTPClient`
+
+The client sends its requests through the `*http.Client` you pass, and changes none of its fields,
+such as `Timeout`; `Client.Close` leaves its connections open. Without the option, each client has
+an `*http.Client` of its own, with a copy of `http.DefaultTransport` that keeps up to 64 idle
+connections to each host, and `Client.Close` closes them.
+
+<a id="M-client-8"></a>
+### M-client-8: WithTimeout bounds a whole call
+
+- v1: `config.PermitConfig.WithTimeout`
+- v1: `config.DefaultTimeout`
+- v2: `permit.WithTimeout`
+
+`permit.WithTimeout` sets the longest that a call may take, across all the requests it sends. v1's
+default was 5 seconds for each request; v2's is 30 seconds for the whole call. The client keeps the
+timeout to itself, and does not set the `Timeout` of the `*http.Client` that
+`permit.WithHTTPClient` gives. A timeout of zero or less is an error.
+
+<a id="M-client-9"></a>
+### M-client-9: permit.Client is the one client
+
+- v1: `permit.Client`
+- v1: `api.PermitApiClient`
+- v1: `api.NewPermitApiClient`
+- v2: `permit.Client`
+
+v2 has one client type, `permit.Client`, which `permit.New` builds. v1's `api.PermitApiClient`, the
+`Api` field of v1's client, has no type of its own in v2. Call `Close` when you are done with a
+client: it closes the idle connections of the client's own `*http.Client`, and a call that starts
+after it returns an error that matches `permit.ErrClosed`. A client that is garbage collected
+without `Close` has those connections closed too.
+
+<a id="M-client-10"></a>
+### M-client-10: The client has no interface
+
+- v1: `permit.PermitInterface`
+- v1: `api.IPermitBaseApi`
+- v2: not exposed in v2
+
+v2 declares no interface for its client. To replace it in your tests, declare an interface in
+your own code with the methods you call; the SDK's types that have those methods then implement
+it.
+
+<a id="M-client-11"></a>
+### M-client-11: NewClientConfig has no counterpart
+
+- v1: `api.NewClientConfig`
+- v2: not exposed in v2
+
+`api.NewClientConfig` built the configuration of v1's generated API client. v2 has no generated
+client: `permit.New` builds what the client needs from its options.
 
 ## Wire behaviour
 

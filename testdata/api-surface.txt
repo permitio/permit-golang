@@ -3,9 +3,25 @@
 # change, rewrite this file with go test -run TestSurfaceSnapshot -update . and review the
 # diff.
 permit: const Version = "2.0.0"
+permit: func New(opts ...Option) (*Client, error)
+permit: func WithAPIKey(apiKey string) Option
+permit: func WithAPIURL(apiURL string) Option
+permit: func WithHTTPClient(httpClient *http.Client) Option
+permit: func WithPDPURL(pdpURL string) Option
+permit: func WithTimeout(timeout time.Duration) Option
+permit: method (*Client) Close() error
+permit: method (*Client) Format(f fmt.State, verb rune)
+permit: method (*Client) GoString() string
+permit: method (*Client) LogValue() slog.Value
+permit: method (*Client) String() string
 permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
 permit: method (*Error) Unwrap() error
+permit: method (Option) Format(f fmt.State, verb rune)
+permit: method (Option) GoString() string
+permit: method (Option) LogValue() slog.Value
+permit: method (Option) String() string
+permit: type Client struct
 permit: type Error struct
 permit: type Error struct, Body []byte
 permit: type Error struct, Code string
@@ -17,6 +33,7 @@ permit: type Error struct, RequestID string
 permit: type Error struct, Route string
 permit: type Error struct, StatusCode int
 permit: type Error struct, Title string
+permit: type Option struct
 permit: var ErrClosed = errors.New("permit: the client is closed")
 permit: var ErrConflict = errors.New("permit: conflict")
 permit: var ErrContainerPDPOnly = errors.New("permit: only the PDP container serves this route")

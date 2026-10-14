@@ -22,7 +22,6 @@ api.NewElementsApi elements
 api.Environments environments
 api.Environments.* environments
 api.NewEnvironmentsApi environments
-api.IPermitBaseApi client
 api.IPermitBaseFactsApi facts
 api.PermitBaseFactsApi facts
 api.PermitBaseFactsApi.* facts
@@ -32,10 +31,7 @@ api.WaitForSyncOptions facts
 api.ImplicitGrants implicit-grants
 api.ImplicitGrants.* implicit-grants
 api.NewImplicitGrantsApi implicit-grants
-api.NewClientConfig client
-api.NewPermitApiClient client
-api.PermitApiClient client
-api.PermitApiClient.* client
+api.PermitApiClient.SetContext scope
 api.Projects projects
 api.Projects.* projects
 api.NewProjectsApi projects
@@ -81,16 +77,20 @@ api.Users.* users
 api.NewUsersApi users
 
 # Block a: pkg/config
-config.DefaultApiUrl client
-config.DefaultDebugMode client
-config.DefaultPdpUrl client
-config.DefaultTimeout client
-config.IPermitConfig client
-config.NewConfigBuilder client
-config.NewPermitConfig client
-config.PermitBuilder client
-config.PermitConfig client
-config.PermitConfig.* client
+config.DefaultDebugMode logging
+config.PermitConfig.GetDebug logging
+config.PermitConfig.WithDebug logging
+config.PermitConfig.GetLogger logging
+config.PermitConfig.WithLogger logging
+config.PermitConfig.GetContext scope
+config.PermitConfig.WithContext scope
+config.PermitConfig.GetFactsSyncTimeout facts
+config.PermitConfig.GetFactsSyncTimeoutPolicy facts
+config.PermitConfig.WithFactsSyncTimeout facts
+config.PermitConfig.GetProxyFactsViaPDP facts
+config.PermitConfig.WithProxyFactsViaPDP facts
+config.PermitConfig.GetOpaUrl checks
+config.PermitConfig.WithOpaUrl checks
 config.DefaultFactsSyncTimeout facts
 config.FactsSyncTimeoutPolicy facts
 config.FactsSyncTimeoutPolicyFail facts
@@ -110,10 +110,6 @@ config.PermitContextInterface scope
 
 # Block a: pkg/enforcement and pkg/permit
 enforcement.* checks
-permit.Client client
-permit.New client
-permit.NewPermit client
-permit.PermitInterface client
 permit.Client.AllTenantsCheck checks
 permit.Client.BulkCheck checks
 permit.Client.Check checks

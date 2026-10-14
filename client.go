@@ -1,0 +1,160 @@
+package permit
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"runtime"
+	"strconv"
+	"sync/atomic"
+	"time"
+
+	"github.com/permitio/permit-golang/v2/internal/redact"
+	"github.com/permitio/permit-golang/v2/internal/validate"
+)
+
+// maxIdleConnsPerHost is how many idle connections to each host the transport of a client's own
+// http.Client keeps.
+const maxIdleConnsPerHost = 64
+
+// Client is a client of the Permit API and of the policy decision point (PDP). Build one with
+// [New]; the zero Client is not valid. A Client is safe for concurrent use. Call [Client.Close]
+// when you are done with it.
+//
+// A Client prints its settings with a marker in place of its API key: [Client.String],
+// [Client.GoString], [Client.Format] with every verb and [Client.LogValue] all give the same
+// text.
+type Client struct {
+	apiKey  redact.Secret
+	apiURL  string
+	pdpURL  string
+	timeout time.Duration
+
+	// secrets holds the API key, and the credentials that the client's calls return, which the
+	// client's errors never hold.
+	secrets *redact.Set
+
+	httpClient *http.Client
+
+	// transport is the transport of httpClient when New created it, which Close closes, and nil
+	// when the http.Client came from WithHTTPClient.
+	transport *http.Transport
+
+	closed atomic.Bool
+}
+
+// New returns a Client configured by opts. A setting that no option gives comes from its
+// environment variable, when the variable is set and not empty, and else from its default:
+//
+//   - the API key, [WithAPIKey], from PERMIT_API_KEY, without a default: New fails without a key;
+//   - the API URL, [WithAPIURL], from PERMIT_API_URL, by default https://api.permit.io;
+//   - the PDP URL, [WithPDPURL], from PERMIT_PDP_URL, by default http://localhost:7766;
+//   - the *http.Client, [WithHTTPClient], by default one of the Client's own;
+//   - the timeout of a call, [WithTimeout], by default 30 seconds.
+//
+// New sends no request. It returns an error that matches [ErrInvalidConfig], and no Client, when
+// the configuration breaks a rule that an option's documentation states, such as a URL without
+// http:// or https://, or when an Option is the zero Option. The error names the option or the
+// environment variable, and never holds the API key.
+func New(opts ...Option) (*Client, error) {
+	var s settings
+	for i, opt := range opts {
+		if opt.apply == nil {
+			return nil, &configError{
+				setting: "option " + strconv.Itoa(i+1) + " of New",
+				rule:    validate.OptionZero,
+			}
+		}
+		if err := opt.apply(&s); err != nil {
+			return nil, err
+		}
+	}
+	if err := s.resolve(); err != nil {
+		return nil, err
+	}
+	c := &Client{
+		apiKey:     s.apiKey,
+		apiURL:     s.apiURL,
+		pdpURL:     s.pdpURL,
+		timeout:    s.timeout,
+		secrets:    redact.NewSet(s.apiKey.Value()),
+		httpClient: s.httpClient,
+	}
+	if c.httpClient == nil {
+		c.httpClient, c.transport = ownHTTPClient()
+	}
+	if c.transport != nil {
+		// The cleanup gets the transport, not c, so that it does not keep c reachable. It runs
+		// after Close too, for the connections that calls still in flight at Close returned.
+		runtime.AddCleanup(c, (*http.Transport).CloseIdleConnections, c.transport)
+	}
+	return c, nil
+}
+
+// ownHTTPClient returns an http.Client for one Client, and its transport: a copy of
+// http.DefaultTransport that keeps maxIdleConnsPerHost idle connections to each host. When
+// http.DefaultTransport is not an *http.Transport, as when a test replaced it, the http.Client
+// sends through it, and the transport is nil.
+func ownHTTPClient() (*http.Client, *http.Transport) {
+	base, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return &http.Client{Transport: http.DefaultTransport}, nil
+	}
+	transport := base.Clone()
+	transport.MaxIdleConnsPerHost = maxIdleConnsPerHost
+	return &http.Client{Transport: transport}, transport
+}
+
+// Close closes the idle connections of the client's own *http.Client, and leaves those of an
+// *http.Client that [WithHTTPClient] gave open. A call that starts after Close fails with an
+// error that matches [ErrClosed]. Close always returns nil, also when it is called again, and is
+// safe to call from many goroutines. A Client that is garbage collected without Close has the
+// idle connections of its own *http.Client closed too.
+func (c *Client) Close() error {
+	if c == nil || !c.closed.CompareAndSwap(false, true) {
+		return nil
+	}
+	if c.transport != nil {
+		c.transport.CloseIdleConnections()
+	}
+	return nil
+}
+
+// checkOpen returns ErrClosed once Close was called, and else nil. A call checks it before it
+// sends a request.
+func (c *Client) checkOpen() error {
+	if c.closed.Load() {
+		return ErrClosed
+	}
+	return nil
+}
+
+// String returns the client's settings on one line: its API URL, its PDP URL and its timeout,
+// with a marker in place of its API key and of the key in a URL; the Example of [New] shows one.
+// A nil *Client is <nil>.
+func (c *Client) String() string {
+	if c == nil {
+		return "<nil>"
+	}
+	return "permit.Client{APIKey: " + strconv.Quote(c.apiKey.String()) +
+		", APIURL: " + strconv.Quote(redact.ScrubString(c.secrets, c.apiURL)) +
+		", PDPURL: " + strconv.Quote(redact.ScrubString(c.secrets, c.pdpURL)) +
+		", Timeout: " + c.timeout.String() + "}"
+}
+
+// GoString returns what [Client.String] returns, for the %#v verb.
+func (c *Client) GoString() string { return c.String() }
+
+// Format writes what [Client.String] returns as fmt writes a string with the same verb, flags and
+// width, such as quoted for %q, and as it is for %#v, so that no verb prints the client's fields.
+func (c *Client) Format(f fmt.State, verb rune) { formatText(f, verb, c.String()) }
+
+// formatText writes text, what a value's String method returns, as fmt writes a string with verb
+// and the flags and width of f, and as it is for %#v.
+func formatText(f fmt.State, verb rune, text string) {
+	if verb == 'v' && f.Flag('#') {
+		_, _ = io.WriteString(f, text)
+		return
+	}
+	_, _ = fmt.Fprintf(f, fmt.FormatString(f, verb), text)
+}

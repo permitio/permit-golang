@@ -18,8 +18,104 @@ type Rule struct {
 	Message string
 }
 
+// The rules of a client's configuration, which permit.New checks. The error of a rule that an
+// option or an environment variable breaks names the option or the variable before the message.
+var (
+	// APIKeyEmpty rejects an API key that an option gives as the empty string.
+	APIKeyEmpty = Rule{
+		ID: "config.api-key.empty",
+		Message: "the API key is empty; pass a Permit API key, or leave the option out to " +
+			"read PERMIT_API_KEY",
+	}
+
+	// APIKeyMissing rejects a configuration with no API key, from an option or from the
+	// environment.
+	APIKeyMissing = Rule{
+		ID:      "config.api-key.missing",
+		Message: "no API key; pass WithAPIKey, or set PERMIT_API_KEY",
+	}
+
+	// HTTPClientNil rejects a nil *http.Client.
+	HTTPClientNil = Rule{
+		ID: "config.http-client.nil",
+		Message: "the *http.Client is nil; pass a client, or leave the option out to use one " +
+			"of the SDK's own",
+	}
+
+	// OptionZero rejects an Option that no With function built, such as the zero Option.
+	OptionZero = Rule{
+		ID:      "config.option.zero",
+		Message: "the Option is the zero value; build options with the With functions",
+	}
+
+	// TimeoutNotPositive rejects a timeout of zero or less.
+	TimeoutNotPositive = Rule{
+		ID:      "config.timeout.not-positive",
+		Message: "the timeout must be more than zero, such as 30 * time.Second",
+	}
+
+	// URLEmpty rejects a URL that an option gives as the empty string.
+	URLEmpty = Rule{
+		ID: "config.url.empty",
+		Message: "the URL is empty; leave the option out to read the environment variable or " +
+			"to use the default",
+	}
+
+	// URLFragment rejects a URL with a fragment, the part from a #.
+	URLFragment = Rule{
+		ID:      "config.url.fragment",
+		Message: "the URL has a fragment (#...); give the URL without it",
+	}
+
+	// URLHost rejects a URL without a host, such as http:///v2 or http:localhost.
+	URLHost = Rule{
+		ID:      "config.url.host",
+		Message: "the URL has no host; give one, such as api.permit.io in https://api.permit.io",
+	}
+
+	// URLParse rejects a URL that net/url cannot parse.
+	URLParse = Rule{
+		ID: "config.url.parse",
+		Message: "the URL does not parse; check that it starts with http:// or https://, that " +
+			"its port is a number, and that it has no spaces and no % without two hex digits " +
+			"after it",
+	}
+
+	// URLQuery rejects a URL with a query, the part from a ?.
+	URLQuery = Rule{
+		ID:      "config.url.query",
+		Message: "the URL has a query (?...); give the URL without it",
+	}
+
+	// URLScheme rejects a URL whose scheme is not http or https, or that has none.
+	URLScheme = Rule{
+		ID:      "config.url.scheme",
+		Message: "the URL must start with http:// or https://",
+	}
+
+	// URLUserinfo rejects a URL with a user name or a password before its host.
+	URLUserinfo = Rule{
+		ID: "config.url.userinfo",
+		Message: "the URL has a user name or a password; give the API key with WithAPIKey or " +
+			"PERMIT_API_KEY instead",
+	}
+)
+
 // rules lists every rule, sorted by ID.
-var rules = []Rule{}
+var rules = []Rule{
+	APIKeyEmpty,
+	APIKeyMissing,
+	HTTPClientNil,
+	OptionZero,
+	TimeoutNotPositive,
+	URLEmpty,
+	URLFragment,
+	URLHost,
+	URLParse,
+	URLQuery,
+	URLScheme,
+	URLUserinfo,
+}
 
 // Rules returns every rule, sorted by ID.
 func Rules() []Rule {

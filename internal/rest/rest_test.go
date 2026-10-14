@@ -66,6 +66,7 @@ func TestCheckAcceptsValidOps(t *testing.T) {
 		"no retry":                 func(op *Op) { op.NoRetry = true },
 		"container only":           func(op *Op) { op.ContainerOnly = true },
 		"sensitive fields":         func(op *Op) { op.SensitiveBodyFields = []string{"secret"} },
+		"no reply credentials":     func(op *Op) { op.NoReplyCredentials = true },
 		"models":                   func(op *Op) { op.RequestModel, op.ResponseModel = "A", "B" },
 		"a waiting fact": func(op *Op) {
 			*op = sdkOp("create_user")

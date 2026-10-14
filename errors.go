@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -239,6 +240,15 @@ func cut(text string) string {
 func (c call) decodeError(status int, model string) *Error {
 	e := c.newError(status)
 	e.Err = errors.New("the reply is not a valid " + model)
+	return e
+}
+
+// malformedDecision returns the Error for a reply to c, a decision of the PDP, with status in
+// 200-299, that is not a valid decision, as why says. It matches ErrMalformedDecision, and keeps
+// nothing of the body, as decodeError does.
+func (c call) malformedDecision(status int, why string) *Error {
+	e := c.newError(status)
+	e.Err = fmt.Errorf("%w: %s", ErrMalformedDecision, why)
 	return e
 }
 

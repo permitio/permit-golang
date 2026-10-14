@@ -188,8 +188,8 @@ func fixtureComparer(t *testing.T) *comparer {
 		constants: map[string]map[string]string{
 			"Color": {"ColorRed": "red", "ColorGreen": "green", "ColorBlue": "blue"},
 		},
-		pkgPath: reflect.TypeFor[Scope]().PkgPath(),
-		sent:    map[string]string{},
+		pkgPaths: []string{reflect.TypeFor[Scope]().PkgPath()},
+		sent:     map[string]string{},
 	}
 }
 
@@ -268,11 +268,11 @@ func TestCompareModel(t *testing.T) {
 		},
 		{"n/a in a model that an operation sends", "Scope", "create_env", []string{
 			"Scope.OrganizationID: the operation create_env sends Scope, so its null policy is " +
-				"accepts or rejects, as the API does with null for it; n/a is for a type that " +
-				"no request holds",
+				"accepts, rejects or ignores, as the API does with null for it; n/a is for a " +
+				"type that no request holds",
 			"Scope.ProjectID: the operation create_env sends Scope, so its null policy is " +
-				"accepts or rejects, as the API does with null for it; n/a is for a type that " +
-				"no request holds",
+				"accepts, rejects or ignores, as the API does with null for it; n/a is for a " +
+				"type that no request holds",
 		}},
 		{"a value missing from the enum", "NotAnEnum", "", []string{
 			"model NotAnEnum: the schema Scope is not an enum of strings, which a string type " +
@@ -306,6 +306,112 @@ func TestCompareModel(t *testing.T) {
 					strings.Join(tc.want, "\n"))
 			}
 		})
+	}
+}
+
+// TestCompareModelOfTwoSpecs checks that a type is compared with each schema of its row, its own
+// and those of also, under keys that name the spec of each schema of also, that the rows of its
+// fields are checked once, against its own schema, and that the properties of left_out are
+// checked against the type and its schemas.
+func TestCompareModelOfTwoSpecs(t *testing.T) {
+	cloud := inlineSpec(t, "pdp-cloud", `{
+		"CloudScope": {"type": "object", "required": ["organization_id", "project_id"],
+			"properties": {"organization_id": {"type": "integer"},
+				"project_id": {"type": ["string", "null"]}, "region": {"type": "string"}}},
+		"CloudColor": {"enum": ["red", "green", "cyan"], "type": "string"},
+		"Odd": {"not": {}}
+	}`)
+	also := func(schema string) []schemaRef {
+		return []schemaRef{{Spec: "pdp-cloud", Schema: schema}}
+	}
+	for _, tc := range []struct {
+		name  string
+		model string
+		row   modelRow
+		want  []string
+	}{
+		{"a struct", "Scope", modelRow{
+			Schema: "Scope", Also: also("CloudScope"), Fields: map[string]fieldRow{
+				"organization_id": field(true, "n/a"),
+				"project_id":      field(false, "n/a"),
+				"zone":            field(false, "n/a"),
+			},
+		}, []string{
+			"model-map.yaml has the row models.Scope.fields.zone, which no field of Scope has: " +
+				"remove it",
+			"model Scope@pdp-cloud field organization_id: the field OrganizationID: its type " +
+				"string cannot hold an integer, which the schema at " +
+				"#/components/schemas/CloudScope/properties/organization_id allows",
+			"model Scope@pdp-cloud field project_id: the schema CloudScope requires " +
+				"project_id, and model-map.yaml has required: false",
+			"model Scope@pdp-cloud field region: the schema CloudScope has the property region, " +
+				"which no field of Scope holds: add the field",
+		}},
+		{"a struct with left_out", "Scope", modelRow{
+			Schema: "Scope", Also: also("CloudScope"), Fields: scopeFields(),
+			LeftOut: map[string]string{"region": "r", "project_id": "r", "gone": "r"},
+		}, []string{
+			"model Scope@pdp-cloud field organization_id: the field OrganizationID: its type " +
+				"string cannot hold an integer, which the schema at " +
+				"#/components/schemas/CloudScope/properties/organization_id allows",
+			"model Scope@pdp-cloud field project_id: the schema CloudScope requires " +
+				"project_id, and model-map.yaml has required: false",
+			"model Scope@pdp-cloud field region: the schema CloudScope has the property region, " +
+				"which no field of Scope holds: add the field",
+			"models.Scope.left_out.gone: no schema of Scope has the property gone: remove it " +
+				"from left_out",
+			"models.Scope.left_out.project_id: the field ProjectID holds project_id, so the " +
+				"type does not leave it out: remove it from left_out",
+		}},
+		{"a struct mapped to an enum of the second spec", "Scope", modelRow{
+			Schema: "Scope", Also: also("CloudColor"), Fields: scopeFields(),
+		}, []string{
+			"model Scope@pdp-cloud: the schema CloudColor is not one object, which a struct " +
+				"maps to",
+		}},
+		{"a schema that the second spec does not have", "Scope", modelRow{
+			Schema: "Scope", Also: also("Gone"), Fields: scopeFields(),
+		}, []string{
+			"model Scope@pdp-cloud: the spec pdp-cloud has no schema Gone, which model-map.yaml " +
+				"maps Scope to",
+		}},
+		{"an enum", "Color", modelRow{
+			Schema: "Color", Also: also("CloudColor"),
+			Fields:  map[string]fieldRow{"x": {}},
+			LeftOut: map[string]string{"x": "r"},
+		}, []string{
+			"model-map.yaml gives the enum Color fields; remove them",
+			"model Color@pdp-cloud value cyan: the schema CloudColor has the value cyan, which " +
+				"no constant of Color holds: add one",
+			"model Color@pdp-cloud value blue: the constant ColorBlue of Color is blue, which " +
+				"is not a value of the schema CloudColor",
+			"models.Color.left_out.x: no schema of Color has the property x: remove it from " +
+				"left_out",
+		}},
+		{"an enum mapped to an object of the second spec", "Color", modelRow{
+			Schema: "Color", Also: also("CloudScope"),
+		}, []string{
+			"model Color@pdp-cloud: the schema CloudScope is not an enum of strings, which a " +
+				"string type maps to",
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := fixtureComparer(t)
+			c.specs["pdp-cloud"] = cloud
+			c.rows[tc.model] = tc.row
+			found, err := c.model(tc.model)
+			if got := findingTexts(found); err != nil || !slices.Equal(got, tc.want) {
+				t.Errorf("model(%s) =\n%s, %v\nwant\n%s", tc.model, strings.Join(got, "\n"),
+					err, strings.Join(tc.want, "\n"))
+			}
+		})
+	}
+	c := fixtureComparer(t)
+	c.specs["pdp-cloud"] = cloud
+	c.rows["Scope"] = modelRow{Schema: "Scope", Also: also("Odd"), Fields: scopeFields()}
+	if _, err := c.model("Scope"); !isUnsupported(err) {
+		t.Errorf("model of a row whose second schema the walker does not implement fails with "+
+			"%v, want an *unsupportedError", err)
 	}
 }
 
@@ -352,8 +458,12 @@ func TestMatchType(t *testing.T) {
 	c.rows["Scope"] = modelRow{Schema: "Scope"}
 	c.rows["Color"] = modelRow{Schema: "Color"}
 	c.rows["Remote"] = modelRow{Spec: "pdp-cloud", Schema: "Scope"}
+	c.rows["Both"] = modelRow{
+		Spec: "pdp-cloud", Schema: "Scope", Also: []schemaRef{{Spec: defaultSpec, Schema: "Scope"}},
+	}
 	type (
 		Remote   struct{}
+		Both     struct{}
 		Unmapped struct{}
 	)
 	for _, tc := range []struct {
@@ -507,6 +617,16 @@ func TestMatchType(t *testing.T) {
 				"#/p allows the schema Scope of control-plane"},
 		},
 		{
+			"a model of the second spec of its row", reflect.TypeFor[Both](),
+			`{"$ref": "#/components/schemas/Scope"}`, nil,
+		},
+		{
+			"a model of two specs for another schema", reflect.TypeFor[Both](),
+			`{"$ref": "#/components/schemas/Color"}`,
+			[]string{"its type Both maps to the schema Scope of pdp-cloud, or Scope of " +
+				"control-plane, and the schema at #/p allows the schema Color of control-plane"},
+		},
+		{
 			"a type of the package without a row", reflect.TypeFor[Unmapped](),
 			`{"type": "object"}`,
 			[]string{"its type Unmapped has no row under models in model-map.yaml"},
@@ -580,6 +700,43 @@ func TestMatchType(t *testing.T) {
 	}, "#/p", s)
 	if !isUnsupported(err) {
 		t.Errorf("matchType of a schema that is its own alternative fails with %v", err)
+	}
+}
+
+// TestMatchTypeOfTwoPackages checks that a struct of each package of pkgPaths, as package models
+// and the root package are, maps to a schema through its row, and that a struct of another
+// package does not.
+func TestMatchTypeOfTwoPackages(t *testing.T) {
+	s := inlineSpec(t, defaultSpec, `{"Scope": {"type": "object"}}`)
+	c := fixtureComparer(t)
+	c.specs[defaultSpec] = s
+	c.rows["APIKeyScopeRead"] = modelRow{Schema: "Scope"}
+	scope := map[string]any{"$ref": "#/components/schemas/Scope"}
+	read := reflect.TypeFor[models.APIKeyScopeRead]()
+	for _, tc := range []struct {
+		name     string
+		pkgPaths []string
+		mapped   bool
+		want     []string
+	}{
+		{"a package of its own", c.pkgPaths, true, []string{"its type " +
+			"models.APIKeyScopeRead is a struct that package models does not map; use a type " +
+			"of package models, or models.Time for a timestamp"}},
+		{"a second package", append(slices.Clone(c.pkgPaths), modelsPath), true, nil},
+		{
+			"a second package, without a row", append(slices.Clone(c.pkgPaths), modelsPath),
+			false,
+			[]string{"its type APIKeyScopeRead has no row under models in model-map.yaml"},
+		},
+	} {
+		c.pkgPaths = tc.pkgPaths
+		if !tc.mapped {
+			delete(c.rows, "APIKeyScopeRead")
+		}
+		got, err := c.matchType(read, scope, "#/p", s)
+		if err != nil || !slices.Equal(got, tc.want) {
+			t.Errorf("%s: matchType =\n%q, %v\nwant\n%q", tc.name, got, err, tc.want)
+		}
 	}
 }
 

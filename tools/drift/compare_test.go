@@ -55,41 +55,77 @@ type comparer struct {
 	// by the constant's.
 	constants map[string]map[string]string
 
-	// pkgPath is the import path of the package of the types: package models, or the tests' own
-	// for their fixtures.
-	pkgPath string
+	// pkgPaths are the import paths of the packages of the types: package models and the root
+	// package, or the tests' own for their fixtures.
+	pkgPaths []string
 
 	// sent are the types that an operation sends, with the ID of an operation that sends each.
 	sent map[string]string
 }
 
-// model returns the findings of the type name against its row and schema. Its error is an
-// *unsupportedError when the schema holds what the walker does not implement.
+// model returns the findings of the type name against its row and each schema that the row maps
+// it to, and of the row's left_out. Its error is an *unsupportedError when a schema holds what the
+// walker does not implement.
 func (c *comparer) model(name string) ([]finding, error) {
 	row := c.rows[name]
 	t, ok := c.types[name]
 	if !ok {
 		return []finding{{text: "the drift tests have no type " + name + " to compare"}}, nil
 	}
-	s := c.specs[row.spec()]
-	at := schemaPrefix + escape(row.Schema)
-	schema, ok := s.schema(row.Schema)
+	if k := t.Kind(); k != reflect.Struct && k != reflect.String {
+		return []finding{{text: name + " is a " + k.String() + "; only a struct or a string " +
+			"enum maps to a schema"}}, nil
+	}
+	var found []finding
+	listed := map[string]bool{}
+	for _, tg := range row.targets(name) {
+		more, properties, err := c.modelAgainst(name, t, tg)
+		if err != nil {
+			return nil, err
+		}
+		found = append(found, more...)
+		for _, property := range properties {
+			listed[property] = true
+		}
+	}
+	var fields map[string]goField
+	if t.Kind() == reflect.Struct {
+		fields, _ = jsonFields(t)
+	}
+	for _, property := range slices.Sorted(maps.Keys(row.LeftOut)) {
+		at := "models." + name + ".left_out." + property
+		if f, ok := fields[property]; ok {
+			found = append(found, finding{text: at + ": the field " + f.name + " holds " +
+				property + ", so the type does not leave it out: remove it from left_out"})
+		} else if !listed[property] {
+			found = append(found, finding{text: at + ": no schema of " + name + " has the " +
+				"property " + property + ": remove it from left_out"})
+		}
+	}
+	return found, nil
+}
+
+// modelAgainst returns the findings of the type name, of type t, against tg, one of the schemas
+// that its row maps it to, and the properties of the schema when it is an object. Its error is an
+// *unsupportedError when the schema holds what the walker does not implement.
+func (c *comparer) modelAgainst(name string, t reflect.Type, tg target) ([]finding, []string,
+	error,
+) {
+	s := c.specs[tg.Spec]
+	at := schemaPrefix + escape(tg.Schema)
+	schema, ok := s.schema(tg.Schema)
 	if !ok {
-		return []finding{{key: "model " + name, text: "the spec " + s.name + " has no schema " +
-			row.Schema + ", which model-map.yaml maps " + name + " to"}}, nil
+		return []finding{{key: "model " + tg.label, text: "the spec " + s.name + " has no " +
+			"schema " + tg.Schema + ", which model-map.yaml maps " + name + " to"}}, nil, nil
 	}
 	if err := s.audit(schema, at); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	switch t.Kind() {
-	case reflect.Struct:
-		return c.structModel(name, t, s, at)
-	case reflect.String:
-		return c.enumModel(name, s, at)
-	default:
-		return []finding{{text: name + " is a " + t.Kind().String() + "; only a struct or a " +
-			"string enum maps to a schema"}}, nil
+	if t.Kind() == reflect.String {
+		found, err := c.enumModel(name, tg, s, at)
+		return found, nil, err
 	}
+	return c.structModel(name, t, tg, s)
 }
 
 // goField is a field of a struct, as encoding/json reads and writes it.
@@ -155,44 +191,53 @@ func jsonFields(t reflect.Type) (map[string]goField, []finding) {
 	return fields, found
 }
 
-// structModel returns the findings of the struct name, of type t, against its schema in s, which
-// at locates: each property of the schema has a field and each field a property, each field has
-// its row in the model map, the tags and the types of the fields follow their rows, the required
-// flags of the rows are the schema's, and the type of each field holds the values of its
-// property.
-func (c *comparer) structModel(name string, t reflect.Type, s *spec, at string) ([]finding, error) {
+// structModel returns the findings of the struct name, of type t, against tg, a schema of s that
+// its row maps it to, and the properties of the schema: each property of the schema has a field
+// and each field a property, the required flags of the rows of the fields are the schema's, and
+// the type of each field holds the values of its property; and against the row's own schema
+// only, each field has its row in the model map, and the tags and the types of the fields follow
+// their rows.
+func (c *comparer) structModel(name string, t reflect.Type, tg target, s *spec) ([]finding,
+	[]string, error,
+) {
 	row := c.rows[name]
-	schema, _ := s.schema(row.Schema)
+	at := schemaPrefix + escape(tg.Schema)
+	schema, _ := s.schema(tg.Schema)
 	alts, err := s.alternatives(schema, at)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(alts) != 1 || typeOf(alts[0].schema) != "object" {
-		return []finding{{key: "model " + name, text: "the schema " + row.Schema + " is not " +
-			"one object, which a struct maps to"}}, nil
+		return []finding{{key: "model " + tg.label, text: "the schema " + tg.Schema + " is " +
+			"not one object, which a struct maps to"}}, nil, nil
 	}
 	shape, err := s.object(alts[0].schema, at)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fields, found := jsonFields(t)
-	names := slices.Concat(slices.Collect(maps.Keys(shape.properties)),
-		slices.Collect(maps.Keys(fields)), slices.Collect(maps.Keys(row.Fields)))
+	if !tg.own {
+		found = nil
+	}
+	properties := slices.Sorted(maps.Keys(shape.properties))
+	names := slices.Concat(properties, slices.Collect(maps.Keys(fields)),
+		slices.Collect(maps.Keys(row.Fields)))
 	slices.Sort(names)
 	for _, jsonName := range slices.Compact(names) {
-		key := "model " + name + " field " + jsonName
+		key := "model " + tg.label + " field " + jsonName
 		f, inGo := fields[jsonName]
 		property, inSpec := shape.properties[jsonName]
 		r, inMap := row.Fields[jsonName]
 		switch {
 		case inGo && !inSpec:
 			found = append(found, finding{key, "the field " + f.name + " is not a property of " +
-				"the schema " + row.Schema + ": fix its tag, or remove it"})
+				"the schema " + tg.Schema + ": fix its tag, or remove it"})
 		case inSpec && !inGo:
-			found = append(found, finding{key, "the schema " + row.Schema + " has the property " +
+			found = append(found, finding{key, "the schema " + tg.Schema + " has the property " +
 				jsonName + ", which no field of " + name + " holds: add the field"})
 		}
 		switch {
+		case !tg.own:
 		case inGo && !inMap:
 			found = append(found, finding{text: name + "." + f.name + " has no row under " +
 				"models." + name + ".fields." + jsonName + " in model-map.yaml: add it"})
@@ -208,26 +253,26 @@ func (c *comparer) structModel(name string, t reflect.Type, s *spec, at string) 
 				requires = "does not require"
 			}
 			found = append(found, finding{key, fmt.Sprintf("the schema %s %s %s, and "+
-				"model-map.yaml has required: %t", row.Schema, requires, jsonName, *r.Required)})
+				"model-map.yaml has required: %t", tg.Schema, requires, jsonName, *r.Required)})
 		}
 		if inGo && inSpec {
 			problems, err := c.matchType(f.typ, property, at+"/properties/"+escape(jsonName), s)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			for _, p := range problems {
 				found = append(found, finding{key, "the field " + f.name + ": " + p})
 			}
 		}
 	}
-	return found, nil
+	return found, properties, nil
 }
 
 // fieldRules returns the findings of the field f of the struct name against its row r: a field
 // that the API accepts null for is a models.Optional, and no other; an Optional is tagged
 // omitzero, a required field that is not one has no omitzero, an optional field has omitzero,
 // and none has omitempty; and a field of a type that an operation sends has the null policy
-// accepts or rejects.
+// accepts, rejects or ignores.
 func (c *comparer) fieldRules(name string, f goField, r fieldRow) []finding {
 	var found []finding
 	add := func(format string, args ...any) {
@@ -254,18 +299,18 @@ func (c *comparer) fieldRules(name string, f goField, r fieldRow) []finding {
 		add("it is not required, so it is tagged omitzero: the body leaves it out when unset")
 	}
 	if op := c.sent[name]; op != "" && r.Null == "n/a" {
-		add("the operation %s sends %s, so its null policy is accepts or rejects, as the API "+
-			"does with null for it; n/a is for a type that no request holds", op, name)
+		add("the operation %s sends %s, so its null policy is accepts, rejects or ignores, as "+
+			"the API does with null for it; n/a is for a type that no request holds", op, name)
 	}
 	return found
 }
 
-// enumModel returns the findings of the enum name against its schema in s, which at locates:
-// each value of the schema has a constant of the type, and each constant is a value of the
-// schema.
-func (c *comparer) enumModel(name string, s *spec, at string) ([]finding, error) {
+// enumModel returns the findings of the enum name against tg, a schema of s that its row maps it
+// to, which at locates: each value of the schema has a constant of the type, and each constant is
+// a value of the schema.
+func (c *comparer) enumModel(name string, tg target, s *spec, at string) ([]finding, error) {
 	row := c.rows[name]
-	schema, _ := s.schema(row.Schema)
+	schema, _ := s.schema(tg.Schema)
 	alts, err := s.alternatives(schema, at)
 	if err != nil {
 		return nil, err
@@ -275,27 +320,27 @@ func (c *comparer) enumModel(name string, s *spec, at string) ([]finding, error)
 		values, _ = stringList(alts[0].schema["enum"])
 	}
 	if len(values) == 0 {
-		return []finding{{key: "model " + name, text: "the schema " + row.Schema + " is not an " +
-			"enum of strings, which a string type maps to"}}, nil
+		return []finding{{key: "model " + tg.label, text: "the schema " + tg.Schema + " is not " +
+			"an enum of strings, which a string type maps to"}}, nil
 	}
 	var found []finding
-	if len(row.Fields) > 0 {
+	if len(row.Fields) > 0 && tg.own {
 		found = append(found, finding{text: "model-map.yaml gives the enum " + name + " fields; " +
 			"remove them"})
 	}
 	constants := c.constants[name]
 	for _, value := range values {
 		if !slices.Contains(slices.Collect(maps.Values(constants)), value) {
-			found = append(found, finding{"model " + name + " value " + value, "the schema " +
-				row.Schema + " has the value " + value + ", which no constant of " + name +
-				" holds: add one"})
+			found = append(found, finding{"model " + tg.label + " value " + value, "the " +
+				"schema " + tg.Schema + " has the value " + value + ", which no constant of " +
+				name + " holds: add one"})
 		}
 	}
 	for _, constant := range slices.Sorted(maps.Keys(constants)) {
 		if value := constants[constant]; !slices.Contains(values, value) {
-			found = append(found, finding{"model " + name + " value " + value, "the constant " +
-				constant + " of " + name + " is " + value + ", which is not a value of the " +
-				"schema " + row.Schema})
+			found = append(found, finding{"model " + tg.label + " value " + value, "the " +
+				"constant " + constant + " of " + name + " is " + value + ", which is not a " +
+				"value of the schema " + tg.Schema})
 		}
 	}
 	return found, nil
@@ -367,14 +412,13 @@ func (c *comparer) matchAlternative(t reflect.Type, alt alternative, at string, 
 			return mismatch, nil
 		}
 		return nil, nil
-	case t.PkgPath() == c.pkgPath && t.Name() != "" && mapped:
-		if alt.name != row.Schema || row.spec() != s.name {
-			return []string{"its type " + t.Name() + " maps to the schema " + row.Schema +
-				" of " + row.spec() + ", and the schema at " + at + " allows " + describe(alt) +
-				" of " + s.name}, nil
+	case slices.Contains(c.pkgPaths, t.PkgPath()) && t.Name() != "" && mapped:
+		if schema, ok := row.schemaIn(s.name); !ok || alt.name != schema {
+			return []string{"its type " + t.Name() + " maps to " + row.describe() + ", and the " +
+				"schema at " + at + " allows " + describe(alt) + " of " + s.name}, nil
 		}
 		return nil, nil
-	case t.PkgPath() == c.pkgPath && t.Name() != "":
+	case slices.Contains(c.pkgPaths, t.PkgPath()) && t.Name() != "":
 		return []string{"its type " + t.Name() + " has no row under models in model-map.yaml"},
 			nil
 	}

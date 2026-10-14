@@ -1,6 +1,7 @@
 # The drift findings that tools/drift accepts, each because the published spec differs from what
-# the API does, and the SDK follows the API. The section Model drift of CONTRIBUTING.md says when
-# to add an entry.
+# the API does, and the SDK follows the API, or because the spec lists an optional property that
+# the API reads elsewhere, and the SDK leaves it out. The section Model drift of CONTRIBUTING.md
+# says when to add an entry.
 #
 # key: the key of the finding, as the failing test prints it before the colon, such as
 #   "model UserRead field email", "operation get_user response" or
@@ -21,3 +22,39 @@ allow:
       the API answers the scope of an organization-level API key with environment_id null, which
       the published spec types as a string only
     trigger: when the published spec allows null for environment_id of APIKeyScopeRead
+  - key: model CheckRequest field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of a check
+    trigger: when a PDP reads the SDK of a check from its sdk field only
+  - key: model CheckRequest@pdp-cloud field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of a check
+    trigger: when a PDP reads the SDK of a check from its sdk field only
+  - key: model Resource@pdp-cloud field context
+    reason: >-
+      the PDP container reads the context of a resource, which the spec of the cloud PDP does
+      not list; the cloud PDP reads the context of the check instead
+    trigger: when the spec of the cloud PDP lists the context of a resource, or the SDK stops
+      sending it
+  - key: model User field first_name
+    reason: >-
+      every PDP reads first_name, the name of the field, and the PDP container also reads its alias
+      firstName, which its spec lists in place of first_name, so the SDK sends first_name
+    trigger: when the spec of the PDP container lists first_name
+  - key: model User field firstName
+    reason: >-
+      the SDK sends first_name, which every PDP reads, in place of the alias firstName, which
+      only the PDP container reads
+    trigger: when the spec of the PDP container lists first_name
+  - key: model User field last_name
+    reason: >-
+      every PDP reads last_name, the name of the field, and the PDP container also reads its alias
+      lastName, which its spec lists in place of last_name, so the SDK sends last_name
+    trigger: when the spec of the PDP container lists last_name
+  - key: model User field lastName
+    reason: >-
+      the SDK sends last_name, which every PDP reads, in place of the alias lastName, which only
+      the PDP container reads
+    trigger: when the spec of the PDP container lists last_name

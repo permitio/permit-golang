@@ -18,13 +18,15 @@ import (
 )
 
 // nullPolicies are the null policies of a field of model-map.yaml: what the API does with null
-// for the field in a request. accepts makes the field a models.Optional; n/a is for a type that
-// no request holds.
-var nullPolicies = []string{"accepts", "rejects", "n/a"}
+// for the field in a request. accepts makes the field a models.Optional; ignores is for a field
+// whose null the API reads as the field left out, as both PDPs do for an optional string of a
+// check, so that the SDK leaves it out instead; n/a is for a type that no request holds.
+var nullPolicies = []string{"accepts", "rejects", "ignores", "n/a"}
 
 // modelMap is model-map.yaml.
 type modelMap struct {
-	// Models are the types of package models that a spec schema describes, by name.
+	// Models are the types that a spec schema describes, by name: the types of package models,
+	// and the decision types of the root package, which the requests to the PDP hold.
 	Models map[string]modelRow `yaml:"models"`
 
 	// Blocks are the types of package models that no schema describes, which the models use for
@@ -40,8 +42,28 @@ type modelRow struct {
 	// Schema is the name of the schema under components.schemas.
 	Schema string `yaml:"schema"`
 
+	// Also are the schemas of other specs that describe the type too, each of a spec of its
+	// own, such as the schema of the cloud PDP of a decision type whose row maps it to the
+	// schema of the PDP container. The type is compared with each, as with the row's own.
+	Also []schemaRef `yaml:"also"`
+
+	// LeftOut are the properties of the row's schemas that the type has no field for on
+	// purpose, each with the reason, such as a property that the API reads from a header too.
+	// The maximal values of the round trip leave them out; the comparison still finds each, for
+	// allow.yaml to accept.
+	LeftOut map[string]string `yaml:"left_out"` //nolint:tagliatelle // The file's key.
+
 	// Fields are the fields of a struct, by their JSON names.
 	Fields map[string]fieldRow `yaml:"fields"`
+}
+
+// schemaRef names a schema of a spec.
+type schemaRef struct {
+	// Spec is the spec, one of specNames.
+	Spec string `yaml:"spec"`
+
+	// Schema is the name of the schema under components.schemas.
+	Schema string `yaml:"schema"`
 }
 
 // spec returns the name of the row's spec.
@@ -50,6 +72,62 @@ func (r modelRow) spec() string {
 		return defaultSpec
 	}
 	return r.Spec
+}
+
+// target is a schema that a row maps its type to.
+type target struct {
+	schemaRef
+
+	// label names the type in the keys of the findings against the schema: the type's name for
+	// the row's own schema, and the name, @ and the spec for a schema of Also, such as
+	// User@pdp-cloud.
+	label string
+
+	// own says that the schema is the row's own, against which the rows of the fields are
+	// checked too.
+	own bool
+}
+
+// targets returns the schemas that the row maps name, its type, to: its own, then those of Also.
+func (r modelRow) targets(name string) []target {
+	targets := []target{{schemaRef: schemaRef{r.spec(), r.Schema}, label: name, own: true}}
+	for _, also := range r.Also {
+		targets = append(targets, target{schemaRef: also, label: name + "@" + also.Spec})
+	}
+	return targets
+}
+
+// schemaIn returns the name of the schema of the spec named spec that the row maps its type to,
+// and false when it maps the type to none of that spec.
+func (r modelRow) schemaIn(spec string) (string, bool) {
+	for _, t := range r.targets("") {
+		if t.Spec == spec {
+			return t.Schema, true
+		}
+	}
+	return "", false
+}
+
+// leftOutOf returns the properties that rows leave out of the schemas of the spec named spec, by
+// the name of the schema.
+func leftOutOf(rows map[string]modelRow, spec string) map[string][]string {
+	leftOut := map[string][]string{}
+	for _, row := range rows {
+		if schema, ok := row.schemaIn(spec); ok && len(row.LeftOut) > 0 {
+			leftOut[schema] = append(leftOut[schema], slices.Sorted(maps.Keys(row.LeftOut))...)
+		}
+	}
+	return leftOut
+}
+
+// describe returns the schemas of the row as a finding names them, such as the schema User of
+// pdp-container, or User of pdp-cloud.
+func (r modelRow) describe() string {
+	var schemas []string
+	for _, t := range r.targets("") {
+		schemas = append(schemas, t.Schema+" of "+t.Spec)
+	}
+	return "the schema " + strings.Join(schemas, ", or ")
 }
 
 // fieldRow is a field of a row of model-map.yaml.
@@ -63,8 +141,10 @@ type fieldRow struct {
 }
 
 // parseModelMap parses data, a model map, and checks its shape: it maps at least one type; each
-// row names a schema and a spec of specNames, and each of its fields has a required flag and a
-// null policy; each block says what it stands for; and no type is a row and a block.
+// row names a schema and a spec of specNames, each schema of its also names a schema and a spec of
+// specNames that none of the row's other schemas has, each property of its left_out has a reason,
+// and each of its fields has a required flag and a null policy; each block says what it stands
+// for; and no type is a row and a block.
 func parseModelMap(data []byte) (modelMap, error) {
 	var m modelMap
 	dec := yaml.NewDecoder(bytes.NewReader(data))
@@ -84,6 +164,13 @@ func parseModelMap(data []byte) (modelMap, error) {
 		}
 		if row.Schema == "" {
 			problems = append(problems, fmt.Errorf("models.%s names no schema", name))
+		}
+		problems = append(problems, alsoProblems(name, row)...)
+		for _, property := range slices.Sorted(maps.Keys(row.LeftOut)) {
+			if strings.TrimSpace(row.LeftOut[property]) == "" {
+				problems = append(problems, fmt.Errorf("models.%s.left_out.%s gives no reason",
+					name, property))
+			}
 		}
 		for _, field := range slices.Sorted(maps.Keys(row.Fields)) {
 			f := row.Fields[field]
@@ -108,6 +195,29 @@ func parseModelMap(data []byte) (modelMap, error) {
 		}
 	}
 	return m, errors.Join(problems...)
+}
+
+// alsoProblems returns the problems of the schemas of also of row, the row of name: each names a
+// schema and a spec of specNames, and no two of the row's schemas are of one spec.
+func alsoProblems(name string, row modelRow) []error {
+	var problems []error
+	specs := []string{row.spec()}
+	for i, also := range row.Also {
+		at := "models." + name + ".also[" + strconv.Itoa(i) + "]"
+		switch {
+		case !slices.Contains(specNames, also.Spec):
+			problems = append(problems, fmt.Errorf("%s: the spec %q is not one of %s", at,
+				also.Spec, strings.Join(specNames, ", ")))
+		case slices.Contains(specs, also.Spec):
+			problems = append(problems, fmt.Errorf("%s: the row maps the type to a schema of %s "+
+				"already; give each spec one schema", at, also.Spec))
+		}
+		if also.Schema == "" {
+			problems = append(problems, fmt.Errorf("%s names no schema", at))
+		}
+		specs = append(specs, also.Spec)
+	}
+	return problems
 }
 
 // allowAreas start the key of each finding, by the check that finds it.
@@ -201,9 +311,10 @@ func accept(findings []finding, entries []allowEntry, area string) ([]finding, [
 }
 
 // sentinel returns the findings of the counts: every type of exported, the exported types of
-// package models, is a row of models or of blocks of m, and every row is one of exported; and
-// types, the types that the drift tests reflect on, are the rows of models.
-func sentinel(exported []string, m modelMap, types map[string]reflect.Type) []finding {
+// package models, is a row of models or of blocks of m, and every row is one of exported or of
+// roots, the exported types of the root package, and not of both, as a row names its type by
+// name alone; and types, the types that the drift tests reflect on, are the rows of models.
+func sentinel(exported, roots []string, m modelMap, types map[string]reflect.Type) []finding {
 	var found []finding
 	for _, name := range exported {
 		_, mapped := m.Models[name]
@@ -215,9 +326,14 @@ func sentinel(exported []string, m modelMap, types map[string]reflect.Type) []fi
 		}
 	}
 	for _, name := range slices.Sorted(maps.Keys(m.Models)) {
-		if !slices.Contains(exported, name) {
+		inModels, inRoot := slices.Contains(exported, name), slices.Contains(roots, name)
+		switch {
+		case !inModels && !inRoot:
 			found = append(found, finding{text: "model-map.yaml maps " + name + ", which " +
-				"package models does not export: remove its row"})
+				"neither package models nor the root package exports: remove its row"})
+		case inModels && inRoot:
+			found = append(found, finding{text: "model-map.yaml maps " + name + ", which " +
+				"package models and the root package both export: rename one of the types"})
 		}
 		if _, ok := types[name]; !ok {
 			found = append(found, finding{text: "model-map.yaml maps " + name + ", which " +
@@ -287,11 +403,19 @@ func typesByName(values []any) map[string]reflect.Type {
 	return types
 }
 
-// sentModels returns the types of package pkgPath that ops send, by name, with the ID of an
-// operation that sends each: each RequestModel that types holds, and each named struct of the
-// package that a field of one holds, at any depth, through slices, maps, pointers and
-// models.Optional.
-func sentModels(ops []rest.Op, types map[string]reflect.Type, pkgPath string) map[string]string {
+// requestModel returns the name of the type that the request of op holds, and whether the request
+// is a JSON array of it, as a RequestModel that starts with [] says.
+func requestModel(op rest.Op) (string, bool) {
+	return strings.CutPrefix(op.RequestModel, "[]")
+}
+
+// sentModels returns the types of the packages pkgPaths that ops send, by name, with the ID of an
+// operation that sends each: the type of each RequestModel that types holds, and each named
+// struct of the packages that a field of one holds, at any depth, through slices, maps, pointers
+// and models.Optional.
+func sentModels(ops []rest.Op, types map[string]reflect.Type,
+	pkgPaths []string,
+) map[string]string {
 	sent := map[string]string{}
 	var visit func(t reflect.Type, op string)
 	visit = func(t reflect.Type, op string) {
@@ -308,8 +432,8 @@ func sentModels(ops []rest.Op, types map[string]reflect.Type, pkgPath string) ma
 			}
 			break
 		}
-		if t.Kind() != reflect.Struct || t.PkgPath() != pkgPath || t.Name() == "" ||
-			sent[t.Name()] != "" {
+		if t.Kind() != reflect.Struct || !slices.Contains(pkgPaths, t.PkgPath()) ||
+			t.Name() == "" || sent[t.Name()] != "" {
 			return
 		}
 		sent[t.Name()] = op
@@ -318,7 +442,8 @@ func sentModels(ops []rest.Op, types map[string]reflect.Type, pkgPath string) ma
 		}
 	}
 	for _, op := range ops {
-		if t, ok := types[op.RequestModel]; ok {
+		name, _ := requestModel(op)
+		if t, ok := types[name]; ok {
 			visit(t, op.ID)
 		}
 	}

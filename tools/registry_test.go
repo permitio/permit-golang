@@ -32,8 +32,12 @@ var specFiles = []string{
 	"specs/control-plane.json", "specs/pdp-container.json", "specs/pdp-cloud.json",
 }
 
-// modelsDir is the directory of package models, whose types the operations name.
-const modelsDir = "../models"
+// modelsDir is the directory of package models, whose types the operations name, and rootDir
+// that of the root package, whose decision types, such as CheckRequest, the PDP's operations name.
+const (
+	modelsDir = "../models"
+	rootDir   = ".."
+)
 
 // coverageRow is the part of a row of coverage.yaml that the registry test reads.
 type coverageRow struct {
@@ -144,22 +148,27 @@ func routesByID(ops []specOp) map[string][]string {
 	return routes
 }
 
-// readModels returns the names of the exported types of package models.
+// readModels returns the names of the exported types of package models and of the root package,
+// permit, whose decision types the PDP's operations name.
 func readModels(t *testing.T) map[string]bool {
 	t.Helper()
-	p, err := surface.Read(modelsDir)
-	if err != nil {
-		t.Fatal(err)
+	types := map[string]bool{}
+	for _, pkg := range []struct{ dir, name string }{{modelsDir, "models"}, {rootDir, "permit"}} {
+		p, err := surface.Read(pkg.dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p.Name != pkg.name {
+			t.Fatalf("%s holds the package %q, want %s", pkg.dir, p.Name, pkg.name)
+		}
+		maps.Copy(types, modelTypes(p.Items))
 	}
-	if p.Name != "models" {
-		t.Fatalf("%s holds the package %q, want models", modelsDir, p.Name)
-	}
-	return modelTypes(p.Items)
+	return types
 }
 
 // modelTypes returns the names of the types among items, the exported declarations of package
-// models: a RequestModel or ResponseModel must name a type, not a constant, variable, function,
-// method or field.
+// models or of the root package: a RequestModel or ResponseModel must name a type, not a
+// constant, variable, function, method or field.
 func modelTypes(items []surface.Item) map[string]bool {
 	types := map[string]bool{}
 	for _, item := range items {
@@ -173,9 +182,10 @@ func modelTypes(items []surface.Item) map[string]bool {
 // registryProblems returns a problem for each operation of ops whose ID is not the op of a row of
 // coverage.yaml that is planned or covered, whose method and route are not those that a spec
 // lists for its ID, or that the row's route of an SDK-only row is, and whose RequestModel or
-// ResponseModel names no exported type of package models. rows are the rows of coverage.yaml by
-// their op, routes the routes of the specs by operationId, and models the names of the exported
-// types of package models.
+// ResponseModel names no exported type of package models or of the root package, after the []
+// of a RequestModel that the SDK sends as a JSON array, such as []CheckRequest. rows are the
+// rows of coverage.yaml by their op, routes the routes of the specs by operationId, and models the
+// names of the exported types of the two packages.
 func registryProblems(ops []rest.Op, rows map[string]coverageRow, routes map[string][]string,
 	models map[string]bool,
 ) []string {
@@ -209,12 +219,14 @@ func registryProblems(ops []rest.Op, rows map[string]coverageRow, routes map[str
 			add(op, "the method and route %q differ from the spec's, %s", route,
 				strings.Join(quoted, " or "))
 		}
-		for _, model := range []struct{ field, name string }{
-			{"RequestModel", op.RequestModel}, {"ResponseModel", op.ResponseModel},
+		request, _ := strings.CutPrefix(op.RequestModel, "[]")
+		for _, model := range []struct{ field, value, name string }{
+			{"RequestModel", op.RequestModel, request},
+			{"ResponseModel", op.ResponseModel, op.ResponseModel},
 		} {
-			if model.name != "" && !models[model.name] {
-				add(op, "its %s %q names no exported type of package models", model.field,
-					model.name)
+			if model.value != "" && !models[model.name] {
+				add(op, "its %s %q names no exported type of package models or permit",
+					model.field, model.value)
 			}
 		}
 	}
@@ -222,7 +234,7 @@ func registryProblems(ops []rest.Op, rows map[string]coverageRow, routes map[str
 }
 
 // TestRepositoryRegistry checks every operation of the SDK's registry, rest.Default, against
-// tools/specs and package models, as registryProblems does.
+// tools/specs, package models and the root package, as registryProblems does.
 func TestRepositoryRegistry(t *testing.T) {
 	ops := rest.Default().Ops()
 	problems := registryProblems(ops, readCoverage(t), routesByID(readSpecs(t)), readModels(t))
@@ -232,9 +244,7 @@ func TestRepositoryRegistry(t *testing.T) {
 	t.Logf("checked the %d operations of the registry", len(ops))
 }
 
-// TestRepositoryRegistryReadsTheFiles checks the readers of the registry test on operations of
-// the real files: one of the control plane, one of the PDP and an SDK-only one.
-// TestRepositoryModelTypes checks that only a type of package models counts as a model.
+// TestRepositoryModelTypes checks that only a type of a package counts as a model.
 func TestRepositoryModelTypes(t *testing.T) {
 	var items []surface.Item
 	for _, kind := range []surface.Kind{
@@ -248,13 +258,19 @@ func TestRepositoryModelTypes(t *testing.T) {
 	}
 }
 
+// TestRepositoryRegistryReadsTheFiles checks the readers of the registry test on operations of
+// the real files: one of the control plane, one of the PDP, whose request is a type of the root
+// package, and an SDK-only one.
 func TestRepositoryRegistryReadsTheFiles(t *testing.T) {
 	ops := []rest.Op{
 		{
 			ID: "get_user", Method: http.MethodGet,
 			Route: "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
 		},
-		{ID: "is_allowed_allowed_post", Method: http.MethodPost, Route: "/allowed"},
+		{
+			ID: "is_allowed_allowed_post", Method: http.MethodPost, Route: "/allowed",
+			RequestModel: "CheckRequest",
+		},
 		{ID: "elements_login_as", Method: http.MethodPost, Route: "/v2/auth/elements_login_as"},
 	}
 	problems := registryProblems(ops, readCoverage(t), routesByID(readSpecs(t)), readModels(t))
@@ -289,6 +305,10 @@ func TestRepositoryRegistryProblems(t *testing.T) {
 		{
 			ID: "login_as", Method: http.MethodPost, Route: "/v2/login_as",
 			RequestModel: "UserCreate", ResponseModel: "UserRead",
+		},
+		{
+			ID: "get_user", Method: http.MethodGet, Route: "/v2/users/{user_id}",
+			RequestModel: "[]UserCreate",
 		},
 	}
 	if problems := registryProblems(valid, rows, routes, models); problems != nil {
@@ -343,7 +363,7 @@ func TestRepositoryRegistryProblems(t *testing.T) {
 				ResponseModel: "UserReadd",
 			},
 			want: []string{`the operation get_user: its ResponseModel "UserReadd" names no ` +
-				"exported type of package models"},
+				"exported type of package models or permit"},
 		},
 		{
 			name: "a RequestModel that names no type",
@@ -352,7 +372,20 @@ func TestRepositoryRegistryProblems(t *testing.T) {
 				RequestModel: "models.UserCreate",
 			},
 			want: []string{`the operation get_user: its RequestModel "models.UserCreate" names ` +
-				"no exported type of package models"},
+				"no exported type of package models or permit"},
+		},
+		{
+			name: "a list of no type, and a list as a ResponseModel",
+			op: rest.Op{
+				ID: "get_user", Method: http.MethodGet, Route: "/v2/users/{user_id}",
+				RequestModel: "[]", ResponseModel: "[]UserRead",
+			},
+			want: []string{
+				`the operation get_user: its RequestModel "[]" names no exported type of ` +
+					"package models or permit",
+				`the operation get_user: its ResponseModel "[]UserRead" names no exported type ` +
+					"of package models or permit",
+			},
 		},
 		{
 			name: "everything wrong",
@@ -366,9 +399,9 @@ func TestRepositoryRegistryProblems(t *testing.T) {
 				"the operation nothing: no spec lists it, and no SDK-only row of " +
 					"specs/coverage.yaml has it",
 				`the operation nothing: its RequestModel "A" names no exported type of package ` +
-					"models",
+					"models or permit",
 				`the operation nothing: its ResponseModel "B" names no exported type of package ` +
-					"models",
+					"models or permit",
 			},
 		},
 	} {

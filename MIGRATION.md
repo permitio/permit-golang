@@ -543,6 +543,197 @@ Pass `permit.WithFactsViaPDP()`, which takes no argument, to `permit.New` instea
 to itself, as [M-client-3](#M-client-3) says. With the option, the calls of the facts API go to
 the PDP container, as [M-facts-2](#M-facts-2) says.
 
+<a id="M-checks-1"></a>
+### M-checks-1: Check takes a context.Context and returns every failure as an error
+
+- v1: `permit.Client.Check`
+- v1: `enforcement.PermitEnforcer.Check`
+- v2: `permit.Client.Check`
+
+`Client.Check` takes a `context.Context` first, then a `permit.User`, the action as a string, a
+`permit.Resource` and options. `permit.WithDecisionContext` gives the check its context, a
+`map[string]any` whose values of any JSON type, such as numbers, booleans and nested objects, reach
+the PDP as they are; v1's `permit.Client.Check` took no context, and the enforcer's took a
+`map[string]string`:
+
+```go
+allowed, err := client.Check(ctx,
+	permit.User{Key: "alice"},
+	"read",
+	permit.Resource{Type: "document", Key: "2026-report", Tenant: "tenant-a"},
+	permit.WithDecisionContext(map[string]any{"business_hours": true}),
+)
+```
+
+`Check` returns `true` when the PDP allows, `false` when it denies, and an error for every
+failure:
+
+- a user without a key or a resource without a type: an error that matches
+  `permit.ErrInvalidConfig`, and no request;
+- a reply with an error status, such as 400, 421 or 422, or 429 after the retries: a
+  `*permit.Error` with the status and the body;
+- a reply in 200-299 that is not a JSON object with one key `allow` whose value is `true` or
+  `false`, such as `{}` or `{"allow": null}`: a `*permit.Error` that matches
+  `permit.ErrMalformedDecision`. v1 returned `false` and no error for `{}` and `{"allow": null}`.
+
+A decision changes nothing, so a check is sent again after a 500, 502, 503 or 504 reply or a failed
+connection too, as [M-wire-5](#M-wire-5) says.
+
+<a id="M-checks-2"></a>
+### M-checks-2: BulkCheck takes a slice of CheckRequest
+
+- v1: `permit.Client.BulkCheck`
+- v1: `enforcement.PermitEnforcer.BulkCheck`
+- v1: `enforcement.NewBulkCheckRequest`
+- v1: `enforcement.NewBulkCheckRequestParameterized`
+- v2: `permit.Client.BulkCheck`
+
+`Client.BulkCheck(ctx, checks)` takes a `[]permit.CheckRequest`, which you build as a slice
+literal, and returns the decisions in the order of the checks, with the errors of
+[M-checks-1](#M-checks-1). A reply that does not hold a decision for each check is an error that
+matches `permit.ErrMalformedDecision`. A call without checks sends no request and returns an empty
+slice. It sends one request for all the checks, as [M-checks-14](#M-checks-14) says.
+
+<a id="M-checks-3"></a>
+### M-checks-3: FilterObjects takes and returns Resource values
+
+- v1: `permit.Client.FilterObjects`
+- v1: `enforcement.PermitEnforcer.FilterObjects`
+- v1: `enforcement.ResourceI`
+- v2: `permit.Client.FilterObjects`
+
+`Client.FilterObjects(ctx, user, action, resources, opts...)` takes a `[]permit.Resource` and
+returns the resources that the PDP allows, each as it was given, in their order. The context of
+the checks moves from a parameter to `permit.WithDecisionContext`. v2 has no `ResourceI`
+interface: each resource is a `permit.Resource`, whose key, tenant, attributes and context reach
+the PDP, so that each instance of a type gets its own decision.
+
+<a id="M-checks-4"></a>
+### M-checks-4: The decisions move from the enforcer to the client
+
+- v1: `enforcement.NewPermitEnforcerClient`
+- v1: `enforcement.PermitEnforcer`
+- v1: `enforcement.PermitBaseEnforcer`
+- v2: `permit.Client`
+
+Call the decision methods on the `permit.Client` that `permit.New` builds. v2 has no enforcer of
+its own: the client sends the decisions to the PDP at its PDP URL, `permit.WithPDPURL`, with its
+API key, its timeout and its retries.
+
+<a id="M-checks-5"></a>
+### M-checks-5: User is a struct literal
+
+- v1: `enforcement.User`
+- v1: `enforcement.UserBuilder`
+- v1: `enforcement.User.Build`
+- v1: `enforcement.User.WithAttributes`
+- v1: `enforcement.User.WithEmail`
+- v1: `enforcement.User.WithFirstName`
+- v1: `enforcement.User.WithLastName`
+- v2: `permit.User`
+
+Build a user as a struct literal, such as `permit.User{Key: "alice", Email: "alice@example.com"}`,
+instead of with `UserBuilder` and its methods. The fields keep their names, and a check sends them
+as v1 did. A user without a key is an error that matches `permit.ErrInvalidConfig`.
+
+<a id="M-checks-6"></a>
+### M-checks-6: A user of a check has no roles
+
+- v1: `enforcement.User.WithRoles`
+- v1: `enforcement.AssignedRole`
+- v2: not exposed in v2
+
+v1 sent the roles of a user in a check, in `roles`, as objects with the fields `Role` and
+`Tenant`. The PDP's user has no roles: it decides with the roles that are assigned to the user in
+Permit. Assign roles with role assignments.
+
+<a id="M-checks-7"></a>
+### M-checks-7: Resource is a struct literal
+
+- v1: `enforcement.Resource`
+- v1: `enforcement.ResourceBuilder`
+- v1: `enforcement.Resource.Build`
+- v1: `enforcement.Resource.WithAttributes`
+- v1: `enforcement.Resource.WithContext`
+- v1: `enforcement.Resource.WithKey`
+- v1: `enforcement.Resource.WithTenant`
+- v1: `enforcement.Resource.GetAttributes`
+- v1: `enforcement.Resource.GetContext`
+- v1: `enforcement.Resource.GetTenant`
+- v1: `enforcement.Resource.GetType`
+- v1: `enforcement.DefaultTenant`
+- v2: `permit.Resource`
+
+Build a resource as a struct literal, such as
+`permit.Resource{Type: "document", Key: "2026-report", Tenant: "tenant-a"}`, instead of with
+`ResourceBuilder` and its methods, and read its fields instead of the getters. `Context` holds
+values of any JSON type, rather than strings. A resource without a type is an error that matches
+`permit.ErrInvalidConfig`. A check of a resource whose `Tenant` is empty sends the tenant
+`default`, the value of v1's `DefaultTenant`, as v1's `Build` set it; `Client.FilterObjects`
+returns such a resource with its `Tenant` still empty.
+
+<a id="M-checks-8"></a>
+### M-checks-8: A resource has a key and no ID
+
+- v1: `enforcement.Resource.WithID`
+- v1: `enforcement.Resource.GetID`
+- v2: `permit.Resource.Key`
+
+Give the key of a resource instance in `Key`, which the PDP reads to check that instance. v1 sent
+the value of `WithID` in `id`, and from v1.3.0 in `key` too when the resource had no key; v2 has no
+ID and sends no `id`.
+
+<a id="M-checks-9"></a>
+### M-checks-9: CheckRequest is a struct literal
+
+- v1: `enforcement.CheckRequest`
+- v1: `enforcement.NewCheckRequest`
+- v1: `enforcement.Action`
+- v2: `permit.CheckRequest`
+
+Build a check of `Client.BulkCheck` as a struct literal of `User`, `Action`, `Resource` and
+`Context`. The action is a string, and `Context` holds values of any JSON type, rather than
+strings.
+
+<a id="M-checks-10"></a>
+### M-checks-10: A decision is a bool
+
+- v1: `enforcement.CheckResponse`
+- v1: `enforcement.AllowKey`
+- v2: not exposed in v2
+
+`Client.Check` returns the decision as a `bool`, and `Client.BulkCheck` as a `[]bool`: the SDK
+reads `allow` of the PDP's reply itself, and returns an error when it is not `true` or `false`.
+
+<a id="M-checks-11"></a>
+### M-checks-11: MapToJson has no counterpart
+
+- v1: `enforcement.MapToJson`
+- v2: not exposed in v2
+
+Write a map as JSON with `encoding/json`. The SDK writes the maps of a check to the PDP itself.
+
+<a id="M-checks-12"></a>
+### M-checks-12: DefaultTimeout becomes the default of WithTimeout
+
+- v1: `enforcement.DefaultTimeout`
+- v2: `permit.WithTimeout`
+
+v1's `DefaultTimeout`, 30, set no timeout of its own. A call of v2, a decision too, takes at most
+the timeout of `permit.WithTimeout`, 30 seconds by default.
+
+<a id="M-checks-13"></a>
+### M-checks-13: Decisions go to the PDP only
+
+- v1: `config.PermitConfig.WithOpaUrl`
+- v1: `config.PermitConfig.GetOpaUrl`
+- v1: `config.DefaultOpaUrl`
+- v2: not exposed in v2
+
+v2 sends every decision to the PDP at the PDP URL, `permit.WithPDPURL`. v1's `WithOpaUrl` sent the
+checks to OPA at its `/v1/data/` routes instead, in the shape of OPA's input. Run a PDP container,
+which serves the decisions of your policy, and give its URL to `permit.WithPDPURL`.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -651,6 +842,17 @@ user invites and proxy configs, which the facts API also serves, go to the Permi
 Only the PDP container serves `/facts/`. The cloud PDP answers each of these calls with 404 and an
 empty body, which the call returns as an error that matches `permit.ErrContainerPDPOnly`, and
 `permit.New` logs a warning when the option is given with the URL of the cloud PDP.
+
+<a id="M-checks-14"></a>
+### M-checks-14: BulkCheck sends one request for all its checks
+
+- v1: one `POST /allowed/bulk` request for each tenant of the checks, one after another
+- v2: one `POST /allowed/bulk` request for all the checks, in their order
+
+v1 sent the checks of `BulkCheck` in a request for each tenant of their resources. v2 sends all
+the checks in one request, whatever their tenants, in the order of the slice, and the PDP answers
+each in that order; `FilterObjects` does the same with its resources. A proxy or a log that counts
+requests sees one request for a call.
 
 ## Kept on purpose
 

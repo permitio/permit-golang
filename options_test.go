@@ -156,7 +156,9 @@ func knownScope(c *Client) any {
 }
 
 // exportedOptions returns the names of the exported functions of the package whose names start
-// with With, sorted: its options.
+// with With and that return an Option, sorted: the options of New. A With function that returns
+// another type, such as WithDecisionContext, which returns a CheckOption, is an option of a call,
+// whose tests show its effect.
 func exportedOptions(t *testing.T) []string {
 	t.Helper()
 	p, err := surface.Read(".")
@@ -165,7 +167,8 @@ func exportedOptions(t *testing.T) []string {
 	}
 	var names []string
 	for _, item := range p.Items {
-		if item.Kind == surface.Func && strings.HasPrefix(item.Name, "With") {
+		if item.Kind == surface.Func && strings.HasPrefix(item.Name, "With") &&
+			strings.HasSuffix(item.Line, ") Option") {
 			names = append(names, item.Name)
 		}
 	}

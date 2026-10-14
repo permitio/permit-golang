@@ -10,7 +10,7 @@ import (
 
 // opsComparer returns the comparer of the operation tests: fixtureComparer with rows for the
 // schemas of the fixture spec's operations, and a spec, pdp-cloud, whose operations the tests
-// break.
+// break, with a bulk route whose request is an array.
 func opsComparer(t *testing.T) *comparer {
 	t.Helper()
 	c := fixtureComparer(t)
@@ -30,6 +30,11 @@ func opsComparer(t *testing.T) *comparer {
 				"responses": {
 					"200": {"content": {"application/json": {"schema": {"type": "object"}}}},
 					"default": {"content": {"application/json": {"schema": {"type": "string"}}}}}}},
+			"/allowed/bulk": {"post": {"operationId": "is_allowed_bulk",
+				"requestBody": {"content": {"application/json": {"schema": {"type": "array",
+					"items": {"$ref": "#/components/schemas/Scope"}}}}, "required": true},
+				"responses": {"200": {"content": {"application/json": {"schema": {"type": "array",
+					"items": {"$ref": "#/components/schemas/Scope"}}}}}}}},
 			"/lost": {"post": {"operationId": "lost_body",
 				"requestBody": {"$ref": "#/components/requestBodies/Gone"}}}
 		}
@@ -161,6 +166,56 @@ func TestOperation(t *testing.T) {
 			"operation is_allowed request: the spec requires a request body, and the operation " +
 				"has no RequestModel",
 		}},
+		{
+			"a request of an array of its model, as a bulk route takes",
+			rest.Op{ID: "is_allowed_bulk", RequestModel: "[]RemoteScope"},
+			nil,
+		},
+		{
+			"a request of an array of another model",
+			rest.Op{ID: "is_allowed_bulk", RequestModel: "[]Scope"},
+			[]string{
+				"operation is_allowed_bulk request: the model Scope maps to the schema Scope of " +
+					"control-plane, and the body holds an array of Scope of pdp-cloud; the " +
+					"RequestModel []Scope is a JSON array of the model",
+			},
+		},
+		{
+			"a request of one model, where the spec takes an array",
+			rest.Op{ID: "is_allowed_bulk", RequestModel: "RemoteScope"},
+			[]string{
+				"operation is_allowed_bulk request: the model RemoteScope maps to the schema " +
+					"Scope of pdp-cloud, and the body holds an array of Scope of pdp-cloud",
+			},
+		},
+		{
+			"a request of an array, where the spec takes one model",
+			rest.Op{ID: "is_allowed", RequestModel: "[]RemoteScope"},
+			[]string{
+				"operation is_allowed request: the model RemoteScope maps to the schema Scope of " +
+					"pdp-cloud, and the body holds Scope of pdp-cloud; the RequestModel " +
+					"[]RemoteScope is a JSON array of the model",
+			},
+		},
+		{
+			"a request of an array of a model without a row",
+			rest.Op{ID: "is_allowed_bulk", RequestModel: "[]Lost"},
+			[]string{
+				"the operation is_allowed_bulk: its model Lost has no row under models in " +
+					"model-map.yaml",
+			},
+		},
+		{
+			"a reply of an array of its model, which only a list is",
+			rest.Op{
+				ID: "is_allowed_bulk", RequestModel: "[]RemoteScope", ResponseModel: "RemoteScope",
+			},
+			[]string{
+				"operation is_allowed_bulk response: its 200 reply: the model RemoteScope maps " +
+					"to the schema Scope of pdp-cloud, and the body holds an array of Scope of " +
+					"pdp-cloud",
+			},
+		},
 		{"an inline reply", rest.Op{
 			ID: "is_allowed", RequestModel: "RemoteScope",
 			ResponseModel: "RemoteScope",
@@ -179,6 +234,83 @@ func TestOperation(t *testing.T) {
 					strings.Join(tc.want, "\n"))
 			}
 		})
+	}
+}
+
+// TestOperationOfASharedRoute checks that an operation is compared with the operation of each
+// other spec that lists its method and path, as the cloud PDP lists the routes of the PDP
+// container, under keys that name that spec, and that a model maps to a schema of that spec
+// through the also of its row.
+func TestOperationOfASharedRoute(t *testing.T) {
+	c := fixtureComparer(t)
+	operation := func(id, query string) string {
+		return `{"operationId": "` + id + `",
+			"requestBody": {"content": {"application/json": {"schema":
+				{"$ref": "#/components/schemas/` + query + `"}}}, "required": true},
+			"responses": {"200": {"content": {"application/json": {"schema":
+				{"$ref": "#/components/schemas/Result"}}}}}}`
+	}
+	schemas := `"schemas": {"Query": {"type": "object"}, "AllowedQuery": {"type": "object"},
+		"Result": {"type": "object"}}`
+	c.specs["pdp-container"] = &spec{name: "pdp-container", doc: jsonObject(t, `{
+		"components": {`+schemas+`},
+		"paths": {"/allowed": {"post": `+operation("check", "Query")+`}}}`)}
+	c.specs["pdp-cloud"] = &spec{name: "pdp-cloud", doc: jsonObject(t, `{
+		"components": {`+schemas+`},
+		"paths": {"/allowed": {"post": `+operation("allowed_handler", "AllowedQuery")+`},
+			"/other": {"post": `+operation("other", "AllowedQuery")+`}}}`)}
+	both := modelRow{
+		Spec: "pdp-container", Schema: "Query",
+		Also: []schemaRef{{Spec: "pdp-cloud", Schema: "AllowedQuery"}},
+	}
+	c.rows["Check"] = both
+	c.rows["Result"] = modelRow{
+		Spec: "pdp-container", Schema: "Result",
+		Also: []schemaRef{{Spec: "pdp-cloud", Schema: "Result"}},
+	}
+	c.rows["ContainerCheck"] = modelRow{Spec: "pdp-container", Schema: "Query"}
+	c.rows["ContainerResult"] = modelRow{Spec: "pdp-container", Schema: "Result"}
+	for _, tc := range []struct {
+		name string
+		op   rest.Op
+		want []string
+	}{
+		{"a model of both specs", rest.Op{ID: "check", RequestModel: "Check"}, nil},
+		{
+			"a reply of both specs",
+			rest.Op{ID: "check", RequestModel: "Check", ResponseModel: "Result"},
+			nil,
+		},
+		{"a model of one spec", rest.Op{ID: "check", RequestModel: "ContainerCheck"}, []string{
+			"operation check@pdp-cloud request: the model ContainerCheck maps to the schema " +
+				"Query of pdp-container, and the body holds AllowedQuery of pdp-cloud",
+		}},
+		{
+			"a reply of one spec",
+			rest.Op{ID: "check", RequestModel: "Check", ResponseModel: "ContainerResult"},
+			[]string{
+				"operation check@pdp-cloud response: its 200 reply: the model ContainerResult " +
+					"maps to the schema Result of pdp-container, and the body holds Result of " +
+					"pdp-cloud",
+			},
+		},
+	} {
+		found, err := c.operation(tc.op)
+		if got := findingTexts(found); err != nil || !slices.Equal(got, tc.want) {
+			t.Errorf("%s: operation =\n%s, %v\nwant\n%s", tc.name, strings.Join(got, "\n"), err,
+				strings.Join(tc.want, "\n"))
+		}
+	}
+	o, _ := findOperation(c.specs, "check")
+	same := sameRoute(c.specs, o)
+	if len(same) != 1 || same[0].spec.name != "pdp-cloud" || same[0].node["operationId"] !=
+		"allowed_handler" || same[0].at != "#/paths/~1allowed/post" || same[0].method != "POST" ||
+		same[0].path != "/allowed" {
+		t.Errorf("sameRoute(check) = %+v, want the operation allowed_handler of pdp-cloud", same)
+	}
+	if label(rest.Op{ID: "check"}, o) != "check" || label(rest.Op{ID: "check"}, same[0]) !=
+		"check@pdp-cloud" {
+		t.Error("label does not name the spec of the operation of another spec, and only it")
 	}
 }
 

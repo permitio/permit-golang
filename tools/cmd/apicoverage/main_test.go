@@ -620,14 +620,17 @@ func TestRunIgnoresTheNamesInATemplate(t *testing.T) {
 
 // TestRunReportsTheActionGroupTemplateOnAnActionPath records a request for the route that
 // deletes an action group on the path of an action, against the committed specs and
-// v1-route-fixes.yaml, whose action-group-delete fix lists the action group's route.
+// v1-route-fixes.yaml, whose action-group-delete fix lists the action group's route, and a
+// request for each covered row, so that the record holds as many requests as a run needs.
 func TestRunReportsTheActionGroupTemplateOnAnActionPath(t *testing.T) {
 	f := newFixture(t)
 	f.write(f.opMap, `{"methods": {}}`)
-	code, out := runApicoverage(t, "-specs", filepath.Join("..", "..", "specs"), "-map",
-		f.opMap, f.record("r.jsonl", wireLine("api", "DELETE",
-			"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}",
-			"/v2/schema/p/e/resources/r/actions/g")))
+	specs := filepath.Join("..", "..", "specs")
+	requests := append([]string{wireLine("api", "DELETE",
+		"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}",
+		"/v2/schema/p/e/resources/r/actions/g")}, coveredRequests(t, specs)...)
+	code, out := runApicoverage(t, "-specs", specs, "-map", f.opMap,
+		f.record("r.jsonl", requests...))
 	want := "r.jsonl:2: the template /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/" +
 		"action_groups/{action_group_id} does not fit the path DELETE " +
 		"/v2/schema/p/e/resources/r/actions/g"

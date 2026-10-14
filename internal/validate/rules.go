@@ -128,6 +128,32 @@ var (
 	}
 )
 
+// The rules of the arguments of a decision, which the SDK checks before it sends the request to
+// the PDP. The error of such a rule names the method and the argument before the message.
+var (
+	// DecisionOptionZero rejects a CheckOption that no With function built, such as the zero
+	// CheckOption.
+	DecisionOptionZero = Rule{
+		ID: "decision.option.zero",
+		Message: "the CheckOption is the zero value; build options with the With functions, such " +
+			"as WithDecisionContext",
+	}
+
+	// DecisionResourceTypeEmpty rejects a resource without a type, which no PDP decides on.
+	DecisionResourceTypeEmpty = Rule{
+		ID: "decision.resource-type.empty",
+		Message: "the resource type is empty; give the key of the resource type, such as " +
+			"document, as the PDP rejects a check without one",
+	}
+
+	// DecisionUserKeyEmpty rejects a user without a key, which no PDP decides on.
+	DecisionUserKeyEmpty = Rule{
+		ID: "decision.user-key.empty",
+		Message: "the user key is empty; give the key of the user, as the PDP rejects a check " +
+			"without one",
+	}
+)
+
 // The rules of the arguments of a call, which the SDK checks before it sends the request. The
 // error of such a rule names the argument before the message.
 var (
@@ -227,6 +253,9 @@ var rules = []Rule{
 	URLQuery,
 	URLScheme,
 	URLUserinfo,
+	DecisionOptionZero,
+	DecisionResourceTypeEmpty,
+	DecisionUserKeyEmpty,
 	ListPageNegative,
 	ListPerPageNegative,
 	PathSegmentDot,

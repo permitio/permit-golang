@@ -124,6 +124,26 @@ func findOperation(specs map[string]*spec, id string) (specOperation, bool) {
 	return specOperation{}, false
 }
 
+// sameRoute returns the operations of the specs other than that of o whose method and path are
+// o's, as the cloud PDP lists the routes of the PDP container that it serves, in the order of the
+// names of their specs.
+func sameRoute(specs map[string]*spec, o specOperation) []specOperation {
+	var same []specOperation
+	for _, name := range slices.Sorted(maps.Keys(specs)) {
+		s := specs[name]
+		paths, _ := s.doc["paths"].(map[string]any)
+		methods, _ := paths[o.path].(map[string]any)
+		node, _ := methods[strings.ToLower(o.method)].(map[string]any)
+		if s != o.spec && node != nil {
+			same = append(same, specOperation{
+				spec: s, method: o.method, path: o.path, node: node,
+				at: "#/paths/" + escape(o.path) + "/" + strings.ToLower(o.method),
+			})
+		}
+	}
+	return same
+}
+
 // jsonBody returns the schema of the application/json content of node, a request body or a
 // response of an operation, and where it is; false when node has none.
 func jsonBody(node map[string]any, at string) (any, string, bool) {

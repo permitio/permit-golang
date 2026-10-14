@@ -14,14 +14,18 @@ var envelopeCounts = []string{"total_count", "page_count"}
 
 // operation returns the findings of op: its RequestModel against the request body of its
 // operation in the specs, and its ResponseModel against each of its replies in 200-299 that has
-// a JSON body. The request holds the model when one of its alternatives does, as the SDK chooses
-// what it sends; a reply holds it only when each of its alternatives does, as the API chooses.
-// An alternative holds the model when it is the model's schema, and in the reply of a list, an
+// a JSON body, both in the spec that lists its ID and in each other spec that lists its method
+// and path, as the cloud PDP lists the routes of the PDP container that it serves. The request
+// holds the model when one of its alternatives does, as the SDK chooses what it sends; a reply
+// holds it only when each of its alternatives does, as the API chooses. An alternative holds the
+// model when it is the model's schema; for a RequestModel of [] and a name, which the SDK sends
+// as a JSON array, when it is an array of the model instead; and in the reply of a list, an
 // operation with a MaxPerPage, when it is an array or a paginated envelope of it instead. Its
 // error is an *unsupportedError when a schema holds what the walker does not implement.
 func (c *comparer) operation(op rest.Op) ([]finding, error) {
 	var missing []finding
-	for _, name := range []string{op.RequestModel, op.ResponseModel} {
+	request, _ := requestModel(op)
+	for _, name := range []string{request, op.ResponseModel} {
 		if _, ok := c.rows[name]; name != "" && !ok {
 			missing = append(missing, finding{text: "the operation " + op.ID + ": its model " +
 				name + " has no row under models in model-map.yaml"})
@@ -38,17 +42,34 @@ func (c *comparer) operation(op rest.Op) ([]finding, error) {
 		return []finding{{"operation " + op.ID, "no spec lists the operation, so its models " +
 			"cannot be checked"}}, nil
 	}
-	found, err := c.request(op, o)
-	if err != nil {
-		return nil, err
+	var found []finding
+	for _, each := range append([]specOperation{o}, sameRoute(c.specs, o)...) {
+		more, err := c.request(op, each)
+		if err != nil {
+			return nil, err
+		}
+		found = append(found, more...)
+		if more, err = c.response(op, each); err != nil {
+			return nil, err
+		}
+		found = append(found, more...)
 	}
-	more, err := c.response(op, o)
-	return append(found, more...), err
+	return found, nil
+}
+
+// label returns the name of op in the keys of the findings against o: its ID, and @ and the spec
+// of o when o is the operation of another spec with the same route, such as
+// is_allowed_allowed_post@pdp-cloud.
+func label(op rest.Op, o specOperation) string {
+	if o.node["operationId"] == op.ID {
+		return op.ID
+	}
+	return op.ID + "@" + o.spec.name
 }
 
 // request returns the findings of the RequestModel of op against the request body of o.
 func (c *comparer) request(op rest.Op, o specOperation) ([]finding, error) {
-	key := "operation " + op.ID + " request"
+	key := "operation " + label(op, o) + " request"
 	at := o.at + "/requestBody"
 	body, _ := o.node["requestBody"].(map[string]any)
 	if ref, ok := body["$ref"].(string); ok {
@@ -70,7 +91,8 @@ func (c *comparer) request(op rest.Op, o specOperation) ([]finding, error) {
 		return []finding{{key, "its RequestModel is " + op.RequestModel + ", and the spec gives " +
 			"the operation no JSON request body"}}, nil
 	}
-	return c.body(bodyCheck{model: op.RequestModel, key: key}, schema, at, o.spec)
+	model, array := requestModel(op)
+	return c.body(bodyCheck{model: model, key: key, array: array}, schema, at, o.spec)
 }
 
 // response returns the findings of the ResponseModel of op against each reply of o in 200-299
@@ -79,7 +101,7 @@ func (c *comparer) response(op rest.Op, o specOperation) ([]finding, error) {
 	if op.ResponseModel == "" {
 		return nil, nil
 	}
-	key := "operation " + op.ID + " response"
+	key := "operation " + label(op, o) + " response"
 	check := bodyCheck{model: op.ResponseModel, key: key, every: true, list: op.MaxPerPage > 0}
 	responses, _ := o.node["responses"].(map[string]any)
 	var found []finding
@@ -120,14 +142,20 @@ type bodyCheck struct {
 
 	// list says that the body is a list of the model, rather than the model itself.
 	list bool
+
+	// array says that the body is a JSON array of the model, rather than the model itself, as
+	// the request of a bulk route is.
+	array bool
 }
 
 // body returns the findings of check against schema, a body that at locates in s: the model's row
 // maps it to a schema of s that the body holds, in each of its alternatives with check.every, and
-// in one of them otherwise. An alternative holds the model when it is the model's schema, and with
-// check.list, when it is an array or a paginated envelope whose items are instead.
+// in one of them otherwise. An alternative holds the model when it is the model's schema; with
+// check.array, when it is an array whose items are instead; and with check.list, when it is an
+// array or a paginated envelope whose items are instead.
 func (c *comparer) body(check bodyCheck, schema any, at string, s *spec) ([]finding, error) {
 	row := c.rows[check.model]
+	mapped, inSpec := row.schemaIn(s.name)
 	if err := s.audit(schema, at); err != nil {
 		return nil, err
 	}
@@ -136,26 +164,33 @@ func (c *comparer) body(check bodyCheck, schema any, at string, s *spec) ([]find
 		return nil, err
 	}
 	holds := func(h heldBody) bool {
-		if check.list {
-			return slices.Contains(h.items, row.Schema)
+		switch {
+		case check.list:
+			return slices.Contains(h.items, mapped)
+		case check.array:
+			return h.list == "an array" && slices.Contains(h.items, mapped)
+		default:
+			return h.name == mapped
 		}
-		return h.name == row.Schema
 	}
 	fits := slices.ContainsFunc(held, holds)
 	if check.every {
 		fits = !slices.ContainsFunc(held, func(h heldBody) bool { return !holds(h) })
 	}
-	if row.spec() == s.name && fits {
+	if inSpec && fits {
 		return nil, nil
 	}
 	described := make([]string, 0, len(held))
 	for _, h := range held {
 		described = append(described, h.String())
 	}
-	text := "the model " + check.model + " maps to the schema " + row.Schema + " of " +
-		row.spec() + ", and the body holds " + strings.Join(described, ", or ") + " of " + s.name
-	if check.list {
+	text := "the model " + check.model + " maps to " + row.describe() + ", and the body " +
+		"holds " + strings.Join(described, ", or ") + " of " + s.name
+	switch {
+	case check.list:
 		text += "; the reply of a list is an array or a paginated envelope of its model"
+	case check.array:
+		text += "; the RequestModel []" + check.model + " is a JSON array of the model"
 	}
 	return []finding{{check.key, text}}, nil
 }

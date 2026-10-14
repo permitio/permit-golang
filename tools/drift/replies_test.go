@@ -45,7 +45,9 @@ func replyFindings(dir string, specs map[string]*spec) ([]finding, []error, int,
 }
 
 // checkReply returns the findings of the reply fixture entry of dir against the schema of its
-// reply in specs, and whether it validated the fixture against the schema.
+// reply in specs: in the spec that lists its operation, and in each other spec that lists the
+// operation's method and path, as the cloud PDP lists the routes of the PDP container that it
+// serves. It returns whether it validated the fixture against the schema of the first.
 func checkReply(dir string, entry os.DirEntry, specs map[string]*spec) ([]finding, bool, error) {
 	name := entry.Name()
 	m := replyName.FindStringSubmatch(name)
@@ -58,15 +60,33 @@ func checkReply(dir string, entry os.DirEntry, specs map[string]*spec) ([]findin
 	if !ok {
 		return []finding{{text: name + ": no spec has the operation " + m[1]}}, false, nil
 	}
-	key := "reply " + name
-	responses, _ := o.node["responses"].(map[string]any)
-	reply, ok := responses[m[2]].(map[string]any)
-	if !ok {
-		return []finding{{key, "the spec lists no " + m[2] + " reply of " + m[1]}}, false, nil
+	found, validated, err := validateReply(dir, name, o, "reply "+name)
+	if err != nil || !validated {
+		return found, false, err
 	}
-	schema, at, ok := jsonBody(reply, o.at+"/responses/"+m[2])
+	for _, same := range sameRoute(specs, o) {
+		more, _, err := validateReply(dir, name, same, "reply "+name+"@"+same.spec.name)
+		if err != nil {
+			return nil, false, err
+		}
+		found = append(found, more...)
+	}
+	return found, true, nil
+}
+
+// validateReply returns the findings of the reply fixture name of dir against the schema of its
+// reply of o, keyed by key, and whether it validated the fixture against the schema.
+func validateReply(dir, name string, o specOperation, key string) ([]finding, bool, error) {
+	status := replyName.FindStringSubmatch(name)[2]
+	id, _ := o.node["operationId"].(string)
+	responses, _ := o.node["responses"].(map[string]any)
+	reply, ok := responses[status].(map[string]any)
 	if !ok {
-		return []finding{{key, "the spec's " + m[2] + " reply of " + m[1] + " has no JSON body"}},
+		return []finding{{key, "the spec lists no " + status + " reply of " + id}}, false, nil
+	}
+	schema, at, ok := jsonBody(reply, o.at+"/responses/"+status)
+	if !ok {
+		return []finding{{key, "the spec's " + status + " reply of " + id + " has no JSON body"}},
 			false, nil
 	}
 	if err := o.spec.audit(schema, at); err != nil {

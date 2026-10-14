@@ -33,5 +33,9 @@ func TestMain(m *testing.M) {
 	exampleAPIKey = mockpermit.APIKey
 	servers.API.Handle("GET /v2/api-key/scope",
 		mockpermit.Reply{Body: replyFixture("get_api_key_scope.200.json")})
+	servers.PDP.Handle("POST /allowed",
+		mockpermit.Reply{Body: replyFixture("is_allowed_allowed_post.200.json")})
+	servers.PDP.Handle("POST /allowed/bulk",
+		mockpermit.Reply{Body: replyFixture("is_allowed_bulk_allowed_bulk_post.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

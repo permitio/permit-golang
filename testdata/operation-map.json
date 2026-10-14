@@ -1,5 +1,14 @@
 {
   "methods": {
+    "Client.BulkCheck": [
+      "is_allowed_bulk_allowed_bulk_post"
+    ],
+    "Client.Check": [
+      "is_allowed_allowed_post"
+    ],
+    "Client.FilterObjects": [
+      "is_allowed_bulk_allowed_bulk_post"
+    ],
     "Client.Scope": [
       "get_api_key_scope"
     ]

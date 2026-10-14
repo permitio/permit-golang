@@ -51,6 +51,51 @@ func TestReplyFindings(t *testing.T) {
 	}
 }
 
+// TestReplyFindingsOfASharedRoute checks that a reply fixture is validated against the reply of
+// each other spec that lists the method and path of its operation too, under keys that name that
+// spec, and not when it does not validate against its own.
+func TestReplyFindingsOfASharedRoute(t *testing.T) {
+	operation := func(id, schema string) string {
+		return `{"operationId": "` + id + `", "responses": {"200": {"content":
+			{"application/json": {"schema": ` + schema + `}}}, "204": {}}}`
+	}
+	strict := `{"type": "object", "required": ["allow"], "properties": {"allow":
+		{"type": "boolean"}}}`
+	container := &spec{name: "pdp-container", doc: jsonObject(t, `{"paths": {
+		"/allowed": {"post": `+operation("check", `{"type": "object"}`)+`}}}`)}
+	cloud := &spec{name: "pdp-cloud", doc: jsonObject(t, `{"paths": {
+		"/allowed": {"post": `+operation("allowed_handler", strict)+`},
+		"/allowed/bulk": {"post": `+operation("other", strict)+`}}}`)}
+	specs := map[string]*spec{"pdp-container": container, "pdp-cloud": cloud}
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "check.200.json"), `{"allow": "yes"}`)
+	writeFile(t, filepath.Join(dir, "check.200.empty.json"), `{}`)
+	writeFile(t, filepath.Join(dir, "check.204.json"), `{}`)
+	writeFile(t, filepath.Join(dir, "check.404.json"), `{}`)
+	found, errs, n, err := replyFindings(dir, specs)
+	want := []string{
+		"reply check.200.empty.json@pdp-cloud#: has no property allow, which the schema at " +
+			"#/paths/~1allowed/post/responses/200/content/application~1json/schema requires",
+		"reply check.200.json@pdp-cloud#/allow: is string, and the schema at " +
+			"#/paths/~1allowed/post/responses/200/content/application~1json/schema/properties/" +
+			"allow allows boolean",
+		"reply check.204.json: the spec's 204 reply of check has no JSON body",
+		"reply check.404.json: the spec lists no 404 reply of check",
+	}
+	if got := findingTexts(found); err != nil || len(errs) != 0 || n != 2 ||
+		!slices.Equal(got, want) {
+		t.Errorf("replyFindings of a shared route =\n%s, %v, %v, %d\nwant\n%s",
+			strings.Join(got, "\n"), errs, err, n, strings.Join(want, "\n"))
+	}
+	cloud.doc["paths"] = jsonObject(t, `{"/allowed": {"post": {"operationId": "allowed_handler",
+		"responses": {"200": {"content": {"application/json": {"schema": {"not": {}}}}}}}}}`)
+	if _, errs, _, err = replyFindings(dir, specs); err != nil || len(errs) != 2 ||
+		!isUnsupported(errs[0]) {
+		t.Errorf("replyFindings of a shared route whose schema the walker does not implement = "+
+			"%v, %v; want an *unsupportedError for each fixture of 200", errs, err)
+	}
+}
+
 func TestReplyFindingsOfOtherDirectories(t *testing.T) {
 	specs := map[string]*spec{defaultSpec: fixtureSpec(t)}
 	dir := t.TempDir()

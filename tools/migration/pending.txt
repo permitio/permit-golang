@@ -78,20 +78,28 @@ api.NewUsersApi users
 config.PermitConfig.GetFactsSyncTimeout facts
 config.PermitConfig.GetFactsSyncTimeoutPolicy facts
 config.PermitConfig.WithFactsSyncTimeout facts
-config.PermitConfig.GetOpaUrl checks
-config.PermitConfig.WithOpaUrl checks
 config.DefaultFactsSyncTimeout facts
 config.FactsSyncTimeoutPolicy facts
 config.FactsSyncTimeoutPolicyFail facts
 config.FactsSyncTimeoutPolicyIgnore facts
-config.DefaultOpaUrl checks
 
 # Block a: pkg/enforcement and pkg/permit
-enforcement.* checks
+enforcement.AllTenantsCheckResponse checks
+enforcement.GetUserPermissionsRequest checks
+enforcement.NewGetUserPermissionsRequest checks
+enforcement.PermitEnforcer.AllTenantsCheck checks
+enforcement.PermitEnforcer.GetUserPermissions checks
+enforcement.PermitEnforcer.GetUserPermissionsWithOptions checks
+enforcement.ResourceDetails checks
+enforcement.TenantDetails checks
+enforcement.TenantUserPermissions checks
+enforcement.UserPermissions checks
+enforcement.UserPermissionsOption checks
+enforcement.WithContext checks
+enforcement.WithResourceTypes checks
+enforcement.WithResources checks
+enforcement.WithTenants checks
 permit.Client.AllTenantsCheck checks
-permit.Client.BulkCheck checks
-permit.Client.Check checks
-permit.Client.FilterObjects checks
 permit.Client.GetUserPermissions checks
 permit.Client.GetUserPermissionsWithOptions checks
 permit.Client.SyncUser users

@@ -101,16 +101,26 @@ type Op struct {
 	// change it.
 	SensitiveBodyFields []string
 
+	// NoReplyCredentials says that a reply of the operation in 200-299 holds no credential that
+	// the server issued, so that its values do not join the client's redact.Set: a decision of
+	// the PDP, whose reply can echo the check, would otherwise add each value of the application
+	// under a credential name, such as a context key token, to the Set for the life of the
+	// client.
+	NoReplyCredentials bool
+
 	// MaxPerPage is the largest per_page that a list operation accepts, or 0 for an operation
 	// that is not a list.
 	MaxPerPage int
 
 	// RequestModel is the name of the type of package models that the request body holds, such
-	// as UserCreate, or empty when the request has no body.
+	// as UserCreate, or of the root package for a decision of the PDP, such as CheckRequest; []
+	// and the name, such as []CheckRequest, when the body is a JSON array of the type; or empty
+	// when the request has no body.
 	RequestModel string
 
 	// ResponseModel is the name of the type of package models that the reply body holds, such
-	// as UserRead, or empty when the SDK reads no body from the reply.
+	// as UserRead, or empty when the SDK reads no model from the reply, such as a decision of the
+	// PDP, whose allow the SDK reads itself.
 	ResponseModel string
 }
 

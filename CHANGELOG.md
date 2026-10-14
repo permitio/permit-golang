@@ -72,6 +72,32 @@ change from v1 and what to use instead.
   until a write reaches its policy, and says that it answers every other facts call without
   waiting. A test checks the list against the container's spec.
 
+### Decisions
+
+- `Client.Check(ctx, user, action, resource, opts...)` asks the PDP for one decision with
+  `POST /allowed`. `Client.BulkCheck(ctx, checks)` asks for the decisions of many checks, of any
+  users, actions, resources and tenants, with one `POST /allowed/bulk` request, and returns them
+  in the order of the checks. `Client.FilterObjects(ctx, user, action, resources, opts...)`
+  returns the resources that the PDP allows, each as it was given, with one `POST /allowed/bulk`
+  request. The PDP container and the cloud PDP both serve these routes. A call without checks or
+  resources sends no request.
+- `permit.User`, `permit.Resource` and `permit.CheckRequest` are built as struct literals. A
+  resource has a `Key`, which makes the check one of that instance, and no ID, and each check
+  sends the key, the tenant, the attributes and the context of its resource as given; a resource
+  without a tenant is sent with the tenant `default`. `WithDecisionContext(map[string]any)` gives
+  the checks of a call their context, with values of any JSON type. A nil or empty map of
+  attributes or of context is left out of the body, never sent as `null`.
+- A call returns a decision only when the PDP's reply holds one: a reply in 200-299 that is not a
+  JSON object with one key `allow` whose value is a boolean, such as `{}`, `{"allow": null}` or
+  `{"Allow": true}`, or that does not hold such a decision for each check, is an error that
+  matches `ErrMalformedDecision`. A reply with an error status, such as 400, 421, 422 or 429
+  after the retries, is a `*permit.Error` with the status and the body. A user without a key, a
+  resource without a type and the zero `CheckOption` are errors that match `ErrInvalidConfig`,
+  and send no request.
+- A decision changes nothing, so a call sends its request again after a 500, 502, 503 or 504
+  reply or a failed connection, as after a 429.
+- Decisions go to the PDP only: v1's `WithOpaUrl`, which sent them to OPA, has no counterpart.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

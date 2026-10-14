@@ -53,6 +53,10 @@ type generator struct {
 	// unknown writes unknownValue in place of each value of an enum of strings.
 	unknown bool
 
+	// leftOut are the properties that the values leave out, by the name of the schema of
+	// components.schemas that lists them, as the left_out of a row of model-map.yaml says.
+	leftOut map[string][]string
+
 	// open holds the names of the schemas that the value being written is in.
 	open map[string]bool
 }
@@ -71,11 +75,13 @@ type choice struct {
 // accepted: as many as it takes for every option of every choice that they meet, each
 // alternative and each value of an enum, to be in one of them, where a choice under another is
 // a choice of its own for each alternative above it. With unknown, each value of an enum of
-// strings is unknownValue instead. A schema that needs more than maxValues values is an
+// strings is unknownValue instead. The values leave out the properties of leftOut, by the name of
+// the schema that lists them. A schema that needs more than maxValues values is an
 // *unsupportedError.
-func (s *spec) maximal(ref string, unknown bool) ([]any, error) {
+func (s *spec) maximal(ref string, unknown bool, leftOut map[string][]string) ([]any, error) {
 	g := &generator{
-		spec: s, choices: map[string]*choice{}, unknown: unknown, open: map[string]bool{},
+		spec: s, choices: map[string]*choice{}, unknown: unknown, leftOut: leftOut,
+		open: map[string]bool{},
 	}
 	var values []any
 	for len(values) == 0 || g.left > 0 {
@@ -153,7 +159,7 @@ func (g *generator) value(schema any, at, site string) (any, error) {
 	case "array":
 		return g.array(alt.schema, at, site)
 	case "object":
-		return g.object(alt.schema, at, site)
+		return g.object(alt.name, alt.schema, at, site)
 	default:
 		format, _ := alt.schema["format"].(string)
 		if sample, ok := formatSamples[format]; ok {
@@ -190,17 +196,21 @@ func (g *generator) array(node map[string]any, at, site string) (any, error) {
 	return items, nil
 }
 
-// object returns the maximal object of node, which at locates and whose choices are at site:
-// every property, one more for each of its patternProperties, and, when it lists no property, one
-// more for its additionalProperties, a string when it has none. A property that would hold the
-// object again is left out when it is not required.
-func (g *generator) object(node map[string]any, at, site string) (any, error) {
+// object returns the maximal object of node, the schema named schema of components.schemas or an
+// inline one, which at locates and whose choices are at site: every property but those that
+// g.leftOut gives for schema, one more for each of its patternProperties, and, when it lists no
+// property, one more for its additionalProperties, a string when it has none. A property that
+// would hold the object again is left out when it is not required.
+func (g *generator) object(schema string, node map[string]any, at, site string) (any, error) {
 	shape, err := g.spec.object(node, at)
 	if err != nil {
 		return nil, err
 	}
 	object := map[string]any{}
 	for _, name := range slices.Sorted(maps.Keys(shape.properties)) {
+		if slices.Contains(g.leftOut[schema], name) {
+			continue
+		}
 		where := "/properties/" + escape(name)
 		v, err := g.value(shape.properties[name], at+where, site+where)
 		switch {
@@ -384,15 +394,18 @@ func differences(want, got any, path string) []mismatch {
 		compact(want))}}
 }
 
-// roundTripFindings returns the findings of the strict round trip of t, the type that name
-// maps to the schema that at locates in s: each maximal value of the schema decodes into t with the
-// strict decoder and encodes back unchanged; with an unknown value in place of each value of an
-// enum, and with an unknown field, each decodes with the SDK's tolerant decoder, wire.Decode, and
-// encodes back unchanged, without the unknown field. A value has a finding for each place where
-// it differs, whose key is round trip, name and the place's JSON pointer, such as
-// round trip UserRead#/email, or # when the value does not decode or encode. Its error is an
-// *unsupportedError when the schema holds what the walker does not implement.
-func roundTripFindings(name string, t reflect.Type, s *spec, at string) ([]finding, error) {
+// roundTripFindings returns the findings of the strict round trip of t, the type that a row maps
+// to the schema that at locates in s: each maximal value of the schema, without the properties of
+// leftOut, decodes into t with the strict decoder and encodes back unchanged; with an unknown
+// value in place of each value of an enum, and with an unknown field, each decodes with the SDK's
+// tolerant decoder, wire.Decode, and encodes back unchanged, without the unknown field. A value
+// has a finding for each place where it differs, whose key is round trip, label and the place's
+// JSON pointer, such as round trip UserRead#/email, or # when the value does not decode or
+// encode; label names the type as target.label does. Its error is an *unsupportedError when the
+// schema holds what the walker does not implement.
+func roundTripFindings(label string, t reflect.Type, s *spec, at string,
+	leftOut map[string][]string,
+) ([]finding, error) {
 	schema, _, err := s.resolve(at)
 	if err != nil {
 		return nil, err
@@ -400,9 +413,9 @@ func roundTripFindings(name string, t reflect.Type, s *spec, at string) ([]findi
 	if err = s.audit(schema, at); err != nil {
 		return nil, err
 	}
-	key := "round trip " + name
+	key := "round trip " + label
 	var found []finding
-	values, err := s.maximal(at, false)
+	values, err := s.maximal(at, false, leftOut)
 	if err != nil {
 		return nil, err
 	}
@@ -412,7 +425,7 @@ func roundTripFindings(name string, t reflect.Type, s *spec, at string) ([]findi
 				"%d of %d: %s", i+1, len(values), m.text)})
 		}
 	}
-	unknown, err := s.maximal(at, true)
+	unknown, err := s.maximal(at, true, leftOut)
 	if err != nil {
 		return nil, err
 	}

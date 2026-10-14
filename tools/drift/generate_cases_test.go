@@ -196,7 +196,7 @@ func TestMaximal(t *testing.T) {
 				`"00000000-0000-4000-8000-000000000001"},"tags":["value"]}`,
 		}},
 	} {
-		values, err := tc.spec.maximal(schemaPrefix+tc.schema, tc.unknown)
+		values, err := tc.spec.maximal(schemaPrefix+tc.schema, tc.unknown, nil)
 		if err != nil {
 			t.Fatalf("maximal(%s): %v", tc.schema, err)
 		}
@@ -230,7 +230,7 @@ func TestMaximalKinds(t *testing.T) {
 		"Tree": {"type": "object", "properties": {"kids": {"type": "array",
 			"items": {"$ref": "#/components/schemas/Tree"}}}, "required": ["kids"]}
 	}`)
-	values, err := s.maximal(schemaPrefix+"Kinds", true)
+	values, err := s.maximal(schemaPrefix+"Kinds", true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,12 +283,12 @@ func TestMaximalFails(t *testing.T) {
 		{"Clash", `#/components/schemas/Clash/allOf/1: the properties "a" has two schemas in an ` +
 			"allOf, which the walker does not merge"},
 	} {
-		_, err := s.maximal(schemaPrefix+tc.schema, false)
+		_, err := s.maximal(schemaPrefix+tc.schema, false, nil)
 		if err == nil || err.Error() != tc.want {
 			t.Errorf("maximal(%s) fails with\n%v\nwant\n%s", tc.schema, err, tc.want)
 		}
 	}
-	values, err := s.maximal(schemaPrefix+"Holder", false)
+	values, err := s.maximal(schemaPrefix+"Holder", false, nil)
 	if err != nil || len(values) != 1 || compact(values[0]) != "{}" {
 		t.Errorf("maximal(Holder) = %v, %v; want {}, which leaves out the schema that requires "+
 			"itself", values, err)
@@ -301,11 +301,11 @@ func TestMaximalFails(t *testing.T) {
 		"Most": {"enum": [`+strings.Join(options[:maxValues], ", ")+`]},
 		"TooMany": {"enum": [`+strings.Join(options, ", ")+`]}
 	}`)
-	values, err = most.maximal(schemaPrefix+"Most", false)
+	values, err = most.maximal(schemaPrefix+"Most", false, nil)
 	if err != nil || len(values) != maxValues {
 		t.Errorf("maximal(Most) = %d values, %v; want %d", len(values), err, maxValues)
 	}
-	_, err = most.maximal(schemaPrefix+"TooMany", false)
+	_, err = most.maximal(schemaPrefix+"TooMany", false, nil)
 	want := "#/components/schemas/TooMany: the generator stops after 256 maximal values, and the " +
 		"number of options of their choices that none of them holds is 1"
 	if !isUnsupported(err) || err.Error() != want {
@@ -429,6 +429,35 @@ func TestDifference(t *testing.T) {
 	}
 }
 
+// TestMaximalLeavesOut checks that the maximal values leave out the properties that leftOut gives
+// for the schema of components.schemas that lists them, at any depth, and keep a property of that
+// name in another schema or an inline one.
+func TestMaximalLeavesOut(t *testing.T) {
+	s := inlineSpec(t, defaultSpec, `{
+		"Query": {"type": "object", "properties": {"sdk": {"type": "string"},
+			"user": {"$ref": "#/components/schemas/User"},
+			"meta": {"type": "object", "properties": {"sdk": {"type": "string"}}}}},
+		"User": {"type": "object", "properties": {"firstName": {"type": "string"},
+			"first_name": {"type": "string"}, "sdk": {"type": "string"}}}
+	}`)
+	values, err := s.maximal(schemaPrefix+"Query", false, map[string][]string{
+		"Query": {"sdk"}, "User": {"firstName"},
+	})
+	want := []any{map[string]any{
+		"meta": map[string]any{"sdk": "value"},
+		"user": map[string]any{"first_name": "value", "sdk": "value"},
+	}}
+	if err != nil || !reflect.DeepEqual(values, want) {
+		t.Errorf("maximal(Query) = %v, %v; want %v", values, err, want)
+	}
+	found, err := roundTripFindings("ScopeWithoutProject", reflect.TypeFor[ScopeWithoutProject](),
+		fixtureSpec(t), schemaPrefix+"Scope", map[string][]string{"Scope": {"project_id"}})
+	if err != nil || found != nil {
+		t.Errorf("roundTripFindings of a type without a property that it leaves out = %v, %v; "+
+			"want none", findingTexts(found), err)
+	}
+}
+
 func TestRoundTripFindings(t *testing.T) {
 	s := fixtureSpec(t)
 	for _, tc := range []struct {
@@ -486,7 +515,7 @@ func TestRoundTripFindings(t *testing.T) {
 				"value of type int",
 		}},
 	} {
-		found, err := roundTripFindings(tc.name, tc.typ, s, schemaPrefix+tc.schema)
+		found, err := roundTripFindings(tc.name, tc.typ, s, schemaPrefix+tc.schema, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", tc.name, err)
 		}
@@ -503,7 +532,8 @@ func TestRoundTripFindings(t *testing.T) {
 		{"Gone", "#/components/schemas/Gone: the $ref points at nothing in the spec"},
 		{"Odd", `#/components/schemas/Odd: the keyword "not" is not one the walker implements`},
 	} {
-		_, err := roundTripFindings(tc.schema, reflect.TypeFor[Scope](), s, schemaPrefix+tc.schema)
+		_, err := roundTripFindings(tc.schema, reflect.TypeFor[Scope](), s,
+			schemaPrefix+tc.schema, nil)
 		if !isUnsupported(err) || !strings.HasPrefix(err.Error(), tc.want) {
 			t.Errorf("roundTripFindings(%s) fails with %v, want %q", tc.schema, err, tc.want)
 		}

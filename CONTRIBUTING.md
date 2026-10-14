@@ -1061,35 +1061,44 @@ HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
 
 They check five things:
 
-- **Models.** `tools/drift/model-map.yaml` maps each type of `models` to its schema. A struct has
-  a field for each property of its schema, and no other, by their JSON names. The type of each
-  field holds every alternative of its property, and is of no JSON kind that the property does not
-  allow: an object schema of `components.schemas` is the type of `models` whose row maps it, an
-  enum schema the enum type whose row maps it, a string of format `date-time` a `models.Time`, and
-  an object without properties `models.Attributes`, or a map of the type of its values. An enum
-  type has a constant for each value of its schema, and no other. A count keeps the map complete:
-  each exported type of `models` is a row under `models`, or under `blocks` when no schema
-  describes it, such as `Optional`, and `modelTypes` in `tools/drift/types_test.go` holds a value
-  of each type under `models`, for the tests to read and decode into.
-- **Strict round trip.** The tests write the maximal values of each row's schema in memory: every
-  property, and across the values every alternative and every value of an enum, at each place in
-  the value and under each alternative above it. Each decodes into the type with a strict decoder,
+- **Models.** `tools/drift/model-map.yaml` maps each type of `models` to its schema, and each
+  decision type of the root package that a request to the PDP holds, such as `CheckRequest`, to
+  the schema of the PDP container and, under `also`, to that of the cloud PDP. A struct has a
+  field for each property of each of its schemas, and no other, by their JSON names. The type of each field holds every alternative of its property, and
+  is of no JSON kind that the property does not allow: an object schema of `components.schemas` is
+  the type whose row maps it, an enum schema the enum type whose row maps it, a string of format
+  `date-time` a `models.Time`, and an object without properties `models.Attributes`, or a map of
+  the type of its values. An enum type has a constant for each value of its schema, and no other.
+  A count keeps the map complete: each exported type of `models` is a row under `models`, or under
+  `blocks` when no schema describes it, such as `Optional`; each row is an exported type of
+  `models` or of the root package, and not a name that both export; and `modelTypes` in
+  `tools/drift/types_test.go` holds a value of each type under `models`, for the tests to read and
+  decode into.
+- **Strict round trip.** The tests write the maximal values of each schema of a row in memory:
+  every property but those that a row leaves out, and across the values every alternative and
+  every value of an enum, at each place in the value and under each alternative above it. Each decodes into the type with a strict decoder,
   which fails on a field that the type does not have, and encodes back unchanged, except that a
   null property whose field is not an `Optional` may come back left out. With an unknown field,
   and with an unknown value in place of each value of an enum, each still decodes with the SDK's
   decoder.
 - **Operations.** The `RequestModel` and `ResponseModel` of each operation of the
   [registry](#operation-registry) map, through their rows, to the schemas of the operation's
-  request body and of each of its replies in 200-299 that has a JSON body. A request holds the
-  model when one of its alternatives does, as the SDK chooses what it sends; a reply only when
-  each of its alternatives does, as the API chooses. An alternative holds the model when it is the
-  model's schema, and in the reply of a list, an operation with a `MaxPerPage`, when it is an
-  array or a paginated envelope of it instead. So a Get whose model is smaller than the schema
-  that the API returns, such as an environment without its email configuration, fails.
+  request body and of each of its replies in 200-299 that has a JSON body, in the spec that lists
+  the operation's ID and in each other spec that lists its method and route, as the cloud PDP
+  lists the routes of the PDP container that it serves. A request holds the model when one of its
+  alternatives does, as the SDK chooses what it sends; a reply only when each of its alternatives
+  does, as the API chooses. An alternative holds the model when it is the model's schema; for a
+  `RequestModel` of `[]` and a name, such as `[]CheckRequest`, which the SDK sends as a JSON
+  array, as the request of `POST /allowed/bulk` is, when it is an array of the model instead; and
+  in the reply of a list, an operation with a `MaxPerPage`, when it is an array or a paginated
+  envelope of it instead. So a Get whose model is smaller than the schema that the API returns,
+  such as an environment without its email configuration, fails, and so does an operation that
+  sends one model where the spec takes an array, or an array where it takes one.
 - **Reply fixtures.** Each file in `testdata/replies` is the body of a reply that the wire tests
   serve, named `<operationId>.<status>[.<variant>].json`, such as `get_user.200.json` or
   `list_users.200.page.json`, with a variant of lower-case letters, digits and hyphens. The tests
-  validate it against the schema of its operation's reply with that status. Keep fixtures small:
+  validate it against the schema of its operation's reply with that status, and against that of
+  the operation of each other spec that lists the same method and route. Keep fixtures small:
   they are in the module zip.
 - **Waits for sync.** The PDP container waits for sync on the routes under `/facts` that
   `pdp-container.json` lists. `tools/drift/waits_test.go` fails unless the table of the section
@@ -1126,17 +1135,37 @@ blocks:
 ```
 
 A row whose schema is in another snapshot than `control-plane.json` names it with `spec`:
-`pdp-container` or `pdp-cloud`. Each field of a struct has a row of its own, by its JSON name,
-with:
+`pdp-container` or `pdp-cloud`. A type that the schemas of two snapshots describe, as the PDP
+container and the cloud PDP both describe a check, lists the others under `also`, one for each
+snapshot, and the tests compare it with each. A property of a schema that the type has no field
+for on purpose goes under `left_out`, with the reason, so that the maximal values of the round
+trip leave it out; the comparison still finds it, and `allow.yaml` accepts that finding with its
+trigger. A property of `left_out` that a field holds, or that none of the row's schemas has,
+fails:
+
+```yaml
+models:
+  CheckRequest:
+    spec: pdp-container
+    schema: AuthorizationQuery
+    also:
+      - {spec: pdp-cloud, schema: AllowedQuery}
+    left_out:
+      sdk: the PDP reads the language of the SDK from the X-Permit-SDK-Language header
+```
+
+Each field of a struct has a row of its own, by its JSON name, with:
 
 - `required`, as the schema has it. apisurface reads it to find a field that turned required,
   which breaks code that builds the model; see [Breaking changes](#breaking-changes). A required
   field is tagged without `omitzero`, so that a body always holds it, any other field with
   `omitzero`, and no field with `omitempty`.
 - `null_policy`, what the API does with null for the field in a request: `accepts`, and the field
-  is a `models.Optional` tagged `omitzero`; `rejects`; or `n/a` for a type that no request holds,
-  such as the model of a reply. A field is an `Optional` exactly when its policy is `accepts`, and
-  no field of a type that a `RequestModel` holds, itself or through its fields, has `n/a`.
+  is a `models.Optional` tagged `omitzero`; `rejects`; `ignores`, when the API reads null as the
+  field left out, as both PDPs do for an optional string of a check, which the spec of the cloud
+  PDP types as a string or null, so that the SDK leaves the field out instead and it is no
+  `Optional`; or `n/a` for a type that no request holds, such as the model of a reply. A field is an `Optional` exactly when its policy is `accepts`, and no field
+  of a type that a `RequestModel` holds, itself or through its fields, has `n/a`.
 
 The specs do not say which fields take null, so decide a policy from the API: send a request that
 sets the field to null, and write `accepts` when the API takes it, such as to clear the field, and
@@ -1144,12 +1173,16 @@ sets the field to null, and write `accepts` when the API takes it, such as to cl
 
 ### The allowlist
 
-When the spec is wrong and the SDK follows the API, `tools/drift/allow.yaml` accepts the finding.
-A failing test prints each finding after its key, such as `model UserRead field email`,
+When the spec is wrong and the SDK follows the API, `tools/drift/allow.yaml` accepts the finding,
+as it does when the spec lists an optional property that the API reads elsewhere and the SDK
+leaves out, such as the `sdk` of a check, as the PDP reads the SDK from a header. A failing test
+prints each finding after its key, such as `model UserRead field email`,
 `round trip UserRead#/email` (`#` alone when a value does not decode),
-`operation get_user response` or `reply get_user.200.json#/email`. An entry gives the key, the
-`reason`, what the API does that the spec does not say, and the `trigger`, when the entry can go,
-such as when the published spec lists the field:
+`operation get_user response` or `reply get_user.200.json#/email`. A finding against a schema of
+`also`, or against the operation of another spec with the same route, names the spec after `@`,
+such as `model User@pdp-cloud field email` or `reply is_allowed_allowed_post.200.json@pdp-cloud`.
+An entry gives the key, the `reason`, what the API does that the spec does not say, and the
+`trigger`, when the entry can go, such as when the published spec lists the field:
 
 ```yaml
 allow:
@@ -1415,8 +1448,9 @@ its own:
 | `DeleteSelf` | A DELETE whose path names the object it deletes, so that a 404 means the object is gone already. Not a removal whose body names what it removes. |
 | `NoRetry` | Never sent twice, not even after a 429, such as rotating an API key. |
 | `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name other than the credential names of `redact.Set.AddFields`, such as `webhook_secret`. |
+| `NoReplyCredentials` | Its replies in 200-299 hold no credential that the server issued, so their values do not join the client's `redact.Set`: the PDP's decisions, whose replies can echo the check. |
 | `MaxPerPage` | The largest `per_page` of a list operation, or 0. |
-| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty. |
+| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty; a decision of the PDP names the type of the root package that its request holds, such as `CheckRequest`, and no `ResponseModel`, as the SDK reads `allow` of the reply itself. A request that is a JSON array of the type names it after `[]`, such as `[]CheckRequest`. |
 
 A `*permit.Client` holds the registry, `rest.Default()`. The registry fails on an operation that
 is not valid, such as one without a key level, `DeleteSelf` on another method than DELETE,
@@ -1427,9 +1461,10 @@ operation is `WaitsForSync` exactly when the PDP container waits on its route, o
 under `/facts` that `pdp-container.json` lists; see [Model drift](#model-drift).
 `TestRepositoryRegistry`, in `tools/registry_test.go`, checks each operation of `rest.Default()` against `tools/specs`: its ID
 is the op of a planned or covered row of `coverage.yaml`, its method and route are those that a
-spec lists for the ID, or those of the row when the row is `sdk_only`, and its `RequestModel` and
-`ResponseModel` name exported types of `models`. `TestOperationMap` fails when a wire case names
-an operation that the registry does not hold.
+spec lists for the ID, or those of the row when the row is `sdk_only`, and its `RequestModel`,
+after the `[]` of a JSON array, and `ResponseModel` name exported types of `models` or of the root
+package. `TestOperationMap` fails when a wire case names an operation that the registry does not
+hold.
 
 A test that needs an operation the SDK does not have, such as to check the transport, builds its
 client with `newTestClient` (`export_test.go`), which takes test-only operations, whose routes

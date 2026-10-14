@@ -1,0 +1,3 @@
+go test fuzz v1
+string("alice\x00Alice\x00\x00a@example.com\x00read\x00document\x00\x00tenant-a")
+[]byte("{\"max\":9223372036854775807,\"tiny\":1e-400,\"big\":1e400,\"sep\":\" \"}\x00{\"html\":\"<>&\"}\x00{\"deep\":{\"a\":[[[{}]]]}}\x00{\"null\":null,\"bool\":false}")

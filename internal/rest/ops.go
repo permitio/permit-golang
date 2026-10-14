@@ -15,4 +15,20 @@ var defaultOps = []Op{
 		ID: "get_api_key_scope", Method: http.MethodGet, Route: "/v2/api-key/scope",
 		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "APIKeyScopeRead",
 	},
+
+	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
+	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
+	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name
+	// no model; the drift tests check the reply fixtures of the wire tests against the specs. A
+	// reply can echo the check, whose values are the application's, not credentials.
+	{
+		ID: "is_allowed_allowed_post", Method: http.MethodPost, Route: "/allowed",
+		Idempotent: true, KeyLevel: EnvironmentLevel, NoReplyCredentials: true,
+		RequestModel: "CheckRequest",
+	},
+	{
+		ID: "is_allowed_bulk_allowed_bulk_post", Method: http.MethodPost, Route: "/allowed/bulk",
+		Idempotent: true, KeyLevel: EnvironmentLevel, NoReplyCredentials: true,
+		RequestModel: "[]CheckRequest",
+	},
 }

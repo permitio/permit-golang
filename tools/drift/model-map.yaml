@@ -1,15 +1,24 @@
-# The drift map of package models. tools/drift checks it against the models and the spec
-# snapshots in tools/specs, and apisurface reads its required flags to find a field that turned
-# required. The section Model drift of CONTRIBUTING.md says how to write a row.
+# The drift map of package models, and of the decision types of the root package that the
+# requests to the PDP hold. tools/drift checks it against the types and the spec snapshots in
+# tools/specs, and apisurface reads its required flags to find a field that turned required. The
+# section Model drift of CONTRIBUTING.md says how to write a row.
 #
-# models.<Type>: a type that a schema of a spec describes.
+# models.<Type>: a type that a schema of a spec describes, of package models or of the root
+#   package.
 #   spec: the snapshot that holds the schema: control-plane (when left out), pdp-container or
 #     pdp-cloud.
 #   schema: the name of the schema under components.schemas.
+#   also: the schemas of other specs that describe the type too, each {spec, schema} of a spec of
+#     its own, such as the schema of the cloud PDP of a decision type. The type is compared with
+#     each; the keys of the findings name the type and the spec, such as User@pdp-cloud.
+#   left_out.<property>: a property of the schemas that the type has no field for on purpose,
+#     with the reason. The round trip leaves it out of the maximal values; the comparison still
+#     finds it, for allow.yaml to accept.
 #   fields.<JSON name>: each field of a struct.
 #     required: true when the schema lists the field as required.
 #     null_policy: what the API does with null for the field in a request: accepts (the field
-#       is a models.Optional), rejects, or n/a, for a type that no request holds.
+#       is a models.Optional), rejects, ignores (the API reads null as the field left out), or
+#       n/a, for a type that no request holds.
 #
 # blocks.<Type>: a type that no schema describes, which models use for their fields, with what it
 # stands for.
@@ -22,6 +31,51 @@ models:
       environment_id: {required: false, null_policy: n/a}
   AttributeType:
     schema: AttributeType
+  # The decision types of the root package map to the schemas of the PDP container, and to those
+  # of the cloud PDP. Both PDPs read null for an optional string of a check as the string left
+  # out, as the spec of the cloud PDP types these strings, string or null, and answer 422 to null
+  # for a map.
+  CheckRequest:
+    spec: pdp-container
+    schema: AuthorizationQuery
+    also:
+      - {spec: pdp-cloud, schema: AllowedQuery}
+    left_out:
+      sdk: >-
+        the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+        request of the SDK carries
+    fields:
+      user: {required: true, null_policy: rejects}
+      action: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
+  Resource:
+    spec: pdp-container
+    schema: Resource
+    also:
+      - {spec: pdp-cloud, schema: Resource}
+    fields:
+      type: {required: true, null_policy: rejects}
+      key: {required: false, null_policy: ignores}
+      tenant: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
+  User:
+    spec: pdp-container
+    schema: User
+    also:
+      - {spec: pdp-cloud, schema: User}
+    left_out:
+      firstName: >-
+        the SDK sends first_name, which every PDP reads; the PDP container also reads firstName
+      lastName: >-
+        the SDK sends last_name, which every PDP reads; the PDP container also reads lastName
+    fields:
+      key: {required: true, null_policy: rejects}
+      first_name: {required: false, null_policy: ignores}
+      last_name: {required: false, null_policy: ignores}
+      email: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: rejects}
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property
   Optional: a field that the API accepts null for, whose null policy is accepts

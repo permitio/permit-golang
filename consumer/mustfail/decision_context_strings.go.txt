@@ -1,0 +1,12 @@
+// want: as map[string]any value in argument to permit.WithDecisionContext
+
+// The context of a decision is a map of any JSON values, such as numbers and booleans, and not a
+// map of strings alone.
+package main
+
+import "github.com/permitio/permit-golang/v2"
+
+func main() {
+	decisionContext := map[string]string{"business_hours": "true"}
+	_ = permit.WithDecisionContext(decisionContext)
+}

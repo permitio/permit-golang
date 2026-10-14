@@ -136,14 +136,15 @@ func doList[T any](ctx context.Context, c *Client, r request, shape listShape) (
 // deadline, and writes one Debug line for each attempt.
 //
 // The reply's credentials, the values that redact.Set.AddFields finds in a body it reads under a
-// credential name or one of the operation's SensitiveBodyFields, join the client's Set. exchange
-// returns a *Error for a reply whose status is not in 200-299 and for a request without a
-// complete reply, with these exceptions: an Error that wraps ErrContainerPDPOnly, not
-// ErrNotFound, for a 404 with an empty body to a ContainerOnly operation, which the cloud PDP
-// does not serve, as a Facts operation sent to the PDP is; and otherwise nil for a 404 to a
-// DeleteSelf operation when readBody is not set, as the object is gone already. A call that
-// fails returns the error of its last attempt, or, when ctx ends while it waits to send the
-// request again, a *Error that wraps the error of ctx.
+// credential name or one of the operation's SensitiveBodyFields, join the client's Set, unless
+// the operation is NoReplyCredentials, as a decision of the PDP is. exchange returns a *Error for
+// a reply whose status is not in 200-299 and for a request without a complete reply, with these
+// exceptions: an Error that wraps ErrContainerPDPOnly, not ErrNotFound, for a 404 with an empty
+// body to a ContainerOnly operation, which the cloud PDP does not serve, as a Facts operation
+// sent to the PDP is; and otherwise nil for a 404 to a DeleteSelf operation when readBody is not
+// set, as the object is gone already. A call that fails returns the error of its last attempt,
+// or, when ctx ends while it waits to send the request again, a *Error that wraps the error of
+// ctx.
 func (c *Client) exchange(ctx context.Context, r request, readBody bool) (rest.Op,
 	transport.Reply, error,
 ) {
@@ -171,7 +172,7 @@ func (c *Client) exchange(ctx context.Context, r request, readBody bool) (rest.O
 	if err != nil {
 		return op, reply, err
 	}
-	if readBody {
+	if readBody && !op.NoReplyCredentials {
 		c.secrets.AddFields(reply.Body, op.SensitiveBodyFields...)
 	}
 	return op, reply, nil

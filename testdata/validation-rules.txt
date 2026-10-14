@@ -20,9 +20,11 @@ config.url.parse the URL does not parse; check that it starts with http:// or ht
 config.url.query the URL has a query (?...); give the URL without it
 config.url.scheme the URL must start with http:// or https://
 config.url.userinfo the URL has a user name or a password; give the API key with WithAPIKey or PERMIT_API_KEY instead
+decision.filter.empty the filter has no keys; give at least one, or leave the option out to get the permissions of every tenant, resource or resource type
+decision.option.nil the PermissionsOption is nil; build options with the With functions, such as WithTenants
 decision.option.zero the CheckOption is the zero value; build options with the With functions, such as WithDecisionContext
-decision.resource-type.empty the resource type is empty; give the key of the resource type, such as document, as the PDP rejects a check without one
-decision.user-key.empty the user key is empty; give the key of the user, as the PDP rejects a check without one
+decision.resource-type.empty the resource type is empty; give the key of the resource type, such as document, as the PDP rejects a request without one
+decision.user-key.empty the user key is empty; give the key of the user, as the PDP rejects a request without one
 list.page.negative Page is less than zero; give 0 or 1 for the first page, or the number of a later page
 list.per-page.negative PerPage is less than zero; give 0 to leave the number of items on a page to the method, or a number from 1
 path.segment.dot the path parameter is . or .., which would change the route; pass the key or ID of the object

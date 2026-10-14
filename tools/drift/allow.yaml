@@ -58,3 +58,19 @@ allow:
       the SDK sends last_name, which every PDP reads, in place of the alias lastName, which only
       the PDP container reads
     trigger: when the spec of the PDP container lists last_name
+  - key: model AuthorizedUsersRequest field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of the request
+    trigger: when a PDP reads the SDK of a request for authorized users from its sdk field only
+  - key: model AuthorizedUsersRequest@pdp-cloud field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of the request
+    trigger: when a PDP reads the SDK of a request for authorized users from its sdk field only
+  - key: model ObjectPermissions field permissions
+    reason: >-
+      the PDP container returns permissions in every entry of the permissions of a user, an empty
+      list when the user has none, which its spec lists as optional; the spec of the cloud PDP
+      requires it, and the SDK reads an entry without it as malformed
+    trigger: when the spec of the PDP container requires permissions

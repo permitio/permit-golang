@@ -105,7 +105,7 @@ type wireNoResult struct{}
 
 // wireCaseLists holds the <area>Cases function of each *_wire_test.go file, which returns the
 // wire cases of the methods of its area. Add the function of a new file here.
-var wireCaseLists = []func() []wireCase{scopeCases, decisionCases}
+var wireCaseLists = []func() []wireCase{scopeCases, decisionCases, permissionCases}
 
 // routeMethods are the request methods a route can have.
 var routeMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE"}

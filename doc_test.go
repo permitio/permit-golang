@@ -42,7 +42,10 @@ var sdkModule = docModule{
 // decisionMethods are the methods that make an authorization decision, as <Type>.<Method>, such
 // as Client.Check. Each needs an Example with an output comment, like each service type. The
 // commits that add the methods add them here.
-var decisionMethods = []string{"Client.BulkCheck", "Client.Check", "Client.FilterObjects"}
+var decisionMethods = []string{
+	"Client.AuthorizedUsers", "Client.BulkCheck", "Client.Check", "Client.FilterObjects",
+	"Client.UserPermissions",
+}
 
 // docRule requires a phrase in the doc comment of a method, or forbids it.
 type docRule struct {

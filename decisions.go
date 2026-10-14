@@ -25,11 +25,11 @@ const (
 // default tenant of an environment, which the other SDKs of Permit send too.
 const defaultTenant = "default"
 
-// User is the user that a check asks about, as the PDP gets it. Build it as a struct literal,
-// such as permit.User{Key: "alice"}. The PDP decides for the user by its key, and passes the
-// rest to the policy.
+// User is the user that a check, or [Client.UserPermissions], asks about, as the PDP gets it.
+// Build it as a struct literal, such as permit.User{Key: "alice"}. The PDP decides for the user
+// by its key, and passes the rest to the policy.
 type User struct {
-	// Key is the key of the user, as Permit knows the user. It must not be empty: a check of a
+	// Key is the key of the user, as Permit knows the user. It must not be empty: a call for a
 	// user without a key returns an error that matches [ErrInvalidConfig] and sends no request.
 	Key string `json:"key"`
 
@@ -50,11 +50,12 @@ type User struct {
 	Attributes map[string]any `json:"attributes,omitzero"`
 }
 
-// Resource is the resource that a check asks about, as the PDP gets it: a resource type, and for
-// a check of one instance of the type, the instance's key. Build it as a struct literal, such as
-// permit.Resource{Type: "document", Key: "2026-report", Tenant: "tenant-a"}.
+// Resource is the resource that a check, or [Client.AuthorizedUsers], asks about, as the PDP gets
+// it: a resource type, and for a check of one instance of the type, the instance's key. Build it
+// as a struct literal, such as permit.Resource{Type: "document", Key: "2026-report", Tenant:
+// "tenant-a"}.
 type Resource struct {
-	// Type is the key of the resource type, such as document. It must not be empty: a check of a
+	// Type is the key of the resource type, such as document. It must not be empty: a call for a
 	// resource without a type returns an error that matches [ErrInvalidConfig] and sends no
 	// request.
 	Type string `json:"type"`
@@ -102,12 +103,19 @@ type CheckRequest struct {
 // tenant, and each of its maps of attributes or of context that is empty left out, as a nil one
 // is, rather than sent as {}. No PDP takes null for one.
 func (r CheckRequest) sent() CheckRequest {
-	if r.Resource.Tenant == "" {
-		r.Resource.Tenant = defaultTenant
-	}
 	r.User.Attributes = nonEmpty(r.User.Attributes)
-	r.Resource.Attributes = nonEmpty(r.Resource.Attributes)
-	r.Resource.Context = nonEmpty(r.Resource.Context)
+	r.Resource = r.Resource.sent()
+	r.Context = nonEmpty(r.Context)
+	return r
+}
+
+// sent returns r as the body of a request holds it: with the tenant default when it has no
+// tenant, and with each of its maps of attributes or of context that is empty left out.
+func (r Resource) sent() Resource {
+	if r.Tenant == "" {
+		r.Tenant = defaultTenant
+	}
+	r.Attributes = nonEmpty(r.Attributes)
 	r.Context = nonEmpty(r.Context)
 	return r
 }
@@ -120,9 +128,11 @@ func nonEmpty(m map[string]any) map[string]any {
 	return m
 }
 
-// CheckOption changes the checks of [Client.Check] or [Client.FilterObjects]. Build one with
-// [WithDecisionContext]. The zero CheckOption is not valid: a call that gets one returns an error
-// that matches [ErrInvalidConfig] and sends no request.
+// CheckOption changes a call that asks the PDP for decisions: [Client.Check],
+// [Client.FilterObjects] and [Client.AuthorizedUsers], and, as a [PermissionsOption],
+// [Client.UserPermissions]. Build one with [WithDecisionContext]. The zero CheckOption is not
+// valid: a call that gets one returns an error that matches [ErrInvalidConfig] and sends no
+// request.
 type CheckOption struct {
 	// apply sets what the option changes in s.
 	apply func(s *checkSettings)
@@ -137,8 +147,9 @@ type checkSettings struct {
 // WithDecisionContext gives the checks of a call the context decisionContext, which the PDP
 // passes to the policy beside the user, the action and the resource, such as the time of the
 // request: a map of any JSON values, such as numbers, booleans, null and nested objects and
-// arrays, which reach the PDP as they are. Nil or an empty map sends none. When a call gets the
-// option more than once, the last one wins.
+// arrays, which reach the PDP as they are. It gives [Client.AuthorizedUsers] and
+// [Client.UserPermissions] their context too. Nil or an empty map sends none. When a call gets
+// the option more than once, the last one wins.
 func WithDecisionContext(decisionContext map[string]any) CheckOption {
 	return CheckOption{apply: func(s *checkSettings) { s.context = decisionContext }}
 }
@@ -311,18 +322,31 @@ func (c *Client) decide(ctx context.Context, checks []CheckRequest) ([]bool, err
 // allowKey is the key of the decision in a reply of the PDP, and in each item of a bulk reply.
 const allowKey = "allow"
 
-// allowOf returns the value of the one key allow of data, a JSON object, as data spells it, and
-// false when data is not one JSON object with exactly one key allow. A key that differs from allow
-// only in case, such as Allow, which encoding/json would read as allow, and a second key allow,
-// of which encoding/json would keep the last, make data ambiguous, so allowOf returns false for
-// both. Keys are compared after their escapes are read, as JSON defines them.
+// allowOf returns the value of the one key allow of data, a JSON object, as fieldOf finds it, and
+// false when data is not one JSON object with exactly one key allow.
 func allowOf(data []byte) (json.RawMessage, bool) {
+	members, ok := membersOf(data)
+	if !ok {
+		return nil, false
+	}
+	return fieldOf(members, allowKey)
+}
+
+// member is a member of a JSON object of a reply: its key, after its escapes are read, as JSON
+// defines it, and its value as the reply spells it.
+type member struct {
+	key   string
+	value json.RawMessage
+}
+
+// membersOf returns the members of data, one JSON object, in their order, a key that is there
+// twice too, and false when data is not one JSON object.
+func membersOf(data []byte) ([]member, bool) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	if open, err := dec.Token(); err != nil || open != json.Delim('{') {
 		return nil, false
 	}
-	var allow json.RawMessage
-	keys := 0
+	var members []member
 	for dec.More() {
 		token, err := dec.Token()
 		var value json.RawMessage
@@ -331,12 +355,7 @@ func allowOf(data []byte) (json.RawMessage, bool) {
 		}
 		// The token of a key of an object that Token returns without an error is a string.
 		key, _ := token.(string)
-		switch {
-		case key == allowKey:
-			allow, keys = value, keys+1
-		case strings.EqualFold(key, allowKey):
-			return nil, false
-		}
+		members = append(members, member{key: key, value: value})
 	}
 	// More is false, so the next token is the } that ends the object, or an error.
 	if _, err := dec.Token(); err != nil {
@@ -345,7 +364,25 @@ func allowOf(data []byte) (json.RawMessage, bool) {
 	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
 		return nil, false
 	}
-	return allow, keys == 1
+	return members, true
+}
+
+// fieldOf returns the value of the one member of members whose key is name, spelled so, and false
+// when no member or more than one has the key name. A key that differs from name only in case,
+// such as Allow for allow, which encoding/json would read as name, and a second key name, of which
+// encoding/json would keep the last, make the object ambiguous, so fieldOf returns false for both.
+func fieldOf(members []member, name string) (json.RawMessage, bool) {
+	var value json.RawMessage
+	found := 0
+	for _, m := range members {
+		switch {
+		case m.key == name:
+			value, found = m.value, found+1
+		case strings.EqualFold(m.key, name):
+			return nil, false
+		}
+	}
+	return value, found == 1
 }
 
 // boolOf returns the boolean that value, a JSON value as a reply spells it, is, and false when

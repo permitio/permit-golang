@@ -26,7 +26,8 @@ var nullPolicies = []string{"accepts", "rejects", "ignores", "n/a"}
 // modelMap is model-map.yaml.
 type modelMap struct {
 	// Models are the types that a spec schema describes, by name: the types of package models,
-	// and the decision types of the root package, which the requests to the PDP hold.
+	// and the decision types of the root package, which the requests to the PDP and its replies
+	// hold.
 	Models map[string]modelRow `yaml:"models"`
 
 	// Blocks are the types of package models that no schema describes, which the models use for

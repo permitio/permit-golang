@@ -48,7 +48,8 @@ var (
 	ErrInvalidConfig = errors.New("permit: invalid configuration")
 
 	// ErrMalformedDecision means that the PDP answered a check with a reply that is not a valid
-	// decision.
+	// decision, or a call for the permissions of a user or for the users that may do an action
+	// with a reply that is not of the shape the call reads.
 	ErrMalformedDecision = errors.New("permit: malformed decision")
 
 	// ErrClosed means that the call started after the client was closed.

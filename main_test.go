@@ -37,5 +37,10 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("is_allowed_allowed_post.200.json")})
 	servers.PDP.Handle("POST /allowed/bulk",
 		mockpermit.Reply{Body: replyFixture("is_allowed_bulk_allowed_bulk_post.200.json")})
+	servers.PDP.Handle("POST /user-permissions", mockpermit.Reply{
+		Body: replyFixture("Get_User_Permissions_user_permissions_post.200.json"),
+	})
+	servers.PDP.Handle("POST /authorized_users",
+		mockpermit.Reply{Body: replyFixture("authorized_users_authorized_users_post.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

@@ -1062,9 +1062,10 @@ HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
 They check five things:
 
 - **Models.** `tools/drift/model-map.yaml` maps each type of `models` to its schema, and each
-  decision type of the root package that a request to the PDP holds, such as `CheckRequest`, to
-  the schema of the PDP container and, under `also`, to that of the cloud PDP. A struct has a
-  field for each property of each of its schemas, and no other, by their JSON names. The type of each field holds every alternative of its property, and
+  decision type of the root package that a request to the PDP or its reply holds, such as
+  `CheckRequest` or `ObjectPermissions`, to the schema of the PDP container and, under `also`, to
+  that of the cloud PDP. A struct has a field for each property of each of its schemas, and no
+  other, by their JSON names. The type of each field holds every alternative of its property, and
   is of no JSON kind that the property does not allow: an object schema of `components.schemas` is
   the type whose row maps it, an enum schema the enum type whose row maps it, a string of format
   `date-time` a `models.Time`, and an object without properties `models.Attributes`, or a map of
@@ -1448,9 +1449,9 @@ its own:
 | `DeleteSelf` | A DELETE whose path names the object it deletes, so that a 404 means the object is gone already. Not a removal whose body names what it removes. |
 | `NoRetry` | Never sent twice, not even after a 429, such as rotating an API key. |
 | `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name other than the credential names of `redact.Set.AddFields`, such as `webhook_secret`. |
-| `NoReplyCredentials` | Its replies in 200-299 hold no credential that the server issued, so their values do not join the client's `redact.Set`: the PDP's decisions, whose replies can echo the check. |
+| `NoReplyCredentials` | Its replies in 200-299 hold no credential that the server issued, so their values do not join the client's `redact.Set`: the PDP's decisions and the PDP's lists of permissions and of authorized users, whose replies can echo the request. |
 | `MaxPerPage` | The largest `per_page` of a list operation, or 0. |
-| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty; a decision of the PDP names the type of the root package that its request holds, such as `CheckRequest`, and no `ResponseModel`, as the SDK reads `allow` of the reply itself. A request that is a JSON array of the type names it after `[]`, such as `[]CheckRequest`. |
+| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty; an operation of the PDP names the type of the root package that its request holds, such as `CheckRequest`, and no `ResponseModel`, as the SDK reads the reply itself: `allow` of a decision, or the entries of the permissions of a user or of the authorized users. A request that is a JSON array of the type names it after `[]`, such as `[]CheckRequest`. |
 
 A `*permit.Client` holds the registry, `rest.Default()`. The registry fails on an operation that
 is not valid, such as one without a key level, `DeleteSelf` on another method than DELETE,

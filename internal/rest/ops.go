@@ -31,4 +31,21 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, NoReplyCredentials: true,
 		RequestModel: "[]CheckRequest",
 	},
+
+	// The lists of the PDP of who may do what, which the PDP container and the cloud PDP both
+	// serve: the permissions of a user, and the users that may do an action on a resource. Like
+	// a decision, a list changes nothing, and its reply holds the application's values, not
+	// credentials. The SDK reads each reply itself, strictly where it holds the answer, so the
+	// replies name no model; the drift tests check the reply types against the schemas of their
+	// rows, and the reply fixtures of the wire tests against the specs.
+	{
+		ID: "Get_User_Permissions_user_permissions_post", Method: http.MethodPost,
+		Route: "/user-permissions", Idempotent: true, KeyLevel: EnvironmentLevel,
+		NoReplyCredentials: true, RequestModel: "UserPermissionsRequest",
+	},
+	{
+		ID: "authorized_users_authorized_users_post", Method: http.MethodPost,
+		Route: "/authorized_users", Idempotent: true, KeyLevel: EnvironmentLevel,
+		NoReplyCredentials: true, RequestModel: "AuthorizedUsersRequest",
+	},
 }

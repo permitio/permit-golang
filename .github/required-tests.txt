@@ -854,3 +854,23 @@ github.com/permitio/permit-golang/v2/tools/drift TestLeftOutOf
 github.com/permitio/permit-golang/v2/tools/drift TestMaximalLeavesOut
 github.com/permitio/permit-golang/v2/tools/drift TestOperationOfASharedRoute
 github.com/permitio/permit-golang/v2/tools/drift TestReplyFindingsOfASharedRoute
+
+github.com/permitio/permit-golang/v2 TestUserPermissionsBodies
+github.com/permitio/permit-golang/v2 TestPermissionsFiltersKeepTheirKeys
+github.com/permitio/permit-golang/v2 TestUserPermissionsKeepsTheKeys
+github.com/permitio/permit-golang/v2 TestAuthorizedUsersBodies
+github.com/permitio/permit-golang/v2 TestAuthorizedUsersReturnsTheUsers
+github.com/permitio/permit-golang/v2 TestPermissionsOfBothPDPs
+github.com/permitio/permit-golang/v2 TestPermissionsErrorReplies
+github.com/permitio/permit-golang/v2 TestPermissionsAreRetried
+github.com/permitio/permit-golang/v2 TestPermissionsWithoutAReply
+github.com/permitio/permit-golang/v2 TestPermissionsRepliesAddNoCredential
+github.com/permitio/permit-golang/v2 TestMalformedUserPermissions
+github.com/permitio/permit-golang/v2 TestMalformedAuthorizedUsers
+github.com/permitio/permit-golang/v2 TestMalformedPermissionsTexts
+github.com/permitio/permit-golang/v2 TestInvalidPermissionsCalls
+github.com/permitio/permit-golang/v2 TestPermissionsBodyThatIsNotJSON
+github.com/permitio/permit-golang/v2 TestPermissionsAfterClose
+github.com/permitio/permit-golang/v2 FuzzPermissionsReplies
+github.com/permitio/permit-golang/v2 ExampleClient_UserPermissions
+github.com/permitio/permit-golang/v2 ExampleClient_AuthorizedUsers

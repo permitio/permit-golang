@@ -65,7 +65,8 @@ type Op struct {
 
 	// Idempotent says that sending the request twice does what sending it once does, so that a
 	// retry may send it again after a 500, 502, 503 or 504 reply or a request without a complete
-	// reply: the GET, PUT and DELETE operations, and the PDP's decisions, which change nothing.
+	// reply: the GET, PUT and DELETE operations, and the PDP's decisions and lists, which change
+	// nothing.
 	Idempotent bool
 
 	// Facts says that the operation is one of the facts API, /v2/facts/{proj_id}/{env_id}/...,
@@ -113,14 +114,14 @@ type Op struct {
 	MaxPerPage int
 
 	// RequestModel is the name of the type of package models that the request body holds, such
-	// as UserCreate, or of the root package for a decision of the PDP, such as CheckRequest; []
+	// as UserCreate, or of the root package for an operation of the PDP, such as CheckRequest; []
 	// and the name, such as []CheckRequest, when the body is a JSON array of the type; or empty
 	// when the request has no body.
 	RequestModel string
 
 	// ResponseModel is the name of the type of package models that the reply body holds, such
-	// as UserRead, or empty when the SDK reads no model from the reply, such as a decision of the
-	// PDP, whose allow the SDK reads itself.
+	// as UserRead, or empty when the SDK reads no model from the reply, such as an operation of
+	// the PDP, whose reply the SDK reads itself.
 	ResponseModel string
 }
 

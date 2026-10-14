@@ -669,10 +669,10 @@ func TestMalformedDecisionTexts(t *testing.T) {
 func TestInvalidDecisions(t *testing.T) {
 	const config = "permit: invalid configuration: "
 	const (
-		noKey = "the user key is empty; give the key of the user, as the PDP rejects a check " +
+		noKey = "the user key is empty; give the key of the user, as the PDP rejects a request " +
 			"without one"
 		noType = "the resource type is empty; give the key of the resource type, such as " +
-			"document, as the PDP rejects a check without one"
+			"document, as the PDP rejects a request without one"
 		noOption = "the CheckOption is the zero value; build options with the With functions, " +
 			"such as WithDecisionContext"
 	)

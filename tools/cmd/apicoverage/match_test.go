@@ -402,10 +402,10 @@ func TestCommittedCoverage(t *testing.T) {
 		"  EAP 42: 0 covered, 0 planned, 42 excluded, 0 deferred, 0 undecided\n",
 		"  deprecated 8: 0 covered, 0 planned, 8 excluded, 0 deferred, 0 undecided\n",
 		"  SDK-only 1: 0 covered, 1 planned, 0 excluded, 0 deferred\n",
-		"pdp: 47 rows: 2 covered, 18 planned, 21 excluded, 6 deferred\n",
-		"  GA 45: 2 covered, 17 planned, 20 excluded, 6 deferred, 0 undecided\n",
+		"pdp: 47 rows: 4 covered, 16 planned, 21 excluded, 6 deferred\n",
+		"  GA 45: 4 covered, 15 planned, 20 excluded, 6 deferred, 0 undecided\n",
 		"  deprecated 1: 0 covered, 0 planned, 1 excluded, 0 deferred, 0 undecided\n",
-		"PASS: 3 of 311 rows covered",
+		"PASS: 5 of 311 rows covered",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("apicoverage printed\n%s\nwant %q", out, want)

@@ -1,7 +1,7 @@
 # The drift map of package models, and of the decision types of the root package that the
-# requests to the PDP hold. tools/drift checks it against the types and the spec snapshots in
-# tools/specs, and apisurface reads its required flags to find a field that turned required. The
-# section Model drift of CONTRIBUTING.md says how to write a row.
+# requests to the PDP and its replies hold. tools/drift checks it against the types and the spec
+# snapshots in tools/specs, and apisurface reads its required flags to find a field that turned
+# required. The section Model drift of CONTRIBUTING.md says how to write a row.
 #
 # models.<Type>: a type that a schema of a spec describes, of package models or of the root
 #   package.
@@ -32,9 +32,42 @@ models:
   AttributeType:
     schema: AttributeType
   # The decision types of the root package map to the schemas of the PDP container, and to those
-  # of the cloud PDP. Both PDPs read null for an optional string of a check as the string left
-  # out, as the spec of the cloud PDP types these strings, string or null, and answer 422 to null
-  # for a map.
+  # of the cloud PDP. Both PDPs read null for an optional string of a check, and for a filter of
+  # the permissions of a user, a list, as the field left out (the spec of the cloud PDP types
+  # these fields as a value or null), and both answer 422 to null for a map. The types of the
+  # replies are in no request.
+  AuthorizedUserAssignment:
+    spec: pdp-container
+    schema: AuthorizedUserAssignment
+    also:
+      - {spec: pdp-cloud, schema: AuthorizedUserAssignment}
+    fields:
+      user: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+  AuthorizedUsersRequest:
+    spec: pdp-container
+    schema: AuthorizedUsersAuthorizationQuery
+    also:
+      - {spec: pdp-cloud, schema: AuthorizedUsersQuery}
+    left_out:
+      sdk: >-
+        the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+        request of the SDK carries
+    fields:
+      action: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
+  AuthorizedUsersResult:
+    spec: pdp-container
+    schema: AuthorizedUsersResult
+    also:
+      - {spec: pdp-cloud, schema: AuthorizedUsersResult}
+    fields:
+      resource: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      users: {required: true, null_policy: n/a}
   CheckRequest:
     spec: pdp-container
     schema: AuthorizationQuery
@@ -49,6 +82,16 @@ models:
       action: {required: true, null_policy: rejects}
       resource: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
+  ObjectPermissions:
+    spec: pdp-container
+    schema: _UserPermissionsResult
+    also:
+      - {spec: pdp-cloud, schema: UserPermissionsResult}
+    fields:
+      tenant: {required: false, null_policy: n/a}
+      resource: {required: false, null_policy: n/a}
+      permissions: {required: true, null_policy: n/a}
+      roles: {required: false, null_policy: n/a}
   Resource:
     spec: pdp-container
     schema: Resource
@@ -60,6 +103,23 @@ models:
       tenant: {required: false, null_policy: ignores}
       attributes: {required: false, null_policy: rejects}
       context: {required: false, null_policy: rejects}
+  ResourceDetails:
+    spec: pdp-container
+    schema: _ResourceDetails
+    also:
+      - {spec: pdp-cloud, schema: ResourceDetails}
+    fields:
+      type: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  TenantDetails:
+    spec: pdp-container
+    schema: _TenantDetails
+    also:
+      - {spec: pdp-cloud, schema: TenantDetails}
+    fields:
+      key: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
   User:
     spec: pdp-container
     schema: User
@@ -76,6 +136,17 @@ models:
       last_name: {required: false, null_policy: ignores}
       email: {required: false, null_policy: ignores}
       attributes: {required: false, null_policy: rejects}
+  UserPermissionsRequest:
+    spec: pdp-container
+    schema: UserPermissionsQuery
+    also:
+      - {spec: pdp-cloud, schema: UserPermissionsQuery}
+    fields:
+      user: {required: true, null_policy: rejects}
+      tenants: {required: false, null_policy: ignores}
+      resources: {required: false, null_policy: ignores}
+      resource_types: {required: false, null_policy: ignores}
+      context: {required: false, null_policy: rejects}
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property
   Optional: a field that the API accepts null for, whose null policy is accepts

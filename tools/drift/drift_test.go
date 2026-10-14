@@ -1,6 +1,6 @@
 // Package drift holds the drift tests of the SDK against the spec snapshots in tools/specs.
 // model-map.yaml maps each type of package models, and each decision type of the root package
-// that the requests to the PDP hold, to its schema, and to the schemas of other specs that
+// that the PDP's requests and replies hold, to its schema, and to the schemas of other specs that
 // describe it too, with a required flag and a null policy for each field of a struct; the tests
 // compare each type with each of its schemas in both directions, round-trip the maximal values of
 // each schema through the type with a strict decoder, compare the RequestModel and ResponseModel

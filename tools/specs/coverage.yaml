@@ -395,10 +395,10 @@ pdp:
   - {op: is_allowed_all_tenants_allowed_all_tenants_post, route: "POST /allowed/all-tenants", stage: GA, status: planned}
   - {op: is_allowed_bulk_allowed_bulk_post, route: "POST /allowed/bulk", stage: GA, status: covered}
   - {op: is_allowed_url_allowed_url_post, route: "POST /allowed_url", stage: GA, status: planned}
-  - {op: authorized_users_authorized_users_post, route: "POST /authorized_users", stage: GA, status: planned}
+  - {op: authorized_users_authorized_users_post, route: "POST /authorized_users", stage: GA, status: covered}
   - {op: is_allowed_kong_kong_post, route: "POST /kong", stage: GA, status: excluded, reason: integration}
   - {op: is_allowed_nginx_nginx_allowed_post, route: "POST /nginx_allowed", stage: GA, status: excluded, reason: integration}
-  - {op: Get_User_Permissions_user_permissions_post, route: "POST /user-permissions", stage: GA, status: planned}
+  - {op: Get_User_Permissions_user_permissions_post, route: "POST /user-permissions", stage: GA, status: covered}
   - {op: Get_User_Tenants_user_tenants_post, route: "POST /user-tenants", stage: GA, status: planned}
   # authzen
   - op: authzen_metadata_handler

@@ -97,6 +97,26 @@ change from v1 and what to use instead.
 - A decision changes nothing, so a call sends its request again after a 500, 502, 503 or 504
   reply or a failed connection, as after a 429.
 - Decisions go to the PDP only: v1's `WithOpaUrl`, which sent them to OPA, has no counterpart.
+- `Client.UserPermissions(ctx, user, opts...)` takes the place of v1's `GetUserPermissions` and
+  `GetUserPermissionsWithOptions`, with one `POST /user-permissions` request. It returns a
+  `map[string]permit.ObjectPermissions` under the keys that the PDP gives: `__tenant:<tenant>`
+  for the roles and the permissions of the user in a tenant, and `<type>:<key>` for those on a
+  resource instance. `WithTenants`, `WithResources` and `WithResourceTypes` take their keys as
+  arguments and return a `PermissionsOption`, which only `UserPermissions` takes, and
+  `WithDecisionContext` gives the call its context: v1's `GetUserPermissions` sent no context,
+  resources or resource types, and `GetUserPermissionsWithOptions` sent the same fields as v2. A
+  filter without keys is an error that matches `ErrInvalidConfig`, where v1 left an empty list out
+  of the body and so asked about every tenant, resource or resource type.
+- `Client.AuthorizedUsers(ctx, action, resource, opts...)` is new: it returns the users that the
+  PDP allows to do an action on a resource instance or a resource type, each with the role
+  assignments that allow it, with one `POST /authorized_users` request, and takes its context
+  from `WithDecisionContext`. A resource without a tenant is sent with the tenant `default`, as
+  in a check.
+- The PDP container and the cloud PDP both serve these two routes. A reply in 200-299 that is not
+  a list of the expected shape, such as `null`, the permissions inside another object, or a reply
+  of authorized users without `users`, is an error that matches `ErrMalformedDecision`, never an
+  empty result; v1 returned a nil map and no error for `null`. Both calls change nothing, so they
+  are sent again after a 500, 502, 503 or 504 reply or a failed connection, as a check is.
 
 ### Errors
 

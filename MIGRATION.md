@@ -734,6 +734,112 @@ v2 sends every decision to the PDP at the PDP URL, `permit.WithPDPURL`. v1's `Wi
 checks to OPA at its `/v1/data/` routes instead, in the shape of OPA's input. Run a PDP container,
 which serves the decisions of your policy, and give its URL to `permit.WithPDPURL`.
 
+<a id="M-checks-15"></a>
+### M-checks-15: GetUserPermissions becomes UserPermissions
+
+- v1: `permit.Client.GetUserPermissions`
+- v1: `permit.Client.GetUserPermissionsWithOptions`
+- v1: `enforcement.PermitEnforcer.GetUserPermissions`
+- v1: `enforcement.PermitEnforcer.GetUserPermissionsWithOptions`
+- v2: `permit.Client.UserPermissions`
+
+`Client.UserPermissions` takes a `context.Context` first, then a `permit.User` and options, and
+takes the place of both of v1's methods. Give the tenants that v1's `GetUserPermissions` took after
+the user to `permit.WithTenants`, as [M-checks-16](#M-checks-16) says:
+
+```go
+permissions, err := client.UserPermissions(ctx,
+	permit.User{Key: "alice"},
+	permit.WithTenants("tenant-a"),
+	permit.WithDecisionContext(map[string]any{"business_hours": true}),
+)
+```
+
+It returns a `map[string]permit.ObjectPermissions` under the keys that the PDP gives:
+`__tenant:<tenant>` for the roles and the permissions of the user in a tenant, and `<type>:<key>`
+for those on a resource instance. It returns an error for every failure:
+
+- a user without a key, a nil option or a filter without keys: an error that matches
+  `permit.ErrInvalidConfig`, and no request;
+- a reply with an error status, such as 403 or 422, or 429 after the retries: a `*permit.Error`
+  with the status and the body;
+- a reply in 200-299 that is not a JSON object whose every entry is a JSON object with a list
+  `permissions`, such as `null` or the entries inside another object, or that holds a key twice:
+  a `*permit.Error` that matches `permit.ErrMalformedDecision`. v1 returned a nil map and no
+  error for `null`, and an entry with no permissions under the key `permissions` for
+  `{"permissions": {...}}`.
+
+The call changes nothing, so it is sent again after a 500, 502, 503 or 504 reply or a failed
+connection too, as [M-wire-5](#M-wire-5) says.
+
+<a id="M-checks-16"></a>
+### M-checks-16: The filters of UserPermissions take their keys as arguments
+
+- v1: `enforcement.WithTenants`
+- v1: `enforcement.WithResources`
+- v1: `enforcement.WithResourceTypes`
+- v1: `enforcement.UserPermissionsOption`
+- v2: `permit.PermissionsOption`
+
+`permit.WithTenants`, `permit.WithResources` and `permit.WithResourceTypes` take their keys as
+arguments, such as `permit.WithTenants("tenant-a", "tenant-b")`, rather than as a slice; pass a
+slice with `...`, such as `permit.WithTenants(tenants...)`. Each returns a
+`permit.PermissionsOption`, which only `Client.UserPermissions` takes, so a filter given to another
+method does not compile. A filter without keys, such as `permit.WithTenants()`, is an error that
+matches `permit.ErrInvalidConfig`: v1 left an empty list out of the body, which asked for the
+permissions in every tenant, resource or resource type. Leave the option out to ask about all of
+them.
+
+<a id="M-checks-17"></a>
+### M-checks-17: WithContext becomes WithDecisionContext
+
+- v1: `enforcement.WithContext`
+- v2: `permit.WithDecisionContext`
+
+Give `Client.UserPermissions` its context with `permit.WithDecisionContext`, the option that gives
+the checks their context, as a `map[string]any`. A nil or empty map sends none, as v1's did.
+
+<a id="M-checks-18"></a>
+### M-checks-18: The permissions of a user are a map of ObjectPermissions
+
+- v1: `enforcement.UserPermissions`
+- v1: `enforcement.TenantUserPermissions`
+- v2: `permit.ObjectPermissions`
+
+v2 has no named map type: `Client.UserPermissions` returns a `map[string]permit.ObjectPermissions`.
+`ObjectPermissions` has the fields of v1's `TenantUserPermissions`: `Tenant`, `Resource`,
+`Permissions` and `Roles`. Its `Tenant` is a `*permit.TenantDetails`, nil when the reply holds no
+tenant, rather than a struct, and its `Permissions` are never nil.
+
+<a id="M-checks-19"></a>
+### M-checks-19: TenantDetails moves to package permit
+
+- v1: `enforcement.TenantDetails`
+- v2: `permit.TenantDetails`
+
+`permit.TenantDetails` has the fields of v1's, `Key` and `Attributes`. A number in `Attributes` is a
+`json.Number`, as [M-models-1](#M-models-1) says.
+
+<a id="M-checks-20"></a>
+### M-checks-20: ResourceDetails moves to package permit
+
+- v1: `enforcement.ResourceDetails`
+- v2: `permit.ResourceDetails`
+
+`permit.ResourceDetails` has the fields of v1's, `Type`, `Key` and `Attributes`. A number in
+`Attributes` is a `json.Number`, as [M-models-1](#M-models-1) says.
+
+<a id="M-checks-21"></a>
+### M-checks-21: GetUserPermissionsRequest becomes UserPermissionsRequest
+
+- v1: `enforcement.GetUserPermissionsRequest`
+- v1: `enforcement.NewGetUserPermissionsRequest`
+- v2: `permit.UserPermissionsRequest`
+
+`permit.UserPermissionsRequest` is the body that `Client.UserPermissions` sends, which the method
+builds from its user and its options; no method takes it. Call `Client.UserPermissions` with
+options instead of building a request.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -853,6 +959,19 @@ v1 sent the checks of `BulkCheck` in a request for each tenant of their resource
 the checks in one request, whatever their tenants, in the order of the slice, and the PDP answers
 each in that order; `FilterObjects` does the same with its resources. A proxy or a log that counts
 requests sees one request for a call.
+
+<a id="M-checks-22"></a>
+### M-checks-22: UserPermissions sends the context and each filter it is given
+
+- v1: a `POST /user-permissions` request with the user and the tenants only from `GetUserPermissions`, and with an empty filter or an empty context left out of the body
+- v2: a `POST /user-permissions` request with the user, each filter and the context that the call is given; no request for a filter without keys
+
+v1's `GetUserPermissions` sent no context, resources or resource types, so a policy that reads the
+context saw none; `GetUserPermissionsWithOptions` sent them, so for its callers only the rule for a
+filter without keys changes. v2 sends the context of `permit.WithDecisionContext`, with values of any JSON
+type, and the keys of `permit.WithTenants`, `permit.WithResources` and `permit.WithResourceTypes`,
+in `context`, `tenants`, `resources` and `resource_types`. It sends no request for a filter
+without keys, which v1 left out of the body, as [M-checks-16](#M-checks-16) says.
 
 ## Kept on purpose
 

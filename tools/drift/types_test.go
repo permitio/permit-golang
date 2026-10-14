@@ -9,14 +9,21 @@ import (
 
 // modelTypes holds a value of each type that model-map.yaml maps to a schema, so that the drift
 // tests can read the type's fields and decode into it: the types of package models, and the
-// decision types of the root package. Add each type that gets a row under models;
-// TestRepositoryModelMap fails while the two differ.
+// decision types of the root package, those of the requests to the PDP and of its replies. Add
+// each type that gets a row under models; TestRepositoryModelMap fails while the two differ.
 var modelTypes = []any{
 	models.APIKeyScopeRead{},
 	models.AttributeType(""),
+	permit.AuthorizedUserAssignment{},
+	permit.AuthorizedUsersRequest{},
+	permit.AuthorizedUsersResult{},
 	permit.CheckRequest{},
+	permit.ObjectPermissions{},
 	permit.Resource{},
+	permit.ResourceDetails{},
+	permit.TenantDetails{},
 	permit.User{},
+	permit.UserPermissionsRequest{},
 }
 
 // rootPath is the import path of the root package, whose decision types modelTypes holds.

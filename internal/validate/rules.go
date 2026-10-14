@@ -131,6 +131,21 @@ var (
 // The rules of the arguments of a decision, which the SDK checks before it sends the request to
 // the PDP. The error of such a rule names the method and the argument before the message.
 var (
+	// DecisionFilterEmpty rejects a filter of the permissions of a user without keys, such as
+	// WithTenants(), which would send no filter, and so ask for the permissions in every tenant.
+	DecisionFilterEmpty = Rule{
+		ID: "decision.filter.empty",
+		Message: "the filter has no keys; give at least one, or leave the option out to get the " +
+			"permissions of every tenant, resource or resource type",
+	}
+
+	// DecisionOptionNil rejects a nil PermissionsOption.
+	DecisionOptionNil = Rule{
+		ID: "decision.option.nil",
+		Message: "the PermissionsOption is nil; build options with the With functions, such as " +
+			"WithTenants",
+	}
+
 	// DecisionOptionZero rejects a CheckOption that no With function built, such as the zero
 	// CheckOption.
 	DecisionOptionZero = Rule{
@@ -143,13 +158,13 @@ var (
 	DecisionResourceTypeEmpty = Rule{
 		ID: "decision.resource-type.empty",
 		Message: "the resource type is empty; give the key of the resource type, such as " +
-			"document, as the PDP rejects a check without one",
+			"document, as the PDP rejects a request without one",
 	}
 
 	// DecisionUserKeyEmpty rejects a user without a key, which no PDP decides on.
 	DecisionUserKeyEmpty = Rule{
 		ID: "decision.user-key.empty",
-		Message: "the user key is empty; give the key of the user, as the PDP rejects a check " +
+		Message: "the user key is empty; give the key of the user, as the PDP rejects a request " +
 			"without one",
 	}
 )
@@ -253,6 +268,8 @@ var rules = []Rule{
 	URLQuery,
 	URLScheme,
 	URLUserinfo,
+	DecisionFilterEmpty,
+	DecisionOptionNil,
 	DecisionOptionZero,
 	DecisionResourceTypeEmpty,
 	DecisionUserKeyEmpty,

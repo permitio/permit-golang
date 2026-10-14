@@ -85,23 +85,8 @@ config.FactsSyncTimeoutPolicyIgnore facts
 
 # Block a: pkg/enforcement and pkg/permit
 enforcement.AllTenantsCheckResponse checks
-enforcement.GetUserPermissionsRequest checks
-enforcement.NewGetUserPermissionsRequest checks
 enforcement.PermitEnforcer.AllTenantsCheck checks
-enforcement.PermitEnforcer.GetUserPermissions checks
-enforcement.PermitEnforcer.GetUserPermissionsWithOptions checks
-enforcement.ResourceDetails checks
-enforcement.TenantDetails checks
-enforcement.TenantUserPermissions checks
-enforcement.UserPermissions checks
-enforcement.UserPermissionsOption checks
-enforcement.WithContext checks
-enforcement.WithResourceTypes checks
-enforcement.WithResources checks
-enforcement.WithTenants checks
 permit.Client.AllTenantsCheck checks
-permit.Client.GetUserPermissions checks
-permit.Client.GetUserPermissionsWithOptions checks
 permit.Client.SyncUser users
 
 # Block b: operations of pkg/openapi

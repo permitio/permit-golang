@@ -107,6 +107,51 @@ connections. Go sends requests for loopback addresses directly, so `httptest` se
 HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 go test -count=1 ./...
 ```
 
+## Wire tests
+
+Wire tests check what each public method sends and how it handles the reply, against the fakes of
+the Permit API and the PDP in `internal/testkit/mockpermit`. `mockpermit.NewAPI(t)` and
+`mockpermit.NewPDP(t)` each start a local server for the test to point the client at, and
+`mockpermit.NewPDP(t, mockpermit.Cloud)` fakes the cloud PDP, which answers 404 with an empty body
+on the routes that only the PDP container serves. The servers are strict. Each of these fails the
+test: an `Authorization` header that is not exactly `Bearer` and `mockpermit.APIKey`, a path with
+an empty or dot segment, a route the test did not register or a method it lacks, more requests to
+a route than it has replies, and, when the test ends, a reply that no request used.
+
+A test registers each route with its replies, calls the SDK, and checks the requests the server
+recorded:
+
+```go
+api := mockpermit.NewAPI(t)
+api.Handle("POST /v2/facts/{proj_id}/{env_id}/users",
+	mockpermit.Reply{Status: http.StatusOK, Body: `{"key": "alice"}`})
+// Call the SDK with a client whose API URL is api.URL.
+api.Requests()[0].ExpectJSON(t, `{"key": "alice"}`)
+```
+
+`ExpectJSON` compares the body as JSON with numbers as written, so a rounded 2^53+1, or a null for
+a missing field, fails. `ExpectBytes` compares the body byte for byte with a golden file in
+`testdata/`, which holds the body and then one newline. `FailRequests` answers a route with an
+error status until its stop function is called, and fails the test when no request reached it.
+`AssertUntouched` checks that nothing reached the other server, and `Connections` counts the
+connections a client opened.
+
+`internal/testkit` also has `fixtures`, values that JSON encoders and decoders easily change
+(2^53+1, the largest int64, -0, 1e300, U+2028 and U+2029, `<>&`, an escaped lone surrogate, a key
+shaped like a UUID and a `type:key` identifier); `canary`, fake API keys and a scanner that fails
+a test when one shows up in output; `leak`, which fails a test that leaves goroutines running;
+`concurrent`, which runs a function on many goroutines at once and reads every result; and
+`faketb`, a fake `testing.TB` for the tests of these helpers. Only tests may import
+`internal/testkit`, and only tests and `internal/testkit` may import go-cmp; depguard rules in
+`.golangci.yml` enforce both.
+
+An Example has no `testing.T`, and pkg.go.dev shows all of its code. A package with Examples starts
+the servers in its `TestMain` with `mockpermit.StartExample()`, registers the routes its Examples
+use, and puts the servers' URLs in package variables, such as `exampleAPIURL` and
+`examplePDPURL`, that the Examples pass to the client. `os.Exit(servers.Run(m))` then runs the
+tests and exits 1 when a server found a problem. `internal/testkit/mockpermit/exampletest` shows
+how.
+
 ## Checks
 
 `tools/` is a separate Go module with the programs that check the SDK;
@@ -441,8 +486,8 @@ is marked *(added in a later commit on this branch)* does not exist yet.
    on this branch)*.
 3. Add the method, and its entry in the operation registry *(added in a later commit on this
    branch)*.
-4. Add a wire test case for the method and a fixture with the API's reply *(the wire tests are
-   added in a later commit on this branch)*.
+4. Add a wire test case for the method and a fixture with the API's reply; see
+   [Wire tests](#wire-tests).
 5. Run the update targets and the API coverage report *(added in a later commit on this branch)*.
 6. Add an end-to-end scenario for the method, or mark it pending or local-only *(the end-to-end
    tests are added in a later commit on this branch)*.

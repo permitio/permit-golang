@@ -17,13 +17,14 @@ import (
 	"testing"
 
 	"github.com/permitio/permit-golang/v2"
-	// models has no exported identifier yet; the blank import still compiles it as an
-	// application's import does.
-	_ "github.com/permitio/permit-golang/v2/models"
+	"github.com/permitio/permit-golang/v2/models"
 )
 
 // The SDK's packages are imported above and used here, so this module compiles against them.
-var _ = permit.Version
+var (
+	_ = permit.Version
+	_ = models.Some[string]
+)
 
 // sdkPackages are the SDK's packages that an application imports.
 var sdkPackages = []string{

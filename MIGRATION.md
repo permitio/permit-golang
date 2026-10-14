@@ -427,6 +427,24 @@ once, such as for an API URL that uses `http://` to a host that is not loopback.
 fixed message that starts with `permit: `, and the client replaces its credentials in each line
 before the handler gets it.
 
+<a id="M-models-1"></a>
+### M-models-1: Numbers in attributes are json.Number
+
+- v1: attribute values and other values of type `interface{}` decoded with each number as a `float64`
+- v2: `models.Attributes`, whose numbers decode as `json.Number`
+
+v1 decoded each number in an attribute map, and in every other value of type `interface{}` in a
+reply, as a `float64`, which cannot hold every integer beyond 2^53: 9007199254740993 became
+9007199254740992. v2 keeps each such number as a `json.Number`, the number's text with every
+digit, in `models.Attributes`, in their nested objects and arrays, and in every other value of
+type `any` that a reply holds. Replace a type assertion to `float64`, such as `v.(float64)`, with
+one to `json.Number`, and read the number with its `Int64`, `Float64` or `String` method. A
+`json.Number` encodes as its text, so a number read from a reply is sent back unchanged.
+
+v2's `models.Attributes` is a whole attribute map. v1's `models.Attributes` was one value of such
+a map, a bool, an int32 or a string, in the `map[string]models.Attributes` of `models.UserData`.
+In v2, put the value itself, such as `true`, `30` or `"gold"`, in a `models.Attributes`.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -515,6 +533,12 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 <!-- apisurface:models:begin -->
 <!-- apisurface -mode migration -write writes this table; do not edit it. -->
 
-Not mapped yet: 384 of the 384 types of v1's pkg/models.
+| v1 | v2 |
+| --- | --- |
+| `models.APIKeyScopeRead` | `models.APIKeyScopeRead` |
+| `models.AttributeType` | `models.AttributeType` |
+| `models.Attributes` | `models.Attributes` |
+
+Not mapped yet: 381 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

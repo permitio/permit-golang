@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"description\":{\"list\":[9007199254740993,-0,1e300,{\"x\":null}],\"<>&\":true}}")

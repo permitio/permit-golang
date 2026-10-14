@@ -104,6 +104,29 @@ change from v1 and what to use instead.
 - A list reply is read by its first byte, as a JSON array or as the paginated object that holds
   the array in `data`, so both shapes give the same items, and a reply of another shape is an
   error rather than an empty list.
+- A number in a reply that a model holds in an `any`, such as an attribute value, is read as a
+  `json.Number` with every digit of its text, such as `9007199254740993`, rather than as a
+  `float64`, which rounds integers beyond 2^53. Read it with its `Int64`, `Float64` or `String`
+  method.
+
+### Models
+
+- `models.Optional[T]` is the type of a field of an update model that the API accepts null for.
+  Its zero value leaves the field out of the body, `models.Null[T]()` sends null and
+  `models.Some(v)` sends `v`, also when `v` is `""`, `0` or `false`. `Get`, `IsNull` and
+  `IsZero` tell the three states apart. A field of this type is tagged `omitzero`; encoding an
+  unset `Optional` without it fails rather than sending null, and so does `Some` of a value that
+  encodes as null, such as a nil slice.
+- Enums are open: `models.AttributeType` is a string type with a constant for each value the SDK
+  knows, such as `models.AttributeTypeString`, and a `Known` method. A value that the API adds
+  later decodes as it is, and `Known` reports false for it.
+- `models.Attributes` is a `map[string]any` that keeps each number as a `json.Number`, also in
+  nested objects and arrays and under a plain `json.Unmarshal`. In an update model, nil leaves
+  the field out and an empty map sends `{}`.
+- `models.Time` embeds `time.Time` and reads an RFC 3339 timestamp with or without a zone; one
+  without a zone is in UTC.
+- `models.APIKeyScopeRead` is the scope of an API key: the IDs of its organization, project and
+  environment.
 
 ### Retries
 

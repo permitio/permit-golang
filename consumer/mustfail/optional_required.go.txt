@@ -1,0 +1,12 @@
+// want: cannot use "v" (untyped string constant) as models.Optional[string] value
+
+// A value of type models.Optional[T] takes models.Some(v), models.Null[T]() or nothing, never a
+// raw value: the type keeps unset, null and a value apart.
+package main
+
+import "github.com/permitio/permit-golang/v2/models"
+
+func main() {
+	var description models.Optional[string] = "v"
+	_ = description
+}

@@ -1324,7 +1324,27 @@ is marked *(added in a later commit on this branch)* does not exist yet.
 1. Find the operation in the spec snapshots, `tools/specs/*.json`, and its row in
    `tools/specs/coverage.yaml`.
 2. Write or extend the model in `models/`, and its row in the drift map *(added in a later commit
-   on this branch)*.
+   on this branch)*. Give each field the type that says what the API does with it:
+   - A field of an update model that the API accepts null for is a `models.Optional[T]`, tagged
+     `omitzero`: its zero value leaves the field out, so the API keeps what it stores,
+     `models.Null[T]()` sends null and `models.Some(v)` sends `v`. Use it only where the API
+     accepts null. Encoding an unset `Optional` fails, so a field tagged `omitempty`, or not
+     tagged, fails instead of sending null.
+   - A nested map that the API rejects null for is a plain map, tagged `omitzero`: nil leaves the
+     field out, and an empty map that is not nil sends `{}`.
+   - An enum is an open enum, as `models.AttributeType` in `models/enum.go` is: a string type,
+     a constant for each value whose name starts with the type's name, such as
+     `AttributeTypeString`, and a `Known` method, without an `UnmarshalJSON` that rejects a
+     value the SDK does not know. Check it in `TestOpenEnums` (`models/enum_test.go`), which
+     fails for a type with a `Known` method that it does not check.
+   - Attributes, and any other map of JSON values, are `models.Attributes`, which keeps each
+     number as a `json.Number`; a timestamp is a `models.Time`, which reads RFC 3339 with or
+     without a zone.
+
+   `models/testdata/golden` holds the bodies that each kind of `Optional` field, and a map
+   tagged `omitzero`, encode to, and both supported Go versions must write them byte for byte.
+   `FuzzOptional` and `FuzzAttributes` check that a body decodes and encodes back by value, and
+   `go test` runs their seeds, in `models/testdata/fuzz`.
 3. Add the method, and its `rest.Op` to `defaultOps` in `internal/rest/ops.go`, with the fields
    that the [operation registry](#operation-registry) lists. The method makes its call with one
    of the functions of `transport.go`: `do` for a reply that holds an object, `doList` for one

@@ -2,6 +2,34 @@
 # TestSurfaceSnapshot (surface_test.go) fails when the source differs. After an intended
 # change, rewrite this file with go test -run TestSurfaceSnapshot -update . and review the
 # diff.
+models: const AttributeTypeArray AttributeType = "array"
+models: const AttributeTypeBool AttributeType = "bool"
+models: const AttributeTypeJSON AttributeType = "json"
+models: const AttributeTypeNumber AttributeType = "number"
+models: const AttributeTypeObject AttributeType = "object"
+models: const AttributeTypeObjectArray AttributeType = "object_array"
+models: const AttributeTypeString AttributeType = "string"
+models: const AttributeTypeTime AttributeType = "time"
+models: func Null[T any]() Optional[T]
+models: func Some[T any](v T) Optional[T]
+models: method (*Attributes) UnmarshalJSON(data []byte) error
+models: method (*Optional[T]) UnmarshalJSON(data []byte) error
+models: method (*Time) UnmarshalJSON(data []byte) error
+models: method (*Time) UnmarshalText(text []byte) error
+models: method (AttributeType) Known() bool
+models: method (Optional[T]) Get() (T, bool)
+models: method (Optional[T]) IsNull() bool
+models: method (Optional[T]) IsZero() bool
+models: method (Optional[T]) MarshalJSON() ([]byte, error)
+models: type APIKeyScopeRead struct
+models: type APIKeyScopeRead struct, EnvironmentID string
+models: type APIKeyScopeRead struct, OrganizationID string
+models: type APIKeyScopeRead struct, ProjectID string
+models: type AttributeType string
+models: type Attributes map[string]any
+models: type Optional[T any] struct
+models: type Time struct
+models: type Time struct, embedded time.Time
 permit: const Version = "2.0.0"
 permit: func New(opts ...Option) (*Client, error)
 permit: func WithAPIKey(apiKey string) Option

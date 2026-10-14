@@ -40,3 +40,7 @@ M-wire-4
 M-wire-5
 M-models-1
 M-lists-1
+M-scope-1
+M-scope-2
+M-scope-3
+M-scope-4

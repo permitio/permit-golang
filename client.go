@@ -15,6 +15,7 @@ import (
 	"github.com/permitio/permit-golang/v2/internal/logging"
 	"github.com/permitio/permit-golang/v2/internal/redact"
 	"github.com/permitio/permit-golang/v2/internal/rest"
+	"github.com/permitio/permit-golang/v2/internal/scope"
 	"github.com/permitio/permit-golang/v2/internal/transport"
 	"github.com/permitio/permit-golang/v2/internal/validate"
 )
@@ -59,6 +60,10 @@ type Client struct {
 	// client that export_test.go builds, the test's test-only operations too.
 	registry *rest.Registry
 
+	// scope gives the project and the environment that the client's calls act on: the scope that
+	// WithScope gave, or the scope of the API key, which it looks up once.
+	scope *scope.Resolver
+
 	closed atomic.Bool
 }
 
@@ -71,7 +76,9 @@ type Client struct {
 //   - the *http.Client, [WithHTTPClient], by default one of the Client's own;
 //   - the timeout of a call, [WithTimeout], by default 30 seconds;
 //   - the retries of a call, [WithRetry], by default up to 3;
-//   - the logger, [WithLogger], by default none: the client logs nothing.
+//   - the logger, [WithLogger], by default none: the client logs nothing;
+//   - the scope, [WithScope], by default the scope of the API key, which the client looks up
+//     once, as [Client.Scope] describes.
 //
 // New sends no request. It returns an error that matches [ErrInvalidConfig], and no Client, when
 // the configuration breaks a rule that an option's documentation states, such as a URL without
@@ -103,6 +110,11 @@ func New(opts ...Option) (*Client, error) {
 		secrets:    redact.NewSet(s.apiKey.Value()),
 		httpClient: s.httpClient,
 		registry:   rest.Default(),
+	}
+	if s.scope != nil {
+		c.scope = scope.Known(*s.scope)
+	} else {
+		c.scope = scope.New(c.lookupScope)
 	}
 	c.logger = logging.New(s.logger, c.secrets)
 	if plainHTTPToRemote(c.apiURL) {
@@ -155,12 +167,17 @@ func ownHTTPClient() (*http.Client, *http.Transport) {
 // *http.Client that [WithHTTPClient] gave open. A call that starts after Close fails with an
 // error that matches [ErrClosed] and sends no request; a call in flight when Close is called
 // runs on, and returns its result or its error, but sends no other attempt: a retry it waits for
-// returns the error of its last attempt. Close always returns nil, also when it is called
-// again, and is safe to call from many goroutines. A Client that is garbage collected without
-// Close has the idle connections of its own *http.Client closed too.
+// returns the error of its last attempt. Close also ends the lookup of the scope that
+// [Client.Scope] describes when one is in flight, and the calls that wait for it return an error
+// that matches ErrClosed. Close always returns nil, also when it is called again, and is safe to
+// call from many goroutines. A Client that is garbage collected without Close has the idle
+// connections of its own *http.Client closed too.
 func (c *Client) Close() error {
 	if c == nil || !c.closed.CompareAndSwap(false, true) {
 		return nil
+	}
+	if c.scope != nil {
+		c.scope.Stop()
 	}
 	if c.transport != nil {
 		c.transport.CloseIdleConnections()

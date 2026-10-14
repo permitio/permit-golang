@@ -312,6 +312,9 @@ func TestCloseOfNoClient(t *testing.T) {
 	if err := c.Close(); err != nil {
 		t.Errorf("Close of a nil *Client = %v, want nil", err)
 	}
+	if err := new(Client).Close(); err != nil {
+		t.Errorf("Close of the zero Client = %v, want nil", err)
+	}
 }
 
 func TestNewHoldsTheDefaultRegistry(t *testing.T) {

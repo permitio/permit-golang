@@ -10,4 +10,14 @@
 # trigger: when the entry can go, such as "when the published spec lists email".
 #
 # An entry that accepts no finding fails as stale: remove it.
-allow: []
+allow:
+  - key: reply get_api_key_scope.200.organization-null.json#/project_id
+    reason: >-
+      the API answers the scope of an organization-level API key with project_id null, which the
+      published spec types as a string only
+    trigger: when the published spec allows null for project_id of APIKeyScopeRead
+  - key: reply get_api_key_scope.200.organization-null.json#/environment_id
+    reason: >-
+      the API answers the scope of an organization-level API key with environment_id null, which
+      the published spec types as a string only
+    trigger: when the published spec allows null for environment_id of APIKeyScopeRead

@@ -1,6 +1,7 @@
 package permit
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -130,6 +131,23 @@ var optionEffects = map[string]optionEffect{
 		setting: func(c *Client) any { return c.timeout },
 		want:    7 * time.Second,
 	},
+	"WithScope": {
+		option:  WithScope("effect-project", "effect-environment"),
+		setting: knownScope,
+		want:    Scope{Project: "effect-project", Environment: "effect-environment"},
+	},
+}
+
+// knownScope returns the scope that c has without a lookup, or the error of the lookup that it
+// would need. It calls Scope with a context that has ended, so that it sends no request.
+func knownScope(c *Client) any {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	s, err := c.Scope(ctx)
+	if err != nil {
+		return err.Error()
+	}
+	return s
 }
 
 // exportedOptions returns the names of the exported functions of the package whose names start
@@ -570,6 +588,30 @@ func TestInvalidConfiguration(t *testing.T) {
 			name: "a nil http.Client", opts: []Option{WithHTTPClient(nil)},
 			setting: "WithHTTPClient", rule: validate.HTTPClientNil,
 		},
+		{
+			name: "an environment without a project", opts: []Option{WithScope("", "production")},
+			setting: "WithScope", rule: validate.ScopeEnvironmentWithoutProject,
+		},
+		{
+			name: "an empty scope", opts: []Option{WithScope("", "")},
+			setting: "WithScope", rule: validate.ScopeProjectEmpty,
+		},
+		{
+			name: "a project that is .", opts: []Option{WithScope(".", "production")},
+			setting: "WithScope: project", rule: validate.PathSegmentDot,
+		},
+		{
+			name: "a project that is ..", opts: []Option{WithScope("..", "")},
+			setting: "WithScope: project", rule: validate.PathSegmentDot,
+		},
+		{
+			name: "an environment that is ..", opts: []Option{WithScope("my-project", "..")},
+			setting: "WithScope: environment", rule: validate.PathSegmentDot,
+		},
+		{
+			name: "an environment that is .", opts: []Option{WithScope("my-project", ".")},
+			setting: "WithScope: environment", rule: validate.PathSegmentDot,
+		},
 		// The three valid options come first, so the zero Option is the fifth.
 		{
 			name: "a zero Option", opts: []Option{WithTimeout(time.Second), {}},
@@ -649,6 +691,9 @@ func TestOptionsPrintNoKey(t *testing.T) {
 			WithRetry(RetryPolicy{MaxRetries: -1, MaxBackoff: -time.Second}),
 			"permit.WithRetry(permit.RetryPolicy{MaxRetries: -1, MaxBackoff: -1s})",
 		},
+		{WithScope("my-project", "production"), `permit.WithScope("my-project", "production")`},
+		{WithScope("", "a\"b"), `permit.WithScope("", "a\"b")`},
+		{WithScope(key, "env-"+key), `permit.WithScope("[REDACTED]", "env-[REDACTED]")`},
 		{Option{}, "permit.Option{}"},
 	} {
 		if got := tc.option.String(); got != tc.want {

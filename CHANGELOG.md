@@ -8,8 +8,8 @@ change from v1 and what to use instead.
 ### Client
 
 - `permit.New(opts ...permit.Option)` builds a `*permit.Client` from the options `WithAPIKey`,
-  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient`, `WithTimeout`, `WithRetry` and `WithLogger`, and
-  returns an error when the configuration is not one the SDK can use.
+  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient`, `WithTimeout`, `WithRetry`, `WithLogger` and
+  `WithScope`, and returns an error when the configuration is not one the SDK can use.
 - A setting that no option gives comes from the environment variables `PERMIT_API_KEY`,
   `PERMIT_API_URL` and `PERMIT_PDP_URL`, and else from its default: `https://api.permit.io` for
   the API, `http://localhost:7766` for the PDP and 30 seconds for the timeout. A variable that is
@@ -35,6 +35,24 @@ change from v1 and what to use instead.
   collected without `Close` has the idle connections of its own `*http.Client` closed too.
 - A `Client` and an `Option` print with `[REDACTED]` in place of the API key: `fmt` with every
   verb, `String`, `GoString` and the `LogValue` that `log/slog` calls.
+- `WithScope(project, environment)` sets the project and the environment that the client's calls
+  act on, by key or by ID, and the client then sends no request for the scope of its API key.
+  `New` returns an error that matches `ErrInvalidConfig` for an environment without a project, an
+  empty project, and a project or an environment that is `.` or `..`.
+- `Client.Scope(ctx)` returns the `permit.Scope`, the project and the environment, that the
+  client's calls act on: those that `WithScope` gave, or else those of the API key, which the
+  client looks up once with `GET /v2/api-key/scope`. The calls that need the scope while the
+  lookup runs wait for it, and the client keeps the scope of the first lookup that succeeds; a
+  lookup that fails is not kept, so the next call looks it up again. A failed lookup returns the
+  `*permit.Error` of the reply, such as one that matches `ErrUnauthorized`, or after the retries
+  `ErrRateLimited`. A call whose context ends while it waits for the lookup returns an error that
+  matches the context's error at once, and the lookup goes on for the other calls; `Close` ends
+  the lookup.
+- A call that acts on an environment needs a project and an environment in the scope, and one
+  that acts on a project needs a project. When the scope lacks one, the call returns an error
+  that matches `ErrInvalidConfig`, names its operation and `WithScope`, and sends no request for
+  the operation; without `WithScope`, the client may first look up the scope of its API key. A
+  call that acts on the organization needs no scope, and sends no lookup.
 
 ### Errors
 

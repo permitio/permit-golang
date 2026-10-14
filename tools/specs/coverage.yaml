@@ -72,7 +72,7 @@ control-plane:
   # API Keys
   - {op: list_api_keys, route: "GET /v2/api-key", stage: GA, status: planned}
   - {op: create_api_key, route: "POST /v2/api-key", stage: GA, status: planned}
-  - {op: get_api_key_scope, route: "GET /v2/api-key/scope", stage: GA, status: planned}
+  - {op: get_api_key_scope, route: "GET /v2/api-key/scope", stage: GA, status: covered}
   - {op: get_api_key, route: "GET /v2/api-key/{api_key_id}", stage: GA, status: planned}
   - {op: delete_api_key, route: "DELETE /v2/api-key/{api_key_id}", stage: GA, status: planned}
   - {op: rotate_api_key, route: "POST /v2/api-key/{api_key_id}/rotate-secret", stage: GA, status: planned}

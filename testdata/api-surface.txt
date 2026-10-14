@@ -38,11 +38,13 @@ permit: func WithHTTPClient(httpClient *http.Client) Option
 permit: func WithLogger(logger *slog.Logger) Option
 permit: func WithPDPURL(pdpURL string) Option
 permit: func WithRetry(policy RetryPolicy) Option
+permit: func WithScope(project string, environment string) Option
 permit: func WithTimeout(timeout time.Duration) Option
 permit: method (*Client) Close() error
 permit: method (*Client) Format(f fmt.State, verb rune)
 permit: method (*Client) GoString() string
 permit: method (*Client) LogValue() slog.Value
+permit: method (*Client) Scope(ctx context.Context) (Scope, error)
 permit: method (*Client) String() string
 permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
@@ -76,6 +78,9 @@ permit: type Page[T any] struct, TotalCount *int
 permit: type RetryPolicy struct
 permit: type RetryPolicy struct, MaxBackoff time.Duration
 permit: type RetryPolicy struct, MaxRetries int
+permit: type Scope struct
+permit: type Scope struct, Environment string
+permit: type Scope struct, Project string
 permit: var ErrClosed = errors.New("permit: the client is closed")
 permit: var ErrConflict = errors.New("permit: conflict")
 permit: var ErrContainerPDPOnly = errors.New("permit: only the PDP container serves this route")

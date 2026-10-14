@@ -30,7 +30,6 @@ api.WaitForSyncOptions facts
 api.ImplicitGrants implicit-grants
 api.ImplicitGrants.* implicit-grants
 api.NewImplicitGrantsApi implicit-grants
-api.PermitApiClient.SetContext scope
 api.Projects projects
 api.Projects.* projects
 api.NewProjectsApi projects
@@ -76,8 +75,6 @@ api.Users.* users
 api.NewUsersApi users
 
 # Block a: pkg/config
-config.PermitConfig.GetContext scope
-config.PermitConfig.WithContext scope
 config.PermitConfig.GetFactsSyncTimeout facts
 config.PermitConfig.GetFactsSyncTimeoutPolicy facts
 config.PermitConfig.WithFactsSyncTimeout facts
@@ -90,17 +87,6 @@ config.FactsSyncTimeoutPolicy facts
 config.FactsSyncTimeoutPolicyFail facts
 config.FactsSyncTimeoutPolicyIgnore facts
 config.DefaultOpaUrl checks
-config.APIKeyLevel scope
-config.NoneAPIKeyLevel scope
-config.OrganizationAPIKeyLevel scope
-config.ProjectAPIKeyLevel scope
-config.EnvironmentAPIKeyLevel scope
-config.GetApiKeyLevel scope
-config.NewPermitContext scope
-config.PermitContext scope
-config.PermitContext.* scope
-config.PermitContextFactory scope
-config.PermitContextInterface scope
 
 # Block a: pkg/enforcement and pkg/permit
 enforcement.* checks

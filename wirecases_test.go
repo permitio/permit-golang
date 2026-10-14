@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/permitio/permit-golang/v2"
 	"github.com/permitio/permit-golang/v2/internal/surface"
 	"github.com/permitio/permit-golang/v2/internal/testkit/mockpermit"
 )
@@ -88,7 +89,7 @@ type wireNoResult struct{}
 
 // wireCaseLists holds the <area>Cases function of each *_wire_test.go file, which returns the
 // wire cases of the methods of its area. Add the function of a new file here.
-var wireCaseLists = []func() []wireCase{}
+var wireCaseLists = []func() []wireCase{scopeCases}
 
 // routeMethods are the request methods a route can have.
 var routeMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE"}
@@ -118,6 +119,30 @@ func wireCases(t *testing.T) []wireCase {
 		t.Fatal(err)
 	}
 	return cases
+}
+
+// replyFixture returns the content of the reply fixture testdata/replies/<name>, which the drift
+// tests check against the API's spec. It panics when the file cannot be read, which only a broken
+// checkout causes, as the <area>Cases functions have no testing.T.
+func replyFixture(name string) string {
+	body, err := os.ReadFile(filepath.Join("testdata", "replies", name))
+	if err != nil {
+		panic("the reply fixture " + name + ": " + err.Error())
+	}
+	return string(body)
+}
+
+// wireTestClient returns a client whose URLs point at api and pdp, with mockpermit's API key, and
+// closes it when the test ends.
+func wireTestClient(t *testing.T, api, pdp *mockpermit.Server) *permit.Client {
+	t.Helper()
+	c, err := permit.New(permit.WithAPIKey(mockpermit.APIKey), permit.WithAPIURL(api.URL),
+		permit.WithPDPURL(pdp.URL))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+	return c
 }
 
 // checkWireCase returns what the case lacks or gets wrong, or nil when it is complete.

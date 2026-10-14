@@ -10,6 +10,8 @@ config.http-client.nil the *http.Client is nil; pass a client, or leave the opti
 config.option.zero the Option is the zero value; build options with the With functions
 config.retry.max-backoff.negative MaxBackoff is less than zero; give 0 or more, where 0 is the default, 5 seconds
 config.retry.max-retries.negative MaxRetries is less than zero; give 0 or more, where 0 sends each request once
+config.scope.environment-without-project the environment is set and the project is empty; give the project that the environment belongs to
+config.scope.project-empty the project is empty; give the key or ID of the project, or leave WithScope out to use the API key's scope
 config.timeout.not-positive the timeout must be more than zero, such as 30 * time.Second
 config.url.empty the URL is empty; leave the option out to read the environment variable or to use the default
 config.url.fragment the URL has a fragment (#...); give the URL without it
@@ -22,3 +24,5 @@ list.page.negative Page is less than zero; give 0 or 1 for the first page, or th
 list.per-page.negative PerPage is less than zero; give 0 to leave the number of items on a page to the method, or a number from 1
 path.segment.dot the path parameter is . or .., which would change the route; pass the key or ID of the object
 path.segment.empty the path parameter is empty; pass the key or ID of the object
+scope.environment.missing the operation acts on an environment, and the client's scope has none; pass WithScope(project, environment) to New
+scope.project.missing the operation acts on a project, and the client's scope has none; pass WithScope(project, environment) to New

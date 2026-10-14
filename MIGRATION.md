@@ -460,6 +460,76 @@ differs from route to route; above a route's limit, the API may reject the reque
 items on a page. An `All` method reads every page and returns an `iter.Seq2[T, error]` of the
 items, so a loop over the pages is no longer needed.
 
+<a id="M-scope-1"></a>
+### M-scope-1: SetContext and WithContext become WithScope
+
+- v1: `api.PermitApiClient.SetContext`
+- v1: `config.PermitConfig.WithContext`
+- v1: `config.NewPermitContext`
+- v1: `config.PermitContext`
+- v1: `config.PermitContext.SetPermitContext`
+- v1: `config.PermitContextInterface`
+- v2: `permit.WithScope`
+
+Give the project and the environment that the client's calls act on to `permit.New` with
+`permit.WithScope`, each by its key or its ID, instead of calling `SetContext` on the client or
+passing a `config.PermitContext` to the configuration:
+
+```go
+client, err := permit.New(
+	permit.WithAPIKey(apiKey),
+	permit.WithScope("my-project", "production"),
+)
+```
+
+`permit.New` checks the scope and returns an error that matches `permit.ErrInvalidConfig` for an
+environment without a project, an empty project, and a project or an environment that is `.` or
+`..`; v1's `SetContext` returned no error. An empty environment gives a client that acts on a
+project only. The scope is fixed for the life of the client: build a client for each scope.
+Without `permit.WithScope`, the client acts on the scope of its API key, as
+[M-scope-2](#M-scope-2) says.
+
+<a id="M-scope-2"></a>
+### M-scope-2: GetContext becomes Client.Scope
+
+- v1: `config.PermitConfig.GetContext`
+- v1: `config.PermitContext.GetContext`
+- v1: `config.PermitContext.GetProject`
+- v1: `config.PermitContext.GetEnvironment`
+- v1: `config.PermitContextFactory`
+- v2: `permit.Client.Scope`
+
+`Client.Scope(ctx)` returns the project and the environment that the client's calls act on, as a
+`permit.Scope`: those that `permit.WithScope` gave, or else those of the client's API key, which
+the client looks up once, as [M-scope-4](#M-scope-4) says. Call it after `permit.New` to check
+the API key at once. A lookup that fails returns the `*permit.Error` of the reply, with its
+status, code and body, which matches a sentinel such as `permit.ErrUnauthorized`,
+`permit.ErrForbidden` or `permit.ErrRateLimited`, rather than v1's error with the code
+`ContextError`.
+
+A call that acts on an environment needs a project and an environment in the scope, and a call
+that acts on a project needs a project. When the scope lacks one, as the scope of an
+organization-level or a project-level API key does without `permit.WithScope`, the call returns
+an error that matches `permit.ErrInvalidConfig`, names the operation and `WithScope`, and sends
+no request for the operation; only the lookup of the scope that [M-scope-4](#M-scope-4)
+describes may come first. A call that acts on the organization, such as one that lists its
+projects, needs no scope.
+
+<a id="M-scope-3"></a>
+### M-scope-3: The level of an API key has no type
+
+- v1: `config.APIKeyLevel`
+- v1: `config.NoneAPIKeyLevel`
+- v1: `config.OrganizationAPIKeyLevel`
+- v1: `config.ProjectAPIKeyLevel`
+- v1: `config.EnvironmentAPIKeyLevel`
+- v1: `config.GetApiKeyLevel`
+- v2: not exposed in v2
+
+Tell the level of the API key from the scope that `Client.Scope` returns for a client without
+`permit.WithScope`: no project for an organization-level key, a project and no environment for a
+project-level key, and both for an environment-level key.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -533,6 +603,21 @@ the first, and up to twice as long before each later one, up to 5 seconds. The t
 returns the error of its last attempt at once instead. A server, a proxy or a log that counts
 requests sees each attempt, and the client writes a Debug line for each. To send each request
 once, as v1 did, pass `permit.WithRetry(permit.RetryPolicy{})`.
+
+<a id="M-scope-4"></a>
+### M-scope-4: The scope of the API key is looked up only for a call that needs it
+
+- v1: one `GET /v2/api-key/scope` request before the first API call of a client, whatever it acts on, and one from each `SetContext`
+- v2: one `GET /v2/api-key/scope` request for each client, before the first call that acts on a project or an environment, or from `Client.Scope`; none with `permit.WithScope`
+
+v1 looked up the scope of the API key before the first call of a client, whatever the call acted
+on, and again in each `SetContext`, which checked the scope it was given against it. v2 looks it
+up only for a call that acts on a project or an environment, or for `Client.Scope`, and never
+when `permit.WithScope` gives the scope. The calls that need the scope while the lookup runs wait
+for it, and the client keeps the scope of the first lookup that succeeds for its life; a lookup
+that fails is not kept, so the next call that needs the scope sends it again. The lookup follows
+`permit.WithRetry` and `permit.WithTimeout`. A call whose context ends while it waits for the
+lookup returns at once, and the lookup goes on for the other calls that wait for it.
 
 ## Kept on purpose
 

@@ -273,8 +273,8 @@ case: a `wireCase` (`wirecases_test.go`) returned by the `<area>Cases()` functio
 must send, the reply and the result the method must return for it (`wireNoResult{}` for a method
 that returns only an error), and an error reply of the API, with its status and error body, and
 the error the method must return for it. The cases run against `mockpermit` once the client
-exists *(the runner is added in a later commit on this branch)*; the tests below check them
-already:
+exists *(the runner is added in a later commit on this branch)*; until then `TestScopeWire` runs
+those of `scope_wire_test.go`. The tests below check them already:
 
 - the registry rejects a case whose method is not `<Type>.<Method>` with exported names, or that
   has no operationId, a malformed route or one with an empty segment, no mode, an unknown or
@@ -1481,7 +1481,13 @@ later commit on this branch)* does not exist yet.
    503 or 504, or a request without a complete reply; `NoRetry` for one that a call never sends
    twice, not even after a 429, such as rotating an API key; and neither for any other
    operation, such as a create, which a call sends again after a 429 only, as the server did not
-   act on it.
+   act on it. A method that fills `{proj_id}` or `{env_id}` from the client's scope, rather than
+   from its parameters, gets them from `c.scopeFor(ctx, opID)` (`scope.go`), which reads the
+   placeholders of the operation's route, not its `KeyLevel`: a route with `{env_id}` needs a
+   project and an environment, one with `{proj_id}` alone a project, and one with neither no
+   scope and no lookup. When the scope lacks what the route needs, `scopeFor` returns an error
+   that matches `ErrInvalidConfig`, and the call sends no request for the operation; without
+   `WithScope`, the lookup of the scope may come first.
 4. Document it, with the phrases that `docRules` asks of it. Give a new service type, and a new
    decision method, an Example with an output comment in `package permit_test`, and list a
    decision method in `decisionMethods`; see [API reference](#api-reference).

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/permitio/permit-golang/v2/internal/redact"
+	"github.com/permitio/permit-golang/v2/internal/scope"
 	"github.com/permitio/permit-golang/v2/internal/transport"
 	"github.com/permitio/permit-golang/v2/internal/validate"
 )
@@ -64,6 +65,10 @@ type settings struct {
 	// retry is the retry policy, with the default MaxBackoff in place of 0, or nil when no option
 	// gave one.
 	retry *transport.Policy
+
+	// scope is the scope that WithScope gave, or nil when the client looks up the scope of its
+	// API key.
+	scope *scope.Scope
 }
 
 // WithAPIKey sets the Permit API key that the client sends with each request. Without it, [New]
@@ -229,6 +234,57 @@ func WithRetry(policy RetryPolicy) Option {
 		}
 		return nil
 	}}
+}
+
+// WithScope sets the project and the environment that the client's calls act on, each by its key
+// or its ID, such as WithScope("my-project", "production"). The client then sends no request for
+// the scope of its API key, and [Client.Scope] returns what the option gives. Without it, the
+// client looks up the scope of its API key once, as Client.Scope describes: an
+// organization-level API key has neither a project nor an environment, and a project-level key
+// has no environment.
+//
+// A call that acts on an environment, such as one of the facts API, needs both, and one that acts
+// on a project needs the project. A call that lacks one returns an error that matches
+// [ErrInvalidConfig], names its operation and WithScope, and sends no request for the operation;
+// without WithScope, the client may first look up the scope of its API key. Give an empty
+// environment to a client that acts on a project only. New returns an error that matches
+// ErrInvalidConfig for an environment without a project, an empty project, and a project or an
+// environment that is . or .., which would change the route of every call.
+func WithScope(project, environment string) Option {
+	shown := strconv.Quote(redact.ScrubString(nil, project)) + ", " +
+		strconv.Quote(redact.ScrubString(nil, environment))
+	return Option{name: "WithScope", shown: shown, apply: func(s *settings) error {
+		if err := checkScope(project, environment); err != nil {
+			return err
+		}
+		s.scope = &scope.Scope{Project: project, Environment: environment}
+		return nil
+	}}
+}
+
+// checkScope returns the error of a scope that New rejects: an environment without a project, an
+// empty project, and a project or an environment that is . or .., which would change the route
+// of every call that fills it in.
+func checkScope(project, environment string) error {
+	if project == "" && environment != "" {
+		return &configError{setting: "WithScope", rule: validate.ScopeEnvironmentWithoutProject}
+	}
+	if project == "" {
+		return &configError{setting: "WithScope", rule: validate.ScopeProjectEmpty}
+	}
+	if isDotSegment(project) {
+		return &configError{setting: "WithScope: project", rule: validate.PathSegmentDot}
+	}
+	if isDotSegment(environment) {
+		return &configError{setting: "WithScope: environment", rule: validate.PathSegmentDot}
+	}
+	return nil
+}
+
+// isDotSegment reports whether s is . or .., which a server or a proxy may resolve as a step in
+// a path.
+func isDotSegment(s string) bool {
+	return s == "." || s == ".."
 }
 
 // WithLogger sets the *slog.Logger that the client logs to. By default the client logs nothing,
@@ -401,7 +457,9 @@ func baseURL(setting, raw string) (string, error) {
 // [ErrInvalidConfig].
 type configError struct {
 	// setting is the option or the environment variable that gave what breaks the rule, such as
-	// WithAPIURL or PERMIT_API_URL, or empty for a rule of no one setting.
+	// WithAPIURL or PERMIT_API_URL; a part of an option, such as WithScope: project or
+	// WithScope: environment; the operation whose call needs the scope, for the rules of the
+	// scope of a call; or empty for a rule of no one setting.
 	setting string
 
 	rule validate.Rule

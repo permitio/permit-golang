@@ -61,6 +61,20 @@ var (
 		Message: "MaxRetries is less than zero; give 0 or more, where 0 sends each request once",
 	}
 
+	// ScopeEnvironmentWithoutProject rejects a scope that names an environment and no project.
+	ScopeEnvironmentWithoutProject = Rule{
+		ID: "config.scope.environment-without-project",
+		Message: "the environment is set and the project is empty; give the project that the " +
+			"environment belongs to",
+	}
+
+	// ScopeProjectEmpty rejects a scope whose project is empty.
+	ScopeProjectEmpty = Rule{
+		ID: "config.scope.project-empty",
+		Message: "the project is empty; give the key or ID of the project, or leave WithScope " +
+			"out to use the API key's scope",
+	}
+
 	// TimeoutNotPositive rejects a timeout of zero or less.
 	TimeoutNotPositive = Rule{
 		ID:      "config.timeout.not-positive",
@@ -147,6 +161,27 @@ var (
 	}
 )
 
+// The rules of the scope of a call: the project and the environment that its operation acts on,
+// which the SDK checks before it sends the request. The error of such a rule names the
+// operation before the message.
+var (
+	// ScopeEnvironmentMissing rejects a call of an operation that acts on an environment when the
+	// client's scope has no environment.
+	ScopeEnvironmentMissing = Rule{
+		ID: "scope.environment.missing",
+		Message: "the operation acts on an environment, and the client's scope has none; pass " +
+			"WithScope(project, environment) to New",
+	}
+
+	// ScopeProjectMissing rejects a call of an operation that acts on a project when the client's
+	// scope has no project.
+	ScopeProjectMissing = Rule{
+		ID: "scope.project.missing",
+		Message: "the operation acts on a project, and the client's scope has none; pass " +
+			"WithScope(project, environment) to New",
+	}
+)
+
 // rules lists every rule, sorted by ID.
 var rules = []Rule{
 	APIKeyEmpty,
@@ -155,6 +190,8 @@ var rules = []Rule{
 	OptionZero,
 	RetryMaxBackoffNegative,
 	RetryMaxRetriesNegative,
+	ScopeEnvironmentWithoutProject,
+	ScopeProjectEmpty,
 	TimeoutNotPositive,
 	URLEmpty,
 	URLFragment,
@@ -167,6 +204,8 @@ var rules = []Rule{
 	ListPerPageNegative,
 	PathSegmentDot,
 	PathSegmentEmpty,
+	ScopeEnvironmentMissing,
+	ScopeProjectMissing,
 }
 
 // Rules returns every rule, sorted by ID.

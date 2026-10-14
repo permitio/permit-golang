@@ -1,0 +1,3 @@
+go test fuzz v1
+string("00000000-0000-4000-8000-000000000001")
+string("document:2026-annual-report")

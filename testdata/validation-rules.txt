@@ -16,3 +16,5 @@ config.url.parse the URL does not parse; check that it starts with http:// or ht
 config.url.query the URL has a query (?...); give the URL without it
 config.url.scheme the URL must start with http:// or https://
 config.url.userinfo the URL has a user name or a password; give the API key with WithAPIKey or PERMIT_API_KEY instead
+path.segment.dot the path parameter is . or .., which would change the route; pass the key or ID of the object
+path.segment.empty the path parameter is empty; pass the key or ID of the object

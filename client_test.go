@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/testkit/canary"
 	"github.com/permitio/permit-golang/v2/internal/testkit/concurrent"
 	"github.com/permitio/permit-golang/v2/internal/testkit/leak"
@@ -310,6 +311,55 @@ func TestCloseOfNoClient(t *testing.T) {
 	var c *Client
 	if err := c.Close(); err != nil {
 		t.Errorf("Close of a nil *Client = %v, want nil", err)
+	}
+}
+
+func TestNewHoldsTheDefaultRegistry(t *testing.T) {
+	clearEnv(t)
+	c := mustNew(t, localOptions()...)
+	if c.registry != rest.Default() {
+		t.Errorf("New built a client whose registry is %p, want rest.Default(), %p", c.registry,
+			rest.Default())
+	}
+}
+
+// echoOp returns a test-only operation with the ID id.
+func echoOp(id string) rest.Op {
+	return rest.Op{
+		ID: id, Method: http.MethodGet, Route: rest.TestPrefix + id,
+		KeyLevel: rest.EnvironmentLevel, Idempotent: true,
+	}
+}
+
+// TestTestOpsStayInTheTestClient checks that a test-only operation is in the registry of the test
+// client that registers it, and in no other: not in rest.Default, not in a client that New built
+// and not in another test client.
+func TestTestOpsStayInTheTestClient(t *testing.T) {
+	clearEnv(t)
+	echo, other := echoOp("test_echo"), echoOp("test_other")
+	c := newTestClient(t, localOptions(), echo)
+	second := newTestClient(t, localOptions(), other)
+	plain := mustNew(t, localOptions()...)
+
+	if got, ok := c.registry.Op(echo.ID); !ok || got.Route != echo.Route {
+		t.Errorf("the test client's registry holds %+v, %t; want the operation %s", got, ok,
+			echo.ID)
+	}
+	if got, want := len(c.registry.Ops()), len(rest.Default().Ops())+1; got != want {
+		t.Errorf("the test client's registry holds %d operations, want those of rest.Default "+
+			"and the test-only one, %d", got, want)
+	}
+	for name, registry := range map[string]*rest.Registry{
+		"rest.Default()":          rest.Default(),
+		"a client that New built": plain.registry,
+		"another test client":     second.registry,
+	} {
+		if _, ok := registry.Op(echo.ID); ok {
+			t.Errorf("the registry of %s holds the test-only operation %s", name, echo.ID)
+		}
+	}
+	if _, ok := c.registry.Op(other.ID); ok {
+		t.Errorf("the test client holds %s, which another test client registered", other.ID)
 	}
 }
 

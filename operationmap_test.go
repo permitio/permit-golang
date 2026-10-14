@@ -3,6 +3,7 @@ package permit_test
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"slices"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/testkit/mockpermit"
 )
 
@@ -69,13 +71,29 @@ func compareOperationMap(file, built []byte) error {
 	return nil
 }
 
+// unregisteredOps returns a problem for each wire case whose Op the registry does not hold.
+func unregisteredOps(cases []wireCase, registry *rest.Registry) []string {
+	var problems []string
+	for _, c := range cases {
+		if _, ok := registry.Op(c.Op); !ok {
+			problems = append(problems, fmt.Sprintf("the wire case of %s names the operation %s, "+
+				"which the operation registry does not hold; add its rest.Op to internal/rest, "+
+				"or fix the case's Op", c.Method, c.Op))
+		}
+	}
+	return problems
+}
+
 // TestOperationMap checks testdata/operation-map.json against the wire cases, and rewrites it
 // with -update. Its count sentinel checks that the map has a method for every public method with
-// a wire case. It takes part in the request record, which tools/cmd/apicoverage reads with the
-// map.
+// a wire case, and it checks that the operation registry holds the Op of every wire case. It
+// takes part in the request record, which tools/cmd/apicoverage reads with the map.
 func TestOperationMap(t *testing.T) {
 	mockpermit.RecordTest(t)
 	cases := wireCases(t)
+	for _, problem := range unregisteredOps(cases, rest.Default()) {
+		t.Error(problem)
+	}
 	built := buildOperationMap(cases)
 	cov := checkCoverage(readSurface(t)[0].Items, cases, readExemptions(t))
 	if len(built.Methods) != cov.covered {
@@ -97,6 +115,38 @@ func TestOperationMap(t *testing.T) {
 		t.Error(err)
 	}
 	t.Logf("operation map: %d methods, %d operations", len(built.Methods), built.operations())
+}
+
+func TestUnregisteredOps(t *testing.T) {
+	cases := syntheticCases()
+	var ops []rest.Op
+	for _, c := range cases[1:3] {
+		ops = append(ops, rest.Op{
+			ID: c.Op, Method: http.MethodGet, Route: rest.TestPrefix + c.Op,
+			KeyLevel: rest.EnvironmentLevel,
+		})
+	}
+	registry, err := rest.Default().WithTestOps(ops...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if problems := unregisteredOps(cases[1:3], registry); problems != nil {
+		t.Errorf("unregisteredOps of registered cases = %q, want none", problems)
+	}
+	got := unregisteredOps(cases, registry)
+	want := []string{
+		"the wire case of Client.Scope names the operation op_Client_Scope, which the operation " +
+			"registry does not hold; add its rest.Op to internal/rest, or fix the case's Op",
+		"the wire case of ImplicitGrantsService.Delete names the operation " +
+			"op_ImplicitGrantsService_Delete, which the operation registry does not hold; add " +
+			"its rest.Op to internal/rest, or fix the case's Op",
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("unregisteredOps differs (-want +got):\n%s", diff)
+	}
+	if problems := unregisteredOps(nil, rest.Default()); problems != nil {
+		t.Errorf("unregisteredOps of no cases = %q, want none", problems)
+	}
 }
 
 func TestBuildOperationMap(t *testing.T) {

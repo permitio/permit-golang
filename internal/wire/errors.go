@@ -1,4 +1,7 @@
-// Package wire reads the bodies that the Permit API and the PDP send to the SDK.
+// Package wire writes what the SDK sends to the Permit API and the PDP, and reads what they
+// answer, one way for each shape: the bodies of requests with [Encode], their paths with [Path]
+// and their queries with [Query]; the bodies of replies with [Decode], those that hold a list
+// with [DecodeList], and those of error replies with [DecodeErrorBody].
 package wire
 
 import (

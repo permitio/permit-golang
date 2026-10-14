@@ -201,8 +201,8 @@ phrases of `docRules`, and a count sentinel:
 - `TestDocRules`: the doc comment of each method that `docRules` names holds the rule's phrase,
   ignoring case and line breaks: the phrase that names the level of API key the method needs,
   `container PDP only` on the methods that only the container PDP serves, and `waits for sync` on
-  the facts writes that wait for the PDP. The operation registry fills `docRules` *(added in a
-  later commit on this branch)*.
+  the facts writes that wait for the PDP. Filling `docRules` from the
+  [operation registry](#operation-registry) is *(added in a later commit on this branch)*.
 
 The fixture modules in `testdata/doccheck` prove the rules: `pass` passes them all, and `links`,
 `undocumented`, `examples` and `notstruct` break them.
@@ -1077,8 +1077,9 @@ the Permit cloud *(added in a later commit on this branch)*. Requests to the tes
 under `/__test/`, are never recorded.
 
 A record holds no method names, so `testdata/operation-map.json` maps each public method to the
-operations its wire cases send. `TestOperationMap` fails when the map is stale; rewrite it and
-review its diff:
+operations its wire cases send. `TestOperationMap` fails when a wire case names an operation that
+the [operation registry](#operation-registry) does not hold, and when the map is stale; rewrite
+it and review its diff:
 
 ```sh
 go test -run TestOperationMap -update .
@@ -1175,9 +1176,9 @@ it cannot decode, and for a request that got no reply.
   package-level variable holds a credential.
 - When a route's body holds a credential in a field whose name does not contain one of the words
   that `redact.Scrub`'s doc lists, such as secret, token or password, list the field in the
-  `SensitiveBodyFields` of the route's entry in the operation registry *(added in a later commit
-  on this branch)*: `redact.Scrub` then replaces the field's values in the error bodies of that
-  route.
+  `SensitiveBodyFields` of the route's `rest.Op` in the [operation registry](#operation-registry):
+  the transport *(added in a later commit on this branch)* passes them to `redact.Scrub`, which
+  then replaces the field's values in the error bodies of that route.
 - `FuzzScrub` (`internal/redact`) and `FuzzError` (the root package) check that no key reaches an
   error. `go test` runs their seeds, in `testdata/fuzz`; to search for new inputs, run one, for
   example `go test -run '^$' -fuzz '^FuzzError$' -fuzztime 1m .`, and add each input that fails
@@ -1242,6 +1243,66 @@ and it is the one file that reads the environment: forbidigo fails `os.Getenv` a
 4. Add each input that the option rejects to `TestInvalidConfiguration`, rewrite the surface
    snapshot, and add the option to `CHANGELOG.md` and `MIGRATION.md`.
 
+## Operation registry
+
+`internal/rest` holds a `rest.Op` for each operation that the SDK sends, in `defaultOps`
+(`internal/rest/ops.go`): its ID, the operationId of the spec and the `op` of its row in
+`tools/specs/coverage.yaml`; its method; its route, the spec's path template; and the facts about
+it that the transport and the checks before a request read, so that no fact is kept in a list of
+its own:
+
+| Field | Meaning |
+| --- | --- |
+| `Idempotent` | A retry may send it again after a 5xx reply or a request without a reply: the GET, PUT and DELETE operations, and the PDP's decisions. |
+| `Facts` | A route of the facts API that the PDP container also serves under `/facts`. |
+| `WaitsForSync` | The PDP container can hold its answer until the change reaches its policy. Only a `Facts` operation can wait. |
+| `ContainerOnly` | Only the PDP container serves it; the cloud PDP answers 404 with an empty body. |
+| `KeyLevel` | The narrowest API key that may call it: `EnvironmentLevel`, `ProjectLevel` or `OrganizationLevel`. |
+| `DeleteSelf` | A DELETE whose path names the object it deletes, so that a 404 means the object is gone already. Not a removal whose body names what it removes. |
+| `NoRetry` | Never sent twice, not even after a 429, such as rotating an API key. |
+| `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name that `redact.Scrub` does not take for one. |
+| `MaxPerPage` | The largest `per_page` of a list operation, or 0. |
+| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty. |
+
+A `*permit.Client` holds the registry, `rest.Default()`. The registry fails on an operation that
+is not valid, such as one without a key level, `DeleteSelf` on another method than DELETE,
+`WaitsForSync` without `Facts` or `NoRetry` with `Idempotent`; on two operations with one ID; and
+on a route of `defaultOps` that starts with `/__test/`. `TestRepositoryRegistry`, in
+`tools/registry_test.go`, checks each operation of `rest.Default()` against `tools/specs`: its ID
+is the op of a planned or covered row of `coverage.yaml`, its method and route are those that a
+spec lists for the ID, or those of the row when the row is `sdk_only`, and its `RequestModel` and
+`ResponseModel` name exported types of `models`. `TestOperationMap` fails when a wire case names
+an operation that the registry does not hold.
+
+A test that needs an operation the SDK does not have, such as to check the transport, builds its
+client with `newTestClient` (`export_test.go`), which takes test-only operations, whose routes
+start with `/__test/`. That client's registry holds `rest.Default()` and the test's operations,
+and no other registry holds them, so a test-only operation never reaches an application. The
+request record leaves out requests to these routes.
+
+## Wire encoding
+
+`internal/wire` writes and reads what goes over the wire, one way for each shape:
+
+- request bodies with `wire.Encode`: `encoding/json`, with `<`, `>` and `&` as they are;
+- reply bodies with `wire.Decode`, which keeps a number that it reads into an `any` as a
+  `json.Number`, and fails on an empty body or on a second value after the first;
+- list replies with `wire.DecodeList`, which reads a bare array or the paginated envelope by the
+  first byte, never by trying one shape and then the other;
+- queries with `wire.Query`, which sorts the parameters, repeats the key of a list, leaves out a
+  parameter that is not set, never sends a parameter of `wire.DeprecatedParams`, and writes a
+  `float64` with 64 bits, as `encoding/json` does;
+- paths with `wire.Path`, which escapes each path parameter on its own with `url.PathEscape`, and
+  returns a `*wire.PathError`, with the validation rule `path.segment.empty` or
+  `path.segment.dot`, for an empty parameter or one that is `.` or `..`, before anything is sent.
+
+`TestRepositoryDeprecatedParams`, in `tools/registry_test.go`, checks `wire.DeprecatedParams`
+against the specs: it lists every query parameter that a spec marks deprecated, and no parameter
+that an operation takes without marking it deprecated. `FuzzQuery` and `FuzzPath` check that a
+query and a path read back as what was put in; `go test` runs their seeds, in
+`internal/wire/testdata/fuzz`, and you search for new inputs as for `FuzzScrub`, as
+[Errors and redaction](#errors-and-redaction) shows.
+
 ## Adding or changing an API method
 
 There is no code generator to run: the models in `models/` are written by hand, and a drift test
@@ -1249,11 +1310,12 @@ There is no code generator to run: the models in `models/` are written by hand, 
 specification. The steps below are a skeleton that later commits on this branch fill in; whatever
 is marked *(added in a later commit on this branch)* does not exist yet.
 
-1. Find the operation in the API spec snapshot *(added in a later commit on this branch)*.
+1. Find the operation in the spec snapshots, `tools/specs/*.json`, and its row in
+   `tools/specs/coverage.yaml`.
 2. Write or extend the model in `models/`, and its row in the drift map *(added in a later commit
    on this branch)*.
-3. Add the method, and its entry in the operation registry *(added in a later commit on this
-   branch)*.
+3. Add the method, and its `rest.Op` to `defaultOps` in `internal/rest/ops.go`, with the fields
+   that the [operation registry](#operation-registry) lists.
 4. Document it, with the phrases that `docRules` asks of it. Give a new service type, and a new
    decision method, an Example with an output comment in `package permit_test`, and list a
    decision method in `decisionMethods`; see [API reference](#api-reference).

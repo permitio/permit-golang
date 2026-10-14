@@ -429,7 +429,39 @@ before the handler gets it.
 
 ## Wire behaviour
 
-No entries yet.
+<a id="M-wire-1"></a>
+### M-wire-1: Request bodies keep `<`, `>` and `&` as they are
+
+- v1: request bodies with `<`, `>` and `&` escaped as `\u003c`, `\u003e` and `\u0026`
+- v2: request bodies with `<`, `>` and `&` as they are
+
+v1 wrote request bodies with the escapes that `encoding/json` adds for HTML. v2 sends these
+characters as they are. A JSON reader, such as the API, reads the same string either way: only
+the bytes of the body differ, as a proxy or a test that compares them sees.
+
+<a id="M-wire-2"></a>
+### M-wire-2: Numbers in a query are written as JSON writes them
+
+- v1: attribute filter values written with fmt's `%v`, such as `1.23456789125e+08` for 123456789.125
+- v2: numbers written as `encoding/json` writes them, such as `123456789.125`
+
+v1 wrote the values of attribute filters with fmt's `%v`, which writes a large or small `float64`
+in e notation, such as `9.007199254740992e+15` for 2^53. v2 writes the shortest text that reads
+back as the same `float64` in the form `encoding/json` uses, such as `9007199254740992` or
+`0.30000000000000004`, with e notation only below 1e-6 and from 1e21 on, and an integer as its
+decimal digits, such as `9007199254740993`.
+
+<a id="M-wire-3"></a>
+### M-wire-3: An empty path parameter fails before the request
+
+- v1: an empty key or ID sent as an empty segment of the path, such as `GET /v2/facts/p//users`
+- v2: an error that matches `permit.ErrInvalidConfig`, and no request
+
+The key or the ID of an object goes into the path of a request. v1 sent an empty one as an empty
+segment, so the request reached another route or none, and the API answered for that route, such
+as with 404. v2 fails the call with an error that matches `permit.ErrInvalidConfig`, and sends
+nothing, when a path parameter is empty, and when it is `.` or `..`, which a server or a proxy on
+the way may resolve as a step in the path.
 
 ## Kept on purpose
 

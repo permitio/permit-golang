@@ -1,0 +1,6 @@
+go test fuzz v1
+string("timeout")
+string("")
+int64(-9223372036854775808)
+float64(1e+300)
+bool(true)

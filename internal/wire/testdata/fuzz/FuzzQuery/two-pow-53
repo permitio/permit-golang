@@ -1,0 +1,6 @@
+go test fuzz v1
+string("search")
+string("q")
+int64(9007199254740993)
+float64(9.007199254740992e+15)
+bool(false)

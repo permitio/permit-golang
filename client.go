@@ -14,6 +14,7 @@ import (
 
 	"github.com/permitio/permit-golang/v2/internal/logging"
 	"github.com/permitio/permit-golang/v2/internal/redact"
+	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/validate"
 )
 
@@ -46,6 +47,10 @@ type Client struct {
 
 	// logger writes the client's log lines, with the members of secrets replaced.
 	logger *logging.Logger
+
+	// registry holds the operations that the client can send: rest.Default, and in a test
+	// client that export_test.go builds, the test's test-only operations too.
+	registry *rest.Registry
 
 	closed atomic.Bool
 }
@@ -88,6 +93,7 @@ func New(opts ...Option) (*Client, error) {
 		timeout:    s.timeout,
 		secrets:    redact.NewSet(s.apiKey.Value()),
 		httpClient: s.httpClient,
+		registry:   rest.Default(),
 	}
 	c.logger = logging.New(s.logger, c.secrets)
 	if plainHTTPToRemote(c.apiURL) {

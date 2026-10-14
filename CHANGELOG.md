@@ -65,6 +65,23 @@ change from v1 and what to use instead.
   the message, in the keys and string values of attributes, in groups at any depth, in what a
   `slog.LogValuer` returns, and in errors, which reach the handler as their text only.
 
+### Requests and replies
+
+- Request bodies are JSON that `encoding/json` writes, with `<`, `>` and `&` sent as they are
+  rather than escaped as `\u003c`, `\u003e` and `\u0026`.
+- A number in a query keeps every digit: a `float64` is the shortest text that reads back as the
+  same value, as `encoding/json` writes it, such as `0.30000000000000004`, and an integer is its
+  decimal digits, such as `9007199254740993`.
+- A list in a query repeats its key, such as `user=a&user=b`. A filter that is not set is left
+  out, and the query parameters that the API marks deprecated, `detailed`, `include_total_count`
+  and `return_deleted`, are never sent.
+- Each path parameter is escaped on its own, so a key such as `a/b` stays one segment, `a%2Fb`.
+  An empty path parameter, or one that is `.` or `..`, fails with an error that matches
+  `ErrInvalidConfig` before any request is sent.
+- A list reply is read by its first byte, as a JSON array or as the paginated object that holds
+  the array in `data`, so both shapes give the same items, and a reply of another shape is an
+  error rather than an empty list.
+
 ## v1.3.0 (2026-10-13)
 
 ### API keys and proxy config secrets in logs from v1.2.8 and earlier

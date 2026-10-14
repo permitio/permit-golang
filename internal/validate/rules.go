@@ -101,6 +101,25 @@ var (
 	}
 )
 
+// The rules of the arguments of a call, which the SDK checks before it sends the request. The
+// error of such a rule names the argument before the message.
+var (
+	// PathSegmentDot rejects a path parameter that is . or .., which a server or a proxy on the
+	// way may resolve as a step in the path, so that the request reaches another route.
+	PathSegmentDot = Rule{
+		ID: "path.segment.dot",
+		Message: "the path parameter is . or .., which would change the route; pass the key or " +
+			"ID of the object",
+	}
+
+	// PathSegmentEmpty rejects an empty path parameter, which would leave an empty segment in
+	// the path, so that the request reaches another route or none.
+	PathSegmentEmpty = Rule{
+		ID:      "path.segment.empty",
+		Message: "the path parameter is empty; pass the key or ID of the object",
+	}
+)
+
 // rules lists every rule, sorted by ID.
 var rules = []Rule{
 	APIKeyEmpty,
@@ -115,6 +134,8 @@ var rules = []Rule{
 	URLQuery,
 	URLScheme,
 	URLUserinfo,
+	PathSegmentDot,
+	PathSegmentEmpty,
 }
 
 // Rules returns every rule, sorted by ID.

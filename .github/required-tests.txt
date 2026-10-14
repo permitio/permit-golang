@@ -469,3 +469,50 @@ github.com/permitio/permit-golang/v2 TestReadmeMarkedBlocks
 github.com/permitio/permit-golang/v2 TestReadmeOpeningFence
 github.com/permitio/permit-golang/v2 TestReadmeClosingFence
 github.com/permitio/permit-golang/v2 TestReadmeCompileSentinel
+
+github.com/permitio/permit-golang/v2 TestReplyErrorStatusesAndBodies
+github.com/permitio/permit-golang/v2 TestErrorText
+github.com/permitio/permit-golang/v2 TestErrorIsChecksTheCauseToo
+github.com/permitio/permit-golang/v2 TestContainerPDPOnlyIsNotNotFound
+github.com/permitio/permit-golang/v2 TestNilError
+github.com/permitio/permit-golang/v2 TestSentinelsAreDistinct
+github.com/permitio/permit-golang/v2 TestReplyErrorRedacts
+github.com/permitio/permit-golang/v2 TestReplyErrorScrubsSensitiveFields
+github.com/permitio/permit-golang/v2 TestReplyErrorCutsTheBodyAfterRedaction
+github.com/permitio/permit-golang/v2 TestReplyErrorCutsTheFields
+github.com/permitio/permit-golang/v2 TestReplyErrorListsTenValidationErrors
+github.com/permitio/permit-golang/v2 TestDecodeError
+github.com/permitio/permit-golang/v2 TestTransportError
+github.com/permitio/permit-golang/v2 TestTransportErrorWithoutACause
+github.com/permitio/permit-golang/v2 TestConstructorsTakeZeroValues
+github.com/permitio/permit-golang/v2 FuzzError
+github.com/permitio/permit-golang/v2 ExampleError
+github.com/permitio/permit-golang/v2 ExampleError_Is
+github.com/permitio/permit-golang/v2 ExampleError_Error
+
+github.com/permitio/permit-golang/v2/internal/redact TestSecretNeverPrintsItsValue
+github.com/permitio/permit-golang/v2/internal/redact TestSecretInLogs
+github.com/permitio/permit-golang/v2/internal/redact TestEmptySecretPrintsNothing
+github.com/permitio/permit-golang/v2/internal/redact TestSecretKeepsItsValue
+github.com/permitio/permit-golang/v2/internal/redact TestSetAddAndContains
+github.com/permitio/permit-golang/v2/internal/redact TestZeroSetIsReady
+github.com/permitio/permit-golang/v2/internal/redact TestSetsAreIndependent
+github.com/permitio/permit-golang/v2/internal/redact TestSetIsSafeForConcurrentUse
+github.com/permitio/permit-golang/v2/internal/redact TestLongestFirst
+github.com/permitio/permit-golang/v2/internal/redact TestScrubReplacesALongerSecretFirst
+github.com/permitio/permit-golang/v2/internal/redact TestScrub
+github.com/permitio/permit-golang/v2/internal/redact TestScrubAMemberThatJSONEscapes
+github.com/permitio/permit-golang/v2/internal/redact TestScrubSensitiveFields
+github.com/permitio/permit-golang/v2/internal/redact TestScrubAMemberThatOverlapsTheMarker
+github.com/permitio/permit-golang/v2/internal/redact TestScrubReturnsACopy
+github.com/permitio/permit-golang/v2/internal/redact TestIsCredential
+github.com/permitio/permit-golang/v2/internal/redact TestNormalize
+github.com/permitio/permit-golang/v2/internal/redact FuzzScrub
+
+github.com/permitio/permit-golang/v2/internal/wire TestDecodeErrorBody
+github.com/permitio/permit-golang/v2/internal/wire TestDecodeErrorBodyRejectsOtherBodies
+github.com/permitio/permit-golang/v2/internal/wire TestSummary
+github.com/permitio/permit-golang/v2/internal/wire TestSummaryListsTenValidationErrors
+github.com/permitio/permit-golang/v2/internal/wire TestLocation
+
+github.com/permitio/permit-golang/v2/internal/testkit/mockpermit TestExampleServersRunFailsTheRun

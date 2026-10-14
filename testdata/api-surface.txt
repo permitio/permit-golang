@@ -3,3 +3,26 @@
 # change, rewrite this file with go test -run TestSurfaceSnapshot -update . and review the
 # diff.
 permit: const Version = "2.0.0"
+permit: method (*Error) Error() string
+permit: method (*Error) Is(target error) bool
+permit: method (*Error) Unwrap() error
+permit: type Error struct
+permit: type Error struct, Body []byte
+permit: type Error struct, Code string
+permit: type Error struct, Detail string
+permit: type Error struct, Err error
+permit: type Error struct, Method string
+permit: type Error struct, Op string
+permit: type Error struct, RequestID string
+permit: type Error struct, Route string
+permit: type Error struct, StatusCode int
+permit: type Error struct, Title string
+permit: var ErrClosed = errors.New("permit: the client is closed")
+permit: var ErrConflict = errors.New("permit: conflict")
+permit: var ErrContainerPDPOnly = errors.New("permit: only the PDP container serves this route")
+permit: var ErrForbidden = errors.New("permit: forbidden")
+permit: var ErrInvalidConfig = errors.New("permit: invalid configuration")
+permit: var ErrMalformedDecision = errors.New("permit: malformed decision")
+permit: var ErrNotFound = errors.New("permit: not found")
+permit: var ErrRateLimited = errors.New("permit: rate limited")
+permit: var ErrUnauthorized = errors.New("permit: unauthorized")

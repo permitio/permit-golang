@@ -108,9 +108,8 @@ config.PermitContext.* scope
 config.PermitContextFactory scope
 config.PermitContextInterface scope
 
-# Block a: pkg/enforcement, pkg/errors and pkg/permit
+# Block a: pkg/enforcement and pkg/permit
 enforcement.* checks
-errors.* errors
 permit.Client client
 permit.New client
 permit.NewPermit client

@@ -80,7 +80,148 @@ move one package at a time.
 
 ## API
 
-No entries yet.
+<a id="M-errors-1"></a>
+### M-errors-1: PermitError becomes *permit.Error
+
+- v1: `errors.PermitError`
+- v1: `errors.PermitError.Unwrap`
+- v2: `permit.Error`
+
+A call whose request fails returns a `*permit.Error`, or an error that wraps one. It is a
+pointer: read it with `errors.AsType[*permit.Error](err)`, or with `errors.As` and a
+`*permit.Error` target, instead of a `PermitError` value.
+
+- `StatusCode` keeps its name.
+- `ResponseBody`, a string, becomes `Body`, a `[]byte` that holds the body of a reply whose
+  status is not in 200-299, cut to 8 KiB, with credentials replaced.
+- `ErrorCode` and `ErrorType` give way to `Code`, the error code of the API's error body, and to
+  the sentinels of the entries below.
+- New fields name the request: `Op`, the ID of the operation, `Method` and `Route`, the route
+  template. Others say what the reply said: `Title`, `Detail` and `RequestID`, the id of the
+  API's error body. `Err` is the cause, which `Unwrap` returns.
+
+The text of the error has the operation, the method, the route, the status, the code and the
+detail, and never the body.
+
+<a id="M-errors-2"></a>
+### M-errors-2: Check for a missing object with ErrNotFound
+
+- v1: `errors.NotFound`
+- v2: `permit.ErrNotFound`
+
+`errors.Is(err, permit.ErrNotFound)` reports a reply with status 404, unless the error wraps
+`permit.ErrContainerPDPOnly`: a route that only the PDP container serves is not a missing object.
+Use it instead of comparing `ErrorCode` with `NotFound`.
+
+<a id="M-errors-3"></a>
+### M-errors-3: Check for a conflict with ErrConflict
+
+- v1: `errors.Conflict`
+- v1: `errors.DuplicateEntity`
+- v2: `permit.ErrConflict`
+
+`errors.Is(err, permit.ErrConflict)` reports a reply with status 409, such as the reply to a
+create of an object that exists already.
+
+<a id="M-errors-4"></a>
+### M-errors-4: Check for a rejected API key with ErrUnauthorized
+
+- v1: `errors.Unauthorized`
+- v2: `permit.ErrUnauthorized`
+
+`errors.Is(err, permit.ErrUnauthorized)` reports a reply with status 401.
+
+<a id="M-errors-5"></a>
+### M-errors-5: Check for a forbidden request with ErrForbidden
+
+- v1: `errors.ForbiddenAccess`
+- v2: `permit.ErrForbidden`
+
+`errors.Is(err, permit.ErrForbidden)` reports a reply with status 403.
+
+<a id="M-errors-6"></a>
+### M-errors-6: A request without a reply keeps its cause
+
+- v1: `errors.ConnectionError`
+- v2: `permit.Error.Err`
+
+A request that gets no reply, such as one whose connection fails or whose context ends, returns a
+`*permit.Error` whose `StatusCode` is 0 and whose `Err` wraps the cause. `errors.Is(err,
+context.DeadlineExceeded)` and `errors.Is(err, context.Canceled)` report the end of the context,
+and `errors.As` finds a `*url.Error` or a `*net.OpError`.
+
+<a id="M-errors-7"></a>
+### M-errors-7: Error codes are the API's
+
+- v1: `errors.ErrorCode`
+- v1: `errors.UnexpectedError`
+- v1: `errors.EmptyDecisionLogs`
+- v1: `errors.MissingRequestAttribute`
+- v1: `errors.InvalidPermissionFormat`
+- v1: `errors.MissingPermissions`
+- v1: `errors.UnsupportedAttributeType`
+- v1: `errors.MissingResourceAttribute`
+- v1: `errors.InvalidPolicyRepoStatus`
+- v1: `errors.MismatchAttributesTypes`
+- v2: `permit.Error.Code`
+
+`Code` is a string: the `error_code` of the API's error body as the API spells it, such as
+`MISSING_PERMISSIONS` for v1's `MissingPermissions`, or empty when the body has none. For a status
+that has no sentinel, such as 400 or 500, which v1 reported as `UnexpectedError`, read
+`StatusCode`. A reply with status 429 matches `permit.ErrRateLimited`.
+
+<a id="M-errors-8"></a>
+### M-errors-8: A validation error lists its fields in Detail
+
+- v1: `errors.UnprocessableEntityError`
+- v2: `permit.Error.Detail`
+
+A request that the API rejects with status 422 returns a `*permit.Error` whose `StatusCode` is 422
+and whose `Detail` lists the first 10 fields that failed, each with its message, such as
+`body.email: value is not a valid email address`, and then how many more failed.
+
+<a id="M-errors-9"></a>
+### M-errors-9: Options and arguments that cannot work match ErrInvalidConfig
+
+- v1: `errors.PaginationError`
+- v1: `errors.ContextError`
+- v2: `permit.ErrInvalidConfig`
+
+An option of the client or an argument of a call that the SDK cannot use fails before any request
+is sent, with an error that matches `permit.ErrInvalidConfig`.
+
+<a id="M-errors-10"></a>
+### M-errors-10: Errors have no type
+
+- v1: `errors.ErrorType`
+- v1: `errors.*_ERROR`
+- v1: `errors.TeapotError`
+- v2: not exposed in v2
+
+v2 does not sort errors into types. A `*permit.Error` whose `StatusCode` is not 0 holds a reply of
+the API or the PDP, and one whose `StatusCode` is 0 holds a request that got no reply. A call that
+sends nothing, because an option or an argument is not valid or the client is closed, returns an
+error that matches the sentinel `permit.ErrInvalidConfig` or `permit.ErrClosed`, without a status.
+v1 never returned `TeapotError`.
+
+<a id="M-errors-11"></a>
+### M-errors-11: Error messages are not constants
+
+- v1: `errors.*Message`
+- v2: not exposed in v2
+
+The text of a `*permit.Error` is written from its fields, with the API's detail. Do not match the
+text: use `errors.Is` with the sentinels, or read `StatusCode` and `Code`.
+
+<a id="M-errors-12"></a>
+### M-errors-12: Only the SDK creates its errors
+
+- v1: `errors.NewPermit*`
+- v1: `errors.HttpErrorHandle`
+- v2: not exposed in v2
+
+A test that needs an error of the SDK builds a `*permit.Error` literal, such as
+`&permit.Error{StatusCode: 404}`, which matches `permit.ErrNotFound`.
 
 ## Wire behaviour
 

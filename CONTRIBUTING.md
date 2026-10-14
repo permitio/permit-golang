@@ -1157,6 +1157,32 @@ CI checks the message of every commit of a pull request, Dependabot's included. 
 `TestCheckCommitMsgDependabot` in `tools/scripts` checks that the messages Dependabot writes for
 these entries pass.
 
+## Errors and redaction
+
+`errors.go` holds `Error`, which a failed call returns or wraps, and the sentinel errors. The SDK
+creates an `Error` only through the unexported constructors there, which the transport *(added in
+a later commit on this branch)* calls: for a reply with an error status, for a reply in 200-299
+it cannot decode, and for a request that got no reply.
+
+- To add a sentinel, declare it in the `var` block of `errors.go`, with a doc comment and a text
+  that starts with `permit: `, and add it to the `sentinels` table of `errors_test.go`. A sentinel
+  that stands for a status also gets a case in `Error.Is`. Then rewrite the surface snapshot and
+  add the sentinel to `CHANGELOG.md`.
+- Credentials are replaced when an `Error` is created, never when it is printed. Each client owns
+  a `redact.Set` (`internal/redact`) that holds its API key and the credentials its calls return.
+  The constructors replace its members, and what the stateless patterns of `redact.Scrub` find, in
+  the fields they read from the reply, in the body they keep and in the text of the cause. No
+  package-level variable holds a credential.
+- When a route's body holds a credential in a field whose name does not contain one of the words
+  that `redact.Scrub`'s doc lists, such as secret, token or password, list the field in the
+  `SensitiveBodyFields` of the route's entry in the operation registry *(added in a later commit
+  on this branch)*: `redact.Scrub` then replaces the field's values in the error bodies of that
+  route.
+- `FuzzScrub` (`internal/redact`) and `FuzzError` (the root package) check that no key reaches an
+  error. `go test` runs their seeds, in `testdata/fuzz`; to search for new inputs, run one, for
+  example `go test -run '^$' -fuzz '^FuzzError$' -fuzztime 1m .`, and add each input that fails
+  to `testdata/fuzz` with the fix.
+
 ## Adding or changing an API method
 
 There is no code generator to run: the models in `models/` are written by hand, and a drift test

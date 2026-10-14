@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("{\"api_key\": \"x\", \"items\": [1, 2")
+uint(5)
+string("api-key-value")

@@ -1,6 +1,30 @@
 # Changelog
 
-## v1.3.0 (unreleased)
+## v2.0.0 (unreleased)
+
+v2 is the module `github.com/permitio/permit-golang/v2`. [MIGRATION.md](MIGRATION.md) lists each
+change from v1 and what to use instead.
+
+### Errors
+
+- A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the
+  operation, the HTTP method and the route template of the request, and holds the status, the
+  API's error code, title, detail and request ID, the body of a reply whose status is not in
+  200-299, cut to 8 KiB, and the cause of a request that got no reply. Its text never includes the
+  body.
+- Check what failed with `errors.Is` and the sentinels `ErrNotFound` (404), `ErrConflict` (409),
+  `ErrUnauthorized` (401), `ErrForbidden` (403) and `ErrRateLimited` (429), and
+  `ErrContainerPDPOnly`, `ErrInvalidConfig`, `ErrMalformedDecision` and `ErrClosed`. Read the
+  fields with `errors.AsType[*permit.Error]` or `errors.As`.
+- The cause of a request that got no reply stays wrapped, so `errors.Is(err,
+  context.DeadlineExceeded)` reports a deadline.
+- An error has its credentials replaced with a marker when the SDK creates it: the client's API
+  key and the credentials its calls return, which each client keeps to itself, Permit API keys,
+  Authorization header values, and the values of JSON fields that name a credential, such as
+  `token` or `password`. A reply in 200-299 that the SDK cannot decode gives an error that names
+  the model and keeps nothing of the body.
+
+## v1.3.0 (2026-10-13)
 
 ### API keys and proxy config secrets in logs from v1.2.8 and earlier
 

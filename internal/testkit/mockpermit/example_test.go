@@ -1,7 +1,13 @@
 package mockpermit
 
 import (
+	"bytes"
+	"errors"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -106,5 +112,41 @@ func TestStartExampleUnfiredFault(t *testing.T) {
 			`FailRequests("GET /v2/x", 500, 0) answered no request`,
 		) {
 		t.Errorf("finish() = %d and wrote %q, want 1 and the fault", code, report.String())
+	}
+}
+
+// TestExampleServersRunFailsTheRun builds the test binary of testdata/exitcode, whose Example
+// passes while the API server records a request for a route it does not have, and runs it: Run
+// must make the binary exit 1 and write the problem to standard error. The go command runs
+// offline, without a go.work file.
+func TestExampleServersRunFailsTheRun(t *testing.T) {
+	binary := filepath.Join(t.TempDir(), "exitcode.test")
+	build := exec.CommandContext(t.Context(), "go", "test", "-c", "-o", binary,
+		"./testdata/exitcode")
+	build.Env = slices.Concat(os.Environ(),
+		[]string{"GOFLAGS=-mod=mod", "GOPROXY=off", "GOWORK=off"})
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("go test -c ./testdata/exitcode: %v\n%s", err, out)
+	}
+
+	run := exec.CommandContext(t.Context(), binary, "-test.v", "-test.count=1")
+	var stdout, stderr bytes.Buffer
+	run.Stdout, run.Stderr = &stdout, &stderr
+	err := run.Run()
+
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) || exit.ExitCode() != 1 {
+		t.Errorf("the test binary returned %v, want exit status 1", err)
+	}
+	if out := stdout.String(); !strings.Contains(out, "--- PASS: Example") ||
+		!strings.HasSuffix(out, "PASS\n") {
+		t.Errorf("the test binary wrote\n%s\nto standard output; want the Example and the "+
+			"run to pass, so that only the servers fail it", out)
+	}
+	want := "mockpermit API: GET /v2/unknown: no route; register it with Handle if the SDK " +
+		"should send this request\nFAIL: the mockpermit servers of the Examples failed the run; " +
+		"problems found: 1\n"
+	if stderr.String() != want {
+		t.Errorf("the test binary wrote %q to standard error, want %q", stderr.String(), want)
 	}
 }

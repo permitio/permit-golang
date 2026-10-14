@@ -206,7 +206,7 @@ func (r report) evaluate() outcome {
 		if r.opts.all {
 			return outcome{
 				exit:   exitDidNotRun,
-				notice: r.dirList() + " holds no code in a function body to mutate",
+				notice: r.dirList() + " holds no code that Go's coverage counts to mutate",
 			}
 		}
 		return outcome{exit: exitPassed, notice: r.noChangeNotice()}

@@ -386,6 +386,61 @@ func TestRunGate(t *testing.T) {
 			},
 		},
 		{
+			// gremlins reports the mutants of a case clause's expressions as on lines
+			// no test covers.
+			name: "only a case clause's expression changed",
+			args: base, dirs: both,
+			diff:  changedDiff(map[string]string{"tools/x/x.go": "@@ -7 +7 @@\n-a\n+b\n"}),
+			files: map[string]string{"tools/x/x.go": uncountedFile},
+			mutants: map[string][]fakeMutant{
+				"tools/x/x.go": {{7, statusNotCovered}, {8, statusKilled}},
+			},
+			wantExit: exitPassed,
+			wantOutput: []string{
+				"### Mutation tests: `tools` (m/tools)\n\n**PASS**: Go files changed since the " +
+					"merge base with main, but none that the gate mutates (listed below); " +
+					"nothing was mutated.",
+				"- `tools/x/x.go`: no code that Go's coverage counts on the changed lines (a " +
+					"case clause up to its colon, or the rest of a statement after the body of a " +
+					"function literal in it)\n",
+				"mutationgate: PASS\n",
+			},
+		},
+		{
+			name: "only the rest of a statement after a function literal changed",
+			args: base, dirs: both,
+			diff:  changedDiff(map[string]string{"tools/x/x.go": "@@ -34 +34 @@\n-a\n+b\n"}),
+			files: map[string]string{"tools/x/x.go": uncountedFile},
+			mutants: map[string][]fakeMutant{
+				"tools/x/x.go": {{33, statusKilled}, {34, statusNotCovered}},
+			},
+			wantExit: exitPassed,
+			wantOutput: []string{
+				"**PASS**: Go files changed since the merge base with main, but none that the " +
+					"gate mutates (listed below); nothing was mutated.",
+				"- `tools/x/x.go`: no code that Go's coverage counts on the changed lines",
+				"mutationgate: PASS\n",
+			},
+		},
+		{
+			name: "a case clause and a function body whose mutants no test covers",
+			args: base, dirs: both,
+			diff: changedDiff(map[string]string{
+				"tools/x/x.go": "@@ -7,2 +7,2 @@\n-a\n-b\n+c\n+d\n",
+			}),
+			files: map[string]string{"tools/x/x.go": uncountedFile},
+			mutants: map[string][]fakeMutant{
+				"tools/x/x.go": {{7, statusNotCovered}, {8, statusNotCovered}},
+			},
+			wantExit: exitDidNotRun, wantCalls: 1, wantProbes: 1,
+			wantOutput: []string{
+				"### Mutation tests: `tools` (m/tools)\n\n**DID NOT RUN**: No mutant ran: of " +
+					"the 1 mutants in scope, 1 are on lines no test covers and 0 do not compile",
+				"| `tools/x/x.go:8:2` | CONDITIONALS_NEGATION | NOT COVERED |",
+				"mutationgate: DID NOT RUN\n",
+			},
+		},
+		{
 			name: "a changed Go file that does not parse",
 			args: base, dirs: both, diff: rootDiff,
 			files:    map[string]string{"a.go": "package x\n\nfunc {\n"},

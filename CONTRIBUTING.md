@@ -685,7 +685,10 @@ pins, and:
   `-all` every Go file, of the packages in the directories it is given;
 - mutates only the code in function bodies, the only code Go's coverage counts, so a change of
   only comments, blank lines, the package clause, imports or declarations outside function
-  bodies, such as a package-level variable's value, passes with nothing to mutate;
+  bodies, such as a package-level variable's value, passes with nothing to mutate. In a function
+  body, coverage does not count a case clause up to its colon, or the rest of a statement after
+  the body of a function literal in it (up to the `{` of the statement's own body), either, so
+  the gate does not mutate a line that holds only such code;
 - with `-max-mutants`, tests at most that many mutants, or the mutants of the sample's first line
   when that line alone holds more: a sample of the changed lines, fixed by the commit `HEAD`
   names, spread over the files first. The report states the share of the mutants, lines and

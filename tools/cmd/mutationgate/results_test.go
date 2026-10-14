@@ -179,7 +179,8 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			name: "whole module with no Go file", opts: allOpts(50), noRun: true,
-			wantExit: exitDidNotRun, wantNotice: "`.` holds no code in a function body to mutate",
+			wantExit:   exitDidNotRun,
+			wantNotice: "`.` holds no code that Go's coverage counts to mutate",
 		},
 		{
 			name: "no Go line changed", opts: diffOpts(90), noRun: true,

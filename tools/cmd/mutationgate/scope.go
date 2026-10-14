@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -213,8 +214,8 @@ func (m moduleScope) isBuilt(file string) bool {
 	})
 }
 
-// classify sorts the changed Go files: the changed lines that hold code in a
-// function body go in scoped, the files not mutated in their module's notMutated,
+// classify sorts the changed Go files: the changed lines that hold code that Go's
+// coverage counts go in scoped, the files not mutated in their module's notMutated,
 // and a file in a module that no directory given is in, or a file to mutate that
 // does not parse, is an error.
 func (p *plan) classify(changed, scoped map[string][]lineRange) error {
@@ -241,12 +242,16 @@ func (p *plan) classify(changed, scoped map[string][]lineRange) error {
 			if err != nil {
 				return err
 			}
-			inBody, outsideBodies, err := codeLines(file, data)
+			inBody, uncounted, outsideBodies, err := codeLines(file, data)
 			if err != nil {
 				return err
 			}
 			if lines := keepLines(changed[file], inBody); len(lines) > 0 {
 				scoped[file] = lines
+			} else if len(keepLines(changed[file], uncounted)) > 0 {
+				m.notMutated = append(m.notMutated, notMutated{file, "no code that Go's coverage " +
+					"counts on the changed lines (a case clause up to its colon, or the rest of " +
+					"a statement after the body of a function literal in it)"})
 			} else if len(keepLines(changed[file], outsideBodies)) > 0 {
 				m.notMutated = append(m.notMutated, notMutated{file, "no code in a function body " +
 					"on the changed lines (declarations outside function bodies, which Go's " +
@@ -264,9 +269,9 @@ func (p *plan) classify(changed, scoped map[string][]lineRange) error {
 	return nil
 }
 
-// allLines puts every line that holds code in a function body of every Go file of
-// the packages in module i's directories in scoped, and returns how many files there
-// are.
+// allLines puts in scoped every line, of every Go file of the packages in module i's
+// directories, that holds code that Go's coverage counts, and returns how many files
+// there are.
 func (p *plan) allLines(i int, scoped map[string][]lineRange) (int, error) {
 	m := p.modules[i]
 	files := 0
@@ -281,7 +286,7 @@ func (p *plan) allLines(i int, scoped map[string][]lineRange) (int, error) {
 				return 0, err
 			}
 			files++
-			inBody, _, err := codeLines(file, data)
+			inBody, _, _, err := codeLines(file, data)
 			if err != nil {
 				return 0, err
 			}
@@ -295,19 +300,22 @@ func (p *plan) allLines(i int, scoped map[string][]lineRange) (int, error) {
 
 // codeLines returns the lines of the Go source src that hold code: a token of a
 // declaration other than an import, or the inside of a raw string that starts in
-// one. inBody are those with such a token inside a function body that Go's coverage
-// counts, after its { and before its }. Coverage counts nothing else, so gremlins
-// reports every mutant outside these bodies as on a line no test covers, and the
-// gate mutates only the lines in inBody. outside are the lines with a token outside
-// those bodies, such as a package-level variable's value, a function's signature or
-// a body's closing }; a line can be in both. Comments, blank lines, the package
-// clause and imports hold no mutant and are in neither. name names the file in the
-// error when src does not parse.
-func codeLines(name string, src []byte) (inBody, outside map[int]bool, err error) {
+// one. inBody are those with such a token that Go's coverage counts: inside a
+// function body that coverage counts, after its { and before its }, and in none of
+// the spans of it that uncountedSpans returns. Coverage counts nothing else, so
+// gremlins reports every other mutant as on a line no test covers, and the gate
+// mutates only the lines in inBody. uncounted are the lines with a token in those
+// spans, such as the expressions of a case clause, and outside the lines with a
+// token outside those bodies, such as a package-level variable's value, a
+// function's signature or a body's closing }; a line can be in more than one.
+// Comments, blank lines, automatic semicolons, the package clause and imports hold
+// no mutant and are in none. name names the file in the error when src does not
+// parse.
+func codeLines(name string, src []byte) (inBody, uncounted, outside map[int]bool, err error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, name, src, parser.SkipObjectResolution)
 	if err != nil {
-		return nil, nil, fmt.Errorf(
+		return nil, nil, nil, fmt.Errorf(
 			"cannot tell the code lines of a Go file that does not parse: %w", err)
 	}
 	// Imports come before the other declarations, and between two declarations
@@ -318,22 +326,28 @@ func codeLines(name string, src []byte) (inBody, outside map[int]bool, err error
 		g, ok := d.(*ast.GenDecl)
 		return !ok || g.Tok != token.IMPORT
 	})
-	inBody, outside = map[int]bool{}, map[int]bool{}
+	inBody, uncounted, outside = map[int]bool{}, map[int]bool{}, map[int]bool{}
 	if i < 0 {
-		return inBody, outside, nil
+		return inBody, uncounted, outside, nil
 	}
 	start := fset.PositionFor(f.Decls[i].Pos(), false).Line
 	bodies := functionBodies(fset.File(f.Pos()), f)
+	spans := uncountedSpans(fset.File(f.Pos()), f)
 	file := fset.AddFile(name, -1, len(src))
 	var s scanner.Scanner
 	s.Init(file, src, nil, 0)
 	for {
 		pos, tok, lit := s.Scan()
 		if tok == token.EOF {
-			return inBody, outside, nil
+			return inBody, uncounted, outside, nil
 		}
 		first := file.PositionFor(pos, false).Line
 		if first < start {
+			continue
+		}
+		// The scanner puts an automatic semicolon on the line of the token before it,
+		// and coverage does not count it as code.
+		if tok == token.SEMICOLON && lit == "\n" {
 			continue
 		}
 		offset := file.Offset(pos)
@@ -343,6 +357,12 @@ func codeLines(name string, src []byte) (inBody, outside map[int]bool, err error
 		lines := outside
 		if len(bodies) > 0 && offset > bodies[0].lbrace {
 			lines = inBody
+			for len(spans) > 0 && offset >= spans[0].to {
+				spans = spans[1:]
+			}
+			if len(spans) > 0 && offset >= spans[0].from {
+				lines = uncounted
+			}
 		}
 		last := first
 		if tok == token.STRING {
@@ -383,6 +403,131 @@ func functionBodies(file *token.File, f *ast.File) []braces {
 		return false
 	})
 	return bodies
+}
+
+// span is the offsets in its file of the first byte of some code and of the byte
+// after its last.
+type span struct{ from, to int }
+
+// uncountedSpans returns the spans of code in the function bodies of f that Go's
+// coverage counts in no block, in the order of the source:
+//   - a switch, type switch or select clause from its case or default to its colon,
+//     as coverage starts the clause's block after the colon;
+//   - a statement from the { of the first function literal in the parts of it that
+//     statementHead returns to the end of the statement, or to the { of its body
+//     when it has one, as coverage ends the block that holds the statement at the
+//     function literal's {.
+//
+// The insides of the bodies of the function literals in such a span, between their
+// braces, have blocks of their own and are left out of it. file is f's file.
+func uncountedSpans(file *token.File, f *ast.File) []span {
+	var spans []span
+	ast.Inspect(f, func(n ast.Node) bool {
+		var stmts []ast.Stmt
+		switch n := n.(type) {
+		case *ast.BlockStmt:
+			stmts = n.List
+		case *ast.CaseClause:
+			exprs := make([]ast.Node, len(n.List))
+			for i, x := range n.List {
+				exprs[i] = x
+			}
+			spans = appendSpans(spans, file, n.Case, n.Colon+1, exprs...)
+			stmts = n.Body
+		case *ast.CommClause:
+			spans = appendSpans(spans, file, n.Case, n.Colon+1, n.Comm)
+			stmts = n.Body
+		case *ast.IfStmt:
+			// Coverage puts an else if in a block of its own.
+			if elseIf, ok := n.Else.(*ast.IfStmt); ok {
+				stmts = []ast.Stmt{elseIf}
+			}
+		}
+		for _, s := range stmts {
+			parts, body := statementHead(s)
+			lit := firstFuncLit(parts...)
+			if lit == nil {
+				continue
+			}
+			end := s.End()
+			if body != nil {
+				end = body.Lbrace + 1
+			}
+			spans = appendSpans(spans, file, lit.Body.Lbrace, end, parts...)
+		}
+		return true
+	})
+	slices.SortFunc(spans, func(a, b span) int { return cmp.Compare(a.from, b.from) })
+	return spans
+}
+
+// statementHead returns the parts of statement s, in the order of the source, in
+// which Go's coverage looks for a function literal at whose { to end the block that
+// holds s, and the body of s after them, if s has one: all of a simple statement,
+// or the init, condition and post statement of a for statement, for example. Of a
+// type switch, coverage looks only at the init statement: its parts are nil when
+// that holds no function literal, and else the init statement and the x.(type)
+// after it. parts is nil for a block or select statement, which coverage does not
+// look into, and for a switch or select clause, whose spans uncountedSpans finds
+// itself.
+func statementHead(s ast.Stmt) (parts []ast.Node, body *ast.BlockStmt) {
+	switch s := s.(type) {
+	case *ast.LabeledStmt:
+		return statementHead(s.Stmt)
+	case *ast.BlockStmt, *ast.SelectStmt, *ast.CaseClause, *ast.CommClause:
+		return nil, nil
+	case *ast.IfStmt:
+		return []ast.Node{s.Init, s.Cond}, s.Body
+	case *ast.ForStmt:
+		return []ast.Node{s.Init, s.Cond, s.Post}, s.Body
+	case *ast.RangeStmt:
+		return []ast.Node{s.X}, s.Body
+	case *ast.SwitchStmt:
+		return []ast.Node{s.Init, s.Tag}, s.Body
+	case *ast.TypeSwitchStmt:
+		if firstFuncLit(s.Init) == nil {
+			return nil, nil
+		}
+		return []ast.Node{s.Init, s.Assign}, s.Body
+	}
+	return []ast.Node{s}, nil
+}
+
+// firstFuncLit returns the first function literal in nodes, in the order of the
+// source, or nil when there is none. nodes can hold nil.
+func firstFuncLit(nodes ...ast.Node) *ast.FuncLit {
+	for _, n := range nodes {
+		if n == nil {
+			continue
+		}
+		for m := range ast.Preorder(n) {
+			if lit, ok := m.(*ast.FuncLit); ok {
+				return lit
+			}
+		}
+	}
+	return nil
+}
+
+// appendSpans appends to spans the span of the code from start to before end, less
+// the insides of the bodies of the function literals in nodes, which coverage
+// counts in blocks of their own. nodes are the parts of the span, in the order of
+// the source, and can hold nil.
+func appendSpans(spans []span, file *token.File, start, end token.Pos, nodes ...ast.Node) []span {
+	for _, n := range nodes {
+		if n == nil {
+			continue
+		}
+		ast.Inspect(n, func(m ast.Node) bool {
+			lit, ok := m.(*ast.FuncLit)
+			if ok {
+				spans = append(spans, span{file.Offset(start), file.Offset(lit.Body.Lbrace) + 1})
+				start = lit.Body.Rbrace
+			}
+			return !ok
+		})
+	}
+	return append(spans, span{file.Offset(start), file.Offset(end)})
 }
 
 // keepLines returns the lines of ranges that are in keep, as ranges.

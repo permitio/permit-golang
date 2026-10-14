@@ -426,6 +426,346 @@ func TestPlanRunFunctionBodies(t *testing.T) {
 	})
 }
 
+// uncountedFile is a Go file with code in function bodies that Go's coverage counts
+// in no block, so gremlins reports every mutant there as on a line no test covers:
+// a switch, type switch or select clause up to its colon, and the rest of a
+// statement after the body of a function literal in it, up to the { of the
+// statement's own body. Around such code it holds code that coverage counts.
+const uncountedFile = "package x\n" + // 1
+	"\n" + // 2
+	"func apply(f func() int, n int) int { return f() + n }\n" + // 3
+	"\n" + // 4
+	"func clauses(a, b int, ch chan int, x any) int {\n" + // 5
+	"\tswitch {\n" + // 6: counted, up to its {
+	"\tcase a+1 > b:\n" + // 7: a case clause's expression
+	"\t\treturn 1\n" + // 8
+	"\tcase a*2 < b,\n" + // 9: an expression list over two lines
+	"\t\ta-3 == b:\n" + // 10
+	"\t\treturn 2\n" + // 11
+	"\tcase a > 9: return 3\n" + // 12: a case clause and counted code on one line
+	"\tcase a > 8:break\n" + // 13: and counted code right after its colon
+	"\tdefault:\n" + // 14
+	"\t}\n" + // 15
+	"\tselect {\n" + // 16
+	"\tcase ch <- a + 1:\n" + // 17: a select clause's send
+	"\tdefault:\n" + // 18
+	"\t}\n" + // 19
+	"\tswitch x.(type) {\n" + // 20
+	"\tcase [2 + 1]int:\n" + // 21: a type switch clause
+	"\t}\n" + // 22
+	"\tswitch {\n" + // 23
+	"\tcase apply(func() int {\n" + // 24: a function literal in a case clause
+	"\t\treturn a + 1\n" + // 25: its body, which coverage counts
+	"\t}, 0) > 2:\n" + // 26
+	"\t}\n" + // 27
+	"\treturn 0\n" + // 28
+	"}\n" + // 29
+	"\n" + // 30
+	"func tails(n int) (r int) {\n" + // 31
+	"\tx := apply(func() int {\n" + // 32: counted, up to the function literal's {
+	"\t\treturn n * 2\n" + // 33: its body
+	"\t}, n) * 3\n" + // 34: the rest of the statement
+	"\tx = apply(func() int { return n - 1 }, n) * 3\n" + // 35: a function literal and the rest
+	"\tif v := apply(func() int {\n" + // 36
+	"\t\treturn n\n" + // 37
+	"\t}, n); v > 2 {\n" + // 38: the rest of an if statement's head
+	"\t\tx++\n" + // 39
+	"\t} else if apply(func() int {\n" + // 40
+	"\t\treturn n\n" + // 41
+	"\t}, 0) > 0 {\n" + // 42: the rest of an else if's head
+	"\t}\n" + // 43
+	"\tfor i := apply(func() int {\n" + // 44
+	"\t\treturn 0\n" + // 45
+	"\t}, 0); i < n; i++ {\n" + // 46: the rest of a for statement's head
+	"\t}\n" + // 47
+	"\tfor range apply(func() int {\n" + // 48
+	"\t\treturn n\n" + // 49
+	"\t}, 0) + 1 {\n" + // 50: the rest of a range expression
+	"\t}\n" + // 51
+	"\tswitch apply(func() int {\n" + // 52
+	"\t\treturn n\n" + // 53
+	"\t}, 1) % 2 {\n" + // 54: the rest of a switch statement's head
+	"\t}\n" + // 55
+	"\tswitch y := apply(func() int {\n" + // 56
+	"\t\treturn n\n" + // 57
+	"\t}, 0) - 1; any(y).(type) {\n" + // 58: the rest of a type switch's head
+	"\t}\n" + // 59
+	"\tswitch any(apply(func() int {\n" + // 60: a function literal in a type switch's x.(type),
+	"\t\treturn n\n" + // 61
+	"\t}, n-1)).(type) {\n" + // 62: which coverage counts, as it looks at the init only
+	"\t}\n" + // 63
+	"L:\n" + // 64
+	"\tx = apply(func() int {\n" + // 65
+	"\t\treturn n\n" + // 66
+	"\t}, 0) + 1\n" + // 67: the rest of a labeled statement
+	"\tif x < 0 {\n" + // 68
+	"\t\tgoto L\n" + // 69
+	"\t}\n" + // 70
+	"\tdefer func() {\n" + // 71
+	"\t\tr += x\n" + // 72
+	"\t}()\n" + // 73: the call of a deferred function literal
+	"\treturn apply(func() int {\n" + // 74
+	"\t\treturn n\n" + // 75
+	"\t}, apply(func() int {\n" + // 76: between two function literals
+	"\t\treturn n + 2\n" + // 77: the body of the second, which coverage counts
+	"\t}, n-1)) / 2\n" + // 78: after them
+	"}\n" + // 79
+	"\n" + // 80
+	"func more(n int, ch chan int) (r int) {\n" + // 81
+	"\tswitch {\n" + // 82
+	"\tcase n > 1:\n" + // 83
+	"\t\tr = apply(func() int {\n" + // 84: a function literal in a case clause's body
+	"\t\t\treturn n + 1\n" + // 85
+	"\t\t}, 0) * 2\n" + // 86: the rest of its statement
+	"\t\tr -= n\n" + // 87: the next statement, which coverage counts
+	"\t}\n" + // 88
+	"\tselect {\n" + // 89
+	"\tcase ch <- apply(func() int {\n" + // 90: a function literal in a select clause's send
+	"\t\treturn n - 1\n" + // 91: its body, which coverage counts
+	"\t}, 0) + 1:\n" + // 92
+	"\t\tr = apply(func() int {\n" + // 93: a function literal in a select clause's body
+	"\t\t\treturn n % 3\n" + // 94
+	"\t\t}, 0) / 2\n" + // 95: the rest of its statement
+	"\t\tr += n\n" + // 96: the next statement
+	"\tdefault:\n" + // 97
+	"\t}\n" + // 98
+	"\t{\n" + // 99
+	"\t\tr = apply(func() int {\n" + // 100: a function literal in a block
+	"\t\t\treturn n\n" + // 101
+	"\t\t}, 0) << 1\n" + // 102: the rest of its statement
+	"\t\tr |= n\n" + // 103: the next statement
+	"\t}\n" + // 104
+	"L:\n" + // 105
+	"\tfor i := 0; i < apply(func() int {\n" + // 106: a function literal in a condition
+	"\t\treturn n & 1\n" + // 107
+	"\t}, 0)+n; i++ {\n" + // 108: the rest of a labeled for statement's head
+	"\t\tr ^= i\n" + // 109: its body
+	"\t\tcontinue L\n" + // 110
+	"\t}\n" + // 111
+	"\tfor i := 0; i < n; i = apply(func() int {\n" + // 112: a function literal in a post
+	"\t\treturn i + 1\n" + // 113
+	"\t}, 0) + i {\n" + // 114: the rest of the for statement's head
+	"\t\tr--\n" + // 115
+	"\t}\n" + // 116
+	"\tswitch y := apply(func() int {\n" + // 117: a function literal in a switch's init
+	"\t\treturn n\n" + // 118
+	"\t}, 0) * 2; y {\n" + // 119: the rest of the switch statement's head
+	"\t}\n" + // 120
+	"\tswitch y := apply(func() int {\n" + // 121: a function literal in a type switch's init
+	"\t\treturn n\n" + // 122
+	"\t}, 0) - 1; any(apply(func() int {\n" + // 123: and one in its x.(type)
+	"\t\treturn y + 2\n" + // 124: the body of the second, which coverage counts
+	"\t}, 0)).(type) {\n" + // 125
+	"\t}\n" + // 126
+	"\tr = apply(func() int {\n" + // 127
+	"\t\tv := apply(func() int {\n" + // 128: a function literal in a function literal
+	"\t\t\treturn n\n" + // 129
+	"\t\t}, 0)\n" + // 130
+	"\t\treturn v + 3\n" + // 131: the outer one's next statement, which coverage counts
+	"\t}, 0) - 1\n" + // 132: the rest of the outer statement
+	"\treturn r\n" + // 133
+	"}\n" // 134
+
+// uncountedCode are the lines of uncountedFile that the gate mutates: those with
+// code that Go's coverage counts.
+var uncountedCode = []lineRange{
+	{3, 3},
+	{6, 6},
+	{8, 8},
+	{11, 13},
+	{15, 16},
+	{19, 20},
+	{22, 23},
+	{25, 25},
+	{27, 28},
+	{32, 33},
+	{35, 37},
+	{39, 41},
+	{43, 45},
+	{47, 49},
+	{51, 53},
+	{55, 57},
+	{59, 66},
+	{68, 72},
+	{74, 75},
+	{77, 77},
+	{82, 82},
+	{84, 85},
+	{87, 89},
+	{91, 91},
+	{93, 94},
+	{96, 96},
+	{98, 101},
+	{103, 107},
+	{109, 113},
+	{115, 118},
+	{120, 122},
+	{124, 124},
+	{126, 129},
+	{131, 131},
+	{133, 133},
+}
+
+// The gate mutates only the changed lines with code that Go's coverage counts. In a
+// function body, coverage counts no block for a switch, type switch or select clause
+// up to its colon, or for the rest of a statement after the body of a function
+// literal in it, up to the { of the statement's own body, so a changed file whose
+// changed lines hold only such code is not mutated, and its package is not a unit. A
+// line that also holds code that coverage counts is mutated. With -all, the same
+// lines are mutated.
+func TestPlanRunUncountedCode(t *testing.T) {
+	tests := []struct {
+		name  string
+		hunks string
+		// want are the lines of a.go to mutate, none when it is not mutated.
+		want []lineRange
+	}{
+		{name: "a case clause's expression", hunks: "@@ -7 +7 @@\n-x\n+y\n"},
+		{
+			name:  "an expression list over two lines",
+			hunks: "@@ -9,2 +9,2 @@\n-x\n-x\n+y\n+y\n",
+		},
+		{name: "a default clause", hunks: "@@ -14 +14 @@\n-x\n+y\n"},
+		{name: "a select clause's send", hunks: "@@ -17 +17 @@\n-x\n+y\n"},
+		{name: "a type switch clause", hunks: "@@ -21 +21 @@\n-x\n+y\n"},
+		{
+			name:  "a switch and its first clause",
+			hunks: "@@ -6,3 +6,3 @@\n-x\n-x\n-x\n+y\n+y\n+y\n",
+			want:  []lineRange{{6, 6}, {8, 8}},
+		},
+		{
+			name: "a case clause and code after its colon", hunks: "@@ -12 +12 @@\n-x\n+y\n",
+			want: []lineRange{{12, 12}},
+		},
+		{
+			name: "code right after a case clause's colon", hunks: "@@ -13 +13 @@\n-x\n+y\n",
+			want: []lineRange{{13, 13}},
+		},
+		{
+			name:  "a function literal in a case clause",
+			hunks: "@@ -24,3 +24,3 @@\n-x\n-x\n-x\n+y\n+y\n+y\n",
+			want:  []lineRange{{25, 25}},
+		},
+		{
+			name:  "a statement with a function literal",
+			hunks: "@@ -32,3 +32,3 @@\n-x\n-x\n-x\n+y\n+y\n+y\n",
+			want:  []lineRange{{32, 33}},
+		},
+		{
+			name:  "the rest of a statement after a function literal",
+			hunks: "@@ -34 +34 @@\n-x\n+y\n",
+		},
+		{
+			name:  "a function literal and the rest of its statement on one line",
+			hunks: "@@ -35 +35 @@\n-x\n+y\n",
+			want:  []lineRange{{35, 35}},
+		},
+		{name: "the rest of an if statement's head", hunks: "@@ -38 +38 @@\n-x\n+y\n"},
+		{name: "the rest of an else if's head", hunks: "@@ -42 +42 @@\n-x\n+y\n"},
+		{name: "the rest of a for statement's head", hunks: "@@ -46 +46 @@\n-x\n+y\n"},
+		{name: "the rest of a range expression", hunks: "@@ -50 +50 @@\n-x\n+y\n"},
+		{name: "the rest of a switch statement's head", hunks: "@@ -54 +54 @@\n-x\n+y\n"},
+		{name: "the rest of a type switch's head", hunks: "@@ -58 +58 @@\n-x\n+y\n"},
+		{
+			name:  "a function literal in a type switch's x.(type)",
+			hunks: "@@ -62 +62 @@\n-x\n+y\n",
+			want:  []lineRange{{62, 62}},
+		},
+		{name: "the rest of a labeled statement", hunks: "@@ -67 +67 @@\n-x\n+y\n"},
+		{name: "the call of a deferred function literal", hunks: "@@ -73 +73 @@\n-x\n+y\n"},
+		{name: "between two function literals", hunks: "@@ -76 +76 @@\n-x\n+y\n"},
+		{name: "after two function literals", hunks: "@@ -78 +78 @@\n-x\n+y\n"},
+		{
+			name:  "two function literals and the body of the second",
+			hunks: "@@ -76,3 +76,3 @@\n-x\n-x\n-x\n+y\n+y\n+y\n",
+			want:  []lineRange{{77, 77}},
+		},
+		{
+			name:  "a case clause's body with a function literal",
+			hunks: "@@ -84,4 +84,4 @@\n-x\n-x\n-x\n-x\n+y\n+y\n+y\n+y\n",
+			want:  []lineRange{{84, 85}, {87, 87}},
+		},
+		{
+			name:  "a function literal in a select clause's send",
+			hunks: "@@ -90,3 +90,3 @@\n-x\n-x\n-x\n+y\n+y\n+y\n",
+			want:  []lineRange{{91, 91}},
+		},
+		{
+			name:  "a select clause's body with a function literal",
+			hunks: "@@ -93,4 +93,4 @@\n-x\n-x\n-x\n-x\n+y\n+y\n+y\n+y\n",
+			want:  []lineRange{{93, 94}, {96, 96}},
+		},
+		{
+			name:  "a block with a function literal",
+			hunks: "@@ -100,4 +100,4 @@\n-x\n-x\n-x\n-x\n+y\n+y\n+y\n+y\n",
+			want:  []lineRange{{100, 101}, {103, 103}},
+		},
+		{
+			name:  "a labeled for statement with a function literal in its condition",
+			hunks: "@@ -105,7 +105,7 @@\n" + strings.Repeat("-x\n", 7) + strings.Repeat("+y\n", 7),
+			want:  []lineRange{{105, 107}, {109, 111}},
+		},
+		{name: "the rest of a for statement's post statement", hunks: "@@ -114 +114 @@\n-x\n+y\n"},
+		{name: "the rest of a switch statement's init", hunks: "@@ -119 +119 @@\n-x\n+y\n"},
+		{
+			name:  "function literals in a type switch's init and x.(type)",
+			hunks: "@@ -123,3 +123,3 @@\n-x\n-x\n-x\n+y\n+y\n+y\n",
+			want:  []lineRange{{124, 124}},
+		},
+		{
+			name:  "a function literal in a function literal",
+			hunks: "@@ -127,6 +127,6 @@\n" + strings.Repeat("-x\n", 6) + strings.Repeat("+y\n", 6),
+			want:  []lineRange{{127, 129}, {131, 131}},
+		},
+		{
+			name: "a new file", hunks: "@@ -0,0 +1,134 @@\n" + strings.Repeat("+y\n", 134),
+			want: uncountedCode,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root, tl := fixtureRepository(t, changedDiff(map[string]string{"a.go": tt.hunks}))
+			writeFile(t, root, "a.go", uncountedFile)
+			t.Chdir(root)
+			p, err := planRun(tl, gateOptions{base: "main", dirs: []string{"."}}, root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tt.want != nil {
+				got := unitSummary(p)
+				if !slices.Equal(got, []string{"m a.go"}) || len(p.modules[0].notMutated) != 0 {
+					t.Fatalf("units %q, not mutated %q; want a unit of a.go", got,
+						p.modules[0].notMutated)
+				}
+				if lines := p.units[0].lines["a.go"]; !slices.Equal(lines, tt.want) {
+					t.Errorf("a.go lines %v, want %v", lines, tt.want)
+				}
+				return
+			}
+			want := []notMutated{{"a.go", "no code that Go's coverage counts on the changed " +
+				"lines (a case clause up to its colon, or the rest of a statement after the body " +
+				"of a function literal in it)"}}
+			if len(p.units) != 0 || !slices.Equal(p.modules[0].notMutated, want) ||
+				p.modules[0].changedFiles != 1 {
+				t.Errorf("units %q, not mutated %q, %d changed files; want no unit, %q and 1",
+					unitSummary(p), p.modules[0].notMutated, p.modules[0].changedFiles, want)
+			}
+		})
+	}
+	t.Run("every Go file", func(t *testing.T) {
+		root, tl := fixtureRepository(t, "")
+		writeFile(t, root, "a.go", uncountedFile)
+		t.Chdir(root)
+		p, err := planRun(tl, gateOptions{all: true, dirs: []string{"."}}, root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := p.units[0].lines["a.go"]; !slices.Equal(got, uncountedCode) {
+			t.Errorf("a.go lines %v, want %v", got, uncountedCode)
+		}
+	})
+}
+
 // Directories of one module make one module, which lists each directory once.
 func TestPlanRunDirectoriesOfOneModule(t *testing.T) {
 	root, tl := fixtureRepository(t, "")

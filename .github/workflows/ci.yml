@@ -276,7 +276,8 @@ jobs:
   # doc link resolves, every exported identifier has a doc comment, every service type and
   # decision method has an Example with an output comment, every Example has one, each method
   # says the phrases of docRules, and every go block of README.md after a <!-- compile --> line
-  # compiles. The modules are downloaded first, and the checks then run offline.
+  # compiles. The modules are downloaded first, and the checks then run offline. A second step
+  # builds and runs the zapslog example of WithLogger's documentation.
   docs:
     name: docs
     if: >-
@@ -333,6 +334,30 @@ jobs:
             echo "go test exited $code."
             exit 1
           fi
+      # No go.mod of the repository requires zap, so the zapslog example of WithLogger,
+      # internal/logging/testdata/zapslog_example.go.txt, builds in a module of its own outside
+      # the checkout: it requires zap and zapslog, at the versions below, and replaces the SDK
+      # with the checkout. The example plants a fake API key and fails when zap's JSON output
+      # holds it, or holds no marker. This step downloads the modules from the module proxy; the
+      # example then runs offline.
+      - name: Check the zapslog example
+        env:
+          ZAP_VERSION: v1.28.0
+          ZAP_EXP_VERSION: v0.3.0
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          dir=$RUNNER_TEMP/zapslog-example
+          mkdir "$dir"
+          cp internal/logging/testdata/zapslog_example.go.txt "$dir/main.go"
+          go -C "$dir" mod init example.com/zapslogexample
+          go -C "$dir" mod edit -require=github.com/permitio/permit-golang/v2@v2.0.0 \
+            -replace=github.com/permitio/permit-golang/v2="$GITHUB_WORKSPACE"
+          go -C "$dir" get "go.uber.org/zap@$ZAP_VERSION" "go.uber.org/zap/exp@$ZAP_EXP_VERSION"
+          go -C "$dir" mod tidy
+          go -C "$dir" build -o "$RUNNER_TEMP/zapslog-example-bin" .
+          HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY "$RUNNER_TEMP/zapslog-example-bin"
 
   # Builds the module zip of the commit with tools/cmd/zipcheck, the way the Go module proxy
   # builds it from the repository, and checks what it holds: only the files on its allow list,

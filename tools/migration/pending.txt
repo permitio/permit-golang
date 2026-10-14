@@ -77,11 +77,6 @@ api.Users.* users
 api.NewUsersApi users
 
 # Block a: pkg/config
-config.DefaultDebugMode logging
-config.PermitConfig.GetDebug logging
-config.PermitConfig.WithDebug logging
-config.PermitConfig.GetLogger logging
-config.PermitConfig.WithLogger logging
 config.PermitConfig.GetContext scope
 config.PermitConfig.WithContext scope
 config.PermitConfig.GetFactsSyncTimeout facts

@@ -7,6 +7,7 @@ permit: func New(opts ...Option) (*Client, error)
 permit: func WithAPIKey(apiKey string) Option
 permit: func WithAPIURL(apiURL string) Option
 permit: func WithHTTPClient(httpClient *http.Client) Option
+permit: func WithLogger(logger *slog.Logger) Option
 permit: func WithPDPURL(pdpURL string) Option
 permit: func WithTimeout(timeout time.Duration) Option
 permit: method (*Client) Close() error

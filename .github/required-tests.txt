@@ -539,3 +539,22 @@ github.com/permitio/permit-golang/v2 TestClientString
 github.com/permitio/permit-golang/v2 TestClientInLogsAndJSON
 github.com/permitio/permit-golang/v2 ExampleNew
 github.com/permitio/permit-golang/v2 ExampleNew_invalidConfiguration
+
+github.com/permitio/permit-golang/v2/internal/logging TestNoSecretInAnyLine
+github.com/permitio/permit-golang/v2/internal/logging TestErrorsReachTheHandlerAsText
+github.com/permitio/permit-golang/v2/internal/logging TestValuesKeepTheirKind
+github.com/permitio/permit-golang/v2/internal/logging TestHandlerFollowsTheSlogContract
+github.com/permitio/permit-golang/v2/internal/logging TestHandleKeepsTheRecord
+github.com/permitio/permit-golang/v2/internal/logging TestEnabledFollowsTheHandler
+github.com/permitio/permit-golang/v2/internal/logging TestWithGroupOfNoName
+github.com/permitio/permit-golang/v2/internal/logging TestOutput
+github.com/permitio/permit-golang/v2/internal/logging TestNilAndZeroLoggerDiscard
+github.com/permitio/permit-golang/v2/internal/logging TestRequest
+github.com/permitio/permit-golang/v2/internal/logging TestRequestAtInfo
+github.com/permitio/permit-golang/v2/internal/logging TestPlainHTTP
+github.com/permitio/permit-golang/v2/internal/logging TestTheContextReachesTheHandler
+github.com/permitio/permit-golang/v2 TestClientsSharingALoggerKeepKeysOut
+github.com/permitio/permit-golang/v2 TestNewWarnsAboutPlainHTTP
+github.com/permitio/permit-golang/v2 TestNewLogsNothingAtInfoOrAbove
+github.com/permitio/permit-golang/v2 TestWithLoggerNilOrZeroDiscards
+github.com/permitio/permit-golang/v2 ExampleWithLogger

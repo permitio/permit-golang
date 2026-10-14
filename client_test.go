@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog" //nolint:depguard // the tests read what slog's handlers write for a Client
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"

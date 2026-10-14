@@ -373,6 +373,60 @@ it.
 `api.NewClientConfig` built the configuration of v1's generated API client. v2 has no generated
 client: `permit.New` builds what the client needs from its options.
 
+<a id="M-logging-1"></a>
+### M-logging-1: WithLogger takes a *slog.Logger
+
+- v1: `config.PermitConfig.WithLogger`
+- v1: `config.PermitConfig.GetLogger`
+- v2: `permit.WithLogger`
+
+`permit.WithLogger` takes a `*slog.Logger` of the standard library's `log/slog` instead of a
+`*zap.Logger`, and v2's module does not require zap. Without the option, the client logs nothing,
+and so it does with a nil `*slog.Logger` or the zero `slog.Logger`; v1's builder logged to a zap
+production logger on standard error when it was given no logger. The client keeps its logger to
+itself, so v2 has no getter.
+
+An application that logs with zap gives the client a `*slog.Logger` whose handler is zapslog's,
+the package `go.uber.org/zap/exp/zapslog` of the module `go.uber.org/zap/exp` (v0.3.0, which needs
+zap v1.26.0 or later):
+
+```go
+client, err := permit.New(
+	permit.WithAPIKey(apiKey),
+	permit.WithLogger(slog.New(zapslog.NewHandler(zapLogger.Core()))),
+)
+```
+
+zapslog adds a stack trace to each record at Error level and above by default; its option
+`zapslog.AddStacktraceAt` changes the level.
+
+<a id="M-logging-2"></a>
+### M-logging-2: The handler's level replaces WithDebug
+
+- v1: `config.PermitConfig.WithDebug`
+- v1: `config.PermitConfig.GetDebug`
+- v1: `config.DefaultDebugMode`
+- v2: `permit.WithLogger`, with a handler at `slog.LevelDebug`
+
+v2 has no debug switch. The client writes its Debug lines to the logger of `permit.WithLogger`,
+and the logger's handler keeps them when its level is `slog.LevelDebug` or lower. There is no dump
+of a request or a reply: a Debug line names the route template, the status, the attempt, the
+duration and the error of a request, never its headers or its body.
+
+<a id="M-logging-3"></a>
+### M-logging-3: The client writes one Debug line for each attempt of a request
+
+- v1: the lines that methods wrote, such as `user created` and `User does not exist, creating it...`
+- v2: a Debug line for each attempt of a request, and Warn lines about the configuration
+
+v1's methods wrote lines of their own, such as a Debug line after a create and an Info line when
+`SyncUser` created a user. In v2, the client writes one Debug line for each attempt of a request,
+whatever the method, with the attributes `route`, the route template, `status`, `attempt`,
+`duration` and `error`. Warn lines are warnings about the configuration, which `permit.New` writes
+once, such as for an API URL that uses `http://` to a host that is not loopback. Every line has a
+fixed message that starts with `permit: `, and the client replaces its credentials in each line
+before the handler gets it.
+
 ## Wire behaviour
 
 No entries yet.

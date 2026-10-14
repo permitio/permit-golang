@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"slices"
@@ -70,10 +71,17 @@ type optionEffect struct {
 
 	// want is the value of the setting in a client built with option.
 	want any
+
+	// unset are options of the same With function that leave the setting as it is without the
+	// option, such as a nil logger.
+	unset []Option
 }
 
 // effectHTTPClient is the *http.Client of the effect of WithHTTPClient.
 var effectHTTPClient = &http.Client{}
+
+// effectLogHandler is the handler of the *slog.Logger of the effect of WithLogger.
+var effectLogHandler = slog.NewTextHandler(new(strings.Builder), nil)
 
 // optionEffects holds the effect of each exported option, by the name of its With function.
 // TestOptionsHaveEffect fails when an exported With function has no entry here, or an entry names
@@ -98,6 +106,14 @@ var optionEffects = map[string]optionEffect{
 		option:  WithHTTPClient(effectHTTPClient),
 		setting: func(c *Client) any { return c.httpClient },
 		want:    effectHTTPClient,
+	},
+	"WithLogger": {
+		option:  WithLogger(slog.New(effectLogHandler)),
+		setting: func(c *Client) any { return c.logger.Output() },
+		want:    effectLogHandler,
+		// A nil logger, and the zero slog.Logger, whose handler is nil, discard, as the
+		// default does.
+		unset: []Option{WithLogger(nil), WithLogger(&slog.Logger{})},
 	},
 	"WithTimeout": {
 		option:  WithTimeout(7 * time.Second),
@@ -151,6 +167,13 @@ func TestOptionsHaveEffect(t *testing.T) {
 			if got := effect.setting(without); got == effect.want {
 				t.Errorf("without %v, the setting is %v already, so the test shows no effect; "+
 					"give the option another value", effect.option, got)
+			}
+			for _, option := range effect.unset {
+				got, want := effect.setting(mustNew(t, option)), effect.setting(without)
+				if got != want {
+					t.Errorf("with %v, the setting is %v, want %v as without the option",
+						option, got, want)
+				}
 			}
 		})
 	}
@@ -533,6 +556,7 @@ func keyScanner(key string) *canary.Scanner {
 func TestOptionsPrintNoKey(t *testing.T) {
 	key := canary.Key("printoption")
 	mine := &http.Client{}
+	logger := slog.New(slog.DiscardHandler)
 	for _, tc := range []struct {
 		option Option
 		want   string
@@ -549,6 +573,8 @@ func TestOptionsPrintNoKey(t *testing.T) {
 		{WithPDPURL("http://127.0.0.1:1#" + key), "permit.WithPDPURL([REDACTED])"},
 		{WithHTTPClient(nil), "permit.WithHTTPClient(nil)"},
 		{WithHTTPClient(mine), fmt.Sprintf("permit.WithHTTPClient(%p)", mine)},
+		{WithLogger(nil), "permit.WithLogger(nil)"},
+		{WithLogger(logger), fmt.Sprintf("permit.WithLogger(%p)", logger)},
 		{WithTimeout(1500 * time.Millisecond), "permit.WithTimeout(1.5s)"},
 		{WithTimeout(-time.Second), "permit.WithTimeout(-1s)"},
 		{Option{}, "permit.Option{}"},

@@ -565,7 +565,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
-| `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, whose output checkgotest checks; see [API reference](#api-reference). |
+| `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, whose output checkgotest checks; see [API reference](#api-reference). Then builds and runs the zapslog example of `WithLogger`, which needs the module proxy; see [Logging](#logging). |
 | `zipcheck` | Builds the module zip of the commit and checks what it holds with zipcheck, offline; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `api-coverage` | Runs the root package's tests offline with the request record on, and checks the record and `tools/specs/coverage.yaml` with apicoverage, which writes its report to the job summary; see [API coverage](#api-coverage). |
 | `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
@@ -1183,6 +1183,43 @@ it cannot decode, and for a request that got no reply.
   example `go test -run '^$' -fuzz '^FuzzError$' -fuzztime 1m .`, and add each input that fails
   to `testdata/fuzz` with the fix.
 
+## Logging
+
+Only `internal/logging` logs. depguard fails an import of `log` outside `internal/logging` and
+`options.go`, which declares `WithLogger`, and of `log/slog` outside those two, `internal/redact`,
+for `Secret.LogValue`, and test files, which record what the SDK logs with slog's handlers. Each
+client has a `logging.Logger`, which
+wraps the handler of the caller's logger in one that replaces the members of the client's
+`redact.Set`, and what the stateless patterns of `redact.Scrub` find, in every part of a line. To
+log something new, add a method to `logging.Logger`, test it there, and list its attributes in
+the documentation of `WithLogger`:
+
+- Its message is a constant that starts with `permit: `: sloglint fails a message that is not
+  static, and an attribute key on its forbidden list (api_key, token, authorization, password,
+  secret).
+- A Debug line says what a request did: its route template, status, attempt, duration and error,
+  never a header or a body. The transport that writes one for each attempt is *(added in a later
+  commit on this branch)*.
+- Warn is for warnings about the configuration only, each logged once, from `New`.
+
+No go.mod of the repository requires zap, so the zapslog example of `WithLogger`,
+`internal/logging/testdata/zapslog_example.go.txt`, builds in a module of its own. The `docs` job
+runs these commands; locally, they need the network for the module proxy:
+
+```sh
+dir=$(mktemp -d)
+cp internal/logging/testdata/zapslog_example.go.txt "$dir/main.go"
+go -C "$dir" mod init example.com/zapslogexample
+go -C "$dir" mod edit -require=github.com/permitio/permit-golang/v2@v2.0.0 \
+  -replace=github.com/permitio/permit-golang/v2="$PWD"
+go -C "$dir" get go.uber.org/zap@v1.28.0 go.uber.org/zap/exp@v0.3.0
+go -C "$dir" mod tidy
+go -C "$dir" run .
+```
+
+Dependabot does not see those two versions, which the `docs` job sets in `ZAP_VERSION` and
+`ZAP_EXP_VERSION`: move them by hand to the newest release that is at least 7 days old.
+
 ## Adding a client option
 
 `options.go` holds the options of `permit.New`, each a `With` function that returns an `Option`,
@@ -1198,7 +1235,8 @@ and it is the one file that reads the environment: forbidigo fails `os.Getenv` a
    in the sorted `rules` list. Rewrite `testdata/validation-rules.txt` with
    `go test -run TestValidationRules -update .`; diff mode counts a new ID as a breaking change.
 3. Add the option to `optionEffects` in `options_test.go`: the option with a value other than the
-   default, how to read its setting from a `Client`, and the value the option gives it.
+   default, how to read its setting from a `Client`, the value the option gives it, and, in
+   `unset`, values of the option that keep the default, such as `WithLogger(nil)`.
    `TestOptionsHaveEffect` lists the exported `With` functions through `internal/surface` and
    fails for one without an entry; its count sentinel fails when the two lists differ.
 4. Add each input that the option rejects to `TestInvalidConfiguration`, rewrite the surface

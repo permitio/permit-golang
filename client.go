@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
+	"net/url"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/permitio/permit-golang/v2/internal/logging"
 	"github.com/permitio/permit-golang/v2/internal/redact"
 	"github.com/permitio/permit-golang/v2/internal/validate"
 )
@@ -40,6 +44,9 @@ type Client struct {
 	// when the http.Client came from WithHTTPClient.
 	transport *http.Transport
 
+	// logger writes the client's log lines, with the members of secrets replaced.
+	logger *logging.Logger
+
 	closed atomic.Bool
 }
 
@@ -50,12 +57,14 @@ type Client struct {
 //   - the API URL, [WithAPIURL], from PERMIT_API_URL, by default https://api.permit.io;
 //   - the PDP URL, [WithPDPURL], from PERMIT_PDP_URL, by default http://localhost:7766;
 //   - the *http.Client, [WithHTTPClient], by default one of the Client's own;
-//   - the timeout of a call, [WithTimeout], by default 30 seconds.
+//   - the timeout of a call, [WithTimeout], by default 30 seconds;
+//   - the logger, [WithLogger], by default none: the client logs nothing.
 //
 // New sends no request. It returns an error that matches [ErrInvalidConfig], and no Client, when
 // the configuration breaks a rule that an option's documentation states, such as a URL without
 // http:// or https://, or when an Option is the zero Option. The error names the option or the
-// environment variable, and never holds the API key.
+// environment variable, and never holds the API key. New logs a warning when the API URL uses
+// http:// to a host that is not loopback, as WithLogger describes.
 func New(opts ...Option) (*Client, error) {
 	var s settings
 	for i, opt := range opts {
@@ -80,6 +89,10 @@ func New(opts ...Option) (*Client, error) {
 		secrets:    redact.NewSet(s.apiKey.Value()),
 		httpClient: s.httpClient,
 	}
+	c.logger = logging.New(s.logger, c.secrets)
+	if plainHTTPToRemote(c.apiURL) {
+		c.logger.PlainHTTP(c.apiURL)
+	}
 	if c.httpClient == nil {
 		c.httpClient, c.transport = ownHTTPClient()
 	}
@@ -89,6 +102,23 @@ func New(opts ...Option) (*Client, error) {
 		runtime.AddCleanup(c, (*http.Transport).CloseIdleConnections, c.transport)
 	}
 	return c, nil
+}
+
+// plainHTTPToRemote reports whether apiURL, a URL that baseURL normalized, uses http to a host
+// that is not loopback: neither localhost, in any case, nor an address of 127.0.0.0/8 or ::1,
+// also as an IPv4-mapped IPv6 address. Requests to such a host carry the API key unencrypted
+// across the network.
+func plainHTTPToRemote(apiURL string) bool {
+	u, err := url.Parse(apiURL)
+	if err != nil || u.Scheme != "http" {
+		return false
+	}
+	host := u.Hostname()
+	if strings.EqualFold(host, "localhost") {
+		return false
+	}
+	addr, err := netip.ParseAddr(host)
+	return err != nil || !addr.IsLoopback()
 }
 
 // ownHTTPClient returns an http.Client for one Client, and its transport: a copy of

@@ -55,6 +55,7 @@ type settings struct {
 	pdpURL     string
 	httpClient *http.Client
 	timeout    time.Duration
+	logger     *slog.Logger
 }
 
 // WithAPIKey sets the Permit API key that the client sends with each request. Without it, [New]
@@ -156,6 +157,62 @@ func WithTimeout(timeout time.Duration) Option {
 			return &configError{setting: "WithTimeout", rule: validate.TimeoutNotPositive}
 		}
 		s.timeout = timeout
+		return nil
+	}}
+}
+
+// WithLogger sets the *slog.Logger that the client logs to. By default the client logs nothing,
+// and so does a nil logger, or one whose handler is nil, such as the zero slog.Logger.
+//
+// Each line of the client has a fixed message that starts with "permit: ". The client writes:
+//
+//   - at [slog.LevelDebug], one line for each attempt of a request, with the attributes route,
+//     the route template such as /v2/facts/{proj_id}/{env_id}/users, status, which is 0 when no
+//     reply came, attempt, from 1, duration and, when the attempt failed, error; never a header
+//     or a body;
+//   - at [slog.LevelWarn], warnings about the configuration, each once, from [New]: when the
+//     API URL uses http:// to a host that is not loopback (localhost, 127.0.0.0/8 or ::1), with
+//     the attribute url. A PDP URL over http:// gets no warning, as a PDP often runs next to the
+//     application.
+//
+// The handler of the logger decides which of them it keeps, by its level: a handler at
+// slog.LevelInfo, the default of slog's handlers, keeps the warnings only.
+//
+// Before a line reaches the handler, the client replaces its credentials in it with a marker:
+// its API key, the credentials its calls return, every Permit API key and the value of an
+// Authorization header. It replaces them in the message, in the keys and string values of
+// attributes, in groups at any depth and in what a [slog.LogValuer] returns. An error reaches the
+// handler as an error that holds its text, with the credentials replaced, and nothing else: no
+// cause to unwrap. A value of another type, such as a struct, reaches it as its text, as fmt
+// prints it with %+v. The attributes that the application gave the logger itself, such as with
+// [slog.Logger.With], are its own, and the client leaves them as they are.
+//
+// To tell the client's lines apart from the application's, give it a logger with an attribute
+// of its own:
+//
+//	permit.WithLogger(logger.With("component", "permit"))
+//
+// An application that logs with zap can give the client a logger through zapslog, the package
+// go.uber.org/zap/exp/zapslog of the module go.uber.org/zap/exp, v0.3.0, an experimental
+// module that needs go.uber.org/zap v1.26.0 or later:
+//
+//	zapLogger, err := zap.NewProduction()
+//	if err != nil {
+//		return err
+//	}
+//	client, err := permit.New(
+//		permit.WithLogger(slog.New(zapslog.NewHandler(zapLogger.Core()))),
+//	)
+//
+// zapslog adds a stack trace to each record at slog.LevelError and above by default; its option
+// zapslog.AddStacktraceAt changes the level.
+func WithLogger(logger *slog.Logger) Option {
+	shown := "nil"
+	if logger != nil {
+		shown = fmt.Sprintf("%p", logger)
+	}
+	return Option{name: "WithLogger", shown: shown, apply: func(s *settings) error {
+		s.logger = logger
 		return nil
 	}}
 }

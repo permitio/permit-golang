@@ -8,8 +8,8 @@ change from v1 and what to use instead.
 ### Client
 
 - `permit.New(opts ...permit.Option)` builds a `*permit.Client` from the options `WithAPIKey`,
-  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient` and `WithTimeout`, and returns an error when the
-  configuration is not one the SDK can use.
+  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient`, `WithTimeout` and `WithLogger`, and returns an
+  error when the configuration is not one the SDK can use.
 - A setting that no option gives comes from the environment variables `PERMIT_API_KEY`,
   `PERMIT_API_URL` and `PERMIT_PDP_URL`, and else from its default: `https://api.permit.io` for
   the API, `http://localhost:7766` for the PDP and 30 seconds for the timeout. A variable that is
@@ -49,6 +49,21 @@ change from v1 and what to use instead.
   Authorization header values, and the values of JSON fields that name a credential, such as
   `token` or `password`. A reply in 200-299 that the SDK cannot decode gives an error that names
   the model and keeps nothing of the body.
+
+### Logging
+
+- `WithLogger(*slog.Logger)` sets the logger that the client writes to. By default the client
+  logs nothing, and so it does with a nil `*slog.Logger` or one whose handler is nil, such as the
+  zero `slog.Logger`. The module does not require zap: an application that logs with zap gives
+  the client a logger whose handler is zapslog's, as the documentation of `WithLogger` shows.
+- Every line has a fixed message that starts with `permit: `. At Debug, the client writes one
+  line for each attempt of a request, with the attributes `route` (the route template),
+  `status`, `attempt`, `duration` and `error`, and never a header or a body. At Warn, `New`
+  writes a warning about the configuration once: when the API URL uses `http://` to a host that
+  is not loopback (localhost, 127.0.0.0/8 or ::1). A PDP URL over `http://` gets no warning.
+- Each line has the client's credentials replaced with a marker before the handler gets it: in
+  the message, in the keys and string values of attributes, in groups at any depth, in what a
+  `slog.LogValuer` returns, and in errors, which reach the handler as their text only.
 
 ## v1.3.0 (2026-10-13)
 

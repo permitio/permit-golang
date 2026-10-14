@@ -30,3 +30,6 @@ M-client-8
 M-client-9
 M-client-10
 M-client-11
+M-logging-1
+M-logging-2
+M-logging-3

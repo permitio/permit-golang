@@ -15,6 +15,9 @@ import (
 // blockUntilClosed runs until ch is closed. Its name shows in the stack Check reports.
 func blockUntilClosed(ch <-chan struct{}) { <-ch }
 
+// thisPackage is the import path of this package, as stacks name its functions.
+const thisPackage = "github.com/permitio/permit-golang/v2/internal/testkit/leak"
+
 func TestCheckReportsAGoroutineLeftRunning(t *testing.T) {
 	ft := faketb.New(t)
 	wait := 200 * time.Millisecond
@@ -126,11 +129,10 @@ func TestCheckPassesAClosedServer(t *testing.T) {
 	_ = resp.Body.Close()
 }
 
+// TestGoroutinesGrowsItsBuffer counts only the goroutines it starts, by the "created by" line of
+// their stacks: another goroutine can start or exit between two calls of goroutines(), and a
+// goroutine that has not run yet does not show blockUntilClosed in its stack.
 func TestGoroutinesGrowsItsBuffer(t *testing.T) {
-	before, err := goroutines()
-	if err != nil {
-		t.Fatal(err)
-	}
 	release := make(chan struct{})
 	defer close(release)
 	const started = 100
@@ -141,9 +143,15 @@ func TestGoroutinesGrowsItsBuffer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(after) < len(before)+started {
-		t.Errorf("goroutines() found %d goroutines after starting %d more than %d, want at "+
-			"least %d", len(after), started, len(before), len(before)+started)
+	mine := 0
+	for _, stack := range after {
+		if strings.Contains(stack, "\ncreated by "+thisPackage+".TestGoroutinesGrowsItsBuffer ") {
+			mine++
+		}
+	}
+	if mine != started {
+		t.Errorf("goroutines() found %d goroutines created by this test after it started %d",
+			mine, started)
 	}
 	for id, stack := range after {
 		if !strings.HasPrefix(stack, fmt.Sprintf("goroutine %d [", id)) {

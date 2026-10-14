@@ -269,6 +269,71 @@ jobs:
             exit 1
           fi
 
+  # Checks the API reference, the documentation that pkg.go.dev shows. go vet runs on each package
+  # outside internal/, and its tests analyzer checks that every Example names an identifier that
+  # exists; go doc -all must read each of them, at least the permit and models packages. Then
+  # the tests of doc_test.go and readme_test.go run, and checkgotest checks their output: every
+  # doc link resolves, every exported identifier has a doc comment, every service type and
+  # decision method has an Example with an output comment, every Example has one, each method
+  # says the phrases of docRules, and every go block of README.md after a <!-- compile --> line
+  # compiles. The modules are downloaded first, and the checks then run offline.
+  docs:
+    name: docs
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the API reference
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          listed=$(go list ./...)
+          public=()
+          while IFS= read -r pkg; do
+            [[ /$pkg/ != */internal/* ]] || continue
+            public+=("$pkg")
+          done <<<"$listed"
+          if [[ ${#public[@]} -lt 2 ]]; then
+            echo "go list found ${#public[@]} packages outside internal/, want at least permit" \
+              "and models."
+            exit 2
+          fi
+          go vet "${public[@]}"
+          for pkg in "${public[@]}"; do
+            go doc -all "$pkg" >/dev/null
+          done
+          echo "go vet and go doc -all checked ${#public[@]} packages: ${public[*]}"
+          code=0
+          go test -count=1 -shuffle=on -json -run '^Test(Doc|Readme)' . \
+            >"$RUNNER_TEMP/docs.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require 'github.com/permitio/permit-golang/v2 TestDocLinks' \
+            -require 'github.com/permitio/permit-golang/v2 TestDocComments' \
+            -require 'github.com/permitio/permit-golang/v2 TestDocExamples' \
+            -require 'github.com/permitio/permit-golang/v2 TestDocRules' \
+            -require 'github.com/permitio/permit-golang/v2 TestReadmeBlocksCompile' \
+            "$RUNNER_TEMP/docs.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+
   # Builds the module zip of the commit with tools/cmd/zipcheck, the way the Go module proxy
   # builds it from the repository, and checks what it holds: only the files on its allow list,
   # LICENSE among them, no file over its cap, and a compressed size within the budget in
@@ -856,6 +921,7 @@ jobs:
       - test
       - crossbuild
       - consumer
+      - docs
       - zipcheck
       - api-coverage
       - vuln
@@ -882,7 +948,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 16
+          EXPECTED_JOBS: 17
           PULL_REQUEST_JOBS: mutation dependency-review api-surface
           SCHEDULED_JOBS: >-
             prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly

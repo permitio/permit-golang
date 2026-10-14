@@ -447,3 +447,25 @@ github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestGenerateRejectsABa
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestSplitModule
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestReadModuleZip
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestWithoutVars
+
+github.com/permitio/permit-golang/v2 TestDocLinks
+github.com/permitio/permit-golang/v2 TestDocComments
+github.com/permitio/permit-golang/v2 TestDocExamples
+github.com/permitio/permit-golang/v2 TestDocRules
+github.com/permitio/permit-golang/v2 TestDocChecksPassAFixture
+github.com/permitio/permit-golang/v2 TestDocLinksThatDoNotResolve
+github.com/permitio/permit-golang/v2 TestDocCommentsThatAreMissing
+github.com/permitio/permit-golang/v2 TestDocCommentsCountWhatSurfaceLists
+github.com/permitio/permit-golang/v2 TestDocExamplesThatAreMissing
+github.com/permitio/permit-golang/v2 TestDocServiceTypes
+github.com/permitio/permit-golang/v2 TestDocRulesThatFail
+github.com/permitio/permit-golang/v2 TestDocIdentifierSentinel
+github.com/permitio/permit-golang/v2 TestDocSurfaceDeclarations
+github.com/permitio/permit-golang/v2 TestDocReadPackageFailsWithoutAPackage
+github.com/permitio/permit-golang/v2 TestReadmeBlocksCompile
+github.com/permitio/permit-golang/v2 TestReadmeBlocksCompileAFixture
+github.com/permitio/permit-golang/v2 TestReadmeBlocksThatDoNotCompile
+github.com/permitio/permit-golang/v2 TestReadmeMarkedBlocks
+github.com/permitio/permit-golang/v2 TestReadmeOpeningFence
+github.com/permitio/permit-golang/v2 TestReadmeClosingFence
+github.com/permitio/permit-golang/v2 TestReadmeCompileSentinel

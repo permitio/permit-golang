@@ -156,6 +156,97 @@ runs its tests through both:
 `os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))`; see
 [API coverage](#api-coverage).
 
+## API reference
+
+The SDK's API reference is its documentation on
+[pkg.go.dev](https://pkg.go.dev/github.com/permitio/permit-golang/v2), which go/doc reads from
+the doc comments in the source. Every package has a package comment, and every exported
+identifier a doc comment. The tests in `doc_test.go` are the fail-closed form of what pkg.go.dev
+needs, run on the `permit` and `models` packages. The linters godoclint and testableexamples cover
+part of it: the doc comments of packages and top-level declarations, and Examples without an
+output comment. The tests add doc links that resolve, the doc comments of struct fields and of
+interface and promoted methods, Examples for the service types and the decision methods, the
+phrases of `docRules`, and a count sentinel:
+
+- `TestDocLinks`: every doc link resolves. A doc link is an identifier in square brackets, such as
+  `[Client]`, `[Client.Users]`, `[*Client]`, `[models.User]` or `[context.Context]`, or a package,
+  such as `[models]`, and pkg.go.dev shows it as a link. Bracketed text that has the shape of a
+  doc link but names nothing, such as `[UserService]` for `UsersService`, stays plain text there;
+  a qualified link to an identifier that its package does not have, such as `[models.Usr]`, is a
+  broken link. Both fail with their file and line. A link names the package itself, an identifier
+  of the package, of a package that the package imports (under one name), or of a standard library
+  package with a one-element path, such as `[strings.Cut]`; link a package outside the module and
+  the standard library with a URL. The test reads every doc comment of the source files, also
+  those of unexported declarations, which gopls shows, and the doc comments of the Examples, which
+  pkg.go.dev shows above their code; a link there names what the package declares or imports, also
+  in the external test package.
+- `TestDocComments`: every package has a package comment, and every exported identifier a doc
+  comment: constants and variables (the comment of their group, their own or a line comment),
+  types, functions, methods, also those that a struct promotes from an unexported type, the
+  exported fields and embedded types of structs, and the methods and embedded elements of
+  interfaces. Its count sentinel fails when it checked fewer identifiers than
+  `testdata/api-surface.txt` lists declarations.
+- `TestDocExamples`: every Example of the package has an output comment, since go test compiles
+  an Example without one but never runs it. Every service type and every decision method has an
+  Example with an output comment in the external test package, `package permit_test`, where it
+  uses the SDK the way an application does. A service type is the type of an exported field of
+  `Client`, such as `UsersService` for the field `Users *UsersService`, or any exported type
+  whose name ends in `Service`. Its Example is `Example<Type>`, or `Example<Type>_<suffix>` with a
+  suffix that starts with a lower-case letter; `Example<Type>_<Method>` is the Example of the
+  method and does not count for the type. When `Client` is not a struct type, such as an alias,
+  the test fails, as it cannot read the fields of `Client`. The decision methods are listed in
+  `decisionMethods`, and each has an Example `Example<Type>_<Method>`. An Example that calls the
+  API runs against the `mockpermit` servers that the package's `TestMain` starts; see
+  [Wire tests](#wire-tests).
+- `TestDocRules`: the doc comment of each method that `docRules` names holds the rule's phrase,
+  ignoring case and line breaks: the phrase that names the level of API key the method needs,
+  `container PDP only` on the methods that only the container PDP serves, and `waits for sync` on
+  the facts writes that wait for the PDP. The operation registry fills `docRules` *(added in a
+  later commit on this branch)*.
+
+The fixture modules in `testdata/doccheck` prove the rules: `pass` passes them all, and `links`,
+`undocumented`, `examples` and `notstruct` break them.
+
+`readme_test.go` compiles the Go programs of `README.md`. `TestReadmeBlocksCompile` builds each
+fenced go block whose opening fence is on the line right after a `<!-- compile -->` line as the
+main package of a temporary module that requires the SDK and replaces it with the repository
+root, offline. A marked block is a complete program, `package main` with its imports, and a
+compile error names its line in the Markdown file. A marker that no go block follows fails, and
+so does a run that built fewer or more blocks than there are markers; a built block is one that
+go build ran on, whether it compiles or not. Mark every block that shows a whole program:
+
+````markdown
+<!-- compile -->
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/permitio/permit-golang/v2"
+)
+
+func main() {
+	fmt.Println(permit.Version)
+}
+```
+````
+
+`compileFiles` lists the Markdown files that the test reads; the fixtures in `testdata/readme`
+prove its rules.
+
+The `docs` job in [CI](#ci) runs these tests, `go vet` on each package outside `internal/`,
+whose `tests` analyzer reports an Example whose name names no identifier, and `go doc -all` on
+each of them. Run the same checks from the repository root, on the packages that CI selects:
+
+```sh
+pkgs=$(go list ./... | grep -Ev '/internal(/|$)')
+go vet $pkgs
+for pkg in $pkgs; do go doc -all "$pkg" >/dev/null; done
+HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
+  go test -count=1 -run '^Test(Doc|Readme)' .
+```
+
 ## Public surface and wire cases
 
 `testdata/api-surface.txt` is a snapshot of the exported API of the `permit` and `models`
@@ -474,6 +565,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
+| `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, whose output checkgotest checks; see [API reference](#api-reference). |
 | `zipcheck` | Builds the module zip of the commit and checks what it holds with zipcheck, offline; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `api-coverage` | Runs the root package's tests offline with the request record on, and checks the record and `tools/specs/coverage.yaml` with apicoverage, which writes its report to the job summary; see [API coverage](#api-coverage). |
 | `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
@@ -492,8 +584,8 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
-  `test`, `crossbuild`, `consumer`, `zipcheck`, `api-coverage`, `vuln` and `secrets`. A pull
-  request runs `mutation`, `dependency-review` and `api-surface` too.
+  `test`, `crossbuild`, `consumer`, `docs`, `zipcheck`, `api-coverage`, `vuln` and `secrets`. A
+  pull request runs `mutation`, `dependency-review` and `api-surface` too.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, `security` the security scan, and `e2e` the jobs of that mode *(added in a later
   commit on this branch)*. The release workflow *(added in a later commit on this branch)* calls
@@ -1077,15 +1169,18 @@ is marked *(added in a later commit on this branch)* does not exist yet.
    on this branch)*.
 3. Add the method, and its entry in the operation registry *(added in a later commit on this
    branch)*.
-4. Add a wire test case for the method and a fixture with the API's reply, and rewrite the surface
+4. Document it, with the phrases that `docRules` asks of it. Give a new service type, and a new
+   decision method, an Example with an output comment in `package permit_test`, and list a
+   decision method in `decisionMethods`; see [API reference](#api-reference).
+5. Add a wire test case for the method and a fixture with the API's reply, and rewrite the surface
    snapshot; see [Wire tests](#wire-tests) and
    [Public surface and wire cases](#public-surface-and-wire-cases).
-5. Rewrite `testdata/operation-map.json`, mark the operation's row of
+6. Rewrite `testdata/operation-map.json`, mark the operation's row of
    `tools/specs/coverage.yaml` covered, and run the API coverage report; see
    [API coverage](#api-coverage).
-6. Add an end-to-end scenario for the method, or mark it pending or local-only *(the end-to-end
+7. Add an end-to-end scenario for the method, or mark it pending or local-only *(the end-to-end
    tests are added in a later commit on this branch)*.
-7. Add its entries to `CHANGELOG.md` and `MIGRATION.md`, and remove what the `MIGRATION.md` entries
+8. Add its entries to `CHANGELOG.md` and `MIGRATION.md`, and remove what the `MIGRATION.md` entries
    cover from `tools/migration/pending.txt`; see
    [Public surface and migration](#public-surface-and-migration).
 

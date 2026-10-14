@@ -1,0 +1,5 @@
+# Public methods that need no wire case because they send no request, which
+# TestEveryPublicMethodHasAWireCase (wirecases_test.go) reads. Each line names a method as
+# <Type>.<Method>, such as UsersService.WaitForSync, then a space and the reason it needs no wire
+# case. Blank lines and lines that start with # are ignored. A line without a reason, a line that
+# names no public method and a line that names a method with a wire case fail the test.

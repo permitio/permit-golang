@@ -1,0 +1,5 @@
+# The exported API of the permit and models packages, one declaration per line, sorted.
+# TestSurfaceSnapshot (surface_test.go) fails when the source differs. After an intended
+# change, rewrite this file with go test -run TestSurfaceSnapshot -update . and review the
+# diff.
+permit: const Version = "2.0.0"

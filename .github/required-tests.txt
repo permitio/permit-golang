@@ -257,3 +257,37 @@ github.com/permitio/permit-golang/v2/tools/scripts TestSecurityScan
 github.com/permitio/permit-golang/v2/tools/scripts TestSecurityScanHistoryDigests
 github.com/permitio/permit-golang/v2/tools/scripts TestSecurityScanGitleaksRules
 github.com/permitio/permit-golang/v2/tools/scripts TestDigest
+
+github.com/permitio/permit-golang/v2 TestSurfaceSnapshot
+github.com/permitio/permit-golang/v2 TestSnapshot
+github.com/permitio/permit-golang/v2 TestSnapshotDiff
+github.com/permitio/permit-golang/v2 TestNoInternalTypesInSignatures
+github.com/permitio/permit-golang/v2 TestInternalUses
+github.com/permitio/permit-golang/v2 TestIsInternal
+github.com/permitio/permit-golang/v2 TestEveryPublicMethodHasAWireCase
+github.com/permitio/permit-golang/v2 TestRouteParamOrder
+github.com/permitio/permit-golang/v2 TestPublicMethods
+github.com/permitio/permit-golang/v2 TestCheckCoveragePasses
+github.com/permitio/permit-golang/v2 TestCheckCoverageFails
+github.com/permitio/permit-golang/v2 TestCheckCoverageEmbedded
+github.com/permitio/permit-golang/v2 TestRouteOrderProblemsPasses
+github.com/permitio/permit-golang/v2 TestRouteOrderProblemsFindsSwappedParameters
+github.com/permitio/permit-golang/v2 TestRouteOrderProblemsFindsACaseWithoutAMethod
+github.com/permitio/permit-golang/v2 TestRouteParamOrderRules
+github.com/permitio/permit-golang/v2 TestStems
+github.com/permitio/permit-golang/v2 TestRoutePlaceholders
+github.com/permitio/permit-golang/v2 TestCheckWireCase
+github.com/permitio/permit-golang/v2 TestCollectWireCases
+github.com/permitio/permit-golang/v2 TestParseExemptions
+
+github.com/permitio/permit-golang/v2/internal/surface TestReadValues
+github.com/permitio/permit-golang/v2/internal/surface TestReadTypes
+github.com/permitio/permit-golang/v2/internal/surface TestReadFuncsAndMethods
+github.com/permitio/permit-golang/v2/internal/surface TestReadEmbedded
+github.com/permitio/permit-golang/v2/internal/surface TestReadAccepts
+github.com/permitio/permit-golang/v2/internal/surface TestReadUses
+github.com/permitio/permit-golang/v2/internal/surface TestReadFiles
+github.com/permitio/permit-golang/v2/internal/surface TestReadEmptyPackage
+github.com/permitio/permit-golang/v2/internal/surface TestReadErrors
+github.com/permitio/permit-golang/v2/internal/surface TestReadMissingDirectory
+github.com/permitio/permit-golang/v2/internal/surface TestKindsAreNotZero

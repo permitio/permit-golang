@@ -56,8 +56,7 @@ over the branch's new commits:
 
 - One commit per ticket. The subject is `PER-<id>: <imperative summary>`, at most 72 characters.
 - A lint or format fix that changes no behaviour and is found after the code it fixes goes in its
-  own commit, with `testdata/api-surface.txt` *(added in a later commit on this branch)*
-  byte-identical.
+  own commit, with `testdata/api-surface.txt` byte-identical.
 - Run mutation tests only through `tools/cmd/mutationgate`, within its caps on workers, memory
   and time, as CONTRIBUTING.md shows; never run a mutation tool directly.
 - Run at most one Docker stack at a time.

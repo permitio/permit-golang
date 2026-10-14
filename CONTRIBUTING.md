@@ -91,8 +91,9 @@ prek are updated in `tools/binaries.lock`, and editorconfig-checker in `tools/go
 [tools/README.md](tools/README.md) describes.
 
 A lint or format fix that changes no behaviour and is found after the code it fixes goes in its
-own commit, and `testdata/api-surface.txt` *(added in a later commit on this branch)* stays
-byte-identical in that commit.
+own commit, and `testdata/api-surface.txt` (see
+[Public surface and wire cases](#public-surface-and-wire-cases)) stays byte-identical in that
+commit.
 
 ## Tests run offline
 
@@ -151,6 +152,57 @@ use, and puts the servers' URLs in package variables, such as `exampleAPIURL` an
 `examplePDPURL`, that the Examples pass to the client. `os.Exit(servers.Run(m))` then runs the
 tests and exits 1 when a server found a problem. `internal/testkit/mockpermit/exampletest` shows
 how.
+
+## Public surface and wire cases
+
+`testdata/api-surface.txt` is a snapshot of the exported API of the `permit` and `models`
+packages: one declaration per line, sorted, with parameter names, as `internal/surface` reads it
+from the source. `TestSurfaceSnapshot` fails and shows the difference when the source and the
+snapshot differ. When you change the API on purpose, rewrite the snapshot and review its diff
+with the rest of your change:
+
+```sh
+go test -run TestSurfaceSnapshot -update .
+```
+
+`TestNoInternalTypesInSignatures` fails when an exported declaration mentions a type of a package
+under `internal/`, which applications cannot import.
+
+Every public method, a method of `Client` or of a type whose name ends in `Service`, needs a wire
+case: a `wireCase` (`wirecases_test.go`) returned by the `<area>Cases()` function of its
+`<area>_wire_test.go` file, which `wireCaseLists` lists. A case names the method, such as
+`UsersService.Get`, the operationId of its operation in the API spec, the route as
+`mockpermit.Server.Handle` takes it, and the modes it runs in. It carries the request the method
+must send, the reply and the result the method must return for it (`wireNoResult{}` for a method
+that returns only an error), and an error reply of the API, with its status and error body, and
+the error the method must return for it. The cases run against `mockpermit` once the client
+exists *(the runner is added in a later commit on this branch)*; the tests below check them
+already:
+
+- the registry rejects a case whose method is not `<Type>.<Method>` with exported names, or that
+  has no operationId, a malformed route or one with an empty segment, no mode, an unknown or
+  repeated mode, a request path that does not start with `/`, no result, an error reply without a
+  status from 400 to 599 and a body, or no error;
+- `TestEveryPublicMethodHasAWireCase` fails when a public method has no case, a case names no
+  public method, `Client` or a type whose name ends in `Service` embeds a type of another package
+  or `error`, whose methods `internal/surface` cannot list (declare the methods on the type
+  instead), or the counts do not add up: public methods = methods with a case + exempt methods;
+- `TestRouteParamOrder` fails unless the placeholders of each case's route name the method's
+  parameters in the route's order. A placeholder names the parameter with the same stem:
+  `{resource_id}` names `resourceKey` or `resourceID`. `{proj_id}` and `{env_id}` name
+  `projectKey` and `environmentKey` when the method takes them, and the client fills them in from
+  its scope when it does not.
+
+A public method that sends no request, such as one that returns a copy of its service, needs no
+wire case: list it in `testdata/no-wire.txt` as `<Type>.<Method>`, a space and the reason. A line
+without a reason, or one that names no public method or a method that has a wire case, fails the
+test.
+
+`go test ./...` runs these tests with the others. To run the four gates alone:
+
+```sh
+go test -run '^Test(SurfaceSnapshot|NoInternalTypesInSignatures|EveryPublicMethodHasAWireCase|RouteParamOrder)$' .
+```
 
 ## Checks
 
@@ -616,8 +668,9 @@ is marked *(added in a later commit on this branch)* does not exist yet.
    on this branch)*.
 3. Add the method, and its entry in the operation registry *(added in a later commit on this
    branch)*.
-4. Add a wire test case for the method and a fixture with the API's reply; see
-   [Wire tests](#wire-tests).
+4. Add a wire test case for the method and a fixture with the API's reply, and rewrite the surface
+   snapshot; see [Wire tests](#wire-tests) and
+   [Public surface and wire cases](#public-surface-and-wire-cases).
 5. Run the update targets and the API coverage report *(added in a later commit on this branch)*.
 6. Add an end-to-end scenario for the method, or mark it pending or local-only *(the end-to-end
    tests are added in a later commit on this branch)*.

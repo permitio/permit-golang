@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -18,7 +19,9 @@ import (
 // testMainEnv makes the test binary act as mutationgate, so tests can run its
 // subcommands as processes of their own. "unlimited" runs exec with no memory
 // limit, a planted defect the memory limit probe must catch, and "capped" runs it
-// with no memory limit and a 300ms cap, which stops the probe before any limit.
+// with no memory limit and a 2s cap, which stops the probe before any limit. In
+// "capped" mode the probe allocates one chunk and then waits to be stopped, so the
+// cap does not race a child that starts slowly or one that finishes fast.
 const testMainEnv = "MUTATIONGATE_TEST_MAIN"
 
 func TestMain(m *testing.M) {
@@ -34,10 +37,13 @@ func TestMain(m *testing.M) {
 				os.Exit(exitDidNotRun)
 			}
 			if mode == "capped" {
-				opts.cap = 300 * time.Millisecond
+				opts.cap = 2 * time.Second
 			}
 			noLimit := monitor{interval: pollInterval, orphaned: notOrphaned}
 			os.Exit(superviseTest(opts, noLimit, os.Stdout, os.Stderr))
+		}
+		if mode == "capped" && len(os.Args) > 1 && os.Args[1] == commandAllocate {
+			allocateAndWait(os.Stdout)
 		}
 		os.Exit(dispatch(os.Args[1:], os.Stdout, os.Stderr))
 	}
@@ -45,6 +51,18 @@ func TestMain(m *testing.M) {
 }
 
 func notOrphaned() bool { return false }
+
+// allocateAndWait allocates one chunk, reports it as the allocate command does and
+// sleeps until exec stops the process.
+func allocateAndWait(stdout io.Writer) {
+	chunk := make([]byte, allocateChunkMiB<<20)
+	for i := 0; i < len(chunk); i += pageBytes {
+		chunk[i] = 1
+	}
+	_, _ = fmt.Fprintf(stdout, "allocated %d MiB\n", allocateChunkMiB)
+	time.Sleep(time.Hour)
+	runtime.KeepAlive(chunk)
+}
 
 // supervise runs command under superviseTest with m and returns its exit code, what
 // it printed and the event log.

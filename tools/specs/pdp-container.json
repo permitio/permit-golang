@@ -1,0 +1,2262 @@
+{
+  "components": {
+    "schemas": {
+      "AllTenantsAuthorizationResult": {
+        "properties": {
+          "allowed_tenants": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/_AllTenantsAuthorizationResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AuthorizationQuery": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/Resource"
+          },
+          "sdk": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "user",
+          "action",
+          "resource"
+        ],
+        "type": "object"
+      },
+      "AuthorizationQueryV1": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/ResourceV1"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user",
+          "action",
+          "resource"
+        ],
+        "type": "object"
+      },
+      "AuthorizationResult": {
+        "properties": {
+          "allow": {
+            "default": false,
+            "type": "boolean"
+          },
+          "debug": {
+            "type": "object"
+          },
+          "query": {
+            "type": "object"
+          },
+          "result": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "AuthorizedUserAssignment": {
+        "properties": {
+          "resource": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user",
+          "tenant",
+          "resource",
+          "role"
+        ],
+        "type": "object"
+      },
+      "AuthorizedUsersAuthorizationQuery": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/Resource"
+          },
+          "sdk": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "resource"
+        ],
+        "type": "object"
+      },
+      "AuthorizedUsersResult": {
+        "properties": {
+          "resource": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          },
+          "users": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/AuthorizedUserAssignment"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "resource",
+          "tenant",
+          "users"
+        ],
+        "type": "object"
+      },
+      "BulkAuthorizationResult": {
+        "properties": {
+          "allow": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AuthorizationResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CallbackEntry": {
+        "properties": {
+          "config": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HttpFetcherConfig"
+              }
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "ConnectivityActionResult": {
+        "properties": {
+          "status": {
+            "enum": [
+              "disabled",
+              "already_disabled",
+              "enabled",
+              "already_enabled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "ConnectivityStatus": {
+        "properties": {
+          "offline_mode_enabled": {
+            "type": "boolean"
+          },
+          "opal_server_connectivity_disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "opal_server_connectivity_disabled",
+          "offline_mode_enabled"
+        ],
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "HttpFetcherConfig": {
+        "properties": {
+          "data": {},
+          "fetcher": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "object"
+          },
+          "is_json": {
+            "default": true,
+            "type": "boolean"
+          },
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HttpMethods"
+              }
+            ],
+            "default": "get"
+          },
+          "process_data": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "HttpMethods": {
+        "enum": [
+          "get",
+          "post",
+          "put",
+          "patch",
+          "head",
+          "delete"
+        ]
+      },
+      "KongAuthorizationInput": {
+        "properties": {
+          "client_ip": {
+            "type": "string"
+          },
+          "consumer": {
+            "$ref": "#/components/schemas/KongAuthorizationInputConsumer"
+          },
+          "request": {
+            "$ref": "#/components/schemas/KongAuthorizationInputRequest"
+          },
+          "route": {
+            "$ref": "#/components/schemas/KongAuthorizationInputRoute"
+          },
+          "service": {
+            "$ref": "#/components/schemas/KongAuthorizationInputService"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "type": "object"
+      },
+      "KongAuthorizationInputConsumer": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username"
+        ],
+        "type": "object"
+      },
+      "KongAuthorizationInputRequest": {
+        "properties": {
+          "http": {
+            "$ref": "#/components/schemas/KongAuthorizationInputRequestHttp"
+          }
+        },
+        "required": [
+          "http"
+        ],
+        "type": "object"
+      },
+      "KongAuthorizationInputRequestHttp": {
+        "properties": {
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "host": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "querystring": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "scheme": {
+            "type": "string"
+          },
+          "tls": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "host",
+          "port",
+          "tls",
+          "method",
+          "scheme",
+          "path",
+          "querystring",
+          "headers"
+        ],
+        "type": "object"
+      },
+      "KongAuthorizationInputRoute": {
+        "properties": {
+          "created_at": {
+            "type": "integer"
+          },
+          "https_redirect_status_code": {
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "path_handling": {
+            "type": "string"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "preserve_host": {
+            "type": "boolean"
+          },
+          "protocols": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "regex_priority": {
+            "type": "integer"
+          },
+          "request_buffering": {
+            "type": "boolean"
+          },
+          "response_buffering": {
+            "type": "boolean"
+          },
+          "service": {
+            "$ref": "#/components/schemas/KongAuthorizationInputRouteService"
+          },
+          "strip_path": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "integer"
+          },
+          "ws_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "paths",
+          "protocols",
+          "strip_path",
+          "created_at",
+          "ws_id",
+          "request_buffering",
+          "updated_at",
+          "preserve_host",
+          "regex_priority",
+          "response_buffering",
+          "https_redirect_status_code",
+          "path_handling",
+          "service"
+        ],
+        "type": "object"
+      },
+      "KongAuthorizationInputRouteService": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "KongAuthorizationInputService": {
+        "properties": {
+          "connect_timeout": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "procotol": {
+            "type": "string"
+          },
+          "read_timeout": {
+            "type": "integer"
+          },
+          "retries": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "type": "integer"
+          },
+          "write_timeout": {
+            "type": "integer"
+          },
+          "ws_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "created_at",
+          "connect_timeout",
+          "id",
+          "procotol",
+          "name",
+          "read_timeout",
+          "port",
+          "updated_at",
+          "ws_id",
+          "retries",
+          "write_timeout"
+        ],
+        "type": "object"
+      },
+      "KongAuthorizationQuery": {
+        "properties": {
+          "input": {
+            "$ref": "#/components/schemas/KongAuthorizationInput"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "type": "object"
+      },
+      "KongAuthorizationResult": {
+        "properties": {
+          "result": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "PolicyStoreAuth": {
+        "enum": [
+          "none",
+          "token",
+          "oauth",
+          "tls"
+        ]
+      },
+      "PolicyStoreDetails": {
+        "properties": {
+          "auth_type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PolicyStoreAuth"
+              }
+            ],
+            "default": "none"
+          },
+          "oauth_client_id": {
+            "type": "string"
+          },
+          "oauth_client_secret": {
+            "type": "string"
+          },
+          "oauth_server": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PolicyStoreTypes"
+              }
+            ],
+            "default": "OPA"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "PolicyStoreTypes": {
+        "enum": [
+          "OPA",
+          "CEDAR",
+          "MOCK"
+        ]
+      },
+      "Resource": {
+        "properties": {
+          "attributes": {
+            "type": "object"
+          },
+          "context": {
+            "type": "object"
+          },
+          "key": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ResourceV1": {
+        "deprecated": true,
+        "properties": {
+          "attributes": {
+            "type": "object"
+          },
+          "context": {
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "RoleAssignment": {
+        "properties": {
+          "resource_instance": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user",
+          "role",
+          "tenant"
+        ],
+        "type": "object"
+      },
+      "TriggerResponse": {
+        "properties": {
+          "status": {
+            "default": "ok",
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          },
+          "triggered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "triggered"
+        ],
+        "type": "object"
+      },
+      "UrlAuthorizationQuery": {
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "http_method": {
+            "type": "string"
+          },
+          "sdk": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "user",
+          "http_method",
+          "url",
+          "tenant"
+        ],
+        "type": "object"
+      },
+      "User": {
+        "properties": {
+          "attributes": {
+            "type": "object"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "UserPermissionsQuery": {
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "resource_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tenants": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "type": "object"
+      },
+      "UserTenantsQuery": {
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "type": "object"
+      },
+      "_AllTenantsAuthorizationResult": {
+        "properties": {
+          "allow": {
+            "default": false,
+            "type": "boolean"
+          },
+          "debug": {
+            "type": "object"
+          },
+          "query": {
+            "type": "object"
+          },
+          "result": {
+            "default": false,
+            "type": "boolean"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/_TenantDetails"
+          }
+        },
+        "required": [
+          "tenant"
+        ],
+        "type": "object"
+      },
+      "_ResourceDetails": {
+        "properties": {
+          "attributes": {
+            "default": {},
+            "type": "object"
+          },
+          "key": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "type"
+        ],
+        "type": "object"
+      },
+      "_TenantDetails": {
+        "properties": {
+          "attributes": {
+            "default": {},
+            "type": "object"
+          },
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "_UserPermissionsResult": {
+        "properties": {
+          "permissions": {
+            "items": {
+              "pattern": "^.+:.+$",
+              "type": "string"
+            },
+            "pattern": "^.+:.+$",
+            "type": "array"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/_ResourceDetails"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/_TenantDetails"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "PDP token": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "version": "0.2.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/allowed": {
+      "post": {
+        "operationId": "is_allowed_allowed_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-permit-sdk-language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AuthorizationQuery"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AuthorizationQueryV1"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/allowed/all-tenants": {
+      "post": {
+        "operationId": "is_allowed_all_tenants_allowed_all_tenants_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-permit-sdk-language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizationQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllTenantsAuthorizationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/allowed/bulk": {
+      "post": {
+        "operationId": "is_allowed_bulk_allowed_bulk_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-permit-sdk-language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/AuthorizationQuery"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkAuthorizationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/allowed_url": {
+      "post": {
+        "operationId": "is_allowed_url_allowed_url_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-permit-sdk-language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UrlAuthorizationQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/authorized_users": {
+      "post": {
+        "operationId": "authorized_users_authorized_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizedUsersAuthorizationQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizedUsersResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/callbacks": {
+      "get": {
+        "operationId": "list_callbacks_callbacks_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CallbackEntry"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Callbacks"
+        ]
+      },
+      "post": {
+        "operationId": "register_callback_callbacks_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallbackEntry"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallbackEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Callbacks"
+        ]
+      }
+    },
+    "/callbacks/{key}": {
+      "delete": {
+        "operationId": "get_callback_by_key_callbacks__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Callbacks"
+        ]
+      },
+      "get": {
+        "operationId": "get_callback_by_key_callbacks__key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallbackEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Callbacks"
+        ]
+      }
+    },
+    "/data-updater/trigger": {
+      "post": {
+        "operationId": "trigger_data_update_data_updater_trigger_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerResponse"
+                }
+              }
+            }
+          },
+          "502": {},
+          "503": {},
+          "504": {}
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Data Updater"
+        ]
+      }
+    },
+    "/facts/relationship_tuples": {
+      "post": {
+        "operationId": "create_relationship_tuple_facts_relationship_tuples_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/facts/resource_instances": {
+      "post": {
+        "operationId": "create_resource_instance_facts_resource_instances_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/facts/resource_instances/{instance_id}": {
+      "patch": {
+        "operationId": "update_resource_instance_facts_resource_instances__instance_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "instance_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/facts/role_assignments": {
+      "delete": {
+        "operationId": "delete_role_assignment_facts_role_assignments_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      },
+      "post": {
+        "operationId": "create_role_assignment_facts_role_assignments_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/facts/tenants": {
+      "post": {
+        "operationId": "create_tenant_facts_tenants_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/facts/users": {
+      "post": {
+        "operationId": "create_user_facts_users_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/facts/users/{user_id}": {
+      "patch": {
+        "operationId": "update_user_facts_users__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      },
+      "put": {
+        "operationId": "sync_user_facts_users__user_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/facts/users/{user_id}/roles": {
+      "delete": {
+        "operationId": "unassign_user_role_facts_users__user_id__roles_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      },
+      "post": {
+        "operationId": "assign_user_role_facts_users__user_id__roles_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/healthchecks/opa/healthy": {
+      "get": {
+        "operationId": "health_opa_healthcheck_healthchecks_opa_healthy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Cloud API Proxy"
+        ]
+      }
+    },
+    "/healthchecks/opa/ready": {
+      "get": {
+        "operationId": "ready_opa_healthcheck_healthchecks_opa_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Cloud API Proxy"
+        ]
+      }
+    },
+    "/healthchecks/opa/system": {
+      "get": {
+        "operationId": "system_opa_healthcheck_healthchecks_opa_system_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Cloud API Proxy"
+        ]
+      }
+    },
+    "/kong": {
+      "post": {
+        "operationId": "is_allowed_kong_kong_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KongAuthorizationQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KongAuthorizationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/local/role_assignments": {
+      "get": {
+        "operationId": "list_role_assignments_local_role_assignments_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tenant",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resource",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resource_instance",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1.0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 100.0,
+              "minimum": 1.0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RoleAssignment"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Local Queries"
+        ]
+      }
+    },
+    "/nginx_allowed": {
+      "post": {
+        "operationId": "is_allowed_nginx_nginx_allowed_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "permit-user-key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "permit-tenant-id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "permit-action",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "permit-resource-type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/opal-server/connectivity": {
+      "get": {
+        "operationId": "get_connectivity_status_opal_server_connectivity_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectivityStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "OPAL Server Connectivity"
+        ]
+      }
+    },
+    "/opal-server/connectivity/disable": {
+      "post": {
+        "operationId": "disable_connectivity_opal_server_connectivity_disable_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectivityActionResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "OPAL Server Connectivity"
+        ]
+      }
+    },
+    "/opal-server/connectivity/enable": {
+      "post": {
+        "operationId": "enable_connectivity_opal_server_connectivity_enable_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectivityActionResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "OPAL Server Connectivity"
+        ]
+      }
+    },
+    "/policy-store/config": {
+      "get": {
+        "deprecated": true,
+        "operationId": "get_policy_store_details_policy_store_config_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyStoreDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Policy Store"
+        ]
+      }
+    },
+    "/policy-updater/trigger": {
+      "post": {
+        "operationId": "trigger_policy_update_policy_updater_trigger_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Policy Updater"
+        ]
+      }
+    },
+    "/user-permissions": {
+      "post": {
+        "operationId": "Get_User_Permissions_user_permissions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-permit-sdk-language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPermissionsQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/_UserPermissionsResult"
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/user-tenants": {
+      "post": {
+        "operationId": "Get_User_Tenants_user_tenants_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-permit-sdk-language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserTenantsQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/_TenantDetails"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "PDP token": []
+          }
+        ],
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Authorization API"
+    },
+    {
+      "name": "Local Queries"
+    },
+    {
+      "name": "Policy Updater"
+    },
+    {
+      "externalDocs": {
+        "url": "https://api.permit.io/redoc"
+      },
+      "name": "Cloud API Proxy"
+    }
+  ]
+}

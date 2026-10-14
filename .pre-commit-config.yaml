@@ -13,6 +13,9 @@ repos:
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       - id: check-added-large-files
+        # The snapshots in tools/specs are generated and large on purpose; specsnap -verify
+        # checks them.
+        exclude: ^tools/specs/
       - id: check-case-conflict
       - id: check-executables-have-shebangs
       - id: check-json

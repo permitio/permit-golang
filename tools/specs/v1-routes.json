@@ -1,0 +1,1146 @@
+{
+  "commit": "78500657b487c63cba5fde8247d53d3bbc83fee7",
+  "routes": [
+    {
+      "callers": [
+        {
+          "sdk_method": "PermitContextFactory",
+          "source": "pkg/config/context.go:42"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_api_key_scope",
+      "path": "/v2/api-key/scope",
+      "source": "pkg/openapi/api_api_keys.go:401"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ProxyConfigs.List",
+          "source": "pkg/api/proxyConfig.go:42"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_proxy_configs",
+      "path": "/v2/facts/{proj_id}/{env_id}/proxy_configs",
+      "source": "pkg/openapi/api_proxy_config.go:450"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ProxyConfigs.Create",
+          "source": "pkg/api/proxyConfig.go:96"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_proxy_config",
+      "path": "/v2/facts/{proj_id}/{env_id}/proxy_configs",
+      "source": "pkg/openapi/api_proxy_config.go:81"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ProxyConfigs.Delete",
+          "source": "pkg/api/proxyConfig.go:136"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_proxy_config",
+      "path": "/v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}",
+      "source": "pkg/openapi/api_proxy_config.go:204"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ProxyConfigs.Get",
+          "source": "pkg/api/proxyConfig.go:61"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_proxy_config",
+      "path": "/v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}",
+      "source": "pkg/openapi/api_proxy_config.go:317"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ProxyConfigs.Update",
+          "source": "pkg/api/proxyConfig.go:118"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_proxy_config",
+      "path": "/v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}",
+      "source": "pkg/openapi/api_proxy_config.go:590"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "RelationshipTuples.Delete",
+          "source": "pkg/api/relationshipTuples.go:76"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_relationship_tuple",
+      "path": "/v2/facts/{proj_id}/{env_id}/relationship_tuples",
+      "source": "pkg/openapi/api_relationship_tuples.go:482"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "RelationshipTuples.List",
+          "source": "pkg/api/relationshipTuples.go:100"
+        },
+        {
+          "sdk_method": "RelationshipTuples.ListDetailed",
+          "source": "pkg/api/relationshipTuples.go:112"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_relationship_tuples",
+      "path": "/v2/facts/{proj_id}/{env_id}/relationship_tuples",
+      "source": "pkg/openapi/api_relationship_tuples.go:651"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "RelationshipTuples.Create",
+          "source": "pkg/api/relationshipTuples.go:50"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_relationship_tuple",
+      "path": "/v2/facts/{proj_id}/{env_id}/relationship_tuples",
+      "source": "pkg/openapi/api_relationship_tuples.go:350"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "RelationshipTuples.BulkDelete",
+          "source": "pkg/api/relationshipTuples.go:213"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "bulk_delete_relationship_tuples",
+      "path": "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk",
+      "source": "pkg/openapi/api_relationship_tuples.go:215"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "RelationshipTuples.BulkCreate",
+          "source": "pkg/api/relationshipTuples.go:187"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "bulk_create_relationship_tuples",
+      "path": "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk",
+      "source": "pkg/openapi/api_relationship_tuples.go:82"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceInstances.List",
+          "source": "pkg/api/resourceInstances.go:135"
+        },
+        {
+          "sdk_method": "ResourceInstances.ListDetailed",
+          "source": "pkg/api/resourceInstances.go:146"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_resource_instances",
+      "path": "/v2/facts/{proj_id}/{env_id}/resource_instances",
+      "source": "pkg/openapi/api_resource_instances.go:502"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceInstances.Create",
+          "source": "pkg/api/resourceInstances.go:51"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_resource_instance",
+      "path": "/v2/facts/{proj_id}/{env_id}/resource_instances",
+      "source": "pkg/openapi/api_resource_instances.go:87"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceInstances.Delete",
+          "source": "pkg/api/resourceInstances.go:84"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_resource_instance",
+      "path": "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+      "source": "pkg/openapi/api_resource_instances.go:216"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceInstances.Get",
+          "source": "pkg/api/resourceInstances.go:111"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource_instance",
+      "path": "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+      "source": "pkg/openapi/api_resource_instances.go:335"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceInstances.Update",
+          "source": "pkg/api/resourceInstances.go:217"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_resource_instance",
+      "path": "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+      "source": "pkg/openapi/api_resource_instances.go:663"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "RoleAssignments.List",
+          "source": "pkg/api/roleAssignments.go:40"
+        },
+        {
+          "sdk_method": "RoleAssignments.ListDetailed",
+          "source": "pkg/api/roleAssignments.go:48"
+        },
+        {
+          "sdk_method": "Users.GetAssignedRoles",
+          "source": "pkg/api/users.go:282"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_role_assignments",
+      "path": "/v2/facts/{proj_id}/{env_id}/role_assignments",
+      "source": "pkg/openapi/api_role_assignments.go:541"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.BulkUnAssignRole",
+          "source": "pkg/api/roles.go:250"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "bulk_unassign_role",
+      "path": "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk",
+      "source": "pkg/openapi/api_role_assignments.go:352"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.BulkAssignRole",
+          "source": "pkg/api/roles.go:230"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "bulk_assign_role",
+      "path": "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk",
+      "source": "pkg/openapi/api_role_assignments.go:219"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ConditionSets.UnassignSetPermissions",
+          "source": "pkg/api/condition_sets.go:217"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "unassign_set_permissions",
+      "path": "/v2/facts/{proj_id}/{env_id}/set_rules",
+      "source": "pkg/openapi/api_condition_set_rules.go:379"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ConditionSets.ListSetPermissions",
+          "source": "pkg/api/condition_sets.go:242"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_set_permissions",
+      "path": "/v2/facts/{proj_id}/{env_id}/set_rules",
+      "source": "pkg/openapi/api_condition_set_rules.go:241"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ConditionSets.AssignSetPermissions",
+          "source": "pkg/api/condition_sets.go:192"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "assign_set_permissions",
+      "path": "/v2/facts/{proj_id}/{env_id}/set_rules",
+      "source": "pkg/openapi/api_condition_set_rules.go:80"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Tenants.List",
+          "source": "pkg/api/tenants.go:55"
+        },
+        {
+          "sdk_method": "Tenants.ListByAttributes",
+          "source": "pkg/api/tenants.go:78"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_tenants",
+      "path": "/v2/facts/{proj_id}/{env_id}/tenants",
+      "source": "pkg/openapi/api_tenants.go:729"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Tenants.Create",
+          "source": "pkg/api/tenants.go:133"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_tenant",
+      "path": "/v2/facts/{proj_id}/{env_id}/tenants",
+      "source": "pkg/openapi/api_tenants.go:81"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Tenants.Delete",
+          "source": "pkg/api/tenants.go:181"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_tenant",
+      "path": "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}",
+      "source": "pkg/openapi/api_tenants.go:204"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Tenants.Get",
+          "source": "pkg/api/tenants.go:96"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_tenant",
+      "path": "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}",
+      "source": "pkg/openapi/api_tenants.go:431"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Tenants.Update",
+          "source": "pkg/api/tenants.go:163"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_tenant",
+      "path": "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}",
+      "source": "pkg/openapi/api_tenants.go:870"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Tenants.ListTenantUsers",
+          "source": "pkg/api/tenants.go:205"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_tenant_users",
+      "path": "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users",
+      "source": "pkg/openapi/api_tenants.go:572"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Users.List",
+          "source": "pkg/api/users.go:57"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_users",
+      "path": "/v2/facts/{proj_id}/{env_id}/users",
+      "source": "pkg/openapi/api_users.go:593"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Users.Create",
+          "source": "pkg/api/users.go:120"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_user",
+      "path": "/v2/facts/{proj_id}/{env_id}/users",
+      "source": "pkg/openapi/api_users.go:217"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Users.Delete",
+          "source": "pkg/api/users.go:178"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_user",
+      "path": "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
+      "source": "pkg/openapi/api_users.go:340"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Users.Get",
+          "source": "pkg/api/users.go:76"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_user",
+      "path": "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
+      "source": "pkg/openapi/api_users.go:453"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Users.Update",
+          "source": "pkg/api/users.go:159"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_user",
+      "path": "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
+      "source": "pkg/openapi/api_users.go:998"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Users.UnassignResourceRole",
+          "source": "pkg/api/users.go:237"
+        },
+        {
+          "sdk_method": "Users.UnassignRole",
+          "source": "pkg/api/users.go:256"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "unassign_role_from_user",
+      "path": "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles",
+      "source": "pkg/openapi/api_users.go:864"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Users.AssignResourceRole",
+          "source": "pkg/api/users.go:217"
+        },
+        {
+          "sdk_method": "Users.AssignRole",
+          "source": "pkg/api/users.go:197"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "assign_role_to_user",
+      "path": "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles",
+      "source": "pkg/openapi/api_users.go:83"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Projects.List",
+          "source": "pkg/api/projects.go:42"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_projects",
+      "path": "/v2/projects",
+      "source": "pkg/openapi/api_projects.go:417"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Projects.Create",
+          "source": "pkg/api/projects.go:96"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_project",
+      "path": "/v2/projects",
+      "source": "pkg/openapi/api_projects.go:72"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Projects.Delete",
+          "source": "pkg/api/projects.go:136"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_project",
+      "path": "/v2/projects/{proj_id}",
+      "source": "pkg/openapi/api_projects.go:187"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Projects.Get",
+          "source": "pkg/api/projects.go:61"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_project",
+      "path": "/v2/projects/{proj_id}",
+      "source": "pkg/openapi/api_projects.go:292"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Projects.Update",
+          "source": "pkg/api/projects.go:118"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_project",
+      "path": "/v2/projects/{proj_id}",
+      "source": "pkg/openapi/api_projects.go:542"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Environments.List",
+          "source": "pkg/api/environments.go:43"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_environments",
+      "path": "/v2/projects/{proj_id}/envs",
+      "source": "pkg/openapi/api_environments.go:575"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Environments.Create",
+          "source": "pkg/api/environments.go:101"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_environment",
+      "path": "/v2/projects/{proj_id}/envs",
+      "source": "pkg/openapi/api_environments.go:218"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Environments.Delete",
+          "source": "pkg/api/environments.go:145"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_environment",
+      "path": "/v2/projects/{proj_id}/envs/{env_id}",
+      "source": "pkg/openapi/api_environments.go:337"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Environments.Get",
+          "source": "pkg/api/environments.go:62"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_environment",
+      "path": "/v2/projects/{proj_id}/envs/{env_id}",
+      "source": "pkg/openapi/api_environments.go:446"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Environments.Update",
+          "source": "pkg/api/environments.go:125"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_environment",
+      "path": "/v2/projects/{proj_id}/envs/{env_id}",
+      "source": "pkg/openapi/api_environments.go:820"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ConditionSets.List",
+          "source": "pkg/api/condition_sets.go:47"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_condition_sets",
+      "path": "/v2/schema/{proj_id}/{env_id}/condition_sets",
+      "source": "pkg/openapi/api_condition_sets.go:888"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ConditionSets.Create",
+          "source": "pkg/api/condition_sets.go:120"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_condition_set",
+      "path": "/v2/schema/{proj_id}/{env_id}/condition_sets",
+      "source": "pkg/openapi/api_condition_sets.go:78"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ConditionSets.Delete",
+          "source": "pkg/api/condition_sets.go:167"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_condition_set",
+      "path": "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}",
+      "source": "pkg/openapi/api_condition_sets.go:202"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ConditionSets.Get",
+          "source": "pkg/api/condition_sets.go:74"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_condition_set",
+      "path": "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}",
+      "source": "pkg/openapi/api_condition_sets.go:315"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ConditionSets.Update",
+          "source": "pkg/api/condition_sets.go:144"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_condition_set",
+      "path": "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}",
+      "source": "pkg/openapi/api_condition_sets.go:1028"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Resources.List",
+          "source": "pkg/api/resources.go:43"
+        },
+        {
+          "sdk_method": "Resources.Search",
+          "source": "pkg/api/resources.go:72"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_resources",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources",
+      "source": "pkg/openapi/api_resources.go:461"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Resources.Create",
+          "source": "pkg/api/resources.go:137"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_resource",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources",
+      "source": "pkg/openapi/api_resources.go:78"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Resources.Delete",
+          "source": "pkg/api/resources.go:180"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_resource",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}",
+      "source": "pkg/openapi/api_resources.go:201"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Resources.Get",
+          "source": "pkg/api/resources.go:98"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}",
+      "source": "pkg/openapi/api_resources.go:314"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Resources.Update",
+          "source": "pkg/api/resources.go:161"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_resource",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}",
+      "source": "pkg/openapi/api_resources.go:740"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceActionGroups.List",
+          "source": "pkg/api/resourceActionGroups.go:42"
+        },
+        {
+          "sdk_method": "ResourceActionGroups.ListByAttributes",
+          "source": "pkg/api/resourceActionGroups.go:63"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_resource_action_groups",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups",
+      "source": "pkg/openapi/api_resource_action_groups.go:470"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceActionGroups.Create",
+          "source": "pkg/api/resourceActionGroups.go:124"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_resource_action_group",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups",
+      "source": "pkg/openapi/api_resource_action_groups.go:81"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceActionGroups.Get",
+          "source": "pkg/api/resourceActionGroups.go:87"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource_action_group",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}",
+      "source": "pkg/openapi/api_resource_action_groups.go:326"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceActions.List",
+          "source": "pkg/api/resourceActions.go:42"
+        },
+        {
+          "sdk_method": "ResourceActions.ListByAttributes",
+          "source": "pkg/api/resourceActions.go:65"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_resource_actions",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions",
+      "source": "pkg/openapi/api_resource_actions.go:471"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceActions.Create",
+          "source": "pkg/api/resourceActions.go:126"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_resource_action",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions",
+      "source": "pkg/openapi/api_resource_actions.go:81"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceActionGroups.Delete",
+          "source": "pkg/api/resourceActionGroups.go:163"
+        },
+        {
+          "sdk_method": "ResourceActions.Delete",
+          "source": "pkg/api/resourceActions.go:165"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_resource_action",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}",
+      "source": "pkg/openapi/api_resource_actions.go:209"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceActions.Get",
+          "source": "pkg/api/resourceActions.go:89"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource_action",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}",
+      "source": "pkg/openapi/api_resource_actions.go:326"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceActions.Update",
+          "source": "pkg/api/resourceActions.go:148"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_resource_action",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}",
+      "source": "pkg/openapi/api_resource_actions.go:615"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceAttributes.List",
+          "source": "pkg/api/resoureAttributes.go:42"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_resource_attributes",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes",
+      "source": "pkg/openapi/api_resource_attributes.go:485"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceAttributes.Create",
+          "source": "pkg/api/resoureAttributes.go:96"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_resource_attribute",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes",
+      "source": "pkg/openapi/api_resource_attributes.go:81"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceAttributes.Delete",
+          "source": "pkg/api/resoureAttributes.go:135"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_resource_attribute",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}",
+      "source": "pkg/openapi/api_resource_attributes.go:225"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceAttributes.Get",
+          "source": "pkg/api/resoureAttributes.go:59"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource_attribute",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}",
+      "source": "pkg/openapi/api_resource_attributes.go:348"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceAttributes.Update",
+          "source": "pkg/api/resoureAttributes.go:118"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_resource_attribute",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}",
+      "source": "pkg/openapi/api_resource_attributes.go:623"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRelations.List",
+          "source": "pkg/api/resourceRelations.go:135"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_resource_relations",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations",
+      "source": "pkg/openapi/api_resource_relations.go:486"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRelations.Create",
+          "source": "pkg/api/resourceRelations.go:39"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_resource_relation",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations",
+      "source": "pkg/openapi/api_resource_relations.go:87"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRelations.Delete",
+          "source": "pkg/api/resourceRelations.go:68"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_resource_relation",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}",
+      "source": "pkg/openapi/api_resource_relations.go:220"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRelations.Get",
+          "source": "pkg/api/resourceRelations.go:97"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource_relation",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}",
+      "source": "pkg/openapi/api_resource_relations.go:343"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.List",
+          "source": "pkg/api/resourceRoles.go:133"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_resource_roles",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles",
+      "source": "pkg/openapi/api_resource_roles.go:1039"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.Create",
+          "source": "pkg/api/resourceRoles.go:38"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_resource_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles",
+      "source": "pkg/openapi/api_resource_roles.go:379"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.Delete",
+          "source": "pkg/api/resourceRoles.go:66"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_resource_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}",
+      "source": "pkg/openapi/api_resource_roles.go:513"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.Get",
+          "source": "pkg/api/resourceRoles.go:95"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}",
+      "source": "pkg/openapi/api_resource_roles.go:636"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.Update",
+          "source": "pkg/api/resourceRoles.go:164"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_resource_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}",
+      "source": "pkg/openapi/api_resource_roles.go:1478"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.GetAncestors",
+          "source": "pkg/api/resourceRoles.go:318"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource_role_ancestors",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/ancestors",
+      "source": "pkg/openapi/api_resource_roles.go:766"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.GetDescendants",
+          "source": "pkg/api/resourceRoles.go:352"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_resource_role_descendants",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/descendants",
+      "source": "pkg/openapi/api_resource_roles.go:896"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ImplicitGrants.Delete",
+          "source": "pkg/api/implicitGrants.go:69"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_implicit_grant",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants",
+      "source": "pkg/openapi/api_implicit_grants.go:230"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ImplicitGrants.Create",
+          "source": "pkg/api/implicitGrants.go:39"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_implicit_grant",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants",
+      "source": "pkg/openapi/api_implicit_grants.go:90"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ImplicitGrants.UpdateConditions",
+          "source": "pkg/api/implicitGrants.go:99"
+        }
+      ],
+      "method": "PUT",
+      "operation_id": "update_implicit_grants_conditions",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants/conditions",
+      "source": "pkg/openapi/api_implicit_grants.go:364"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.RemovePermissions",
+          "source": "pkg/api/resourceRoles.go:288"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "remove_permissions_from_resource_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions",
+      "source": "pkg/openapi/api_resource_roles.go:1334"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "ResourceRoles.AssignPermissions",
+          "source": "pkg/api/resourceRoles.go:257"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "assign_permissions_to_resource_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions",
+      "source": "pkg/openapi/api_resource_roles.go:239"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.List",
+          "source": "pkg/api/roles.go:46"
+        },
+        {
+          "sdk_method": "Roles.ListByAttributes",
+          "source": "pkg/api/roles.go:70"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_roles",
+      "path": "/v2/schema/{proj_id}/{env_id}/roles",
+      "source": "pkg/openapi/api_roles.go:726"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.Create",
+          "source": "pkg/api/roles.go:124"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "create_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/roles",
+      "source": "pkg/openapi/api_roles.go:348"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.Delete",
+          "source": "pkg/api/roles.go:172"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "delete_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/roles/{role_id}",
+      "source": "pkg/openapi/api_roles.go:472"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.Get",
+          "source": "pkg/api/roles.go:88"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/roles/{role_id}",
+      "source": "pkg/openapi/api_roles.go:585"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.Update",
+          "source": "pkg/api/roles.go:154"
+        }
+      ],
+      "method": "PATCH",
+      "operation_id": "update_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/roles/{role_id}",
+      "source": "pkg/openapi/api_roles.go:1132"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.RemovePermissions",
+          "source": "pkg/api/roles.go:214"
+        }
+      ],
+      "method": "DELETE",
+      "operation_id": "remove_permissions_from_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions",
+      "source": "pkg/openapi/api_roles.go:998"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.AssignPermissions",
+          "source": "pkg/api/roles.go:193"
+        }
+      ],
+      "method": "POST",
+      "operation_id": "assign_permissions_to_role",
+      "path": "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions",
+      "source": "pkg/openapi/api_roles.go:218"
+    }
+  ],
+  "tag": "v1.2.8"
+}

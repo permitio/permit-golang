@@ -1,0 +1,7 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Fixture cloud PDP", "version": "0.1.0"},
+  "paths": {
+    "/allowed": {"post": {"operationId": "allowed", "summary": "Check", "responses": {"200": {"description": "Decision"}}}}
+  }
+}

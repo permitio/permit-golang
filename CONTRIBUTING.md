@@ -344,6 +344,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
 | `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
+| `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, and posts the result to Slack; see [Spec snapshots](#spec-snapshots). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
 | `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: posts one line to Slack. `CI` does not need it. |
 
@@ -606,6 +607,7 @@ These jobs of `ci.yml` post to Slack:
 | `security-scan` | Mondays and Thursdays (`SECURITY_CRON`), and in a manual run with the mode `security` | `SECURITY_SLACK_WEBHOOK_URL` |
 | `digest` | Mondays (`WEEKLY_CRON`), and in the mode `weekly` | `SECURITY_SLACK_WEBHOOK_URL` |
 | `mutation (weekly)` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
+| `spec-drift` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
 | `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release | `SLACK_WEBHOOK_URL` |
 
 Each post starts with one line, `<repo> <check>: <result>. <details>. <run URL>`, which
@@ -676,7 +678,8 @@ GITHUB_REPOSITORY=permitio/permit-golang DEPENDABOT_ALERTS_TOKEN="$(gh auth toke
 The scan needs these settings, which a maintainer makes before its first run on `master`:
 
 - the secrets `SECURITY_SLACK_WEBHOOK_URL` and `SLACK_WEBHOOK_URL`, the incoming webhooks of the
-  security channel and of the channel for releases, failures and the weekly mutation report;
+  security channel and of the channel for releases, failures, the weekly mutation report and
+  spec drift;
 - the environment `security-scan`, which deploys only from `master`, with the secret
   `DEPENDABOT_ALERTS_TOKEN`: a fine-grained token that can read this repository's Dependabot
   alerts and nothing else. Create the environment before the job first runs, since GitHub
@@ -714,6 +717,80 @@ SLACK_WEBHOOK_URL=... bin/notify -channel ops -repo permitio/permit-golang -chec
 `SLACK_WEBHOOK_URL`; `-body <file>` adds a report that its writer escaped for Slack. notify exits
 0 when Slack accepted the post or the webhook is not set, 1 when the post failed, and 2 when its
 command line or body is wrong. `go -C tools doc ./cmd/notify` describes it.
+
+## Spec snapshots
+
+`tools/specs` holds the API specs the SDK is checked against. It is in the `tools/` module, so the
+specs never reach the module that applications download.
+
+| File | What it is |
+| --- | --- |
+| `control-plane.json` | The control plane's spec, from `https://api.permit.io/v2/openapi.json`. |
+| `pdp-cloud.json` | The cloud PDP's spec, from `https://cloudpdp.api.permit.io/openapi.json`. |
+| `pdp-container.json` | The container PDP's spec, from `GET /openapi.json` of a running `permitio/pdp-v2` container. |
+| `lock.json` | Where each of the three came from (the URL, or the image and its digest), the day it was fetched, the sha256 of the spec as fetched and of the snapshot, and its number of operations. |
+| `pdp-container.extra.json` | What the container PDP serves without listing it in its `/openapi.json`: the AuthZEN, health and Trino routes, the facts catch-all and the compatibility mount of the facts routes, each with the file and line of the [PDP repository](https://github.com/permitio/PDP) at the image's tag that declares it. |
+| `v1-routes.json` | The 91 routes of the control plane that v1.2.8 sent and the spec has, each with its operation ID, the line of v1.2.8 that holds the route, and the methods that send it. |
+| `v1-route-fixes.yaml` | The routes that v2 changes on purpose, each with the v1 method, the route v1 sent and v2's route, and the reason. |
+
+[tools/cmd/specsnap](tools/cmd/specsnap) writes and checks the three snapshots. A snapshot is the
+spec in canonical form, without its descriptions, summaries, titles and examples, with sorted keys
+and an indent of two spaces, so a change in prose alone does not change it. Before it
+canonicalizes the control plane's spec, specsnap pre-fixes the three constructs that are not
+valid OpenAPI 3.1, so that a tool that compiles the schemas accepts the snapshot: the secret types
+of the proxy config schemas, the draft-04 tuple in `OPALUpdateCallback`, and the second
+declaration of the tag `Bulk Operations`. `go -C tools doc ./cmd/specsnap` describes both.
+
+Each patch checks that its defect is still there. When the API fixes one, `-refresh` and the
+weekly check fail with "fix no longer needed": remove the patch from `controlPlanePatches` in
+`tools/cmd/specsnap/prefix.go` and its fixture in `testdata/control-plane.json`, then refresh.
+A patch that finds its defect in other places fails with "the defect changed": update it.
+
+The tests check the snapshots: `TestCommittedSnapshots` runs `specsnap -verify`, which fails when
+a snapshot's sha256 or number of operations is not the one in `lock.json`, or a snapshot is not
+in canonical form, and `TestV1Routes`, `TestV1RouteFixes` and `TestContainerExtras` check the
+other files against the snapshots. specsnap exits 0 when the check passes, 1 when it fails, and 2
+when it did not run, such as on a spec with fewer operations than a complete one has. Build it and
+run it from the repository root:
+
+```sh
+go -C tools build -o ../bin/specsnap ./cmd/specsnap
+bin/specsnap -verify
+```
+
+To refresh a snapshot, write it with specsnap, never by hand, and commit it with `lock.json`. The
+control plane's and the cloud PDP's specs are fetched from where they are published:
+
+```sh
+bin/specsnap -refresh control-plane
+bin/specsnap -refresh pdp-cloud
+```
+
+The container PDP publishes its spec only from a running container. Save its `/openapi.json` and
+give specsnap the file and the image, with its tag and digest:
+
+```sh
+bin/specsnap -refresh pdp-container -from openapi.json \
+  -image permitio/pdp-v2:<tag>@sha256:<digest>
+```
+
+When the image changes, check `pdp-container.extra.json` against the PDP repository at the new
+tag. When a refresh drops a route that `v1-routes.json` or `v1-route-fixes.yaml` names, their
+tests fail.
+
+The `spec-drift` job of `ci.yml` runs every Monday (`WEEKLY_CRON`) and in the mode `weekly`. It
+runs `specsnap -check-live`, which fetches the control plane's and the cloud PDP's specs, makes
+their snapshots as `-refresh` does, and compares them with the committed ones, and compares the
+digest of Docker Hub's `latest` `permitio/pdp-v2` with the image of `pdp-container.json`. It
+uploads the live snapshots as the `spec-snapshots` artifact, and posts the result to
+`SLACK_WEBHOOK_URL`. When something drifted, the post names the owner, `@permitio/r-d`, and the
+day, 7 days on, by which a pull request must refresh `tools/specs`; when specsnap exits 2, it
+says the check did not complete. The job fails in both cases. To run the check yourself, which
+needs the network:
+
+```sh
+bin/specsnap -check-live -out "$(mktemp -d)"
+```
 
 ## Dependency updates
 

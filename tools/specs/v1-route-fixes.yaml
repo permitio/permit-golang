@@ -1,0 +1,79 @@
+# Deliberate changes to the routes that v1.2.8 sent. Each fix has an id, the reason, and its
+# changes: one per v1 method or option, with where v1.2.8 sends the route (source, a file:line at
+# the tag v1.2.8), the route it sent (v1) and the route v2 sends for the same call (v2), or none
+# when v2 drops the call. A route is "METHOD /path template", and ANY stands for every method.
+# v1-routes.json lists the v1 routes that are in the control plane's spec.
+fixes:
+  - id: action-group-delete
+    reason: >-
+      v1 sent the route that deletes a resource action, so it deleted the action that has the
+      group's key, or failed and left the group in place. v2 deletes the action group.
+    changes:
+      - v1_method: ResourceActionGroups.Delete
+        source: pkg/api/resourceActionGroups.go:163
+        v1: DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}
+        v2: DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}
+
+  - id: implicit-grant-delete
+    reason: >-
+      The route is the same, but v1 filled {resource_id} with the role key and {role_id} with
+      the resource key, so a call with its arguments as named deleted nothing or the wrong grant.
+      v2 fills each parameter with its own key.
+    changes:
+      - v1_method: ImplicitGrants.Delete
+        source: pkg/api/implicitGrants.go:69
+        v1: DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants
+        v2: DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants
+
+  - id: parent-roles
+    reason: >-
+      The parent routes are not in the control plane's spec. v2 has no parent methods: a role's
+      parents are the roles it extends, which its update (PATCH .../roles/{role_id}) sets.
+    changes:
+      - v1_method: Roles.AddParentRole
+        source: pkg/api/roles.go:275
+        v1: PUT /v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id}
+        v2: none
+      - v1_method: Roles.RemoveParentRole
+        source: pkg/api/roles.go:293
+        v1: DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id}
+        v2: none
+      - v1_method: ResourceRoles.AddParent
+        source: pkg/api/resourceRoles.go:195
+        v1: PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/parents/{parent_role_id}
+        v2: none
+      - v1_method: ResourceRoles.RemoveParent
+        source: pkg/api/resourceRoles.go:226
+        v1: DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/parents/{parent_role_id}
+        v2: none
+
+  - id: detailed-lists
+    reason: >-
+      v1 asked the list routes for details with detailed=true, a query parameter that the spec
+      marks deprecated, and ResourceInstances.ListDetailed decoded the answer into a model without
+      the relationships. v2 reads the details from the detailed routes.
+    changes:
+      - v1_method: RoleAssignments.ListDetailed
+        source: pkg/api/roleAssignments.go:87
+        v1: GET /v2/facts/{proj_id}/{env_id}/role_assignments
+        v2: GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed
+      - v1_method: ResourceInstances.ListDetailed
+        source: pkg/api/resourceInstances.go:191
+        v1: GET /v2/facts/{proj_id}/{env_id}/resource_instances
+        v2: GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed
+      - v1_method: RelationshipTuples.ListDetailed
+        source: pkg/api/relationshipTuples.go:162
+        v1: GET /v2/facts/{proj_id}/{env_id}/relationship_tuples
+        v2: GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed
+
+  - id: facts-mount
+    reason: >-
+      With WithProxyFactsViaPDP(true), v1 still sent every facts route to the API, because every
+      service used the client for the API URL. When v2 sends the facts routes to the container
+      PDP, it sends them to the PDP's /facts mount, not to its compatibility mount at
+      /v2/facts/{proj_id}/{env_id}.
+    changes:
+      - v1_method: WithProxyFactsViaPDP
+        source: pkg/api/api.go:177
+        v1: ANY /v2/facts/{proj_id}/{env_id}/{full_path}
+        v2: ANY /facts/{full_path}

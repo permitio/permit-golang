@@ -1,0 +1,77 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Fixture API", "description": "A control plane spec with the three defects.", "version": "2.0.0"},
+  "paths": {
+    "/v2/things": {
+      "get": {"operationId": "list_things", "summary": "List things", "tags": ["Things"], "responses": {"200": {"description": "Successful Response"}}},
+      "post": {"operationId": "create_thing", "tags": ["Bulk Operations"], "responses": {"200": {"description": "Successful Response"}}}
+    },
+    "/v2/things/{thing_id}": {
+      "summary": "One thing",
+      "delete": {"operationId": "delete_thing", "responses": {"204": {"description": "Successful Response"}}}
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProxyConfigCreate": {
+        "properties": {
+          "secret": {
+            "anyOf": [
+              {"type": "HeadersAuth", "title": "HeadersAuth", "description": "Headers to send."},
+              {"type": "BasicAuth", "pattern": "^.+:.+$", "title": "BasicAuth"},
+              {"type": "BearerAuth", "minLength": 1, "title": "BearerAuth"}
+            ],
+            "title": "Secret"
+          }
+        },
+        "type": "object"
+      },
+      "ProxyConfigRead": {
+        "properties": {
+          "secret": {
+            "anyOf": [
+              {"type": "HeadersAuth", "title": "HeadersAuth"},
+              {"type": "BasicAuth", "pattern": "^.+:.+$", "title": "BasicAuth"},
+              {"type": "BearerAuth", "minLength": 1, "title": "BearerAuth"}
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ProxyConfigUpdate": {
+        "properties": {
+          "secret": {
+            "anyOf": [
+              {"type": "HeadersAuth", "title": "HeadersAuth"},
+              {"type": "BasicAuth", "pattern": "^.+:.+$", "title": "BasicAuth"},
+              {"type": "BearerAuth", "minLength": 1, "title": "BearerAuth"}
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "OPALUpdateCallback": {
+        "properties": {
+          "callbacks": {
+            "items": {
+              "anyOf": [
+                {"type": "string"},
+                {"items": [{"type": "string"}, {"$ref": "#/components/schemas/OPALHttpFetcherConfig"}], "type": "array", "maxItems": 2, "minItems": 2}
+              ]
+            },
+            "type": "array",
+            "title": "Callbacks"
+          }
+        },
+        "required": ["callbacks"],
+        "type": "object"
+      },
+      "OPALHttpFetcherConfig": {"properties": {"method": {"type": "string"}}, "type": "object"}
+    }
+  },
+  "tags": [
+    {"name": "Bulk Operations", "description": "None"},
+    {"name": "Things", "description": "Things to do."},
+    {"name": "Bulk Operations", "description": "None"}
+  ]
+}

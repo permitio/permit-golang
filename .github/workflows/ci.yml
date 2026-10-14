@@ -640,6 +640,83 @@ jobs:
           SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
         run: .github/scripts/digest.sh
 
+  # Weekly: tools/cmd/specsnap -check-live fetches the control plane's and the cloud PDP's
+  # published specs, pre-fixes and canonicalizes them, and compares them with the snapshots in
+  # tools/specs, and Docker Hub's latest permitio/pdp-v2 with the image the container PDP's
+  # snapshot was taken from. The live snapshots are uploaded as the spec-snapshots artifact. The
+  # result goes to the ops channel, SLACK_WEBHOOK_URL: on drift with the owner and the day by
+  # which a pull request must refresh tools/specs, and "did not complete" when specsnap exits 2.
+  # The job fails on drift and when the check did not complete. specsnap prints its verdict as its
+  # last line: PASS, FAIL or DID NOT RUN, a colon and what it found.
+  spec-drift:
+    name: spec-drift
+    if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Compare the live specs with the snapshots
+        id: drift
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/specsnap" ./cmd/specsnap
+          "$RUNNER_TEMP/specsnap" -check-live -out "$RUNNER_TEMP/spec-snapshots" |
+            tee "$RUNNER_TEMP/spec-drift.txt"
+      - name: Upload the live snapshots
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: spec-snapshots
+          path: ${{ runner.temp }}/spec-snapshots
+          if-no-files-found: warn
+      - name: Post the result
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          OUTCOME: ${{ steps.drift.outcome }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          verdict=''
+          if [[ -s $RUNNER_TEMP/spec-drift.txt ]]; then
+            verdict=$(tail -n 1 "$RUNNER_TEMP/spec-drift.txt")
+          fi
+          deadline=$(date -u -d '+7 days' +%Y-%m-%d)
+          owner='owner @permitio/r-d'
+          result="DID NOT RUN"
+          details="the spec drift check did not complete ($OUTCOME); $owner"
+          case $OUTCOME:$verdict in
+          "success:PASS: "*)
+            result=PASS
+            details=${verdict#PASS: }
+            ;;
+          "failure:FAIL: "*)
+            result=FAIL
+            details="${verdict#FAIL: }; $owner: refresh tools/specs in a pull request by $deadline"
+            ;;
+          "failure:DID NOT RUN: "*)
+            details="the spec drift check did not complete: ${verdict#DID NOT RUN: }; $owner"
+            ;;
+          esac
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" -check spec-drift \
+            -result "$result" -details "$details" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          [[ $result == PASS ]]
+
   # The one check to require. It runs whatever happened to the jobs it needs, since GitHub counts
   # a skipped required check as passing. ci-aggregate.sh says how it decides; in short, each job
   # must succeed in the runs that select it: the pull request checks on pull_request, push and
@@ -665,6 +742,7 @@ jobs:
       - mutation-weekly
       - security-scan
       - digest
+      - spec-drift
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -679,10 +757,11 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 13
+          EXPECTED_JOBS: 14
           PULL_REQUEST_JOBS: mutation dependency-review
           SCHEDULED_JOBS: >-
             prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly
+            spec-drift:weekly
           ADVISORY_JOBS: ""
         run: .github/scripts/ci-aggregate.sh
 

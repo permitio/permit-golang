@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -147,23 +148,32 @@ func TestWriteFileWaitsWhileAProcessStarts(t *testing.T) {
 
 // On Linux, a script written with os.WriteFile and then run fails now and then with "text file
 // busy" while other goroutines start processes; a script written with WriteFile never does.
-// macOS runs a file that another process has open for writing, so there the test passes without
-// exercising the race.
+// macOS runs a file that another process has open for writing, so the race cannot happen there,
+// and the test starts no other processes: with go1.26.0 and the race detector, a process started
+// on macOS while others start now and then crashes or hangs before it runs its program. There
+// the test only writes and runs the script.
 func TestWriteFileWhileProcessesStart(t *testing.T) {
 	t.Parallel()
 	trueCmd, err := exec.LookPath("true")
 	if err != nil {
 		t.Fatalf("the test starts true, which is not on PATH: %v", err)
 	}
+	helpers := 4
+	if runtime.GOOS == "darwin" {
+		helpers = 0
+	}
 	ctx, stop := context.WithCancel(t.Context())
 	var starters sync.WaitGroup
 	var started atomic.Int64
-	for range 4 {
+	for range helpers {
 		starters.Go(func() {
 			for ctx.Err() == nil {
+				// Only the start matters: how true exits says nothing about the script, and
+				// under this load it now and then crashes on some systems.
 				err := exec.CommandContext(ctx, trueCmd).Run()
-				if err != nil && ctx.Err() == nil {
-					t.Errorf("running %s: %v", trueCmd, err)
+				var exited *exec.ExitError
+				if err != nil && !errors.As(err, &exited) && ctx.Err() == nil {
+					t.Errorf("starting %s: %v", trueCmd, err)
 					return
 				}
 				started.Add(1)
@@ -191,7 +201,7 @@ func TestWriteFileWhileProcessesStart(t *testing.T) {
 			t.Fatalf("run %d of the script printed %q, want %q", runs, got, want)
 		}
 	}
-	if started.Load() == 0 {
+	if helpers > 0 && started.Load() == 0 {
 		t.Error("no process started while the script ran, so the test exercised nothing")
 	}
 	t.Logf("ran the script %d times while other goroutines started %d processes", runs,

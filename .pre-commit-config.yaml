@@ -44,6 +44,14 @@ repos:
         language: system
         files: (^|/)go\.(mod|sum)$|\.go$
         pass_filenames: false
+      # The consumer module builds the root module through its replace directive, so a change to
+      # the root's go.mod can leave it untidy.
+      - id: go-mod-tidy-consumer
+        name: go mod tidy -diff (consumer module)
+        entry: go -C consumer mod tidy -diff
+        language: system
+        files: (^|/)go\.(mod|sum)$|\.go$
+        pass_filenames: false
       - id: golangci-lint
         name: golangci-lint (every module)
         entry: .github/scripts/golangci-all.sh

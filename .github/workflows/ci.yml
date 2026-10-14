@@ -56,7 +56,7 @@ env:
   WEEKLY_CRON: "41 6 * * 1"
   # The number of hooks in .pre-commit-config.yaml that run on every file; change it when a hook
   # is added or removed.
-  EXPECTED_HOOKS: "25"
+  EXPECTED_HOOKS: "26"
   # A proxy address that refuses connections. The tests run with it, so a request that tries to
   # leave the runner fails; requests to loopback addresses, such as httptest servers, go direct.
   OFFLINE_PROXY: http://127.0.0.1:9
@@ -220,6 +220,87 @@ jobs:
           trap 'echo "::$token::"' EXIT
           echo "$(go env GOVERSION) for $GOOS/$GOARCH"
           go build ./...
+
+  # Checks the SDK from an application's side with consumer/, a module of its own that requires
+  # the SDK and replaces it with the repository root: go vet, then its tests, whose output
+  # checkgotest checks. They check that the module graph holds only the SDK and its own
+  # requirements, that go doc resolves the SDK's packages and finds no deprecated identifier, and
+  # that each fixture in consumer/mustfail fails to compile with its expected message. The prek
+  # job lints consumer/ with golangci-lint, staticcheck's SA1019 included. go mod download all
+  # first fetches every module of the graph, which go list -m all reads; without all it fetches
+  # nothing, as the consumer's one requirement is replaced. The checks then run offline.
+  consumer:
+    name: consumer
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the consumer module
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C consumer mod download all
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          go -C consumer vet ./...
+          code=0
+          go -C consumer test -count=1 -shuffle=on -json ./... >"$RUNNER_TEMP/consumer.json" ||
+            code=$?
+          "$RUNNER_TEMP/checkgotest" -require 'example.com/consumer TestModuleGraph' \
+            -require 'example.com/consumer TestGoDoc' \
+            -require 'example.com/consumer TestCountDeprecated' \
+            -require 'example.com/consumer TestMustFail' "$RUNNER_TEMP/consumer.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code in consumer/."
+            exit 1
+          fi
+
+  # Builds the module zip of the commit with tools/cmd/zipcheck, the way the Go module proxy
+  # builds it from the repository, and checks what it holds: only the files on its allow list,
+  # LICENSE among them, no file over its cap, and a compressed size within the budget in
+  # tools/cmd/zipcheck/limits.go. It prints the 10 largest files. zipcheck is built first, and
+  # then runs offline.
+  zipcheck:
+    name: zipcheck
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the module zip
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/zipcheck" ./cmd/zipcheck
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          "$RUNNER_TEMP/zipcheck"
 
   # Scans for known vulnerabilities with govulncheck and Trivy through .github/scripts/vuln.sh:
   # the SDK's floor (go.mod as committed), its ceiling (every dependency at its newest version)
@@ -574,6 +655,8 @@ jobs:
       - prek
       - test
       - crossbuild
+      - consumer
+      - zipcheck
       - vuln
       - secrets
       - mutation
@@ -596,7 +679,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 11
+          EXPECTED_JOBS: 13
           PULL_REQUEST_JOBS: mutation dependency-review
           SCHEDULED_JOBS: >-
             prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly

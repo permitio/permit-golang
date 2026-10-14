@@ -7,3 +7,5 @@
 # One module per line: its directory relative to the repository root, then the reason, separated
 # by spaces. vulnscan fails on an entry whose directory has no go.mod that git tracks. Blank lines
 # and lines that start with # are ignored.
+
+consumer test-only and never ships; its module graph is the SDK's, which the floor scan covers

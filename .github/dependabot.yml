@@ -75,6 +75,29 @@ updates:
         applies-to: security-updates
         patterns: ["*"]
 
+  # The consumer module, which checks the SDK from an application's side and never ships. It
+  # requires only the SDK, which its go.mod replaces with the repository root, so there is nothing
+  # to update until it requires another module.
+  - package-ecosystem: gomod
+    directory: /consumer
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps-dev
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
   # The actions that the workflows in .github/workflows use, each pinned to a commit SHA with a
   # version comment, which Dependabot updates together. The cooldown has no per-level days here.
   - package-ecosystem: github-actions

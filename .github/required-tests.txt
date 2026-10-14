@@ -291,3 +291,23 @@ github.com/permitio/permit-golang/v2/internal/surface TestReadEmptyPackage
 github.com/permitio/permit-golang/v2/internal/surface TestReadErrors
 github.com/permitio/permit-golang/v2/internal/surface TestReadMissingDirectory
 github.com/permitio/permit-golang/v2/internal/surface TestKindsAreNotZero
+
+github.com/permitio/permit-golang/v2/tools TestRepositoryLicense
+
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestBuildZip
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestBuildZipWithoutAMajorVersionSuffix
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestBuildZipIgnoresGitConfiguration
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunPasses
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunFails
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunPassesAFileWithAnException
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunFromASubdirectory
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunFailsOnAFileTheZipCannotHold
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunDidNotRun
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestReportWithoutFiles
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestCheck
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestDisallowed
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestValidate
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestZipLimits
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestPrintLargest
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestReadZip
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestZipVersion

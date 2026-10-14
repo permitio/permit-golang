@@ -61,7 +61,7 @@ The prek job in [CI](#ci) runs the same hooks. The first run downloads the hooks
 ones written in Go, so it needs the network; later runs work offline. The hooks check:
 
 - formatting and lint with golangci-lint, through `.github/scripts/golangci-all.sh` (below);
-- that `go mod tidy -diff` prints nothing, in the root and in `tools/`;
+- that `go mod tidy -diff` prints nothing, in the root, in `tools/` and in `consumer/`;
 - `.editorconfig`, with editorconfig-checker;
 - spelling with typos (`_typos.toml`), shell scripts with shellcheck and shfmt, GitHub Actions
   workflows with actionlint and zizmor (`.github/zizmor.yml`);
@@ -228,6 +228,102 @@ is not `go test -json` output. A test may skip only with an entry in `.github/al
 that names its ticket, the last day the skip is allowed and what must happen before the test can
 run again.
 
+## Consumer checks and the module zip
+
+These checks look at the SDK as an application gets it.
+
+### The consumer module
+
+`consumer/` is a Go module of its own, `example.com/consumer`, that imports the SDK's packages the
+way an application does: its `go.mod` requires the SDK and replaces it with the repository root,
+and its path is outside the SDK's. Its tests, in `consumer/main_test.go`, check that:
+
+- `go list -m all` lists exactly the consumer, the SDK and go-cmp. go-cmp is the SDK's one
+  requirement; only the SDK's tests use it, and module graph pruning still lists it. Every
+  requirement in the root `go.mod`, a tool or a test helper too, reaches the module graph of every
+  application that imports the SDK, so the test fails when one is added, until `wantModules`
+  lists it on purpose. Tools belong in `tools/go.mod`.
+- `go doc` resolves the SDK's packages from the consumer, and their documentation holds
+  `wantDeprecated` deprecation notices: paragraphs that start with `Deprecated: `, in the
+  documentation of a function, type or method, or in the comment on a struct field or on a spec
+  of a grouped const or var declaration. v2.0.0 has none. Change the count only together with a
+  deprecation.
+- each fixture in `consumer/mustfail/` fails to compile with the message it names. A fixture is
+  code that an application must not be able to write, such as an import of a package under
+  `internal/`. The test compiles each one as the main package of a temporary module with the
+  consumer's `go.mod` and `go.sum`, offline. A fixture that compiles fails the test, and so does a
+  file in `consumer/mustfail/` that is not a fixture: the test must compile as many fixtures as
+  the directory holds files.
+
+golangci-all.sh lints `consumer/` like every module, with `.golangci.yml`, whose staticcheck
+reports the use of a deprecated identifier (SA1019). Run the checks from the repository root; the
+tests run offline once every module of the module graph is downloaded:
+
+```sh
+go -C consumer mod download all
+go -C consumer vet ./...
+HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 go -C consumer test -count=1 ./...
+go -C consumer mod tidy -diff
+```
+
+To add a must-fail fixture, write `consumer/mustfail/<name>.go.txt`: a first line
+`// want: <part of the compiler's message>`, then the rest of a Go file of package `main` that
+uses the SDK the way it must not be used. Run the tests, and check that the fixture fails for the
+reason you meant. The `.go.txt` extension keeps the go command and the linters from reading the
+file.
+
+The consumer job in CI names the tests it requires with `-require` in `.github/workflows/ci.yml`,
+not in `.github/required-tests.txt`, so a new test in `consumer/` needs a `-require` line there.
+
+### The module zip
+
+zipcheck (`tools/cmd/zipcheck`) builds the module zip of the commit that `HEAD` names, the way
+the Go module proxy builds it for a version tagged on that commit: from the committed files, with
+`git archive`, through `golang.org/x/mod/zip`, which leaves out the files of nested modules such as
+`tools/` and `consumer/`, and symbolic links. It reads committed files only, so commit a change
+before you check it. It checks the whole repository from any directory in it. It fails when:
+
+- a file has a name that a module zip cannot hold, such as `testdata/aux.json` (Windows reserves
+  `aux`) or a name with `:`; the module proxy cannot serve such a commit;
+- a file is not on the allow list: Go source files, files in `testdata` directories, `go.mod`,
+  `go.sum`, `LICENSE`, `README.md`, `MIGRATION.md`, `CHANGELOG.md` and `llms.txt` at the root,
+  `AGENTS.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md` and `SECURITY.md`, the configuration files
+  at the root (dotfiles and `_typos.toml`), and the files under `.github`;
+- a file is an image or an API specification, or is under `tools/`, `consumer/` or `skills/`,
+  which must stay out of the zip: a `go.mod` of their own, or `export-ignore` in
+  `.gitattributes`, keeps them out;
+- a file outside `testdata` directories is not text: valid UTF-8 without a NUL byte;
+- `LICENSE` is missing: pkg.go.dev shows the documentation of a module only when it detects a
+  license it allows;
+- a file is larger than 256 KiB uncompressed, unless it has an exception, or an exception names a
+  file that is not in the zip;
+- the zip, compressed, is larger than the budget.
+
+It prints the module's path, its number of files, the zip's size and the budget, and the 10
+largest files with their sizes uncompressed and compressed, on every run that builds the zip. It
+exits 0 when every rule holds, 1 when one does not, and 2 when it could not check, such as when
+`HEAD` has no `go.mod` or the limits are not valid. Run it from the repository root:
+
+```sh
+go -C tools build -o ../bin/zipcheck ./cmd/zipcheck
+bin/zipcheck
+```
+
+The limits are in `tools/cmd/zipcheck/limits.go`. Raise one only when the growth is wanted, in the
+change that needs it, and say why next to it:
+
+- A file that must be larger than 256 KiB, such as a generated snapshot, gets an entry in
+  `exceptions` with its path, its own cap in bytes and the reason. An exception needs a cap above
+  256 KiB, and fails once its file is gone.
+- The budget is the zip's compressed size measured on a given day, `baseline` and `measured`, plus
+  `headroom`. To raise it, measure the zip of your change with zipcheck, write its size and the
+  day, choose the headroom, and say in `reason` what the zip grew by and why.
+
+`TestRepositoryLicense` in `tools/license_test.go` checks that `LICENSE` is the MIT License word
+for word, with the copyright line `Copyright (c) 2023-2026 Permit.io, Ltd.`: pkg.go.dev detects a
+license by its text and shows a module's documentation only when it detects a license it allows,
+so a changed clause can hide the SDK's documentation.
+
 ## CI
 
 `.github/workflows/ci.yml` runs every check. Its last job, `CI`, is the one check the ruleset
@@ -238,6 +334,8 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `prek` | Checks the workflows with cicheck, runs every git hook on every file through `.github/scripts/prek-count.sh`, and on a pull request checks the message of each of its commits through `.github/scripts/commits-check.sh`. |
 | `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
+| `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
+| `zipcheck` | Builds the module zip of the commit and checks what it holds with zipcheck, offline; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
 | `secrets` | Scans the commits that are new in the run for secrets with gitleaks, through `.github/scripts/gitleaks-range.sh`; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
@@ -252,8 +350,8 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
-  `test`, `crossbuild`, `vuln` and `secrets`. A pull request runs `mutation` and
-  `dependency-review` too.
+  `test`, `crossbuild`, `consumer`, `zipcheck`, `vuln` and `secrets`. A pull request runs
+  `mutation` and `dependency-review` too.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, `security` the security scan, and `e2e` the jobs of that mode *(added in a later
   commit on this branch)*. The release workflow *(added in a later commit on this branch)* calls
@@ -320,7 +418,7 @@ mean, and the tests in `tools/scripts` run them; those tests need bash, git, jq,
 the gitleaks that `.github/scripts/fetch-tool.sh gitleaks` installs as `bin/gitleaks`.
 
 ```sh
-EXPECTED_HOOKS=25 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
+EXPECTED_HOOKS=26 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
 .github/scripts/commits-check.sh "$(git merge-base origin/master HEAD)" "$(git rev-parse HEAD)"
 ```
 
@@ -438,9 +536,10 @@ after its last day, and an entry whose vulnerability is gone fails until you rem
 no accept list: fix a HIGH or CRITICAL finding by raising the version `go.mod` requires.
 
 Every Go module in the repository outside testdata directories is scanned unless
-`.github/vulnscan-trees.txt` lists it with the reason it never ships; a module that is neither
-makes the scan exit 2. Trivy gets every setting on its command line, and cicheck fails on a
-committed `trivy.yaml`, `.trivyignore` or `.trivyignore.yaml` anywhere in the repository.
+`.github/vulnscan-trees.txt` lists it with the reason it never ships, as it lists `consumer/`; a
+module that is neither makes the scan exit 2. Trivy gets every setting on its command line, and
+cicheck fails on a committed `trivy.yaml`, `.trivyignore` or `.trivyignore.yaml` anywhere in the
+repository.
 
 ## Secret scan and dependency review
 
@@ -625,6 +724,7 @@ into `master`:
 | --- | --- | --- | --- |
 | `gomod` in `/` | The SDK's requirements in `go.mod`. | `deps` | `minor-and-patch`, `security` |
 | `gomod` in `/tools` | Every requirement in `tools/go.mod`, the indirect ones too, so the programs its `tool` directives pin move as well. | `deps-dev` | `tooling`, `security` |
+| `gomod` in `/consumer` | The requirements in `consumer/go.mod`: only the SDK, which it replaces with the repository root, so nothing until it requires another module. | `deps-dev` | `minor-and-patch`, `security` |
 | `github-actions` in `/` | The actions in `.github/workflows`, pinned to commit SHAs with version comments. | `deps-dev` | `tooling`, `security` |
 | `pre-commit` in `/` | The hooks in `.pre-commit-config.yaml`, pinned to commit SHAs with `# frozen:` comments. | `deps-dev` | `tooling` |
 
@@ -641,6 +741,9 @@ into `master`:
   newest release that is at least 7 days old; the weekly [digest](#scheduled-scans-and-alerts)
   reports newer releases. A dependency update whose new version needs a newer Go raises
   the `go` line: the Go 1.26.0 test leg then fails, and the pull request is not merged as it is.
+- `consumer/go.sum` records the sums of the SDK's requirements too, and Dependabot does not update
+  it with the root module's. On a pull request that changes the root's requirements, run
+  `go -C consumer mod tidy` and push its change; until then the consumer's tidy hook fails.
 - v1 gets no dependency updates: it receives no fixes after v1.4.0.
 
 Every Go module that git tracks, outside testdata directories, needs a `gomod` entry for its

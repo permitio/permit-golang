@@ -125,6 +125,22 @@ func TestCallAfterCloseSendsNothing(t *testing.T) {
 				arrayShape)
 			return err
 		},
+		"listPage with a negative Page": func(ctx context.Context) error {
+			_, err := listPage[testObject](ctx, c, request{op: opList.ID, target: apiTarget},
+				arrayShape, ListOptions{Page: -1})
+			return err
+		},
+		"all": func(ctx context.Context) error {
+			var errs []error
+			list := request{op: opList.ID, target: apiTarget}
+			for _, err := range all[testObject](ctx, c, list, arrayShape, ListOptions{}) {
+				errs = append(errs, err)
+			}
+			if len(errs) != 1 {
+				return errors.New("all did not yield exactly one value")
+			}
+			return errs[0]
+		},
 	} {
 		if err := call(t.Context()); !errors.Is(err, ErrClosed) {
 			t.Errorf("%s after Close returned %v, want ErrClosed", name, err)

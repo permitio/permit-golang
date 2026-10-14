@@ -64,6 +64,19 @@ func (q *Query) AddStrings(name string, values []string) {
 	}
 }
 
+// Clone returns a new Query that holds a copy of the parameters of q, so that adding to either
+// leaves the other as it is. The Clone of a nil Query is empty.
+func (q *Query) Clone() *Query {
+	if q == nil {
+		return &Query{}
+	}
+	values := make(url.Values, len(q.values))
+	for name, v := range q.values {
+		values[name] = slices.Clone(v)
+	}
+	return &Query{values: values}
+}
+
 // add adds the parameter name with value, unless the API marks name deprecated.
 func (q *Query) add(name, value string) {
 	if slices.Contains(deprecatedParams, name) {

@@ -157,6 +157,38 @@ func TestFormatFloatNotFinite(t *testing.T) {
 	}
 }
 
+// TestQueryClone checks that a clone holds the parameters of its query, and that adding to the
+// clone or to the query leaves the other as it was, also when they hold values of one name in a
+// list with room to grow in place, which a shallow copy would share.
+func TestQueryClone(t *testing.T) {
+	var q Query
+	q.AddStrings("user", []string{"a", "b", "c"})
+	first, second := q.Clone(), q.Clone()
+	first.AddStrings("user", []string{"d"})
+	second.AddStrings("user", []string{"e"})
+	q.AddString("search", new("x"))
+	for _, tc := range []struct {
+		name string
+		q    *Query
+		want string
+	}{
+		{"the query", &q, "search=x&user=a&user=b&user=c"},
+		{"the first clone", first, "user=a&user=b&user=c&user=d"},
+		{"the second clone", second, "user=a&user=b&user=c&user=e"},
+		{"the clone of an empty query", new(Query).Clone(), ""},
+		{"the clone of nil", (*Query)(nil).Clone(), ""},
+	} {
+		if got := tc.q.Encode(); got != tc.want {
+			t.Errorf("%s: Encode() = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+	empty := (*Query)(nil).Clone()
+	empty.AddInt("page", new(int64(2)))
+	if got := empty.Encode(); got != "page=2" {
+		t.Errorf("the clone of nil, after AddInt: Encode() = %q, want page=2", got)
+	}
+}
+
 func TestDeprecatedParams(t *testing.T) {
 	got := DeprecatedParams()
 	want := []string{"detailed", "include_total_count", "return_deleted"}

@@ -749,3 +749,18 @@ github.com/permitio/permit-golang/v2/tools/drift TestValidate
 github.com/permitio/permit-golang/v2/tools/drift TestValidateReportsAStaleRef
 github.com/permitio/permit-golang/v2/tools/drift TestClosesAtHolder
 github.com/permitio/permit-golang/v2/tools/drift TestKindAndJSONEqual
+
+github.com/permitio/permit-golang/v2/internal/wire TestQueryClone
+github.com/permitio/permit-golang/v2 TestAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestAllStartsWhereTheOptionsSay
+github.com/permitio/permit-golang/v2 TestAllReadsPastAShortPage
+github.com/permitio/permit-golang/v2 TestAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestAllOfAnUnknownOperation
+github.com/permitio/permit-golang/v2 TestAllSendsNoRequestAfterABreak
+github.com/permitio/permit-golang/v2 TestAllStopsWhenTheContextEnds
+github.com/permitio/permit-golang/v2 TestAllGivesEachPageItsOwnTimeout
+github.com/permitio/permit-golang/v2 TestAllRetriesAPage
+github.com/permitio/permit-golang/v2 TestAllCanBeRangedAgain
+github.com/permitio/permit-golang/v2 TestListPage
+github.com/permitio/permit-golang/v2 TestListPageOfAnObjectWithoutData
+github.com/permitio/permit-golang/v2 TestNegativeListOptions

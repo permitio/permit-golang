@@ -117,6 +117,20 @@ var (
 // The rules of the arguments of a call, which the SDK checks before it sends the request. The
 // error of such a rule names the argument before the message.
 var (
+	// ListPageNegative rejects a ListOptions whose Page is less than zero.
+	ListPageNegative = Rule{
+		ID: "list.page.negative",
+		Message: "Page is less than zero; give 0 or 1 for the first page, or the number of a " +
+			"later page",
+	}
+
+	// ListPerPageNegative rejects a ListOptions whose PerPage is less than zero.
+	ListPerPageNegative = Rule{
+		ID: "list.per-page.negative",
+		Message: "PerPage is less than zero; give 0 to leave the number of items on a page to " +
+			"the method, or a number from 1",
+	}
+
 	// PathSegmentDot rejects a path parameter that is . or .., which a server or a proxy on the
 	// way may resolve as a step in the path, so that the request reaches another route.
 	PathSegmentDot = Rule{
@@ -149,6 +163,8 @@ var rules = []Rule{
 	URLQuery,
 	URLScheme,
 	URLUserinfo,
+	ListPageNegative,
+	ListPerPageNegative,
 	PathSegmentDot,
 	PathSegmentEmpty,
 }

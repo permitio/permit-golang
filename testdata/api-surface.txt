@@ -63,7 +63,16 @@ permit: type Error struct, RequestID string
 permit: type Error struct, Route string
 permit: type Error struct, StatusCode int
 permit: type Error struct, Title string
+permit: type ListOptions struct
+permit: type ListOptions struct, Page int
+permit: type ListOptions struct, PerPage int
 permit: type Option struct
+permit: type Page[T any] struct
+permit: type Page[T any] struct, Data []T
+permit: type Page[T any] struct, Page int
+permit: type Page[T any] struct, PageCount *int
+permit: type Page[T any] struct, PerPage int
+permit: type Page[T any] struct, TotalCount *int
 permit: type RetryPolicy struct
 permit: type RetryPolicy struct, MaxBackoff time.Duration
 permit: type RetryPolicy struct, MaxRetries int

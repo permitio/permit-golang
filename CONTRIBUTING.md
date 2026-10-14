@@ -1472,8 +1472,9 @@ later commit on this branch)* does not exist yet.
    `go test` runs their seeds, in `models/testdata/fuzz`.
 3. Add the method, and its `rest.Op` to `defaultOps` in `internal/rest/ops.go`, with the fields
    that the [operation registry](#operation-registry) lists. The method makes its call with one
-   of the functions of `transport.go`: `do` for a reply that holds an object, `doList` for one
-   that holds a list, with the list's shape, and `doNoValue` for one whose body it does not read.
+   of the functions of `transport.go`: `do` for a reply that holds an object and `doNoValue` for
+   one whose body it does not read. A List method calls `listPage` of `page.go`, with the list's
+   shape, and returns its `*Page[T]`; its All method returns the iterator of `all`.
    Two of the fields decide when a call sends the request again: `Idempotent` for an operation
    that does the same when it is sent twice, which a call sends again after a 429, a 500, 502,
    503 or 504, or a request without a complete reply; `NoRetry` for one that a call never sends

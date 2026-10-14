@@ -445,6 +445,21 @@ v2's `models.Attributes` is a whole attribute map. v1's `models.Attributes` was 
 a map, a bool, an int32 or a string, in the `map[string]models.Attributes` of `models.UserData`.
 In v2, put the value itself, such as `true`, `30` or `"gold"`, in a `models.Attributes`.
 
+<a id="M-lists-1"></a>
+### M-lists-1: List methods take ListOptions and return a page
+
+- v1: `api.DefaultPerPageLimit`
+- v2: `permit.ListOptions`
+
+v1's list methods took the page and the number of items on it as two int arguments, failed when
+that number was above `api.DefaultPerPageLimit` (100) on every route, and returned a slice of the
+items. v2's List methods take a `permit.ListOptions{Page, PerPage}` and return a
+`*permit.Page[T]`: the items in `Data`, and `TotalCount` and `PageCount` when the reply reports
+them. The client sends `PerPage` as given, without a limit of its own, as the largest page
+differs from route to route; above a route's limit, the API may reject the request or give fewer
+items on a page. An `All` method reads every page and returns an `iter.Seq2[T, error]` of the
+items, so a loop over the pages is no longer needed.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>

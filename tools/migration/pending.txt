@@ -15,7 +15,6 @@
 api.ConditionSets condition-sets
 api.ConditionSets.* condition-sets
 api.NewConditionSetsApi condition-sets
-api.DefaultPerPageLimit pagination
 api.Elements elements
 api.Elements.* elements
 api.NewElementsApi elements

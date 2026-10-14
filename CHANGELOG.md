@@ -109,6 +109,22 @@ change from v1 and what to use instead.
   `float64`, which rounds integers beyond 2^53. Read it with its `Int64`, `Float64` or `String`
   method.
 
+### Lists
+
+- A `List` method returns one page as a `*permit.Page[T]`: its items in `Data`, the `Page` and
+  `PerPage` that the call asked for, and `TotalCount` and `PageCount` when the reply reports
+  them, else nil. `permit.ListOptions{Page, PerPage}` picks the page; 0 asks for the first page,
+  and for the API's default number of items on it. A `Page` or `PerPage` less than zero is an
+  error that matches `ErrInvalidConfig`, and no request is sent.
+- An `All` method reads every page and returns an `iter.Seq2[T, error]` of the items, for a
+  `range` loop. It asks for the largest page that the route accepts, unless `PerPage` is set,
+  and starts at `Page`. It stops after a page without items, or after the last page when the
+  reply reports `page_count`, and never after a page with fewer items than it asked for. A
+  request that fails ends the loop with its error, yielded once. A loop that stops early sends no
+  other request. Each page is a call of its own, with its own timeout and retries.
+- The client sends `per_page` as given, with no limit of its own, also above the route's limit,
+  which differs from route to route.
+
 ### Models
 
 - `models.Optional[T]` is the type of a field of an update model that the API accepts null for.

@@ -82,6 +82,8 @@ github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestSampleShare
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestDryRunCandidates
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestPlanRunInADirectory
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestPlanRunAll
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestPlanRunFunctionBodies
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestPlanRunChangedCode
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestPlanRunDirectoriesOfOneModule
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestPlanRunModuleRoot
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestPlanRunNoChange

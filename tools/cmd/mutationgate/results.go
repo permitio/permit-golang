@@ -204,7 +204,10 @@ func (r report) hasUnits() bool { return r.runs > 0 || r.failure != nil }
 func (r report) evaluate() outcome {
 	if !r.hasUnits() {
 		if r.opts.all {
-			return outcome{exit: exitDidNotRun, notice: r.dirList() + " holds no Go code to mutate"}
+			return outcome{
+				exit:   exitDidNotRun,
+				notice: r.dirList() + " holds no code in a function body to mutate",
+			}
 		}
 		return outcome{exit: exitPassed, notice: r.noChangeNotice()}
 	}

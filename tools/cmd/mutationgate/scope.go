@@ -213,10 +213,10 @@ func (m moduleScope) isBuilt(file string) bool {
 	})
 }
 
-// classify sorts the changed Go files: the changed lines that hold code go in
-// scoped, the files not mutated in their module's notMutated, and a file in a module
-// that no directory given is in, or a file to mutate that does not parse, is an
-// error.
+// classify sorts the changed Go files: the changed lines that hold code in a
+// function body go in scoped, the files not mutated in their module's notMutated,
+// and a file in a module that no directory given is in, or a file to mutate that
+// does not parse, is an error.
 func (p *plan) classify(changed, scoped map[string][]lineRange) error {
 	var outside []string
 	for _, file := range slices.Sorted(maps.Keys(changed)) {
@@ -241,12 +241,16 @@ func (p *plan) classify(changed, scoped map[string][]lineRange) error {
 			if err != nil {
 				return err
 			}
-			code, err := codeLines(file, data)
+			inBody, outsideBodies, err := codeLines(file, data)
 			if err != nil {
 				return err
 			}
-			if lines := keepLines(changed[file], code); len(lines) > 0 {
+			if lines := keepLines(changed[file], inBody); len(lines) > 0 {
 				scoped[file] = lines
+			} else if len(keepLines(changed[file], outsideBodies)) > 0 {
+				m.notMutated = append(m.notMutated, notMutated{file, "no code in a function body " +
+					"on the changed lines (declarations outside function bodies, which Go's " +
+					"coverage does not count)"})
 			} else {
 				m.notMutated = append(m.notMutated, notMutated{file, "no code on the changed " +
 					"lines (comments, blank lines, the package clause or imports)"})
@@ -260,8 +264,9 @@ func (p *plan) classify(changed, scoped map[string][]lineRange) error {
 	return nil
 }
 
-// allLines puts every line that holds code of every Go file of the packages in
-// module i's directories in scoped, and returns how many files there are.
+// allLines puts every line that holds code in a function body of every Go file of
+// the packages in module i's directories in scoped, and returns how many files there
+// are.
 func (p *plan) allLines(i int, scoped map[string][]lineRange) (int, error) {
 	m := p.modules[i]
 	files := 0
@@ -276,11 +281,11 @@ func (p *plan) allLines(i int, scoped map[string][]lineRange) (int, error) {
 				return 0, err
 			}
 			files++
-			code, err := codeLines(file, data)
+			inBody, _, err := codeLines(file, data)
 			if err != nil {
 				return 0, err
 			}
-			if lines := keepLines([]lineRange{{1, lineCount(data)}}, code); len(lines) > 0 {
+			if lines := keepLines([]lineRange{{1, lineCount(data)}}, inBody); len(lines) > 0 {
 				scoped[file] = lines
 			}
 		}
@@ -290,15 +295,20 @@ func (p *plan) allLines(i int, scoped map[string][]lineRange) (int, error) {
 
 // codeLines returns the lines of the Go source src that hold code: a token of a
 // declaration other than an import, or the inside of a raw string that starts in
-// one. Comments, blank lines, the package clause and imports hold no mutant, so the
-// gate does not mutate them. name names the file in the error when src does not
-// parse.
-func codeLines(name string, src []byte) (map[int]bool, error) {
+// one. inBody are those with such a token inside a function body that Go's coverage
+// counts, after its { and before its }. Coverage counts nothing else, so gremlins
+// reports every mutant outside these bodies as on a line no test covers, and the
+// gate mutates only the lines in inBody. outside are the lines with a token outside
+// those bodies, such as a package-level variable's value, a function's signature or
+// a body's closing }; a line can be in both. Comments, blank lines, the package
+// clause and imports hold no mutant and are in neither. name names the file in the
+// error when src does not parse.
+func codeLines(name string, src []byte) (inBody, outside map[int]bool, err error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, name, src, parser.SkipObjectResolution)
 	if err != nil {
-		return nil, fmt.Errorf("cannot tell the code lines of a Go file that does not parse: %w",
-			err)
+		return nil, nil, fmt.Errorf(
+			"cannot tell the code lines of a Go file that does not parse: %w", err)
 	}
 	// Imports come before the other declarations, and between two declarations
 	// there is only the semicolon that ends the first, on its last line: the lines
@@ -308,22 +318,31 @@ func codeLines(name string, src []byte) (map[int]bool, error) {
 		g, ok := d.(*ast.GenDecl)
 		return !ok || g.Tok != token.IMPORT
 	})
-	lines := map[int]bool{}
+	inBody, outside = map[int]bool{}, map[int]bool{}
 	if i < 0 {
-		return lines, nil
+		return inBody, outside, nil
 	}
 	start := fset.PositionFor(f.Decls[i].Pos(), false).Line
+	bodies := functionBodies(fset.File(f.Pos()), f)
 	file := fset.AddFile(name, -1, len(src))
 	var s scanner.Scanner
 	s.Init(file, src, nil, 0)
 	for {
 		pos, tok, lit := s.Scan()
 		if tok == token.EOF {
-			return lines, nil
+			return inBody, outside, nil
 		}
 		first := file.PositionFor(pos, false).Line
 		if first < start {
 			continue
+		}
+		offset := file.Offset(pos)
+		for len(bodies) > 0 && offset >= bodies[0].rbrace {
+			bodies = bodies[1:]
+		}
+		lines := outside
+		if len(bodies) > 0 && offset > bodies[0].lbrace {
+			lines = inBody
 		}
 		last := first
 		if tok == token.STRING {
@@ -333,6 +352,37 @@ func codeLines(name string, src []byte) (map[int]bool, error) {
 			lines[line] = true
 		}
 	}
+}
+
+// braces are the offsets in its file of the { and the } of a function body.
+type braces struct{ lbrace, rbrace int }
+
+// functionBodies returns the braces of the function bodies of f that Go's coverage
+// counts, in the order of the source: those of its functions, and of its function
+// literals outside them, such as one in a package-level variable's value; a
+// function literal in a function is inside that function's body. Coverage leaves
+// out a function named _, which cannot be called, with the function literals in
+// it. file is f's file.
+func functionBodies(file *token.File, f *ast.File) []braces {
+	var bodies []braces
+	ast.Inspect(f, func(n ast.Node) bool {
+		var body *ast.BlockStmt
+		switch n := n.(type) {
+		case *ast.FuncDecl:
+			if n.Name.Name != "_" {
+				body = n.Body
+			}
+		case *ast.FuncLit:
+			body = n.Body
+		default:
+			return true
+		}
+		if body != nil {
+			bodies = append(bodies, braces{file.Offset(body.Lbrace), file.Offset(body.Rbrace)})
+		}
+		return false
+	})
+	return bodies
 }
 
 // keepLines returns the lines of ranges that are in keep, as ranges.

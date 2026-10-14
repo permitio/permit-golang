@@ -346,6 +346,46 @@ func TestRunGate(t *testing.T) {
 			},
 		},
 		{
+			// gremlins reports the mutants of a package-level variable's value, such as
+			// those of the strings it joins, as on lines no test covers.
+			name: "only a package-level variable's value changed",
+			args: base, dirs: both,
+			diff: changedDiff(map[string]string{
+				"tools/x/x.go": "@@ -6,2 +6,2 @@\n-a\n-b\n+c\n+d\n",
+			}),
+			files: map[string]string{"tools/x/x.go": bodiesFile},
+			mutants: map[string][]fakeMutant{
+				"tools/x/x.go": {{6, statusNotCovered}, {11, statusKilled}},
+			},
+			wantExit: exitPassed,
+			wantOutput: []string{
+				"### Mutation tests: `tools` (m/tools)\n\n**PASS**: Go files changed since the " +
+					"merge base with main, but none that the gate mutates (listed below); " +
+					"nothing was mutated.",
+				"- `tools/x/x.go`: no code in a function body on the changed lines (declarations " +
+					"outside function bodies, which Go's coverage does not count)\n",
+				"mutationgate: PASS\n",
+			},
+		},
+		{
+			name: "a package-level variable and a function body whose mutants no test covers",
+			args: base, dirs: both,
+			diff: changedDiff(map[string]string{
+				"tools/x/x.go": "@@ -6,2 +6,2 @@\n-a\n-b\n+c\n+d\n@@ -11 +11 @@\n-a\n+b\n",
+			}),
+			files: map[string]string{"tools/x/x.go": bodiesFile},
+			mutants: map[string][]fakeMutant{
+				"tools/x/x.go": {{6, statusNotCovered}, {11, statusNotCovered}},
+			},
+			wantExit: exitDidNotRun, wantCalls: 1, wantProbes: 1,
+			wantOutput: []string{
+				"### Mutation tests: `tools` (m/tools)\n\n**DID NOT RUN**: No mutant ran: of " +
+					"the 1 mutants in scope, 1 are on lines no test covers and 0 do not compile",
+				"| `tools/x/x.go:11:2` | CONDITIONALS_NEGATION | NOT COVERED |",
+				"mutationgate: DID NOT RUN\n",
+			},
+		},
+		{
 			name: "a changed Go file that does not parse",
 			args: base, dirs: both, diff: rootDiff,
 			files:    map[string]string{"a.go": "package x\n\nfunc {\n"},

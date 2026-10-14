@@ -116,8 +116,8 @@
 //	   gremlins failed, a mutant was left unrun or on other lines than the gate
 //	   chose, exec or the shims could not do their part, a package's tests fail
 //	   without a mutant in a copy of its module, Go lines changed and no mutant on
-//	   them ran, or with -all a directory holds no Go code, none of a module's
-//	   mutants ran, or no mutant ran in any module; 2 wins over 1
+//	   them ran, or with -all a directory holds no code in a function body, none of
+//	   a module's mutants ran, or no mutant ran in any module; 2 wins over 1
 package main
 
 import (

@@ -27,9 +27,9 @@ var fixturePackages = map[string][]goPackage{
 	"extra": {{importPath: "m/extra", files: []string{"e.go"}}},
 }
 
-// fiveLines is a Go file each of whose five lines holds code, which the gate
-// mutates when it changes.
-const fiveLines = "package x; func f() int {\n\tn := 1\n\tn += 2\n\treturn n\n}\n"
+// fiveLines is a Go file each of whose five lines holds code in a function body,
+// which the gate mutates when it changes.
+const fiveLines = "package x; func f() int { n := 1\n\tn += 2\n\tn *= 3\n\tn -= 4\n\treturn n }\n"
 
 // writeRepository writes the files under root, Go files with five lines.
 func writeRepository(t *testing.T, root string, files []string) {
@@ -185,13 +185,13 @@ func TestPlanRunAll(t *testing.T) {
 		t.Errorf("modules %+v", p.modules)
 	}
 
-	// Only the lines that hold code are mutated.
+	// Only the lines that hold code in a function body are mutated.
 	writeFile(t, root, "a.go", codeFile)
 	p, err = planRun(tl, gateOptions{all: true, dirs: []string{"."}}, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []lineRange{{9, 9}, {12, 15}, {18, 18}}
+	want := []lineRange{{9, 9}, {12, 14}}
 	if got := p.units[0].lines["a.go"]; !slices.Equal(got, want) {
 		t.Errorf("a.go lines %v, want %v", got, want)
 	}
@@ -216,19 +216,6 @@ func TestPlanRunAll(t *testing.T) {
 	}
 }
 
-// declFile is a Go file of declarations other than functions, the first of them
-// right after the imports.
-const declFile = "package x\n" + // 1: the package clause
-	"\n" + // 2
-	"import \"fmt\"\n" + // 3: an import
-	"\n" + // 4
-	"// Limit is two.\n" + // 5: a comment
-	"const Limit = 1 + 1\n" + // 6: code
-	"\n" + // 7
-	"type pair struct{ a, b int }\n" + // 8: code
-	"\n" + // 9
-	"var s = fmt.Sprint(Limit - 1)\n" // 10: code
-
 // codeFile is a Go file with lines of each kind.
 const codeFile = "// Package x is a fixture.\n" + // 1: a comment
 	"package x\n" + // 2: the package clause
@@ -238,34 +225,27 @@ const codeFile = "// Package x is a fixture.\n" + // 1: a comment
 	")\n" + // 6
 	"\n" + // 7
 	"//line other.go:100\n" + // 8: a comment that changes the lines go reports
-	"func f() {\n" + // 9: code
+	"func f() { fmt.Print(1)\n" + // 9: code in a function body, after its {
 	"\t// a comment in a function\n" + // 10
 	"\n" + // 11
 	"\tfmt.Println(`a raw string\n" + // 12: code, and a raw string over three lines
 	"over\n" + // 13
 	"three lines`)\n" + // 14
-	"} /* a comment\n" + // 15: code, and a comment over two lines
+	"} /* a comment\n" + // 15: the end of the body, and a comment over two lines
 	"on two lines */\n" + // 16
 	"// v is one.\n" + // 17
-	"var v = 1\n" // 18: code
+	"var v = 1\n" // 18: a declaration outside function bodies
 
-// The gate mutates only the changed lines that hold code: a token of a declaration
-// other than an import. A changed file with none of them is not mutated, and its
+// The gate mutates only the changed lines that hold code in a function body. A
+// changed file whose changed lines hold no code at all is not mutated, and its
 // package is not a unit.
 func TestPlanRunChangedCode(t *testing.T) {
 	tests := []struct {
 		name  string
 		hunks string
-		// file is a.go, codeFile when empty.
-		file string
 		// want are the lines of a.go to mutate, none when it is not mutated.
 		want []lineRange
 	}{
-		{
-			name: "a file of constant, type and variable declarations", file: declFile,
-			hunks: "@@ -0,0 +1,10 @@\n" + strings.Repeat("+y\n", 10),
-			want:  []lineRange{{6, 6}, {8, 8}, {10, 10}},
-		},
 		{name: "a comment", hunks: "@@ -1 +1 @@\n-x\n+y\n"},
 		{name: "the package clause", hunks: "@@ -2 +2 @@\n-x\n+y\n"},
 		{name: "an import", hunks: "@@ -5 +5 @@\n-x\n+y\n"},
@@ -289,17 +269,13 @@ func TestPlanRunChangedCode(t *testing.T) {
 		},
 		{
 			name: "a new file", hunks: "@@ -0,0 +1,18 @@\n" + strings.Repeat("+y\n", 18),
-			want: []lineRange{{9, 9}, {12, 15}, {18, 18}},
+			want: []lineRange{{9, 9}, {12, 14}},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			root, tl := fixtureRepository(t, changedDiff(map[string]string{"a.go": tt.hunks}))
-			file := tt.file
-			if file == "" {
-				file = codeFile
-			}
-			writeFile(t, root, "a.go", file)
+			writeFile(t, root, "a.go", codeFile)
 			t.Chdir(root)
 			p, err := planRun(tl, gateOptions{base: "main", dirs: []string{"."}}, root)
 			if err != nil {
@@ -327,6 +303,127 @@ func TestPlanRunChangedCode(t *testing.T) {
 			}
 		})
 	}
+}
+
+// bodiesFile is a Go file with code inside and outside function bodies. Go's
+// coverage counts only the code between the braces of a function's body, so
+// gremlins reports every mutant outside them as on a line no test covers.
+const bodiesFile = "package x\n" + // 1
+	"\n" + // 2
+	"type pair struct{ a, b int }\n" + // 3: a type declaration
+	"\n" + // 4
+	"var limits = struct{ reason string }{\n" + // 5: a package-level composite literal
+	"\treason: \"strings joined \" +\n" + // 6: with strings joined over two lines
+	"\t\t\"over two lines\",\n" + // 7
+	"}\n" + // 8
+	"\n" + // 9
+	"var dec = func(n int) int {\n" + // 10: a function literal in a package-level variable
+	"\treturn n - 1\n" + // 11: its body
+	"}(2) * 3\n" + // 12: the end of its body, and code after it
+	"\n" + // 13
+	"func (p pair) sum() int {\n" + // 14: a method
+	"\treturn p.a + p.b\n" + // 15: its body
+	"}\n" + // 16
+	"\n" + // 17
+	"func grow(a [2 + 1]int) [2 * 3]int {\n" + // 18: a signature with mutants
+	"\treturn [2 * 3]int{a[0] - 1} }\n" + // 19: the last line of a body, with its }
+	"\n" + // 20
+	"// one is one.\n" + // 21
+	"func one() int { return 2 - 1 }\n" + // 22: a function on one line
+	"\n" + // 23
+	"func _() { _ = func() int { return 2 - 1 }() }\n" + // 24: coverage leaves out func _
+	"\n" + // 25
+	"const limit = 1 << 10\n" // 26: a constant
+
+// The gate mutates only the changed lines with code in a function body, the only
+// code Go's coverage counts. A changed file whose changed lines hold code outside
+// function bodies only, such as a package-level variable's value, is not mutated,
+// and its package is not a unit. With -all, the same lines are mutated.
+func TestPlanRunFunctionBodies(t *testing.T) {
+	tests := []struct {
+		name  string
+		hunks string
+		// want are the lines of a.go to mutate, none when it is not mutated.
+		want []lineRange
+	}{
+		{
+			name:  "strings joined in a package-level composite literal",
+			hunks: "@@ -6,2 +6,2 @@\n-x\n-x\n+y\n+y\n",
+		},
+		{name: "a type declaration", hunks: "@@ -3 +3 @@\n-x\n+y\n"},
+		{name: "a constant", hunks: "@@ -26 +26 @@\n-x\n+y\n"},
+		{
+			name:  "a comment and a declaration",
+			hunks: "@@ -21 +21 @@\n-x\n+y\n@@ -26 +26 @@\n-x\n+y\n",
+		},
+		{
+			name:  "a function literal in a package-level variable",
+			hunks: "@@ -10,3 +10,3 @@\n-x\n-x\n-x\n+y\n+y\n+y\n",
+			want:  []lineRange{{11, 11}},
+		},
+		{name: "code after the body of a function literal", hunks: "@@ -12 +12 @@\n-x\n+y\n"},
+		{
+			name:  "a method",
+			hunks: "@@ -14,3 +14,3 @@\n-x\n-x\n-x\n+y\n+y\n+y\n",
+			want:  []lineRange{{15, 15}},
+		},
+		{name: "a signature with mutants", hunks: "@@ -18 +18 @@\n-x\n+y\n"},
+		{
+			name: "the last line of a body, with its }", hunks: "@@ -19 +19 @@\n-x\n+y\n",
+			want: []lineRange{{19, 19}},
+		},
+		{
+			name: "a function on one line", hunks: "@@ -22 +22 @@\n-x\n+y\n",
+			want: []lineRange{{22, 22}},
+		},
+		{name: "a function named _", hunks: "@@ -24 +24 @@\n-x\n+y\n"},
+		{
+			name: "a new file", hunks: "@@ -0,0 +1,26 @@\n" + strings.Repeat("+y\n", 26),
+			want: []lineRange{{11, 11}, {15, 15}, {19, 19}, {22, 22}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root, tl := fixtureRepository(t, changedDiff(map[string]string{"a.go": tt.hunks}))
+			writeFile(t, root, "a.go", bodiesFile)
+			t.Chdir(root)
+			p, err := planRun(tl, gateOptions{base: "main", dirs: []string{"."}}, root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tt.want != nil {
+				got := unitSummary(p)
+				if !slices.Equal(got, []string{"m a.go"}) || len(p.modules[0].notMutated) != 0 {
+					t.Fatalf("units %q, not mutated %q; want a unit of a.go", got,
+						p.modules[0].notMutated)
+				}
+				if lines := p.units[0].lines["a.go"]; !slices.Equal(lines, tt.want) {
+					t.Errorf("a.go lines %v, want %v", lines, tt.want)
+				}
+				return
+			}
+			want := []notMutated{{"a.go", "no code in a function body on the changed lines " +
+				"(declarations outside function bodies, which Go's coverage does not count)"}}
+			if len(p.units) != 0 || !slices.Equal(p.modules[0].notMutated, want) ||
+				p.modules[0].changedFiles != 1 {
+				t.Errorf("units %q, not mutated %q, %d changed files; want no unit, %q and 1",
+					unitSummary(p), p.modules[0].notMutated, p.modules[0].changedFiles, want)
+			}
+		})
+	}
+	t.Run("every Go file", func(t *testing.T) {
+		root, tl := fixtureRepository(t, "")
+		writeFile(t, root, "a.go", bodiesFile)
+		t.Chdir(root)
+		p, err := planRun(tl, gateOptions{all: true, dirs: []string{"."}}, root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := []lineRange{{11, 11}, {15, 15}, {19, 19}, {22, 22}}
+		if got := p.units[0].lines["a.go"]; !slices.Equal(got, want) {
+			t.Errorf("a.go lines %v, want %v", got, want)
+		}
+	})
 }
 
 // Directories of one module make one module, which lists each directory once.

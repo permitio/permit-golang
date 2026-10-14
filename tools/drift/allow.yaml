@@ -1,0 +1,13 @@
+# The drift findings that tools/drift accepts, each because the published spec differs from what
+# the API does, and the SDK follows the API. The section Model drift of CONTRIBUTING.md says when
+# to add an entry.
+#
+# key: the key of the finding, as the failing test prints it before the colon, such as
+#   "model UserRead field email", "operation get_user response" or
+#   "reply get_user.200.json#/email".
+# reason: what the API does that the spec does not say, such as "the API returns email, which
+#   the published spec does not list".
+# trigger: when the entry can go, such as "when the published spec lists email".
+#
+# An entry that accepts no finding fails as stale: remove it.
+allow: []

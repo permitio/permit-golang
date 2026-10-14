@@ -837,11 +837,14 @@ jobs:
   # Weekly: tools/cmd/specsnap -check-live fetches the control plane's and the cloud PDP's
   # published specs, pre-fixes and canonicalizes them, and compares them with the snapshots in
   # tools/specs, and Docker Hub's latest permitio/pdp-v2 with the image the container PDP's
-  # snapshot was taken from. The live snapshots are uploaded as the spec-snapshots artifact. The
-  # result goes to the ops channel, SLACK_WEBHOOK_URL: on drift with the owner and the day by
-  # which a pull request must refresh tools/specs, and "did not complete" when specsnap exits 2.
-  # The job fails on drift and when the check did not complete. specsnap prints its verdict as its
-  # last line: PASS, FAIL or DID NOT RUN, a colon and what it found.
+  # snapshot was taken from. The live snapshots are uploaded as the spec-snapshots artifact, and
+  # the drift tests of tools/drift check the models against them. The result goes to the ops
+  # channel, SLACK_WEBHOOK_URL: on drift with the owner and the day by which a pull request must
+  # refresh tools/specs, or fix the models, "did not complete" when specsnap exits 2, and "did
+  # not run" when a drift test prints DID NOT RUN, such as for a schema keyword that tools/drift
+  # does not implement. The job fails on drift, when the models do not match the live specs, and
+  # when a check did not complete. specsnap prints its verdict as its last line: PASS, FAIL or
+  # DID NOT RUN, a colon and what it found.
   spec-drift:
     name: spec-drift
     if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
@@ -866,6 +869,23 @@ jobs:
           go -C tools build -o "$RUNNER_TEMP/specsnap" ./cmd/specsnap
           "$RUNNER_TEMP/specsnap" -check-live -out "$RUNNER_TEMP/spec-snapshots" |
             tee "$RUNNER_TEMP/spec-drift.txt"
+      # The drift tests of tools/drift, offline, against the live snapshots that the step above
+      # wrote: a model, an operation's models or a reply fixture that the published specs no
+      # longer describe fails here before tools/specs is refreshed. A snapshot that the step did
+      # not write, such as the container PDP's, is read from tools/specs. The last step posts
+      # the result with the drift's, from the output in models.txt: a test that prints DID NOT
+      # RUN, such as when the step above wrote no snapshot directory, did not run.
+      - name: Check the models against the live specs
+        id: models
+        if: always()
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools mod download
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          go -C tools test -count=1 ./drift -args -specs "$RUNNER_TEMP/spec-snapshots" |
+            tee "$RUNNER_TEMP/models.txt"
       # Report only: as the api-coverage job does, but with apicoverage -live, which reads the
       # control plane's and the cloud PDP's specs from the live snapshots the step above wrote.
       # An operation that the live specs add, change the stage of or drop shows in the job
@@ -897,6 +917,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           OUTCOME: ${{ steps.drift.outcome }}
+          MODELS: ${{ steps.models.outcome }}
         run: |
           token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
           echo "::stop-commands::$token"
@@ -921,6 +942,46 @@ jobs:
             ;;
           "failure:DID NOT RUN: "*)
             details="the spec drift check did not complete: ${verdict#DID NOT RUN: }; $owner"
+            ;;
+          esac
+          output=$RUNNER_TEMP/models.txt
+          checked=$MODELS
+          if [[ $MODELS == failure ]]; then
+            checked=incomplete
+            if [[ -s $output ]] && grep -q 'DID NOT RUN: ' "$output"; then
+              checked=missed
+            elif [[ -s $output ]] && grep -q '^--- FAIL: ' "$output"; then
+              checked=failure
+            fi
+          fi
+          case $checked in
+          success)
+            if [[ $result == "DID NOT RUN" ]]; then
+              details="$details; the models match the specs that specsnap wrote, and tools/specs"
+              details="$details for the rest"
+            else
+              details="$details; the models match the live specs"
+            fi
+            ;;
+          failure)
+            details="$details; the models do not match the live specs, see tools/drift in the run"
+            if [[ $result == PASS ]]; then
+              result=FAIL
+              details="$details; $owner: fix the models or the allowlist by $deadline"
+            fi
+            ;;
+          missed)
+            line=$(grep -m 1 -o 'DID NOT RUN: .*' "$output")
+            details="$details; the model drift check did not run: ${line#DID NOT RUN: }"
+            if [[ $result == PASS ]]; then
+              result="DID NOT RUN"
+            fi
+            ;;
+          *)
+            details="$details; the model drift check did not complete ($MODELS)"
+            if [[ $result == PASS ]]; then
+              result="DID NOT RUN"
+            fi
             ;;
           esac
           echo "::$token::"

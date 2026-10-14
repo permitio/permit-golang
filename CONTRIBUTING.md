@@ -413,9 +413,9 @@ Diff mode compares a pull request with its base, once both are v2, and counts as
   accepted before. `internal/validate` holds the rules, and `TestValidationRules` fails when the
   file differs from them: after you add or change a rule, run
   `go test -run TestValidationRules -update .`;
-- each field that `tools/drift/model-map.yaml` *(added in a later commit on this branch)* marks
-  `required: true` in a models type that the base's map has, where the base's map had the field
-  not required or did not have it; a models type that is new in the map breaks nothing.
+- each field that `tools/drift/model-map.yaml` marks `required: true` in a models type that the
+  base's map has, where the base's map had the field not required or did not have it; a models
+  type that is new in the map breaks nothing; see [Model drift](#model-drift).
   apisurface reads only the map's `models` key: each models type by its v2 name, with `fields`,
   each field with a boolean `required`, such as `models: {User: {fields: {key: {required: true}}}}`.
   It ignores the other keys, and exits 2 when the map lists no models type.
@@ -580,7 +580,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
 | `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
-| `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots). |
+| `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, checks the models against the published specs, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots) and [Model drift](#model-drift). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
 | `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: posts one line to Slack. `CI` does not need it. |
 
@@ -1025,11 +1025,135 @@ day, 7 days on, by which a pull request must refresh `tools/specs`; when specsna
 says the check did not complete. The job fails in both cases. A step after the check runs the
 [API coverage](#api-coverage) report with `-live`, against the live snapshots, and adds it to
 the job summary without changing the job's result, so that an operation the published specs add
-shows there before the snapshots are refreshed. To run the check yourself, which needs the
-network:
+shows there before the snapshots are refreshed. Another step runs the [model drift](#model-drift)
+tests against the live snapshots: when the models do not match them, the post says so, with the
+owner and the day by which a pull request must fix the models or the allowlist, and when a test
+prints `DID NOT RUN:`, it says that the check did not run, and why. The job fails in both cases.
+To run the check yourself, which needs the network:
 
 ```sh
 bin/specsnap -check-live -out "$(mktemp -d)"
+```
+
+## Model drift
+
+The models in `models/` are written by hand, and the drift tests in [tools/drift](tools/drift)
+check them against the spec snapshots in `tools/specs`, so that a model cannot leave out a field
+that the spec lists, or name one that it does not, without a test failing. They are tests of the
+tools module; to run them alone:
+
+```sh
+HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
+  go -C tools test -count=1 ./drift
+```
+
+They check four things:
+
+- **Models.** `tools/drift/model-map.yaml` maps each type of `models` to its schema. A struct has
+  a field for each property of its schema, and no other, by their JSON names. The type of each
+  field holds every alternative of its property, and is of no JSON kind that the property does not
+  allow: an object schema of `components.schemas` is the type of `models` whose row maps it, an
+  enum schema the enum type whose row maps it, a string of format `date-time` a `models.Time`, and
+  an object without properties `models.Attributes`, or a map of the type of its values. An enum
+  type has a constant for each value of its schema, and no other. A count keeps the map complete:
+  each exported type of `models` is a row under `models`, or under `blocks` when no schema
+  describes it, such as `Optional`, and `modelTypes` in `tools/drift/types_test.go` holds a value
+  of each type under `models`, for the tests to read and decode into.
+- **Strict round trip.** The tests write the maximal values of each row's schema in memory: every
+  property, and across the values every alternative and every value of an enum, at each place in
+  the value and under each alternative above it. Each decodes into the type with a strict decoder,
+  which fails on a field that the type does not have, and encodes back unchanged, except that a
+  null property whose field is not an `Optional` may come back left out. With an unknown field,
+  and with an unknown value in place of each value of an enum, each still decodes with the SDK's
+  decoder.
+- **Operations.** The `RequestModel` and `ResponseModel` of each operation of the
+  [registry](#operation-registry) map, through their rows, to the schemas of the operation's
+  request body and of each of its replies in 200-299 that has a JSON body. A request holds the
+  model when one of its alternatives does, as the SDK chooses what it sends; a reply only when
+  each of its alternatives does, as the API chooses. An alternative holds the model when it is the
+  model's schema, and in the reply of a list, an operation with a `MaxPerPage`, when it is an
+  array or a paginated envelope of it instead. So a Get whose model is smaller than the schema
+  that the API returns, such as an environment without its email configuration, fails.
+- **Reply fixtures.** Each file in `testdata/replies` is the body of a reply that the wire tests
+  serve, named `<operationId>.<status>[.<variant>].json`, such as `get_user.200.json` or
+  `list_users.200.page.json`, with a variant of lower-case letters, digits and hyphens. The tests
+  validate it against the schema of its operation's reply with that status. Keep fixtures small:
+  they are in the module zip.
+
+The checks share one walker of the part of JSON Schema that the snapshots use. It checks `$ref`,
+`type` (one type or a list), `enum`, `properties`, `required`, `additionalProperties`,
+`patternProperties`, `propertyNames`, `items`, `prefixItems`, `anyOf`, `oneOf` and `allOf`, and is
+stricter than JSON Schema in one way: an object schema that lists properties and leaves out
+`additionalProperties` accepts no other property, so that a fixture cannot hold a field that the
+spec does not name. It does not check documentation, defaults, formats and bounds on values, such
+as `pattern` and `minimum`, which say nothing of a value's shape. A keyword that it does not know
+stops the check that meets it, which reports `DID NOT RUN:` with the keyword's name instead of
+skipping it: add the keyword to `keywords` in `tools/drift/schema_test.go`, with its check when it
+constrains the shape of a value.
+
+### Rows of the map
+
+```yaml
+models:
+  UserRead:
+    schema: UserRead        # its schema under components.schemas
+    fields:
+      key: {required: true, null_policy: n/a}
+      email: {required: false, null_policy: n/a}
+  AttributeType:
+    schema: AttributeType   # an enum has no fields
+blocks:
+  Time: a timestamp, the schema of a string of format date-time
+```
+
+A row whose schema is in another snapshot than `control-plane.json` names it with `spec`:
+`pdp-container` or `pdp-cloud`. Each field of a struct has a row of its own, by its JSON name,
+with:
+
+- `required`, as the schema has it. apisurface reads it to find a field that turned required,
+  which breaks code that builds the model; see [Breaking changes](#breaking-changes). A required
+  field is tagged without `omitzero`, so that a body always holds it, any other field with
+  `omitzero`, and no field with `omitempty`.
+- `null_policy`, what the API does with null for the field in a request: `accepts`, and the field
+  is a `models.Optional` tagged `omitzero`; `rejects`; or `n/a` for a type that no request holds,
+  such as the model of a reply. A field is an `Optional` exactly when its policy is `accepts`, and
+  no field of a type that a `RequestModel` holds, itself or through its fields, has `n/a`.
+
+The specs do not say which fields take null, so decide a policy from the API: send a request that
+sets the field to null, and write `accepts` when the API takes it, such as to clear the field, and
+`rejects` when it answers with an error.
+
+### The allowlist
+
+When the spec is wrong and the SDK follows the API, `tools/drift/allow.yaml` accepts the finding.
+A failing test prints each finding after its key, such as `model UserRead field email`,
+`round trip UserRead#/email` (`#` alone when a value does not decode),
+`operation get_user response` or `reply get_user.200.json#/email`. An entry gives the key, the
+`reason`, what the API does that the spec does not say, and the `trigger`, when the entry can go,
+such as when the published spec lists the field:
+
+```yaml
+allow:
+  - key: model UserRead field email
+    reason: the API returns email, which the published spec does not list
+    trigger: when the published spec lists email
+```
+
+A finding without a key, such as a field without a row in the map, is one that the SDK's own files
+must fix, and no entry accepts it. An entry that accepts no finding fails, so that it goes once
+the spec is fixed.
+
+### Against the published specs
+
+The `spec-drift` job runs the tests against the live snapshots that `specsnap -check-live -out`
+writes, which `-specs` names, and its post says whether the models match them; a snapshot that the
+directory does not hold, such as the container PDP's, is read from `tools/specs`. To run them so
+yourself, which needs the network:
+
+```sh
+dir=$(mktemp -d)
+bin/specsnap -check-live -out "$dir"
+go -C tools test -count=1 ./drift -args -specs "$dir"
 ```
 
 ## API coverage
@@ -1316,20 +1440,21 @@ query and a path read back as what was put in; `go test` runs their seeds, in
 
 ## Adding or changing an API method
 
-There is no code generator to run: the models in `models/` are written by hand, and a drift test
-*(added in a later commit on this branch)* checks them against a snapshot of the Permit API
-specification. The steps below are a skeleton that later commits on this branch fill in; whatever
-is marked *(added in a later commit on this branch)* does not exist yet.
+There is no code generator to run: the models in `models/` are written by hand, and the
+[drift tests](#model-drift) check them against the snapshots of the Permit API's specs. The steps
+below are a skeleton that later commits on this branch fill in; whatever is marked *(added in a
+later commit on this branch)* does not exist yet.
 
 1. Find the operation in the spec snapshots, `tools/specs/*.json`, and its row in
    `tools/specs/coverage.yaml`.
-2. Write or extend the model in `models/`, and its row in the drift map *(added in a later commit
-   on this branch)*. Give each field the type that says what the API does with it:
+2. Write or extend the model in `models/`, its row in `tools/drift/model-map.yaml`, and for a new
+   type its value in `modelTypes`; see [Model drift](#model-drift). Give each field the type that
+   says what the API does with it:
    - A field of an update model that the API accepts null for is a `models.Optional[T]`, tagged
      `omitzero`: its zero value leaves the field out, so the API keeps what it stores,
      `models.Null[T]()` sends null and `models.Some(v)` sends `v`. Use it only where the API
-     accepts null. Encoding an unset `Optional` fails, so a field tagged `omitempty`, or not
-     tagged, fails instead of sending null.
+     accepts null, the fields whose row has `null_policy: accepts`. Encoding an unset `Optional`
+     fails, so a field tagged `omitempty`, or not tagged, fails instead of sending null.
    - A nested map that the API rejects null for is a plain map, tagged `omitzero`: nil leaves the
      field out, and an empty map that is not nil sends `{}`.
    - An enum is an open enum, as `models.AttributeType` in `models/enum.go` is: a string type,
@@ -1358,9 +1483,10 @@ is marked *(added in a later commit on this branch)* does not exist yet.
 4. Document it, with the phrases that `docRules` asks of it. Give a new service type, and a new
    decision method, an Example with an output comment in `package permit_test`, and list a
    decision method in `decisionMethods`; see [API reference](#api-reference).
-5. Add a wire test case for the method and a fixture with the API's reply, and rewrite the surface
-   snapshot; see [Wire tests](#wire-tests) and
-   [Public surface and wire cases](#public-surface-and-wire-cases).
+5. Add a wire test case for the method and a fixture with the API's reply, in `testdata/replies`
+   as `<operationId>.<status>[.<variant>].json`, which the drift tests check against the spec,
+   and rewrite the surface snapshot; see [Wire tests](#wire-tests),
+   [Model drift](#model-drift) and [Public surface and wire cases](#public-surface-and-wire-cases).
 6. Rewrite `testdata/operation-map.json`, mark the operation's row of
    `tools/specs/coverage.yaml` covered, and run the API coverage report; see
    [API coverage](#api-coverage).

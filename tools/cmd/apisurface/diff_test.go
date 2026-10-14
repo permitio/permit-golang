@@ -32,8 +32,8 @@ const modelMapYAML = "# The map.\n" +
 	"  User:\n" +
 	"    schema: UserRead\n" +
 	"    fields:\n" +
-	"      key: {required: true, null: rejects}\n" +
-	"      email: {required: false, null: accepts}\n"
+	"      key: {required: true, null_policy: rejects}\n" +
+	"      email: {required: false, null_policy: accepts}\n"
 
 // diffCase is a change to the working tree of a repository whose base is fixtureSDK with base.
 type diffCase struct {
@@ -152,7 +152,7 @@ func TestDiff(t *testing.T) {
 		"a field without a flag turned required": {
 			diffCase: diffCase{
 				base: map[string]string{modelMapFile: strings.Replace(modelMapYAML,
-					"email: {required: false, null: accepts}", "email: {null: accepts}", 1)},
+					"email: {required: false, ", "email: {", 1)},
 				head: map[string]string{modelMapFile: strings.Replace(modelMapYAML,
 					"email: {required: false", "email: {required: true", 1)},
 			},

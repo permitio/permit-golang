@@ -1,0 +1,28 @@
+# The drift map of package models. tools/drift checks it against the models and the spec
+# snapshots in tools/specs, and apisurface reads its required flags to find a field that turned
+# required. The section Model drift of CONTRIBUTING.md says how to write a row.
+#
+# models.<Type>: a type that a schema of a spec describes.
+#   spec: the snapshot that holds the schema: control-plane (when left out), pdp-container or
+#     pdp-cloud.
+#   schema: the name of the schema under components.schemas.
+#   fields.<JSON name>: each field of a struct.
+#     required: true when the schema lists the field as required.
+#     null_policy: what the API does with null for the field in a request: accepts (the field
+#       is a models.Optional), rejects, or n/a, for a type that no request holds.
+#
+# blocks.<Type>: a type that no schema describes, which models use for their fields, with what it
+# stands for.
+models:
+  APIKeyScopeRead:
+    schema: APIKeyScopeRead
+    fields:
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: false, null_policy: n/a}
+      environment_id: {required: false, null_policy: n/a}
+  AttributeType:
+    schema: AttributeType
+blocks:
+  Attributes: a JSON object of any values, the schema of an object that lists no property
+  Optional: a field that the API accepts null for, whose null policy is accepts
+  Time: a timestamp, the schema of a string of format date-time

@@ -26,3 +26,7 @@ indent_size = 2
 # lines that cannot be wrapped.
 [{testdata/**,**/testdata/**,tools/specs/**,tools/binaries.lock,.github/required-tests.txt}]
 max_line_length = off
+
+# The v1 surface that apisurface writes has routes that cannot be wrapped.
+[tools/migration/v1-surface.txt]
+max_line_length = off

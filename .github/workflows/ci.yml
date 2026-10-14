@@ -505,6 +505,73 @@ jobs:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
 
+  # On a pull request only: tools/cmd/apisurface in pull request mode. While the base names
+  # another module path than the pull request, as on the pull request that moves the SDK to v2,
+  # it runs migration mode: an entry of MIGRATION.md or a line of tools/migration/pending.txt
+  # covers each part of the v1 API in tools/migration/v1-surface.txt, and no commit of the pull
+  # request removes an entry ID from tools/migration/ids.txt. Otherwise it runs diff mode:
+  # apidiff, which tools/go.mod pins, compares the module with the base, a new rule in
+  # testdata/validation-rules.txt and a field turned required in tools/drift/model-map.yaml count
+  # as breaking too, and a breaking change fails unless the pull request has the breaking label.
+  # A step of its own reads the labels with the API, which needs pull-requests: read, so that a
+  # re-run after the label is added sees it, before anything of the pull request is checked out;
+  # it passes on only whether the breaking label is there, and the step that builds and runs code
+  # of the pull request has no GH_TOKEN. It runs online: apidiff may download the base's
+  # dependencies.
+  api-surface:
+    name: api-surface
+    if: >-
+      !inputs.mode && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read  # the labels of the pull request, for the breaking label
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - name: Read the breaking label
+        id: labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          labels=$(gh api --paginate "repos/$REPOSITORY/issues/$PULL_REQUEST/labels" \
+            --jq '.[].name')
+          breaking=false
+          if grep -qx breaking <<<"$labels"; then
+            breaking=true
+          fi
+          echo "breaking=$breaking" >>"$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the public surface
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BREAKING: ${{ steps.labels.outputs.breaking }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/apisurface" ./cmd/apisurface
+          go -C tools build -o "$RUNNER_TEMP/apidiff" golang.org/x/exp/cmd/apidiff
+          breaking=()
+          if [ "$BREAKING" = true ]; then
+            breaking=(-breaking-label)
+          fi
+          "$RUNNER_TEMP/apisurface" -mode pr -base "$BASE_SHA" -apidiff "$RUNNER_TEMP/apidiff" \
+            "${breaking[@]}"
+
   # Weekly, runs every hook twice: with prek's built-in versions of the pre-commit-hooks hooks,
   # as the prek job does, and with PREK_NO_FAST_PATH=1, the upstream hooks. It fails when the
   # two runs report a hook differently. A called run sees its caller's schedule, so the cron
@@ -795,6 +862,7 @@ jobs:
       - secrets
       - mutation
       - dependency-review
+      - api-surface
       - prek-upstream
       - mutation-weekly
       - security-scan
@@ -814,8 +882,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 15
-          PULL_REQUEST_JOBS: mutation dependency-review
+          EXPECTED_JOBS: 16
+          PULL_REQUEST_JOBS: mutation dependency-review api-surface
           SCHEDULED_JOBS: >-
             prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly
             spec-drift:weekly

@@ -1,0 +1,9 @@
+# The IDs of the entries of MIGRATION.md, one per line, in the order they were added.
+# apisurface's migration mode checks that this file lists exactly the IDs of the entries, and
+# with -ids-base that no commit removes one: an ID is never removed, renumbered or reused, so a
+# link to an entry keeps working. Add the ID of a new entry at the end. Blank lines and lines
+# that start with # are ignored.
+M-module-1
+M-module-2
+M-module-3
+M-module-4

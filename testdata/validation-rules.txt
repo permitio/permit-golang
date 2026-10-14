@@ -1,0 +1,6 @@
+# The validation rules of the SDK: each check that rejects a configuration or an
+# argument before a request is sent, one per line as <ID> <message>, sorted by ID.
+# TestValidationRules (validation_rules_test.go) fails when internal/validate differs.
+# After an intended change, rewrite this file with
+# go test -run TestValidationRules -update . and review the diff. apisurface's diff mode
+# counts an ID that is new here as a breaking change.

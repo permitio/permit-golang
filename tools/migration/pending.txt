@@ -1,0 +1,167 @@
+# Parts of the v1 API (tools/migration/v1-surface.txt) that no entry of MIGRATION.md covers yet,
+# each with the area of v2 that will write its entry: the service or package it moves to, or
+# the part of the guide that will say why v2 drops it. apisurface's migration mode checks that
+# every line of v1-surface.txt is in exactly one entry or one line here.
+#
+# One per line: <id or pattern> <area>. A pattern is a path.Match pattern of ids, such as
+# api.Users.*; it must match at least one id. When you write the entry for an id, remove it
+# from here in the same commit, splitting a pattern where the entry covers only part of it. A
+# models type that v2 exports under the same name needs no line: remove an id that names one,
+# while a pattern may keep matching it along with other ids. apisurface's release mode fails
+# while this file has a line that is not blank or a comment, since the release needs every v1
+# item to have its entry. Blank lines and lines that start with # are ignored.
+
+# Block a: pkg/api
+api.ConditionSets condition-sets
+api.ConditionSets.* condition-sets
+api.NewConditionSetsApi condition-sets
+api.DefaultPerPageLimit pagination
+api.Elements elements
+api.Elements.* elements
+api.NewElementsApi elements
+api.Environments environments
+api.Environments.* environments
+api.NewEnvironmentsApi environments
+api.IPermitBaseApi client
+api.IPermitBaseFactsApi facts
+api.PermitBaseFactsApi facts
+api.PermitBaseFactsApi.* facts
+api.NewPermitBaseFactsApi facts
+api.NewFactsClientConfig facts
+api.WaitForSyncOptions facts
+api.ImplicitGrants implicit-grants
+api.ImplicitGrants.* implicit-grants
+api.NewImplicitGrantsApi implicit-grants
+api.NewClientConfig client
+api.NewPermitApiClient client
+api.PermitApiClient client
+api.PermitApiClient.* client
+api.Projects projects
+api.Projects.* projects
+api.NewProjectsApi projects
+api.ProxyConfigs proxy-configs
+api.ProxyConfigs.* proxy-configs
+api.NewProxyConfigsApi proxy-configs
+api.RelationshipTuples relationship-tuples
+api.RelationshipTuples.* relationship-tuples
+api.NewRelationshipTuplesApi relationship-tuples
+api.ResourceActionGroups resource-action-groups
+api.ResourceActionGroups.* resource-action-groups
+api.NewResourceActionGroupsApi resource-action-groups
+api.ResourceActions resource-actions
+api.ResourceActions.* resource-actions
+api.NewResourceActionsApi resource-actions
+api.ResourceAttributes resource-attributes
+api.ResourceAttributes.* resource-attributes
+api.NewResourceAttributesApi resource-attributes
+api.ResourceInstances resource-instances
+api.ResourceInstances.* resource-instances
+api.NewResourceInstancesApi resource-instances
+api.ResourceRelations resource-relations
+api.ResourceRelations.* resource-relations
+api.NewResourceRelationsApi resource-relations
+api.ResourceRoles resource-roles
+api.ResourceRoles.* resource-roles
+api.NewResourceRolesApi resource-roles
+api.Resources resources
+api.Resources.* resources
+api.NewResourcesApi resources
+api.RoleAssignments role-assignments
+api.RoleAssignments.* role-assignments
+api.NewRoleAssignmentsApi role-assignments
+api.RoleRead roles
+api.Roles roles
+api.Roles.* roles
+api.NewRolesApi roles
+api.Tenants tenants
+api.Tenants.* tenants
+api.NewTenantsApi tenants
+api.Users users
+api.Users.* users
+api.NewUsersApi users
+
+# Block a: pkg/config
+config.DefaultApiUrl client
+config.DefaultDebugMode client
+config.DefaultPdpUrl client
+config.DefaultTimeout client
+config.IPermitConfig client
+config.NewConfigBuilder client
+config.NewPermitConfig client
+config.PermitBuilder client
+config.PermitConfig client
+config.PermitConfig.* client
+config.DefaultFactsSyncTimeout facts
+config.FactsSyncTimeoutPolicy facts
+config.FactsSyncTimeoutPolicyFail facts
+config.FactsSyncTimeoutPolicyIgnore facts
+config.DefaultOpaUrl checks
+config.APIKeyLevel scope
+config.NoneAPIKeyLevel scope
+config.OrganizationAPIKeyLevel scope
+config.ProjectAPIKeyLevel scope
+config.EnvironmentAPIKeyLevel scope
+config.GetApiKeyLevel scope
+config.NewPermitContext scope
+config.PermitContext scope
+config.PermitContext.* scope
+config.PermitContextFactory scope
+config.PermitContextInterface scope
+
+# Block a: pkg/enforcement, pkg/errors and pkg/permit
+enforcement.* checks
+errors.* errors
+permit.Client client
+permit.New client
+permit.NewPermit client
+permit.PermitInterface client
+permit.Client.AllTenantsCheck checks
+permit.Client.BulkCheck checks
+permit.Client.Check checks
+permit.Client.FilterObjects checks
+permit.Client.GetUserPermissions checks
+permit.Client.GetUserPermissionsWithOptions checks
+permit.Client.SyncUser users
+
+# Block b: operations of pkg/openapi
+openapi.APIKeysApiService.* api-keys
+openapi.AuthenticationApiService.ElementsLoginAs elements
+openapi.AuthenticationApiService.DevLogin auth
+openapi.AuthenticationApiService.Login auth
+openapi.AuthenticationApiService.LoginElements auth
+openapi.AuthenticationApiService.LogoutGet auth
+openapi.AuthenticationApiService.LogoutPost auth
+openapi.AuthenticationApiService.Me auth
+openapi.AuthenticationApiService.SwitchOrganization auth
+openapi.ConditionSetsApiService.* condition-sets
+openapi.DecisionLogsApiService.* decision-logs
+openapi.DecisionLogsIngressApiService.* decision-logs
+openapi.DefaultApiService.* stress
+openapi.ElementsConfigsApiService.* elements-configs
+openapi.ElementsDataApiService.* elements-data
+openapi.EnvironmentsApiService.* environments
+openapi.InstructionsApiService.* instructions
+openapi.MembersApiService.* members
+openapi.OPALDataApiService.* opal-data
+openapi.PolicyApiService.* opal-data
+openapi.OrganizationsApiService.CancelInvite invites
+openapi.OrganizationsApiService.InviteMembersToOrganization invites
+openapi.OrganizationsApiService.ListOrganizationInvites invites
+openapi.OrganizationsApiService.CreateOrganization organizations
+openapi.OrganizationsApiService.DeleteOrganization organizations
+openapi.OrganizationsApiService.GetActiveOrganization organizations
+openapi.OrganizationsApiService.GetOrganization organizations
+openapi.OrganizationsApiService.ListOrganizations organizations
+openapi.OrganizationsApiService.UpdateOrganization organizations
+openapi.PolicyDecisionPointsApiService.* pdp-configs
+openapi.PolicyGitRepositoriesApiService.* policy-repos
+openapi.ResourceRolesApiService.* resource-roles
+openapi.ResourcesApiService.* resources
+openapi.RoleAssignmentsApiService.* role-assignments
+openapi.RolesApiService.* roles
+openapi.TenantsApiService.* tenants
+openapi.UserAttributesApiService.* user-attributes
+openapi.UsersApiService.* users
+
+# Block c: pkg/models
+models.* models

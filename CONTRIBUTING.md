@@ -207,6 +207,142 @@ test.
 go test -run '^Test(SurfaceSnapshot|NoInternalTypesInSignatures|EveryPublicMethodHasAWireCase|RouteParamOrder)$' .
 ```
 
+## Public surface and migration
+
+`tools/cmd/apisurface` checks that [MIGRATION.md](MIGRATION.md) covers every part of the v1 API,
+and that a breaking change to the v2 API is labelled as one. The `api-surface` job runs it on
+every pull request: in migration mode while the base of the pull request names another module
+path than the pull request, as the pull request that moves the SDK to v2 does, and in diff mode
+otherwise. It exits 0 when the check passes, 1 when it fails and 2 when it did not run, and
+`go -C tools doc ./cmd/apisurface` lists every rule. Build it, and the apidiff that `tools/go.mod`
+pins, from the repository root:
+
+```sh
+go -C tools build -o ../bin/apisurface ./cmd/apisurface
+go -C tools build -o ../bin/apidiff golang.org/x/exp/cmd/apidiff
+bin/apisurface -mode migration                                 # the migration check
+bin/apisurface -mode migration -ids-base origin/master         # and no entry ID removed since
+bin/apisurface -mode pr -base origin/master -apidiff bin/apidiff  # what the job runs
+```
+
+### The v1 surface
+
+`tools/migration/v1-surface.txt` lists the parts of the v1 API that the migration check counts,
+read from `github.com/permitio/permit-golang@v1.3.0`, the release that `MIGRATION.md` tells v1
+users to pin:
+
+- a: the 352 exported identifiers of `pkg/api`, `pkg/config`, `pkg/enforcement`, `pkg/errors` and
+  `pkg/permit`, such as `api.Users.Create`;
+- b: 86 operations of the generated client in `pkg/openapi`, such as
+  `openapi.MembersApiService.ListOrganizationMembers`: 56 whose route the API spec has and that
+  only the generated client sends, and 30 whose route the spec does not have;
+- c: the 384 types of `pkg/models`, such as `models.UserRead`.
+
+apisurface writes the file from the module zip that the Go module proxy serves, after the
+checksum database verified it; do not edit it by hand. `TestRepositoryV1Surface` checks its
+counts. To write it again, which needs the network:
+
+```sh
+bin/apisurface -module github.com/permitio/permit-golang@v1.3.0
+```
+
+### Migration entries
+
+Each change from v1 is an entry of `MIGRATION.md`, in the section of its bucket:
+`## Compatibility`, `## API` or `## Wire behaviour`. An entry starts with an anchor and a heading
+with its ID, followed by its fields as list items:
+
+```markdown
+<a id="M-users-1"></a>
+### M-users-1: Users.Create moves to UsersService.Create
+
+- v1: `api.Users.Create`
+- v2: `permit.UsersService.Create`
+- Bug fix: could never work before
+
+What changed, and what to do.
+```
+
+- The ID is `M-<area>-<n>`: the area in lower case, such as `users`, and the next number in that
+  area. Add it at the end of `tools/migration/ids.txt`, which lists every entry ID. An ID is never
+  removed, renumbered or reused, so that a link to an entry keeps working: the check fails when a
+  commit removes an ID from `ids.txt`.
+- A `v1:` line names what changes in v1. When it starts with a backquote, its first term in
+  backquotes is an id of `v1-surface.txt` or a `path.Match` pattern of ids, such as
+  `api.Users.*`, and it must match at least one. Otherwise it is prose, such as the module path.
+- The one `v2:` line names the v2 declaration that takes its place, in backquotes, optionally
+  after `replaced by `, such as `permit.UsersService.Create`; the check fails when v2 does not
+  export it. When v2 has nothing in its place, the `v2:` line of an entry that names v1
+  identifiers is one of these reasons, exactly:
+  - `not exposed in v2`
+  - `not exposed in v2: account administration`
+  - `not exposed in v2: dashboard or CLI helper`
+  - `not exposed in v2: Elements back-end`
+  - `not exposed in v2: operator route`
+  - `not exposed in v2: deprecated upstream`
+  - `not exposed in v2: EAP`
+
+  The vocabulary applies to these removals only. A `v2:` line that is prose, in an entry that is
+  not a removal, such as a compatibility or wire behaviour entry, is free text, and so is the
+  text after a declaration in backquotes: reviewers check it, and apisurface checks only that it
+  holds none of the words of the next item.
+- `MIGRATION.md` is public, so an entry must not describe a weakness of the API: the check fails
+  on a line of an entry, from its heading to the next anchor or heading, that contains `secret`,
+  `exposes` or `vulnerab`, in any case.
+- `- Bug fix: could never work before` marks a change to a v1 feature that could never work as
+  documented.
+
+### Pending lines
+
+Until the entry for a part of the v1 API exists, a line of `tools/migration/pending.txt` assigns
+it to the area of v2 that will write the entry: an id or a pattern, then the area, such as
+`api.Users.* users`. Each line of `v1-surface.txt` must be in exactly one entry or one pending
+line. When you write an entry, remove what it covers from `pending.txt` in the same commit, and
+split a pattern when the entry covers only part of it. A pending line that matches nothing fails.
+A models type of v1 needs no entry once v2's `models` package exports a type of the same name:
+remove a pending line that names it, while a pattern such as `models.*` may keep matching it
+along with types that are still pending. A pending line that matches only such types fails.
+Release mode fails while `pending.txt` has a line that is not blank or a comment, since the
+release needs every v1 item to have its entry.
+
+The appendix at the end of `MIGRATION.md` maps each models type of v1 to the v2 type or the entry
+that replaces it. apisurface writes it, and the check fails when it is out of date: after you
+change entries, pending lines or v2's models, run `bin/apisurface -mode migration -write`.
+
+### Breaking changes
+
+Diff mode compares a pull request with its base, once both are v2, and counts as breaking:
+
+- each incompatible change that apidiff reports for the exported API of the module's packages, but
+  the ones under `internal/`;
+- each new rule ID in `testdata/validation-rules.txt`, since the SDK then rejects input that it
+  accepted before. `internal/validate` holds the rules, and `TestValidationRules` fails when the
+  file differs from them: after you add or change a rule, run
+  `go test -run TestValidationRules -update .`;
+- each field that `tools/drift/model-map.yaml` *(added in a later commit on this branch)* marks
+  `required: true` in a models type that the base's map has, where the base's map had the field
+  not required or did not have it; a models type that is new in the map breaks nothing.
+  apisurface reads only the map's `models` key: each models type by its v2 name, with `fields`,
+  each field with a boolean `required`, such as `models: {User: {fields: {key: {required: true}}}}`.
+  It ignores the other keys, and exits 2 when the map lists no models type.
+
+A breaking change fails `api-surface` unless the pull request has the `breaking` label. When the
+change is intended, add the label, describe the change in `CHANGELOG.md`, and run the job again:
+it reads the labels when it runs. Diff mode also fails when a commit of the pull request removes
+an entry ID from `ids.txt`.
+
+Release mode checks the version of a release with gorelease, which `tools/go.mod` also pins,
+against the newest earlier tag of the same major version: with `-base=none` for the first one,
+allowing incompatible changes after a prerelease, and otherwise failing on an incompatible change
+or a version that does not follow from the changes. It also fails while `pending.txt` is not
+empty, as [Pending lines](#pending-lines) says. The release workflow *(added in a later commit on
+this branch)* runs it:
+
+```sh
+go -C tools build -o ../bin/gorelease golang.org/x/exp/cmd/gorelease
+bin/apisurface -mode release -version v2.1.0 -gorelease bin/gorelease
+```
+
 ## Checks
 
 `tools/` is a separate Go module with the programs that check the SDK;
@@ -344,6 +480,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `secrets` | Scans the commits that are new in the run for secrets with gitleaks, through `.github/scripts/gitleaks-range.sh`; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
 | `dependency-review` | Pull requests only: fails when the pull request adds a dependency with a known vulnerability of high or critical severity; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
+| `api-surface` | Pull requests only: checks that `MIGRATION.md` covers the v1 API while the base is v1, and otherwise fails on a breaking change to the API without the `breaking` label; see [Public surface and migration](#public-surface-and-migration). |
 | `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
 | `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
 | `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
@@ -356,7 +493,7 @@ Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
   `test`, `crossbuild`, `consumer`, `zipcheck`, `api-coverage`, `vuln` and `secrets`. A pull
-  request runs `mutation` and `dependency-review` too.
+  request runs `mutation`, `dependency-review` and `api-surface` too.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, `security` the security scan, and `e2e` the jobs of that mode *(added in a later
   commit on this branch)*. The release workflow *(added in a later commit on this branch)* calls
@@ -948,8 +1085,9 @@ is marked *(added in a later commit on this branch)* does not exist yet.
    [API coverage](#api-coverage).
 6. Add an end-to-end scenario for the method, or mark it pending or local-only *(the end-to-end
    tests are added in a later commit on this branch)*.
-7. Add its entries to `CHANGELOG.md` and `MIGRATION.md` *(`MIGRATION.md` is added in a later commit
-   on this branch)*.
+7. Add its entries to `CHANGELOG.md` and `MIGRATION.md`, and remove what the `MIGRATION.md` entries
+   cover from `tools/migration/pending.txt`; see
+   [Public surface and migration](#public-surface-and-migration).
 
 ## Commits and pull requests
 

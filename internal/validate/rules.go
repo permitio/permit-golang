@@ -182,6 +182,33 @@ var (
 	}
 )
 
+// The rules of a facts call that waits for sync, which the SDK checks before it sends the
+// request. The error of such a rule names the operation before the message.
+var (
+	// WaitForSyncFactsViaAPI rejects a call that waits for sync from a client that sends facts
+	// to the Permit API, which does not wait: only the PDP container does.
+	WaitForSyncFactsViaAPI = Rule{
+		ID: "wait-for-sync.facts-via-api",
+		Message: "the call waits for sync, which only the PDP container does, and the client " +
+			"sends facts to the API; pass WithFactsViaPDP to New, or make the call without the " +
+			"wait",
+	}
+
+	// WaitForSyncNotWaiting rejects a call that waits for sync of an operation that the PDP
+	// container answers without waiting.
+	WaitForSyncNotWaiting = Rule{
+		ID: "wait-for-sync.not-waiting",
+		Message: "the PDP container does not wait for sync on this route; make the call without " +
+			"the wait",
+	}
+
+	// WaitForSyncTimeoutNegative rejects a wait for sync whose timeout is less than zero.
+	WaitForSyncTimeoutNegative = Rule{
+		ID:      "wait-for-sync.timeout-negative",
+		Message: "the timeout of the wait for sync is less than zero; give 0 or more",
+	}
+)
+
 // rules lists every rule, sorted by ID.
 var rules = []Rule{
 	APIKeyEmpty,
@@ -206,6 +233,9 @@ var rules = []Rule{
 	PathSegmentEmpty,
 	ScopeEnvironmentMissing,
 	ScopeProjectMissing,
+	WaitForSyncFactsViaAPI,
+	WaitForSyncNotWaiting,
+	WaitForSyncTimeoutNegative,
 }
 
 // Rules returns every rule, sorted by ID.

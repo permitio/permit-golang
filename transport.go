@@ -44,6 +44,10 @@ type request struct {
 
 	// body is the request's body, which wire.Encode writes, or nil when it has none.
 	body any
+
+	// header holds the headers of this call alone, such as its wait for sync, or is nil. No
+	// other call shares it.
+	header http.Header
 }
 
 // listShape is the shape of the body of a reply that holds a list, as the operation's route
@@ -123,20 +127,23 @@ func doList[T any](ctx context.Context, c *Client, r request, shape listShape) (
 }
 
 // exchange sends the request of a call, and again as the client's retry policy allows, and
-// returns its operation and its reply in 200-299, whose body it reads when readBody is set.
-// Before it sends anything, it returns ErrClosed after Close, and an error that matches
-// ErrInvalidConfig for a path parameter that is empty, . or .., naming its placeholder, and for a
-// body that cannot be JSON. It bounds the call, every attempt and every wait between them, by the
-// client's timeout when ctx has no deadline, and writes one Debug line for each attempt.
+// returns its operation and its reply in 200-299, whose body it reads when readBody is set. A
+// Facts operation that goes to the PDP goes to its route under /facts: the operation that
+// rest.Op.ViaPDP gives, which exchange returns and its errors name. Before it sends anything, it
+// returns ErrClosed after Close, and an error that matches ErrInvalidConfig for a path parameter
+// that is empty, . or .., naming its placeholder, and for a body that cannot be JSON. It bounds
+// the call, every attempt and every wait between them, by the client's timeout when ctx has no
+// deadline, and writes one Debug line for each attempt.
 //
 // The reply's credentials, the values that redact.Set.AddFields finds in a body it reads under a
 // credential name or one of the operation's SensitiveBodyFields, join the client's Set. exchange
 // returns a *Error for a reply whose status is not in 200-299 and for a request without a
-// complete reply, with these exceptions: nil for a 404 to a DeleteSelf operation when readBody
-// is not set, as the object is gone already, and an Error that wraps ErrContainerPDPOnly, not
+// complete reply, with these exceptions: an Error that wraps ErrContainerPDPOnly, not
 // ErrNotFound, for a 404 with an empty body to a ContainerOnly operation, which the cloud PDP
-// does not serve. A call that fails returns the error of its last attempt, or, when ctx ends
-// while it waits to send the request again, a *Error that wraps the error of ctx.
+// does not serve, as a Facts operation sent to the PDP is; and otherwise nil for a 404 to a
+// DeleteSelf operation when readBody is not set, as the object is gone already. A call that
+// fails returns the error of its last attempt, or, when ctx ends while it waits to send the
+// request again, a *Error that wraps the error of ctx.
 func (c *Client) exchange(ctx context.Context, r request, readBody bool) (rest.Op,
 	transport.Reply, error,
 ) {
@@ -147,6 +154,9 @@ func (c *Client) exchange(ctx context.Context, r request, readBody bool) (rest.O
 	if !ok {
 		return rest.Op{}, transport.Reply{}, fmt.Errorf("permit: the operation %s is not in "+
 			"the client's operation registry", r.op)
+	}
+	if r.target == pdpTarget {
+		op = op.ViaPDP()
 	}
 	attempt, err := c.attempt(op, r, readBody)
 	if err != nil {
@@ -232,6 +242,7 @@ func (c *Client) attempt(op rest.Op, r request, readBody bool) (transport.Reques
 		Query:    query,
 		Template: op.Route,
 		Body:     body,
+		Header:   r.header,
 		ReadBody: readBody,
 	}
 	switch r.target {
@@ -262,12 +273,13 @@ func (c *Client) attemptError(op rest.Op, reply transport.Reply, sendErr error,
 	if isSuccess(reply.Status) {
 		return nil
 	}
-	if reply.Status == http.StatusNotFound && op.DeleteSelf && !readBody {
+	containerOnly := reply.Status == http.StatusNotFound && op.ContainerOnly &&
+		len(bytes.TrimSpace(reply.Body)) == 0
+	if reply.Status == http.StatusNotFound && op.DeleteSelf && !readBody && !containerOnly {
 		return nil
 	}
 	e := failed.replyError(reply.Status, reply.Body, c.secrets, op.SensitiveBodyFields)
-	if reply.Status == http.StatusNotFound && op.ContainerOnly &&
-		len(bytes.TrimSpace(reply.Body)) == 0 {
+	if containerOnly {
 		e.Err = ErrContainerPDPOnly
 	}
 	return e

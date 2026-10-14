@@ -1207,11 +1207,13 @@ var docTestOps = []rest.Op{
 		ContainerOnly: true, KeyLevel: rest.EnvironmentLevel,
 	},
 	{
-		ID: "test_doc_get", Method: "GET", Route: rest.TestPrefix + "users/{user_id}",
+		ID: "test_doc_get", Method: "GET",
+		Route: rest.TestPrefix + "v2/facts/{proj_id}/{env_id}/users/{user_id}",
 		Facts: true, WaitsForSync: true, KeyLevel: rest.ProjectLevel,
 	},
 	{
-		ID: "test_doc_list", Method: "GET", Route: rest.TestPrefix + "users",
+		ID: "test_doc_list", Method: "GET",
+		Route: rest.TestPrefix + "v2/facts/{proj_id}/{env_id}/users",
 		Facts: true, KeyLevel: rest.EnvironmentLevel,
 	},
 	{

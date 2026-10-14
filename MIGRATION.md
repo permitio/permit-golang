@@ -530,6 +530,19 @@ Tell the level of the API key from the scope that `Client.Scope` returns for a c
 `permit.WithScope`: no project for an organization-level key, a project and no environment for a
 project-level key, and both for an environment-level key.
 
+<a id="M-facts-1"></a>
+### M-facts-1: WithProxyFactsViaPDP becomes WithFactsViaPDP
+
+- v1: `config.PermitConfig.WithProxyFactsViaPDP`
+- v1: `config.PermitConfig.GetProxyFactsViaPDP`
+- v2: `permit.WithFactsViaPDP`
+
+Pass `permit.WithFactsViaPDP()`, which takes no argument, to `permit.New` instead of calling
+`WithProxyFactsViaPDP(true)` on the configuration, and leave it out instead of
+`WithProxyFactsViaPDP(false)`, the default. v2 has no getter: the client keeps its configuration
+to itself, as [M-client-3](#M-client-3) says. With the option, the calls of the facts API go to
+the PDP container, as [M-facts-2](#M-facts-2) says.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -618,6 +631,26 @@ for it, and the client keeps the scope of the first lookup that succeeds for its
 that fails is not kept, so the next call that needs the scope sends it again. The lookup follows
 `permit.WithRetry` and `permit.WithTimeout`. A call whose context ends while it waits for the
 lookup returns at once, and the lookup goes on for the other calls that wait for it.
+
+<a id="M-facts-2"></a>
+### M-facts-2: Facts go to the PDP container with WithFactsViaPDP
+
+- v1: facts requests sent to the same place with or without `WithProxyFactsViaPDP(true)`: from v1.2.8 on, to the Permit API at `/v2/facts/{proj_id}/{env_id}/...`
+- v2: facts requests sent to the PDP container at `/facts/...` with `permit.WithFactsViaPDP()`, and to the Permit API without it
+- Bug fix: could never work before
+
+In v1, `WithProxyFactsViaPDP(true)` did not change where the facts requests went: from v1.2.8 on,
+each went to the Permit API, so the PDP container never saw them, and v1.2.7 and earlier sent
+them to the PDP URL with or without the option. With `permit.WithFactsViaPDP()`, v2 sends the
+calls of users, tenants and the users in them, role assignments, resource instances and
+relationship tuples, one at a time and in bulk, to the PDP URL under `/facts/`, without the
+project and the environment: the container acts on the environment of its own API key, and the
+client sends no request for the scope of its API key for these calls. The calls of set rules,
+user invites and proxy configs, which the facts API also serves, go to the Permit API as before.
+
+Only the PDP container serves `/facts/`. The cloud PDP answers each of these calls with 404 and an
+empty body, which the call returns as an error that matches `permit.ErrContainerPDPOnly`, and
+`permit.New` logs a warning when the option is given with the URL of the cloud PDP.
 
 ## Kept on purpose
 

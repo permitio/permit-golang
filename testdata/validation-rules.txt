@@ -26,3 +26,6 @@ path.segment.dot the path parameter is . or .., which would change the route; pa
 path.segment.empty the path parameter is empty; pass the key or ID of the object
 scope.environment.missing the operation acts on an environment, and the client's scope has none; pass WithScope(project, environment) to New
 scope.project.missing the operation acts on a project, and the client's scope has none; pass WithScope(project, environment) to New
+wait-for-sync.facts-via-api the call waits for sync, which only the PDP container does, and the client sends facts to the API; pass WithFactsViaPDP to New, or make the call without the wait
+wait-for-sync.not-waiting the PDP container does not wait for sync on this route; make the call without the wait
+wait-for-sync.timeout-negative the timeout of the wait for sync is less than zero; give 0 or more

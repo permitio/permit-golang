@@ -78,8 +78,6 @@ api.NewUsersApi users
 config.PermitConfig.GetFactsSyncTimeout facts
 config.PermitConfig.GetFactsSyncTimeoutPolicy facts
 config.PermitConfig.WithFactsSyncTimeout facts
-config.PermitConfig.GetProxyFactsViaPDP facts
-config.PermitConfig.WithProxyFactsViaPDP facts
 config.PermitConfig.GetOpaUrl checks
 config.PermitConfig.WithOpaUrl checks
 config.DefaultFactsSyncTimeout facts

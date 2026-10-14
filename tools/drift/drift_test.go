@@ -5,7 +5,9 @@
 // decoder, compare the RequestModel and ResponseModel of each operation of the registry with its
 // request and reply schemas, and validate each reply fixture in the root's testdata/replies
 // against its reply schema. allow.yaml accepts the findings that come from known defects of the
-// specs, each with a reason and a trigger, and an entry that accepts nothing fails.
+// specs, each with a reason and a trigger, and an entry that accepts nothing fails. The tests of
+// waits_test.go check the routes on which the PDP container waits for sync, which the spec of
+// the container lists, against the root's doc.go, the registry and coverage.yaml.
 //
 // The checks share one walker of the part of JSON Schema that the snapshots use. A schema with
 // a keyword that the walker does not know stops the check that meets it, which then reports DID

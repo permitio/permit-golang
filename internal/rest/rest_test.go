@@ -62,12 +62,19 @@ func TestCheckAcceptsValidOps(t *testing.T) {
 		"organization level":       func(op *Op) { op.KeyLevel = OrganizationLevel },
 		"a list":                   func(op *Op) { op.MaxPerPage = 100 },
 		"a self delete":            func(op *Op) { op.Method, op.DeleteSelf = "DELETE", true },
-		"a waiting fact":           func(op *Op) { op.Facts, op.WaitsForSync = true, true },
 		"idempotent":               func(op *Op) { op.Idempotent = true },
 		"no retry":                 func(op *Op) { op.NoRetry = true },
 		"container only":           func(op *Op) { op.ContainerOnly = true },
 		"sensitive fields":         func(op *Op) { op.SensitiveBodyFields = []string{"secret"} },
 		"models":                   func(op *Op) { op.RequestModel, op.ResponseModel = "A", "B" },
+		"a waiting fact": func(op *Op) {
+			*op = sdkOp("create_user")
+			op.Method, op.Route, op.WaitsForSync = http.MethodPost, apiFactsPrefix+"users", true
+		},
+		"a test-only fact": func(op *Op) {
+			*op = testOp("test_fact")
+			op.Route, op.Facts = TestPrefix+"v2/facts/{proj_id}/{env_id}/objects", true
+		},
 	} {
 		op := minimal
 		change(&op)
@@ -118,6 +125,30 @@ func TestCheckRejectsInvalidOps(t *testing.T) {
 		{
 			"WaitsForSync without Facts", func(op *Op) { op.WaitsForSync, op.Facts = true, false },
 			"WaitsForSync is set without Facts; only a facts operation waits",
+		},
+		{
+			"Facts outside the facts API", func(op *Op) { op.Route = "/v2/schema/{proj_id}/x" },
+			"the route /v2/schema/{proj_id}/x has Facts set and does not start with " +
+				"/v2/facts/{proj_id}/{env_id}/; only a route of the facts API goes through the " +
+				"PDP container",
+		},
+		{
+			"Facts on the prefix alone", func(op *Op) { op.Route = "/v2/facts/{proj_id}/{env_id}" },
+			"has Facts set and does not start with",
+		},
+		{
+			"Facts on the PDP's route", func(op *Op) { op.Route = "/facts/users/{user_id}" },
+			"has Facts set and does not start with",
+		},
+		{
+			"Facts with other placeholders",
+			func(op *Op) { op.Route = "/v2/facts/{project}/{env_id}/users" },
+			"has Facts set and does not start with",
+		},
+		{
+			"Facts after a prefix that is not TestPrefix",
+			func(op *Op) { op.Route = "/__testing/v2/facts/{proj_id}/{env_id}/users" },
+			"has Facts set and does not start with",
 		},
 		{
 			"NoRetry and Idempotent", func(op *Op) { op.NoRetry = true },
@@ -304,6 +335,66 @@ func TestRegistryKeepsItsOwnSensitiveFields(t *testing.T) {
 				t.Errorf("%s holds the fields %q after the caller changed its slice, want its "+
 					"own copy", op.ID, op.SensitiveBodyFields)
 			}
+		}
+	}
+}
+
+// TestViaPDP checks the route of each Facts operation under the PDP container's /facts mount, of
+// the SDK and test-only, with ContainerOnly set and the other fields kept, and that ViaPDP leaves
+// any other operation as it is.
+func TestViaPDP(t *testing.T) {
+	for _, tc := range []struct {
+		route, want string
+	}{
+		{apiFactsPrefix + "users", "/facts/users"},
+		{apiFactsPrefix + "users/{user_id}/roles", "/facts/users/{user_id}/roles"},
+		{apiFactsPrefix + "relationship_tuples/bulk", "/facts/relationship_tuples/bulk"},
+		{
+			TestPrefix + "v2/facts/{proj_id}/{env_id}/objects/{object_id}",
+			"/__test/facts/objects/{object_id}",
+		},
+	} {
+		op := sdkOp("get_user")
+		op.Route, op.SensitiveBodyFields = tc.route, []string{"secret"}
+		want := op
+		want.Route, want.ContainerOnly = tc.want, true
+		if diff := cmp.Diff(want, op.ViaPDP()); diff != "" {
+			t.Errorf("ViaPDP of %s differs (-want +got):\n%s", tc.route, diff)
+		}
+	}
+	notFacts := sdkOp("list_set_permissions")
+	notFacts.Route, notFacts.Facts = apiFactsPrefix+"set_rules", false
+	decision := Op{ID: "is_allowed", Method: http.MethodPost, Route: "/allowed"}
+	for _, op := range []Op{notFacts, decision} {
+		if diff := cmp.Diff(op, op.ViaPDP()); diff != "" {
+			t.Errorf("ViaPDP changed %s, which is not a Facts operation (-want +got):\n%s",
+				op.ID, diff)
+		}
+	}
+}
+
+func TestFactsRoute(t *testing.T) {
+	for route, want := range map[string][2]string{
+		"/v2/facts/{proj_id}/{env_id}/users":                {"", "users"},
+		"/v2/facts/{proj_id}/{env_id}/users/{user_id}":      {"", "users/{user_id}"},
+		"/__test/v2/facts/{proj_id}/{env_id}/objects":       {"/__test", "objects"},
+		"/__test/v2/facts/{proj_id}/{env_id}/a/{object_id}": {"/__test", "a/{object_id}"},
+	} {
+		head, tail, ok := factsRoute(route)
+		if !ok || head != want[0] || tail != want[1] {
+			t.Errorf("factsRoute(%q) = %q, %q, %t; want %q, %q, true", route, head, tail, ok,
+				want[0], want[1])
+		}
+	}
+	for _, route := range []string{
+		"", "/", "/v2/facts/{proj_id}/{env_id}", "/v2/facts/{proj_id}/{env_id}/",
+		"/v2/facts/{proj_id}/users", "/facts/users", "/v2/schema/{proj_id}/{env_id}/users",
+		"/__test/facts/objects", "/__test/v2/facts/{proj_id}/{env_id}/", "/__testv2/facts/x",
+		"/__testing/v2/facts/{proj_id}/{env_id}/users", "v2/facts/{proj_id}/{env_id}/users",
+		"/x/v2/facts/{proj_id}/{env_id}/users",
+	} {
+		if head, tail, ok := factsRoute(route); ok {
+			t.Errorf("factsRoute(%q) = %q, %q, true; want false", route, head, tail)
 		}
 	}
 }

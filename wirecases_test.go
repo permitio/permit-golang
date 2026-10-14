@@ -1,6 +1,7 @@
 package permit_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"go/token"
@@ -15,13 +16,16 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/permitio/permit-golang/v2"
+	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/surface"
+	"github.com/permitio/permit-golang/v2/internal/testkit/faketb"
 	"github.com/permitio/permit-golang/v2/internal/testkit/mockpermit"
 )
 
 // wireCase is the wire test of a public method: the request the method must send, the reply it
 // gets and the result it must return, and an error reply of the API with the error the method
 // must return for it. A method can have more than one case, such as one for each of its options.
+// TestWireCases runs each case in each of its modes, as runWireCase describes.
 type wireCase struct {
 	// Method is the method, as its type and name, such as UsersService.Get.
 	Method string
@@ -33,8 +37,16 @@ type wireCase struct {
 	// "GET /v2/facts/{proj_id}/{env_id}/users/{user_id}".
 	Route string
 
-	// Modes lists the ways the client sends the request; the case runs once in each.
+	// Modes lists the ways the client sends the request; the case runs once in each. A case of
+	// an operation of the facts API lists apiMode and factsViaPDPMode, and no other case lists
+	// factsViaPDPMode.
 	Modes []wireMode
+
+	// Call calls the method with the client c, as the case's request needs, such as
+	// func(ctx context.Context, c *permit.Client) (any, error) { return c.Scope(ctx) }, and
+	// returns its result and its error. A method that returns only an error returns
+	// wireNoResult{} with it.
+	Call func(ctx context.Context, c *permit.Client) (any, error)
 
 	// Request is the request the method must send.
 	Request wireRequest
@@ -49,7 +61,8 @@ type wireCase struct {
 	// ErrorReply is an error reply of the API to Request, with the API's error body.
 	ErrorReply mockpermit.Reply
 
-	// WantErr is the error the method must return for ErrorReply.
+	// WantErr is the error the method must return for ErrorReply. In factsViaPDPMode, the
+	// runner expects the route of a *permit.Error under /facts.
 	WantErr error
 }
 
@@ -63,7 +76,8 @@ const (
 	// pdpMode sends the request to the PDP.
 	pdpMode wireMode = "pdp"
 
-	// factsViaPDPMode sends a facts request to the PDP container instead of the Permit API.
+	// factsViaPDPMode sends a facts request to the PDP container instead of the Permit API, as
+	// permit.WithFactsViaPDP does: under /facts, without the project and the environment.
 	factsViaPDPMode wireMode = "facts-via-pdp"
 )
 
@@ -72,8 +86,10 @@ var wireModes = []wireMode{apiMode, pdpMode, factsViaPDPMode}
 
 // wireRequest is the request a case expects its method to send.
 type wireRequest struct {
-	// RawPath is the path as the client sends it, with its escapes, such as
-	// /v2/facts/p/e/users/a%2Fb.
+	// RawPath is the path as the client sends it to the API, with its escapes, such as
+	// /v2/facts/p/e/users/a%2Fb, where wireProject and wireEnvironment fill {proj_id} and
+	// {env_id} for a method that takes neither. In factsViaPDPMode, the runner expects the path
+	// under /facts, such as /facts/users/a%2Fb.
 	RawPath string
 
 	// RawQuery is the query without the "?", or empty when the method sends none.
@@ -132,17 +148,463 @@ func replyFixture(name string) string {
 	return string(body)
 }
 
-// wireTestClient returns a client whose URLs point at api and pdp, with mockpermit's API key, and
-// closes it when the test ends.
-func wireTestClient(t *testing.T, api, pdp *mockpermit.Server) *permit.Client {
+// wireClientFunc returns the client that the runner calls the method of a case with: one whose
+// URLs point at api and pdp, with mockpermit's API key and opts.
+type wireClientFunc func(tb testing.TB, api, pdp *mockpermit.Server,
+	opts ...permit.Option) *permit.Client
+
+// wireTestClient is the wireClientFunc of the wire cases, which builds the client with
+// permit.New and closes it when the test ends.
+func wireTestClient(tb testing.TB, api, pdp *mockpermit.Server,
+	opts ...permit.Option,
+) *permit.Client {
+	tb.Helper()
+	base := []permit.Option{
+		permit.WithAPIKey(mockpermit.APIKey), permit.WithAPIURL(api.URL),
+		permit.WithPDPURL(pdp.URL),
+	}
+	c, err := permit.New(append(base, opts...)...)
+	if err != nil {
+		tb.Fatalf("permit.New: %v", err)
+	}
+	tb.Cleanup(func() { _ = c.Close() })
+	return c
+}
+
+// The scope of the clients of the runner when the route of a case fills {proj_id} or {env_id}
+// and the method takes neither, so that the client sends no lookup of the scope before its call.
+const (
+	wireProject     = "p"
+	wireEnvironment = "e"
+)
+
+// wireWaitHeaderNames are the headers of a call that waits for sync, which the request of no case
+// carries.
+var wireWaitHeaderNames = []string{"X-Wait-Timeout", "X-Timeout-Policy"}
+
+// wireScope returns the options that give the client of a case the runner's scope when route,
+// the route of the case, fills {proj_id} or {env_id}, and none for another route, such as that
+// of the lookup of the scope, whose case looks it up.
+func wireScope(route string) []permit.Option {
+	placeholders, err := routePlaceholders(route)
+	if err != nil || !slices.ContainsFunc(scopePlaceholders, func(name string) bool {
+		return slices.Contains(placeholders, name)
+	}) {
+		return nil
+	}
+	return []permit.Option{permit.WithScope(wireProject, wireEnvironment)}
+}
+
+// factsViaPDP returns path, a route or a path of the facts API such as
+// "POST /v2/facts/{proj_id}/{env_id}/users" or /v2/facts/p/e/users/a, as the PDP container serves
+// it under /facts, without the project and the environment: "POST /facts/users" or
+// /facts/users/a. What comes before /v2/facts, such as the method or the prefix of a test-only
+// route, stays. It returns false when path has no /v2/facts/ with three segments after it.
+func factsViaPDP(path string) (string, bool) {
+	head, rest, ok := strings.Cut(path, "/v2/facts/")
+	parts := strings.SplitN(rest, "/", 3)
+	if !ok || len(parts) < 3 || parts[2] == "" {
+		return "", false
+	}
+	return head + "/facts/" + parts[2], true
+}
+
+// onRoute returns err as the error of a request along route, a method and a path: a copy of the
+// *permit.Error that err is, with the path in Route, or else err as it is.
+func onRoute(err error, route string) error {
+	e, ok := errors.AsType[*permit.Error](err)
+	if !ok {
+		return err
+	}
+	moved := *e
+	_, moved.Route, _ = strings.Cut(route, " ")
+	return &moved
+}
+
+// runWireCase runs c in mode against mockpermit servers that fail tb on each request they do not
+// expect, with a client of newClient and the options of the mode: WithFactsViaPDP in
+// factsViaPDPMode, and the runner's scope when c.Route fills it. The method must send c.Request
+// to the server of the mode, the API in apiMode and the PDP in the others, along c.Route, or in
+// factsViaPDPMode along the route and the path under /facts. It must return c.WantResult for
+// c.Reply, and c.WantErr for c.ErrorReply, with the route under /facts in factsViaPDPMode. Its
+// request must carry no wait header, and the other server must get no request and no connection.
+func runWireCase(tb testing.TB, c wireCase, mode wireMode, newClient wireClientFunc) {
+	tb.Helper()
+	target, wantErr := wireTarget{route: c.Route, rawPath: c.Request.RawPath}, c.WantErr
+	opts := wireScope(c.Route)
+	if mode == factsViaPDPMode {
+		var routeOK, pathOK bool
+		target.route, routeOK = factsViaPDP(c.Route)
+		target.rawPath, pathOK = factsViaPDP(c.Request.RawPath)
+		if !routeOK || !pathOK {
+			tb.Errorf("%s: the route %q and the path %q are not both of the facts API, which the "+
+				"mode %s needs", c.Method, c.Route, c.Request.RawPath, mode)
+			return
+		}
+		wantErr = onRoute(c.WantErr, target.route)
+		opts = append(opts, permit.WithFactsViaPDP())
+	}
+	call := func(reply mockpermit.Reply) (any, []mockpermit.Request, error) {
+		api, pdp := mockpermit.NewAPI(tb), mockpermit.NewPDP(tb)
+		to, other := api, pdp
+		if mode != apiMode {
+			to, other = pdp, api
+		}
+		to.Handle(target.route, reply)
+		got, err := c.Call(tb.Context(), newClient(tb, api, pdp, opts...))
+		other.AssertUntouched()
+		return got, to.Requests(), err
+	}
+
+	got, requests, err := call(c.Reply)
+	if err != nil {
+		tb.Errorf("%s in the mode %s returned %v", c.Method, mode, err)
+	} else if diff := cmp.Diff(c.WantResult, got); diff != "" {
+		tb.Errorf("%s in the mode %s returned a result that differs (-want +got):\n%s", c.Method,
+			mode, diff)
+	}
+	checkWireRequest(tb, c, mode, target, requests)
+	_, _, err = call(c.ErrorReply)
+	if diff := cmp.Diff(wantErr, err); diff != "" {
+		tb.Errorf("%s in the mode %s returned an error that differs (-want +got):\n%s", c.Method,
+			mode, diff)
+	}
+}
+
+// wireTarget is where the request of a wire case goes in a mode: its route, such as
+// "GET /v2/api-key/scope", and its path as sent.
+type wireTarget struct {
+	route, rawPath string
+}
+
+// checkWireRequest checks requests, those that the server of mode got from the call of c: one
+// request, to target, with the query and the body of c.Request, and without a wait header.
+func checkWireRequest(tb testing.TB, c wireCase, mode wireMode, target wireTarget,
+	requests []mockpermit.Request,
+) {
+	tb.Helper()
+	if len(requests) != 1 {
+		tb.Errorf("%s in the mode %s sent %d requests to its server, want 1", c.Method, mode,
+			len(requests))
+		return
+	}
+	sent := requests[0]
+	method, _, _ := strings.Cut(target.route, " ")
+	if sent.Method != method || sent.RawPath != target.rawPath ||
+		sent.RawQuery != c.Request.RawQuery {
+		tb.Errorf("%s in the mode %s sent %s %s?%s, want %s %s?%s", c.Method, mode, sent.Method,
+			sent.RawPath, sent.RawQuery, method, target.rawPath, c.Request.RawQuery)
+	}
+	if c.Request.Body != "" {
+		sent.ExpectJSON(tb, c.Request.Body)
+	} else if len(sent.Body) != 0 {
+		tb.Errorf("%s in the mode %s sent the body %q, want none", c.Method, mode, sent.Body)
+	}
+	for _, name := range wireWaitHeaderNames {
+		if values := sent.Header.Values(name); values != nil {
+			tb.Errorf("%s in the mode %s sent %s: %q, which only a call that waits for sync "+
+				"sends", c.Method, mode, name, values)
+		}
+	}
+}
+
+// factsModeProblems returns a problem for each case whose modes do not fit its operation in
+// registry: the case of a Facts operation runs against the API and against the PDP container,
+// so it lists apiMode and factsViaPDPMode, and the case of another operation does not list
+// factsViaPDPMode. It leaves a case whose operation registry does not hold to unregisteredOps.
+func factsModeProblems(cases []wireCase, registry *rest.Registry) []string {
+	var problems []string
+	for _, c := range cases {
+		op, ok := registry.Op(c.Op)
+		bothModes := slices.Contains(c.Modes, apiMode) && slices.Contains(c.Modes, factsViaPDPMode)
+		switch {
+		case !ok:
+		case op.Facts && !bothModes:
+			problems = append(problems, fmt.Sprintf("the wire case of %s (%s) has the modes %q; "+
+				"the case of an operation of the facts API lists %s and %s", c.Method, c.Op,
+				c.Modes, apiMode, factsViaPDPMode))
+		case !op.Facts && slices.Contains(c.Modes, factsViaPDPMode):
+			problems = append(problems, fmt.Sprintf("the wire case of %s (%s) lists %s, which "+
+				"only the case of an operation of the facts API lists", c.Method, c.Op,
+				factsViaPDPMode))
+		}
+	}
+	return problems
+}
+
+// TestWireCases runs each wire case in each of its modes, as runWireCase describes, and checks
+// that the case of each operation of the facts API runs against the API and the PDP container.
+func TestWireCases(t *testing.T) {
+	cases := wireCases(t)
+	for _, problem := range factsModeProblems(cases, rest.Default()) {
+		t.Error(problem)
+	}
+	for _, c := range cases {
+		for _, mode := range c.Modes {
+			t.Run(c.Method+"/"+string(mode), func(t *testing.T) {
+				runWireCase(t, c, mode, wireTestClient)
+			})
+		}
+	}
+}
+
+// The tests below check the runner on a test-only operation of the facts API.
+
+// The test-only operations of the runner's tests: one of the facts API, a removal whose body
+// names nothing, which permit.Client.CallFacts calls, and one that is not of the facts API.
+var (
+	opWireFacts = rest.Op{
+		ID: "test_wire_facts", Method: http.MethodDelete,
+		Route:      rest.TestPrefix + "v2/facts/{proj_id}/{env_id}/objects/{object_id}/members",
+		Idempotent: true, Facts: true, KeyLevel: rest.EnvironmentLevel,
+	}
+	opWirePlain = rest.Op{
+		ID: "test_wire_plain", Method: http.MethodGet, Route: rest.TestPrefix + "plain",
+		Idempotent: true, KeyLevel: rest.EnvironmentLevel,
+	}
+)
+
+// conflictBody is the API's error body of a conflict.
+const conflictBody = `{"error_code":"CONFLICT","title":"Conflict",` +
+	`"message":"the object changed","id":"req-2"}`
+
+// wireFactsCase returns the wire case of a call of opWireFacts for the object a/b, in both
+// modes.
+func wireFactsCase() wireCase {
+	return wireCase{
+		Method: "ObjectsService.RemoveMembers",
+		Op:     opWireFacts.ID,
+		Route:  "DELETE /__test/v2/facts/{proj_id}/{env_id}/objects/{object_id}/members",
+		Modes:  []wireMode{apiMode, factsViaPDPMode},
+		Call: func(ctx context.Context, c *permit.Client) (any, error) {
+			return wireNoResult{}, c.CallFacts(ctx, opWireFacts.ID, "a/b")
+		},
+		Request:    wireRequest{RawPath: "/__test/v2/facts/p/e/objects/a%2Fb/members"},
+		Reply:      mockpermit.Reply{Status: http.StatusNoContent},
+		WantResult: wireNoResult{},
+		ErrorReply: mockpermit.Reply{Status: http.StatusConflict, Body: conflictBody},
+		WantErr: &permit.Error{
+			Op: opWireFacts.ID, Method: http.MethodDelete,
+			Route:      "/__test/v2/facts/{proj_id}/{env_id}/objects/{object_id}/members",
+			StatusCode: http.StatusConflict, Code: "CONFLICT", Title: "Conflict",
+			Detail: "the object changed", RequestID: "req-2", Body: []byte(conflictBody),
+		},
+	}
+}
+
+// wireFactsClient is the wireClientFunc of the runner's tests, whose client also holds
+// opWireFacts.
+func wireFactsClient(tb testing.TB, api, pdp *mockpermit.Server,
+	opts ...permit.Option,
+) *permit.Client {
+	tb.Helper()
+	base := []permit.Option{
+		permit.WithAPIKey(mockpermit.APIKey), permit.WithAPIURL(api.URL),
+		permit.WithPDPURL(pdp.URL),
+	}
+	c := permit.NewTestClient(tb, append(base, opts...), opWireFacts)
+	tb.Cleanup(func() { _ = c.Close() })
+	return c
+}
+
+// TestWireRunnerRunsFactsInBothModes runs the case of a call of the facts API in each of its
+// modes: to the API with the runner's scope, and to the PDP container under /facts, each time
+// with nothing reaching the other server.
+func TestWireRunnerRunsFactsInBothModes(t *testing.T) {
+	c := wireFactsCase()
+	if problems := checkWireCase(c); problems != nil {
+		t.Fatalf("checkWireCase rejected the case: %q", problems)
+	}
+	for _, mode := range c.Modes {
+		t.Run(string(mode), func(t *testing.T) { runWireCase(t, c, mode, wireFactsClient) })
+	}
+}
+
+// runFake runs c in mode with the clients of newClient on a fake testing.TB, and returns what
+// the runner and the servers reported, once the servers have stopped.
+func runFake(t *testing.T, c wireCase, mode wireMode, newClient wireClientFunc) string {
 	t.Helper()
-	c, err := permit.New(permit.WithAPIKey(mockpermit.APIKey), permit.WithAPIURL(api.URL),
-		permit.WithPDPURL(pdp.URL))
+	fake := faketb.New(t)
+	fake.Run(func() { runWireCase(fake, c, mode, newClient) })
+	fake.End()
+	return strings.Join(fake.Take(), "\n")
+}
+
+// TestWireRunnerFailsAWrongServer checks that the runner fails a call that goes to the other
+// server: a facts call that the client sends to the API in factsViaPDPMode, and one that it sends
+// to the PDP container in apiMode.
+func TestWireRunnerFailsAWrongServer(t *testing.T) {
+	for _, tc := range []struct {
+		mode wireMode
+		// opts are the options of the client, which leaves out those of the mode.
+		opts []permit.Option
+		want string
+	}{
+		{factsViaPDPMode, nil, "mockpermit API: want no connection and no request"},
+		{
+			apiMode,
+			[]permit.Option{permit.WithFactsViaPDP()},
+			"mockpermit PDP: want no connection and no request",
+		},
+	} {
+		t.Run(string(tc.mode), func(t *testing.T) {
+			misrouted := func(tb testing.TB, api, pdp *mockpermit.Server,
+				_ ...permit.Option,
+			) *permit.Client {
+				tb.Helper()
+				opts := append([]permit.Option{permit.WithScope(wireProject, wireEnvironment)},
+					tc.opts...)
+				return wireFactsClient(tb, api, pdp, opts...)
+			}
+			got := runFake(t, wireFactsCase(), tc.mode, misrouted)
+			for _, want := range []string{tc.want, "sent 0 requests to its server, want 1"} {
+				if !strings.Contains(got, want) {
+					t.Errorf("the runner reported\n%s\nwant a line that contains %q", got, want)
+				}
+			}
+		})
+	}
+}
+
+// leakingTransport sends each request through http.DefaultTransport with X-Wait-Timeout, as a
+// client whose wait reached a call that did not ask for it would.
+type leakingTransport struct{}
+
+func (leakingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	r = r.Clone(r.Context())
+	r.Header.Set("X-Wait-Timeout", "1")
+	return http.DefaultTransport.RoundTrip(r)
+}
+
+// TestWireRunnerFailsAWaitHeader checks that the runner fails a request that carries a wait for
+// sync that its call did not ask for.
+func TestWireRunnerFailsAWaitHeader(t *testing.T) {
+	leaking := func(tb testing.TB, api, pdp *mockpermit.Server,
+		opts ...permit.Option,
+	) *permit.Client {
+		tb.Helper()
+		hc := &http.Client{Transport: leakingTransport{}}
+		return wireFactsClient(tb, api, pdp, append(opts, permit.WithHTTPClient(hc))...)
+	}
+	got := runFake(t, wireFactsCase(), factsViaPDPMode, leaking)
+	want := `sent X-Wait-Timeout: ["1"], which only a call that waits for sync sends`
+	if !strings.Contains(got, want) {
+		t.Errorf("the runner reported\n%s\nwant a line that contains %q", got, want)
+	}
+}
+
+// TestWireRunnerNeedsAFactsRoute checks that the runner fails the case of a route outside the
+// facts API in factsViaPDPMode, and sends nothing.
+func TestWireRunnerNeedsAFactsRoute(t *testing.T) {
+	sent := false
+	c := scopeCases()[0]
+	c.Call = func(context.Context, *permit.Client) (any, error) {
+		sent = true
+		return wireNoResult{}, nil
+	}
+	got := runFake(t, c, factsViaPDPMode, wireTestClient)
+	want := `Client.Scope: the route "GET /v2/api-key/scope" and the path "/v2/api-key/scope" ` +
+		"are not both of the facts API, which the mode facts-via-pdp needs"
+	if got != want || sent {
+		t.Errorf("the runner reported %q and made the call: %t; want %q and no call", got, sent,
+			want)
+	}
+}
+
+func TestFactsViaPDP(t *testing.T) {
+	for path, want := range map[string]string{
+		"POST /v2/facts/{proj_id}/{env_id}/users":           "POST /facts/users",
+		"PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}":  "PUT /facts/users/{user_id}",
+		"/v2/facts/p/e/users/a%2Fb":                         "/facts/users/a%2Fb",
+		"/v2/facts/my-project/production/tenants/t/users/u": "/facts/tenants/t/users/u",
+		"DELETE /__test/v2/facts/{proj_id}/{env_id}/x/{id}": "DELETE /__test/facts/x/{id}",
+	} {
+		if got, ok := factsViaPDP(path); !ok || got != want {
+			t.Errorf("factsViaPDP(%q) = %q, %t; want %q, true", path, got, ok, want)
+		}
+	}
+	for _, path := range []string{
+		"", "GET /v2/api-key/scope", "/facts/users", "/v2/facts/p/e", "/v2/facts/p/e/",
+		"/v2/facts/p", "/v2/factsheet/p/e/users",
+	} {
+		if got, ok := factsViaPDP(path); ok {
+			t.Errorf("factsViaPDP(%q) = %q, true; want false", path, got)
+		}
+	}
+}
+
+func TestOnRoute(t *testing.T) {
+	original := &permit.Error{Op: "create_user", Route: "/v2/facts/{proj_id}/{env_id}/users"}
+	got := onRoute(original, "POST /facts/users")
+	want := &permit.Error{Op: "create_user", Route: "/facts/users"}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("onRoute differs (-want +got):\n%s", diff)
+	}
+	if original.Route != "/v2/facts/{proj_id}/{env_id}/users" {
+		t.Errorf("onRoute changed the error it was given: %+v", original)
+	}
+	if got := onRoute(errSynthetic, "POST /facts/users"); !errors.Is(got, errSynthetic) {
+		t.Errorf("onRoute of an error that is not a *permit.Error returned %v, want it as it is",
+			got)
+	}
+}
+
+func TestWireScope(t *testing.T) {
+	for route, want := range map[string]string{
+		"GET /v2/facts/{proj_id}/{env_id}/users": `permit.WithScope("p", "e")`,
+		"GET /v2/projects/{proj_id}/envs":        `permit.WithScope("p", "e")`,
+		"GET /v2/envs/{env_id}":                  `permit.WithScope("p", "e")`,
+		"GET /v2/api-key/scope":                  "",
+		"GET /v2/users/{user_id}":                "",
+		"GET v2/facts/{proj_id}":                 "",
+	} {
+		var got []string
+		for _, opt := range wireScope(route) {
+			got = append(got, opt.String())
+		}
+		if (want == "" && got != nil) || (want != "" && !slices.Equal(got, []string{want})) {
+			t.Errorf("wireScope(%q) = %q, want %q", route, got, want)
+		}
+	}
+}
+
+func TestFactsModeProblems(t *testing.T) {
+	registry, err := rest.Default().WithTestOps(opWireFacts, opWirePlain)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = c.Close() })
-	return c
+	facts, plain := wireFactsCase(), syntheticCase("PlainService.Get", "GET /__test/plain",
+		"/__test/plain")
+	plain.Op = opWirePlain.ID
+	unknown := syntheticCase("UnknownService.Get", "GET /x", "/x")
+	unknown.Modes = []wireMode{factsViaPDPMode}
+	withModes := func(c wireCase, modes ...wireMode) wireCase {
+		c.Modes = modes
+		return c
+	}
+	valid := []wireCase{
+		facts, withModes(facts, factsViaPDPMode, pdpMode, apiMode), plain,
+		withModes(plain, pdpMode), unknown,
+	}
+	if problems := factsModeProblems(valid, registry); problems != nil {
+		t.Errorf("factsModeProblems of cases that fit = %q, want none", problems)
+	}
+	got := factsModeProblems([]wireCase{
+		withModes(facts, apiMode), withModes(facts, factsViaPDPMode),
+		withModes(plain, apiMode, factsViaPDPMode),
+	}, registry)
+	want := []string{
+		`the wire case of ObjectsService.RemoveMembers (test_wire_facts) has the modes ["api"]; ` +
+			"the case of an operation of the facts API lists api and facts-via-pdp",
+		`the wire case of ObjectsService.RemoveMembers (test_wire_facts) has the modes ` +
+			`["facts-via-pdp"]; the case of an operation of the facts API lists api and ` +
+			"facts-via-pdp",
+		"the wire case of PlainService.Get (test_wire_plain) lists facts-via-pdp, which only the " +
+			"case of an operation of the facts API lists",
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("factsModeProblems differs (-want +got):\n%s", diff)
+	}
 }
 
 // checkWireCase returns what the case lacks or gets wrong, or nil when it is complete.
@@ -184,6 +646,9 @@ func checkWireCase(c wireCase) []string {
 	}
 	if c.WantErr == nil {
 		problems = append(problems, "WantErr must be the error the method returns for ErrorReply")
+	}
+	if c.Call == nil {
+		problems = append(problems, "Call must call the method with the client it is given")
 	}
 	return problems
 }
@@ -553,6 +1018,9 @@ func syntheticCase(method, route, rawPath string) wireCase {
 		WantResult: wireNoResult{},
 		ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: `{"detail": "not found"}`},
 		WantErr:    errSynthetic,
+		Call: func(context.Context, *permit.Client) (any, error) {
+			return wireNoResult{}, nil
+		},
 	}
 }
 
@@ -971,6 +1439,7 @@ func TestCheckWireCase(t *testing.T) {
 			"ErrorReply must be",
 		},
 		{"no error", func(c *wireCase) { c.WantErr = nil }, "WantErr must be the error"},
+		{"no call", func(c *wireCase) { c.Call = nil }, "Call must call the method"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := valid

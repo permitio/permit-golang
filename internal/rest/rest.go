@@ -25,6 +25,13 @@ import (
 // TestPrefix starts the route of every test-only operation, and of no operation of the SDK.
 const TestPrefix = testhook.TestPrefix
 
+// The prefixes of the routes of the facts API: that of the Permit API, and the mount of the PDP
+// container that serves the same routes on the environment of its own API key.
+const (
+	apiFactsPrefix = "/v2/facts/{proj_id}/{env_id}/"
+	pdpFactsPrefix = "/facts/"
+)
+
 // KeyLevel is the level of the API key that an operation needs: the narrowest key that may call
 // it. A key of a wider level may call it too, so an organization key may call every operation.
 type KeyLevel int
@@ -62,7 +69,9 @@ type Op struct {
 	Idempotent bool
 
 	// Facts says that the operation is one of the facts API, /v2/facts/{proj_id}/{env_id}/...,
-	// that the PDP container also serves under /facts, so that facts can go through it.
+	// that the PDP container also serves under /facts, so that facts can go through it. Its
+	// Route starts with /v2/facts/{proj_id}/{env_id}/, after TestPrefix for a test-only
+	// operation, and ViaPDP gives the operation as the container serves it.
 	Facts bool
 
 	// WaitsForSync says that the PDP container can hold its answer until the change reaches its
@@ -138,11 +147,43 @@ func (op Op) check() error {
 	if op.WaitsForSync && !op.Facts {
 		return errors.New("WaitsForSync is set without Facts; only a facts operation waits")
 	}
+	if _, _, ok := factsRoute(op.Route); op.Facts && !ok {
+		return fmt.Errorf("the route %s has Facts set and does not start with %s; only a "+
+			"route of the facts API goes through the PDP container", op.Route, apiFactsPrefix)
+	}
 	if op.NoRetry && op.Idempotent {
 		return errors.New("NoRetry and Idempotent are both set; an operation that is never sent " +
 			"twice is not retried")
 	}
 	return nil
+}
+
+// ViaPDP returns op as the PDP container serves it when op is a Facts operation: its Route under
+// /facts in place of /v2/facts/{proj_id}/{env_id}, as the container acts on the environment of
+// its own API key, after TestPrefix for a test-only operation, and ContainerOnly set, as the
+// cloud PDP does not serve /facts. It returns any other operation as it is.
+func (op Op) ViaPDP() Op {
+	head, tail, ok := factsRoute(op.Route)
+	if !op.Facts || !ok {
+		return op
+	}
+	op.Route = head + pdpFactsPrefix + tail
+	op.ContainerOnly = true
+	return op
+}
+
+// factsRoute splits route at the prefix of the facts API, /v2/facts/{proj_id}/{env_id}/, into
+// head, what comes before it, empty or TestPrefix without its slash, and tail, what follows it.
+// It returns false when route does not start with the prefix, after TestPrefix for a test-only
+// route, or has nothing after it.
+func factsRoute(route string) (head, tail string, ok bool) {
+	head = strings.TrimSuffix(TestPrefix, "/")
+	rest, isTest := strings.CutPrefix(route, head)
+	if !isTest {
+		head, rest = "", route
+	}
+	tail, ok = strings.CutPrefix(rest, apiFactsPrefix)
+	return head, tail, ok && tail != ""
 }
 
 // Registry holds operations by their IDs. It does not change once built, so it is safe for

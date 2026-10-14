@@ -25,6 +25,8 @@ const (
 	msgRequest   = "permit: request"
 	msgPlainHTTP = "permit: the API key is sent over http:// to a host that is not loopback; " +
 		"use https://"
+	msgFactsViaCloudPDP = "permit: facts are sent to the cloud PDP, which does not serve them; " +
+		"give WithPDPURL the URL of a PDP container"
 )
 
 // The keys of the attributes of the SDK's log lines.
@@ -100,6 +102,13 @@ func (l *Logger) Request(ctx context.Context, r Request) {
 func (l *Logger) PlainHTTP(apiURL string) {
 	l.logger.LogAttrs(context.Background(), slog.LevelWarn, msgPlainHTTP,
 		slog.String(keyURL, apiURL))
+}
+
+// FactsViaCloudPDP writes the Warn line that says that the client sends facts to pdpURL, its PDP
+// URL, which is the cloud PDP's and does not serve them, with the attribute url.
+func (l *Logger) FactsViaCloudPDP(pdpURL string) {
+	l.logger.LogAttrs(context.Background(), slog.LevelWarn, msgFactsViaCloudPDP,
+		slog.String(keyURL, pdpURL))
 }
 
 // handler is the slog.Handler that replaces the credentials of a line and passes it to next.

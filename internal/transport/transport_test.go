@@ -138,6 +138,50 @@ func TestSendSetsTheHeaders(t *testing.T) {
 	}
 }
 
+// TestSendSetsTheHeadersOfTheRequest checks that a request carries the headers of its
+// Request.Header, each value of a header that has more than one, in their canonical form; that a
+// header that Send sets itself replaces one of the same name there; that Send leaves the map as
+// it was; and that the next request without them carries none.
+func TestSendSetsTheHeadersOfTheRequest(t *testing.T) {
+	key := canary.Key("ownheaders")
+	got := make(chan http.Header, 2)
+	srv := newServer(t, func(w http.ResponseWriter, r *http.Request) {
+		got <- r.Header.Clone()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	s := newSender(t, key)
+	own := http.Header{
+		"x-wait-timeout": {"0.5"},
+		"X-Many":         {"a", "b"},
+		"Authorization":  {"Bearer forged"},
+		"User-Agent":     {"forged"},
+	}
+	before := own.Clone()
+	r := get(srv, "/v2/x", false)
+	r.Header = own
+	mustSend(t, s, r)
+	mustSend(t, s, get(srv, "/v2/x", false))
+
+	sent := <-got
+	for name, want := range map[string][]string{
+		"X-Wait-Timeout": {"0.5"},
+		"X-Many":         {"a", "b"},
+		"Authorization":  {"Bearer " + key},
+		"User-Agent":     {UserAgent(testVersion)},
+	} {
+		if diff := cmp.Diff(want, sent.Values(name)); diff != "" {
+			t.Errorf("the request has the header %s that differs (-want +got):\n%s", name, diff)
+		}
+	}
+	if diff := cmp.Diff(before, own); diff != "" {
+		t.Errorf("Send changed Request.Header (-before +after):\n%s", diff)
+	}
+	next := <-got
+	if next.Get("X-Wait-Timeout") != "" || next.Get("X-Many") != "" {
+		t.Errorf("the next request, without them, carries %v", next)
+	}
+}
+
 // TestSendSendsThePathAndQueryAsGiven checks that the server gets the path with its escapes as
 // they are, after the path of the base URL, and the query.
 func TestSendSendsThePathAndQueryAsGiven(t *testing.T) {

@@ -64,6 +64,10 @@ type Client struct {
 	// WithScope gave, or the scope of the API key, which it looks up once.
 	scope *scope.Resolver
 
+	// factsViaPDP says that the calls of the facts API go to the PDP container, as
+	// WithFactsViaPDP says.
+	factsViaPDP bool
+
 	closed atomic.Bool
 }
 
@@ -78,13 +82,15 @@ type Client struct {
 //   - the retries of a call, [WithRetry], by default up to 3;
 //   - the logger, [WithLogger], by default none: the client logs nothing;
 //   - the scope, [WithScope], by default the scope of the API key, which the client looks up
-//     once, as [Client.Scope] describes.
+//     once, as [Client.Scope] describes;
+//   - where the calls of the facts API go, [WithFactsViaPDP], by default to the Permit API.
 //
 // New sends no request. It returns an error that matches [ErrInvalidConfig], and no Client, when
 // the configuration breaks a rule that an option's documentation states, such as a URL without
 // http:// or https://, or when an Option is the zero Option. The error names the option or the
 // environment variable, and never holds the API key. New logs a warning when the API URL uses
-// http:// to a host that is not loopback, as WithLogger describes.
+// http:// to a host that is not loopback, and when WithFactsViaPDP sends facts to the cloud PDP,
+// as WithLogger describes.
 func New(opts ...Option) (*Client, error) {
 	var s settings
 	for i, opt := range opts {
@@ -111,6 +117,7 @@ func New(opts ...Option) (*Client, error) {
 		httpClient: s.httpClient,
 		registry:   rest.Default(),
 	}
+	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)
 	} else {
@@ -119,6 +126,9 @@ func New(opts ...Option) (*Client, error) {
 	c.logger = logging.New(s.logger, c.secrets)
 	if plainHTTPToRemote(c.apiURL) {
 		c.logger.PlainHTTP(c.apiURL)
+	}
+	if c.factsViaPDP && isCloudPDP(c.pdpURL) {
+		c.logger.FactsViaCloudPDP(c.pdpURL)
 	}
 	if c.httpClient == nil {
 		c.httpClient, c.transport = ownHTTPClient()

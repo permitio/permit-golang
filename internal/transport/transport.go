@@ -4,12 +4,12 @@
 // facts of the call's operation, and how long the call waits before it does.
 //
 // Every request carries the client's API key in Authorization, the SDK's name and version in
-// User-Agent, X-Permit-Sdk-Language and X-Permit-Sdk-Version, and Accept: application/json; a
-// request with a body also carries Content-Type: application/json. Send reads a reply's body only
-// as far as the caller needs it, then reads and discards up to [MaxDrain] bytes of the rest, and
-// closes the body on every path, so that the connection can carry the next request. After each
-// attempt, Send writes it to the request record of the [testhook.Recorder] that the context
-// carries, when a test put one there.
+// User-Agent, X-Permit-Sdk-Language and X-Permit-Sdk-Version, Accept: application/json and the
+// headers of its [Request.Header]; a request with a body also carries Content-Type:
+// application/json. Send reads a reply's body only as far as the caller needs it, then reads and
+// discards up to [MaxDrain] bytes of the rest, and closes the body on every path, so that the
+// connection can carry the next request. After each attempt, Send writes it to the request record
+// of the [testhook.Recorder] that the context carries, when a test put one there.
 package transport
 
 import (
@@ -96,6 +96,11 @@ type Request struct {
 	// Body is the JSON body, or nil when the request has none.
 	Body []byte
 
+	// Header holds the headers of this request alone, such as the wait for sync of a facts
+	// write, or is nil. Send does not change it, and a header that Send sets itself, such as
+	// Authorization, replaces one of the same name here.
+	Header http.Header
+
 	// ReadBody says that the caller reads the body of a reply in 200-299. Send reads the body of
 	// a reply with another status in any case, up to MaxErrorBody bytes.
 	ReadBody bool
@@ -151,6 +156,11 @@ func (s *Sender) send(ctx context.Context, r Request) (Reply, error) {
 	req, err := http.NewRequestWithContext(ctx, r.Method, target, body)
 	if err != nil {
 		return Reply{}, err
+	}
+	for name, values := range r.Header {
+		for _, value := range values {
+			req.Header.Add(name, value)
+		}
 	}
 	s.setHeaders(req.Header, r.Body != nil)
 	resp, err := s.http.Do(req)

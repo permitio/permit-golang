@@ -269,12 +269,20 @@ Every public method, a method of `Client` or of a type whose name ends in `Servi
 case: a `wireCase` (`wirecases_test.go`) returned by the `<area>Cases()` function of its
 `<area>_wire_test.go` file, which `wireCaseLists` lists. A case names the method, such as
 `UsersService.Get`, the operationId of its operation in the API spec, the route as
-`mockpermit.Server.Handle` takes it, and the modes it runs in. It carries the request the method
-must send, the reply and the result the method must return for it (`wireNoResult{}` for a method
-that returns only an error), and an error reply of the API, with its status and error body, and
-the error the method must return for it. The cases run against `mockpermit` once the client
-exists *(the runner is added in a later commit on this branch)*; until then `TestScopeWire` runs
-those of `scope_wire_test.go`. The tests below check them already:
+`mockpermit.Server.Handle` takes it, the modes it runs in, and the call of the method with the
+client it is given. It carries the request the method must send, the reply and the result the
+method must return for it (`wireNoResult{}` for a method that returns only an error), and an error
+reply of the API, with its status and error body, and the error the method must return for it.
+
+`TestWireCases` runs each case in each of its modes against new `mockpermit` servers: `api` sends
+the request to the API, `pdp` to the PDP, and `facts-via-pdp` to the PDP container with
+`WithFactsViaPDP`, where the runner expects the route, the path and the route of the error under
+`/facts`, without `/v2/facts/{proj_id}/{env_id}`. The method must send the case's request to the
+server of the mode and nothing to the other server, return the result and the error of the case,
+and send no `X-Wait-Timeout` or `X-Timeout-Policy`. When the route fills `{proj_id}` or `{env_id}`,
+the client has `WithScope("p", "e")`, so a path such as `/v2/facts/p/e/users` needs no lookup of
+the scope. The case of an operation with `Facts` lists `api` and `facts-via-pdp`, and no other
+case lists `facts-via-pdp`. The tests below check the cases too:
 
 - the registry rejects a case whose method is not `<Type>.<Method>` with exported names, or that
   has no operationId, a malformed route or one with an empty segment, no mode, an unknown or
@@ -1048,7 +1056,7 @@ HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
   go -C tools test -count=1 ./drift
 ```
 
-They check four things:
+They check five things:
 
 - **Models.** `tools/drift/model-map.yaml` maps each type of `models` to its schema. A struct has
   a field for each property of its schema, and no other, by their JSON names. The type of each
@@ -1080,6 +1088,13 @@ They check four things:
   `list_users.200.page.json`, with a variant of lower-case letters, digits and hyphens. The tests
   validate it against the schema of its operation's reply with that status. Keep fixtures small:
   they are in the module zip.
+- **Waits for sync.** The PDP container waits for sync on the routes under `/facts` that
+  `pdp-container.json` lists. `tools/drift/waits_test.go` fails unless the table of the section
+  "Facts and wait-for-sync" of `doc.go` lists exactly these routes; an operation of the registry
+  is `WaitsForSync` exactly when the container waits on its route; the routes on which no
+  operation waits yet are exactly those whose row of the control plane in `coverage.yaml` is
+  planned, and the `pdp` row of each route has the status of that row; and no `pdp` row under
+  `/facts` names a route outside the list but the catch-all.
 
 The checks share one walker of the part of JSON Schema that the snapshots use. It checks `$ref`,
 `type` (one type or a list), `enum`, `properties`, `required`, `additionalProperties`,
@@ -1390,7 +1405,7 @@ its own:
 | Field | Meaning |
 | --- | --- |
 | `Idempotent` | A retry may send it again after a 500, 502, 503 or 504 reply or a request without a complete reply: the GET, PUT and DELETE operations, and the PDP's decisions. |
-| `Facts` | A route of the facts API that the PDP container also serves under `/facts`. |
+| `Facts` | A route of the facts API that the PDP container also serves under `/facts`: its route starts with `/v2/facts/{proj_id}/{env_id}/`, and with `WithFactsViaPDP` the call goes to the container, along the route that `Op.ViaPDP` gives. Not set rules, user invites or proxy configs, which only the API serves. |
 | `WaitsForSync` | The PDP container can hold its answer until the change reaches its policy. Only a `Facts` operation can wait. |
 | `ContainerOnly` | Only the PDP container serves it; the cloud PDP answers 404 with an empty body. |
 | `KeyLevel` | The narrowest API key that may call it: `EnvironmentLevel`, `ProjectLevel` or `OrganizationLevel`. |
@@ -1402,9 +1417,12 @@ its own:
 
 A `*permit.Client` holds the registry, `rest.Default()`. The registry fails on an operation that
 is not valid, such as one without a key level, `DeleteSelf` on another method than DELETE,
-`WaitsForSync` without `Facts` or `NoRetry` with `Idempotent`; on two operations with one ID; and
-on a route of `defaultOps` that starts with `/__test/`. `TestRepositoryRegistry`, in
-`tools/registry_test.go`, checks each operation of `rest.Default()` against `tools/specs`: its ID
+`WaitsForSync` without `Facts`, `Facts` on a route outside `/v2/facts/{proj_id}/{env_id}/` or
+`NoRetry` with `Idempotent`; on two operations with one ID; and on a route of `defaultOps` that
+starts with `/__test/`. `TestRepositoryWaits`, in `tools/drift/waits_test.go`, fails unless an
+operation is `WaitsForSync` exactly when the PDP container waits on its route, one of the routes
+under `/facts` that `pdp-container.json` lists; see [Model drift](#model-drift).
+`TestRepositoryRegistry`, in `tools/registry_test.go`, checks each operation of `rest.Default()` against `tools/specs`: its ID
 is the op of a planned or covered row of `coverage.yaml`, its method and route are those that a
 spec lists for the ID, or those of the row when the row is `sdk_only`, and its `RequestModel` and
 `ResponseModel` name exported types of `models`. `TestOperationMap` fails when a wire case names
@@ -1487,7 +1505,13 @@ later commit on this branch)* does not exist yet.
    project and an environment, one with `{proj_id}` alone a project, and one with neither no
    scope and no lookup. When the scope lacks what the route needs, `scopeFor` returns an error
    that matches `ErrInvalidConfig`, and the call sends no request for the operation; without
-   `WithScope`, the lookup of the scope may come first.
+   `WithScope`, the lookup of the scope may come first. A method of the facts API instead gets
+   its request from `facts.prepare` (`facts.go`), with the parameters that follow `{env_id}`:
+   with `WithFactsViaPDP` the call goes to the PDP container under `/facts` and needs no scope,
+   and without it to the API with the scope. A call through a copy that waits for sync carries
+   the wait's headers, and fails with an error that matches `ErrInvalidConfig`, sending nothing,
+   without `WithFactsViaPDP`, for an operation that is not `WaitsForSync` and for a timeout less
+   than zero.
 4. Document it, with the phrases that `docRules` asks of it. Give a new service type, and a new
    decision method, an Example with an output comment in `package permit_test`, and list a
    decision method in `decisionMethods`; see [API reference](#api-reference).

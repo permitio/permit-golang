@@ -69,6 +69,9 @@ type settings struct {
 	// scope is the scope that WithScope gave, or nil when the client looks up the scope of its
 	// API key.
 	scope *scope.Scope
+
+	// factsViaPDP says that WithFactsViaPDP was given.
+	factsViaPDP bool
 }
 
 // WithAPIKey sets the Permit API key that the client sends with each request. Without it, [New]
@@ -299,8 +302,9 @@ func isDotSegment(s string) bool {
 //     decode is the error of the call, and not of the line, which has its status and no error;
 //   - at [slog.LevelWarn], warnings about the configuration, each once, from [New]: when the
 //     API URL uses http:// to a host that is not loopback (localhost, 127.0.0.0/8 or ::1), with
-//     the attribute url. A PDP URL over http:// gets no warning, as a PDP often runs next to the
-//     application.
+//     the attribute url, and when [WithFactsViaPDP] sends facts to the cloud PDP, whose host is
+//     cloudpdp.api.permit.io and which does not serve them, with the PDP URL in the attribute
+//     url. A PDP URL over http:// gets no warning, as a PDP often runs next to the application.
 //
 // The handler of the logger decides which of them it keeps, by its level: a handler at
 // slog.LevelInfo, the default of slog's handlers, keeps the warnings only.

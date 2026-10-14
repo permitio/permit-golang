@@ -43,11 +43,11 @@ func clearEnv(t *testing.T) {
 }
 
 // mustNew returns New(opts...), and fails the test when New returns an error.
-func mustNew(t *testing.T, opts ...Option) *Client {
-	t.Helper()
+func mustNew(tb testing.TB, opts ...Option) *Client {
+	tb.Helper()
 	c, err := New(opts...)
 	if err != nil {
-		t.Fatalf("New: %v", err)
+		tb.Fatalf("New: %v", err)
 	}
 	return c
 }
@@ -135,6 +135,11 @@ var optionEffects = map[string]optionEffect{
 		option:  WithScope("effect-project", "effect-environment"),
 		setting: knownScope,
 		want:    Scope{Project: "effect-project", Environment: "effect-environment"},
+	},
+	"WithFactsViaPDP": {
+		option:  WithFactsViaPDP(),
+		setting: func(c *Client) any { return c.factsViaPDP },
+		want:    true,
 	},
 }
 
@@ -694,6 +699,7 @@ func TestOptionsPrintNoKey(t *testing.T) {
 		{WithScope("my-project", "production"), `permit.WithScope("my-project", "production")`},
 		{WithScope("", "a\"b"), `permit.WithScope("", "a\"b")`},
 		{WithScope(key, "env-"+key), `permit.WithScope("[REDACTED]", "env-[REDACTED]")`},
+		{WithFactsViaPDP(), "permit.WithFactsViaPDP()"},
 		{Option{}, "permit.Option{}"},
 	} {
 		if got := tc.option.String(); got != tc.want {

@@ -636,3 +636,23 @@ func TestPlainHTTP(t *testing.T) {
 		t.Errorf("PlainHTTP wrote the attributes %v, want %v", got, want)
 	}
 }
+
+func TestFactsViaCloudPDP(t *testing.T) {
+	key := canary.Key("cloudpdp")
+	rec := newRecorder(io.Discard, slog.LevelDebug)
+	New(slog.New(rec), redact.NewSet(key)).FactsViaCloudPDP("https://cloudpdp.api.permit.io/" +
+		key)
+	records := rec.list()
+	if len(records) != 1 {
+		t.Fatalf("FactsViaCloudPDP wrote %d records, want 1", len(records))
+	}
+	record := records[0]
+	if record.Level != slog.LevelWarn || record.Message != msgFactsViaCloudPDP {
+		t.Errorf("FactsViaCloudPDP wrote %v %q, want %v %q", record.Level, record.Message,
+			slog.LevelWarn, msgFactsViaCloudPDP)
+	}
+	want := []slog.Attr{slog.String("url", "https://cloudpdp.api.permit.io/"+redact.Marker)}
+	if got := attrsOf(record); !slices.EqualFunc(got, want, slog.Attr.Equal) {
+		t.Errorf("FactsViaCloudPDP wrote the attributes %v, want %v", got, want)
+	}
+}

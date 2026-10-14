@@ -8,8 +8,9 @@ change from v1 and what to use instead.
 ### Client
 
 - `permit.New(opts ...permit.Option)` builds a `*permit.Client` from the options `WithAPIKey`,
-  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient`, `WithTimeout`, `WithRetry`, `WithLogger` and
-  `WithScope`, and returns an error when the configuration is not one the SDK can use.
+  `WithAPIURL`, `WithPDPURL`, `WithHTTPClient`, `WithTimeout`, `WithRetry`, `WithLogger`,
+  `WithScope` and `WithFactsViaPDP`, and returns an error when the configuration is not one the
+  SDK can use.
 - A setting that no option gives comes from the environment variables `PERMIT_API_KEY`,
   `PERMIT_API_URL` and `PERMIT_PDP_URL`, and else from its default: `https://api.permit.io` for
   the API, `http://localhost:7766` for the PDP and 30 seconds for the timeout. A variable that is
@@ -54,6 +55,23 @@ change from v1 and what to use instead.
   the operation; without `WithScope`, the client may first look up the scope of its API key. A
   call that acts on the organization needs no scope, and sends no lookup.
 
+### Facts
+
+- `WithFactsViaPDP()` sends the calls of the facts API, those of users, tenants and the users in
+  them, role assignments, resource instances and relationship tuples, one at a time and in bulk,
+  to the PDP container at the PDP URL under `/facts/...`, instead of to the Permit API under
+  `/v2/facts/{proj_id}/{env_id}/...`. These calls fill in no project and no environment, as the
+  container acts on the environment of its own API key, and send no request for the scope of the
+  client's API key. The calls of set rules, user invites, proxy configs, the schema and projects
+  go to the API with or without the option. v1's `WithProxyFactsViaPDP(true)` did not change
+  where facts requests went: v1.2.8 and later sent every one to the API.
+- A 404 with an empty body to a facts call through the PDP, which is how the cloud PDP answers
+  every route under `/facts/`, is an error that matches `ErrContainerPDPOnly`, not `ErrNotFound`,
+  and names the route under `/facts/`, also for a delete, which otherwise returns nil for a 404.
+- The package documentation lists the 11 routes on which the PDP container can hold its answer
+  until a write reaches its policy, and says that it answers every other facts call without
+  waiting. A test checks the list against the container's spec.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the
@@ -82,8 +100,10 @@ change from v1 and what to use instead.
 - Every line has a fixed message that starts with `permit: `. At Debug, the client writes one
   line for each attempt of a request, with the attributes `route` (the route template),
   `status`, `attempt`, `duration` and `error`, and never a header or a body. At Warn, `New`
-  writes a warning about the configuration once: when the API URL uses `http://` to a host that
-  is not loopback (localhost, 127.0.0.0/8 or ::1). A PDP URL over `http://` gets no warning.
+  writes each warning about the configuration once: when the API URL uses `http://` to a host
+  that is not loopback (localhost, 127.0.0.0/8 or ::1), and when `WithFactsViaPDP` sends facts to
+  the cloud PDP, `cloudpdp.api.permit.io`, which does not serve them. A PDP URL over `http://`
+  gets no warning.
 - Each line has the client's credentials replaced with a marker before the handler gets it: in
   the message, in the keys and string values of attributes, in groups at any depth, in what a
   `slog.LogValuer` returns, and in errors, which reach the handler as their text only.

@@ -463,6 +463,19 @@ as with 404. v2 fails the call with an error that matches `permit.ErrInvalidConf
 nothing, when a path parameter is empty, and when it is `.` or `..`, which a server or a proxy on
 the way may resolve as a step in the path.
 
+<a id="M-wire-4"></a>
+### M-wire-4: Requests name the SDK in their headers
+
+- v1: the User-Agent `OpenAPI-Generator/1.0.0/go` on requests to the API and on facts requests sent through the PDP, and Go's default `Go-http-client/1.1` (`Go-http-client/2.0` over HTTP/2) on decision requests to the PDP
+- v2: the User-Agent `permit-golang/<version> (<Go version>)`, with `X-Permit-SDK-Language: go` and `X-Permit-SDK-Version: <version>`, on every request
+
+v2 sends the same headers to the API and to the PDP: a User-Agent that names the SDK, its version
+and the version of Go that built the application, such as `permit-golang/2.0.0 (go1.27.1)`, and
+the SDK's language and version in `X-Permit-SDK-Language` and `X-Permit-SDK-Version`, so the PDP
+can tell the Go SDK's requests apart. A proxy, a firewall rule or a log filter that matches v1's
+User-Agent must match the new one. Every request also carries `Accept: application/json`, and a
+request with a body `Content-Type: application/json`.
+
 ## Kept on purpose
 
 What v2 keeps from v1 although a new major version could change it:

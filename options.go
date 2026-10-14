@@ -147,7 +147,9 @@ func WithHTTPClient(httpClient *http.Client) Option {
 
 // WithTimeout sets the longest that a call of the client may take, from its start to its
 // result, across all the requests it sends; the default is 30 seconds. A timeout of zero or less
-// is an error that matches [ErrInvalidConfig].
+// is an error that matches [ErrInvalidConfig]. When the context of a call has a deadline, the
+// deadline bounds the call instead of the timeout. A call that runs out of time returns an error
+// that matches [context.DeadlineExceeded].
 //
 // The client keeps the timeout to itself: it does not change the Timeout of the *http.Client
 // that [WithHTTPClient] gives.
@@ -169,7 +171,8 @@ func WithTimeout(timeout time.Duration) Option {
 //   - at [slog.LevelDebug], one line for each attempt of a request, with the attributes route,
 //     the route template such as /v2/facts/{proj_id}/{env_id}/users, status, which is 0 when no
 //     reply came, attempt, from 1, duration and, when the attempt failed, error; never a header
-//     or a body;
+//     or a body. The line reports the HTTP attempt: a reply in 200-299 that the SDK cannot
+//     decode is the error of the call, and not of the line, which has its status and no error;
 //   - at [slog.LevelWarn], warnings about the configuration, each once, from [New]: when the
 //     API URL uses http:// to a host that is not loopback (localhost, 127.0.0.0/8 or ::1), with
 //     the attribute url. A PDP URL over http:// gets no warning, as a PDP often runs next to the

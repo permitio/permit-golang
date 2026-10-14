@@ -19,15 +19,18 @@ change from v1 and what to use instead.
   nil `*http.Client` or a timeout of zero or less; when a URL does not use `http` or `https` (in
   any case), has no host, or has a user name or a password, a query or a fragment; and for the
   zero `Option`. A path after the host of a URL is kept, and one slash at its end is removed.
-- `WithTimeout` sets the longest that a call may take, across all the requests it sends.
+- `WithTimeout` sets the longest that a call may take, across all the requests it sends. When the
+  context of a call has a deadline, the deadline bounds the call instead. A call that runs out of
+  time returns an error that matches `context.DeadlineExceeded`.
 - Each client has an `*http.Client` of its own, whose transport is a copy of
   `http.DefaultTransport`: it uses the proxy that the environment names and the default TLS
   settings, and keeps up to 64 idle connections to each host. `WithHTTPClient` sends the requests
   through the `*http.Client` given, and changes none of its fields.
 - `Client.Close` closes the idle connections of the client's own `*http.Client`, and not those of
   one that `WithHTTPClient` gave. It returns nil, also when called again, and a call that starts
-  after it fails with an error that matches `ErrClosed`. A client that is garbage collected
-  without `Close` has the idle connections of its own `*http.Client` closed too.
+  after it fails with an error that matches `ErrClosed` and sends no request. A call in flight
+  when `Close` is called runs on and returns its result or its error. A client that is garbage
+  collected without `Close` has the idle connections of its own `*http.Client` closed too.
 - A `Client` and an `Option` print with `[REDACTED]` in place of the API key: `fmt` with every
   verb, `String`, `GoString` and the `LogValue` that `log/slog` calls.
 
@@ -67,6 +70,24 @@ change from v1 and what to use instead.
 
 ### Requests and replies
 
+- Every request, to the API and to the PDP, carries `Authorization: Bearer <API key>`,
+  `User-Agent: permit-golang/<version> (<Go version>)`, such as
+  `permit-golang/2.0.0 (go1.27.1)`, `X-Permit-SDK-Language: go`,
+  `X-Permit-SDK-Version: <version>` and `Accept: application/json`, and a request with a body
+  `Content-Type: application/json`.
+- The client closes the body of every reply. Before it does, it reads and discards up to 1 MiB of
+  what it did not read, so that the next request goes over the same connection instead of a new
+  one.
+- A reply in 200-299 whose body is empty, or is not what the call expects (a JSON object, or a
+  list as a JSON array or as the paginated object), is an error that names the model, never an
+  empty result without an error.
+- Deleting an object by a path that names it, such as a user by its key, returns nil when the API
+  answers 404, as the object is gone already. A removal whose body names what it removes, such as
+  a role assignment, returns an error that matches `ErrNotFound` for a 404, which can mean a
+  mistyped key.
+- A 404 with an empty body from a route that only the PDP container serves, as the cloud PDP
+  answers it, is an error that matches `ErrContainerPDPOnly`, not `ErrNotFound`, and names the
+  route.
 - Request bodies are JSON that `encoding/json` writes, with `<`, `>` and `&` sent as they are
   rather than escaped as `\u003c`, `\u003e` and `\u0026`.
 - A number in a query keeps every digit: a `float64` is the shortest text that reads back as the

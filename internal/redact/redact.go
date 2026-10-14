@@ -1,9 +1,9 @@
 // Package redact keeps credentials out of what the SDK prints, logs and keeps in its errors.
 //
 // Each client owns a [Set] that holds its own credentials: its API key, and the credentials that
-// its calls return. [Scrub] replaces the members of a Set, and the values that a fixed list of
-// patterns finds, with [Marker]. Nothing here is shared between clients, so a client's credentials
-// are kept only as long as the client's Set.
+// its calls return, which [Set.AddFields] finds in their replies. [Scrub] replaces the members of
+// a Set, and the values that a fixed list of patterns finds, with [Marker]. Nothing here is shared
+// between clients, so a client's credentials are kept only as long as the client's Set.
 package redact
 
 import (
@@ -100,6 +100,111 @@ func (s *Set) Add(secrets ...string) {
 			s.secrets = append(s.secrets, secret)
 		}
 	}
+}
+
+// returnedCredentialNames are the object keys, normalized, under which AddFields takes a value
+// for a credential whatever fields it is given.
+var returnedCredentialNames = []string{
+	"secret", "token", "apikey", "password", "passwd", "pwd", "privatekey", "accesskey",
+	"secretkey", "credential", "credentials", "authorization", "accesstoken", "refreshtoken",
+	"clientsecret", "cookie", "setcookie",
+}
+
+// AddFields adds to s the credentials that data, a JSON document such as the body of a reply,
+// holds under an object key that is one of fields or a credential name:
+//
+//   - under one of fields, at any depth: the key's value when it is a string, and every string
+//     inside it when it is an object or a list;
+//   - under a credential name, at any depth: the key's value when it is a string, and each string
+//     of a list that is the key's value. An object under such a key is searched by its own keys,
+//     so a word such as basic in "credentials": {"type": "basic"} does not join the Set.
+//
+// The credential names are secret, token, apikey, password, passwd, pwd, privatekey, accesskey,
+// secretkey, credential, credentials, authorization, accesstoken, refreshtoken, clientsecret,
+// cookie and setcookie. A key matches a field or a name when the two are equal in lower case and
+// without '-' and '_', so access_token and Access-Token match accesstoken. Unlike [Scrub], which
+// hides the value of any key that contains such a name, AddFields does not add the value of a key
+// such as token_type or secret_type, so that common words such as bearer do not join the Set.
+// AddFields adds nothing from data that is not JSON, and does not decode data in which no key
+// can match, so a reply without a credential costs one pass over its bytes.
+func (s *Set) AddFields(data []byte, fields ...string) {
+	var listed []string
+	for _, field := range fields {
+		if name := normalize(field); name != "" {
+			listed = append(listed, name)
+		}
+	}
+	if !mayHoldName(data, listed) {
+		return
+	}
+	var value any
+	if err := json.Unmarshal(data, &value); err != nil {
+		// A body that is not JSON holds no field to read a credential from.
+		return
+	}
+	s.Add(fieldStrings(value, listed, false)...)
+}
+
+// mayHoldName reports whether data, lowercased and without '-' and '_', holds one of the
+// credential names or of listed: false means that no object key of data can match one.
+func mayHoldName(data []byte, listed []string) bool {
+	folded := make([]byte, 0, len(data))
+	for _, b := range bytes.ToLower(data) {
+		if b != '-' && b != '_' {
+			folded = append(folded, b)
+		}
+	}
+	for _, name := range slices.Concat(returnedCredentialNames, listed) {
+		if bytes.Contains(folded, []byte(name)) {
+			return true
+		}
+	}
+	return false
+}
+
+// fieldStrings returns the strings of value, a decoded JSON value, that AddFields adds: every
+// string of value when under says that value is under one of listed, the normalized fields;
+// else those under one of listed or of the credential names inside value.
+func fieldStrings(value any, listed []string, under bool) []string {
+	var found []string
+	switch value := value.(type) {
+	case string:
+		if under {
+			found = append(found, value)
+		}
+	case []any:
+		for _, element := range value {
+			found = append(found, fieldStrings(element, listed, under)...)
+		}
+	case map[string]any:
+		for key, element := range value {
+			name := normalize(key)
+			if !under && slices.Contains(returnedCredentialNames, name) {
+				found = append(found, directStrings(element)...)
+			}
+			named := under || slices.Contains(listed, name)
+			found = append(found, fieldStrings(element, listed, named)...)
+		}
+	}
+	return found
+}
+
+// directStrings returns value when it is a string, and the strings of value when it is a list;
+// nothing for an object, whose own keys fieldStrings checks.
+func directStrings(value any) []string {
+	switch value := value.(type) {
+	case string:
+		return []string{value}
+	case []any:
+		var found []string
+		for _, element := range value {
+			if s, ok := element.(string); ok {
+				found = append(found, s)
+			}
+		}
+		return found
+	}
+	return nil
 }
 
 // Contains reports whether s holds secret.

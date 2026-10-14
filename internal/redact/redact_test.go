@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -180,6 +181,141 @@ func TestSetAddAndContains(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string{"first", "second"}, s.secrets); diff != "" {
 		t.Errorf("the Set holds each secret once and no empty one (-want +got):\n%s", diff)
+	}
+}
+
+// TestSetAddFields checks which strings of a JSON document AddFields adds: those under a key
+// that is one of the fields or a built-in credential name, at any depth and in any case or
+// spelling with '-' and '_', and every string of an object or a list under such a key; never
+// another value, such as that of a key that only contains a name, and nothing from a body that is
+// not JSON.
+// TestMayHoldName checks the pass that lets AddFields skip decoding a reply in which no key can
+// match: it must say yes whenever a key could, written in any case and with '-' or '_'.
+func TestMayHoldName(t *testing.T) {
+	for _, tc := range []struct {
+		data   string
+		listed []string
+		want   bool
+	}{
+		{`{"allow":true,"query":{"user":{"key":"u"}}}`, nil, false},
+		{`{"Access-Token":"x"}`, nil, true},
+		{`{"api_key":"x"}`, nil, true},
+		{`{"PRIVATE_KEY":"x"}`, nil, true},
+		{`{"signing_value":"x"}`, []string{"signingvalue"}, true},
+		{`{"signing_value":"x"}`, nil, false},
+		{`not json`, nil, false},
+	} {
+		if got := mayHoldName([]byte(tc.data), tc.listed); got != tc.want {
+			t.Errorf("mayHoldName(%s, %v) = %v, want %v", tc.data, tc.listed, got, tc.want)
+		}
+	}
+}
+
+func TestSetAddFields(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		data   string
+		fields []string
+		want   []string
+	}{
+		{
+			name: "fields at any depth",
+			data: `{"signing_value":"a","nested":{"Signing-Value":"b","other":"x"},` +
+				`"list":[{"signingValue":"c"},"y"],"other":"z"}`,
+			fields: []string{"signing_value"},
+			want:   []string{"a", "b", "c"},
+		},
+		{
+			name:   "an object and a list under a field",
+			data:   `{"headers":{"Authorization":"d","X-Extra":["e",1,true,null]},"id":"w"}`,
+			fields: []string{"headers"},
+			want:   []string{"d", "e"},
+		},
+		{
+			name:   "a key that only contains a field",
+			data:   `{"secret_type":"headers","secret":"f"}`,
+			fields: []string{"secret"},
+			want:   []string{"f"},
+		},
+		{
+			name:   "two fields",
+			data:   `{"one":"g","two":"h","three":"i"}`,
+			fields: []string{"one", "TWO"},
+			want:   []string{"g", "h"},
+		},
+		{"a number under a field", `{"pin":1234}`, []string{"pin"}, nil},
+		{"an empty string under a field", `{"pin":""}`, []string{"pin"}, nil},
+		{"a body that is not JSON", `pin=j`, []string{"pin"}, nil},
+		{"an empty body", ``, []string{"pin"}, nil},
+		{"no fields", `{"pin":"k"}`, nil, nil},
+		{"empty fields", `{"":"l","_":"m"}`, []string{"", "_-"}, nil},
+		{
+			name: "the secret names without fields",
+			data: `{"secret":"a","Secret-Key":"b","clientSecret":"c","list":[{"SECRET":"d"}]}`,
+			want: []string{"a", "b", "c", "d"},
+		},
+		{
+			name: "the token names without fields",
+			data: `{"token":"a","access_token":"b","RefreshToken":"c","nested":{"Token":"d"}}`,
+			want: []string{"a", "b", "c", "d"},
+		},
+		{
+			name: "the key names without fields",
+			data: `{"api_key":"a","apiKey":"b","Access-Key":"c","private_key":"d"}`,
+			want: []string{"a", "b", "c", "d"},
+		},
+		{
+			name: "the password names without fields",
+			data: `{"password":"a","passwd":"b","PWD":"c"}`,
+			want: []string{"a", "b", "c"},
+		},
+		{
+			name: "the credential names without fields",
+			data: `{"credential":"a","credentials":{"user":"b","password":["c"]}}`,
+			want: []string{"a", "c"},
+		},
+		{
+			name: "an object under a credential name is searched by its own keys",
+			data: `{"credentials":{"type":"basic","private_key":"k-1"}}`,
+			want: []string{"k-1"},
+		},
+		{
+			name: "a list under a credential name",
+			data: `{"token":["x","y",{"z":"w"}]}`,
+			want: []string{"x", "y"},
+		},
+		{
+			name: "cookies",
+			data: `{"cookie":"a","Set-Cookie":["b"]}`,
+			want: []string{"a", "b"},
+		},
+		{
+			name: "the authorization name without fields",
+			data: `{"headers":{"Authorization":"Bearer a"}}`,
+			want: []string{"Bearer a"},
+		},
+		{
+			name: "keys that only contain a built-in name",
+			data: `{"token_type":"bearer","secret_type":"headers","tokens":"a","api_key_id":"b",` +
+				`"passwords":"c","has_credentials":"d","access_token_expiry":"e"}`,
+			want: nil,
+		},
+		{
+			name:   "a built-in name and a field",
+			data:   `{"token":"a","signing_value":"b","other":"c"}`,
+			fields: []string{"signing_value"},
+			want:   []string{"a", "b"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := NewSet()
+			s.AddFields([]byte(tc.data), tc.fields...)
+			got := s.longestFirst()
+			slices.Sort(got)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("the Set holds other secrets (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
 

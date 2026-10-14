@@ -198,14 +198,17 @@ phrases of `docRules`, and a count sentinel:
   `decisionMethods`, and each has an Example `Example<Type>_<Method>`. An Example that calls the
   API runs against the `mockpermit` servers that the package's `TestMain` starts; see
   [Wire tests](#wire-tests).
-- `TestDocRules`: the doc comment of each method that `docRules` names holds the rule's phrase,
-  ignoring case and line breaks: the phrase that names the level of API key the method needs,
-  `container PDP only` on the methods that only the container PDP serves, and `waits for sync` on
-  the facts writes that wait for the PDP. Filling `docRules` from the
-  [operation registry](#operation-registry) is *(added in a later commit on this branch)*.
+- `TestDocRules`: `docRules` derives the rules of each public method that a wire case binds to
+  an operation from the operations of the [operation registry](#operation-registry) that its
+  wire cases send, and the doc comment of the method holds each rule's phrase, ignoring case and
+  line breaks: `environment-level API key`, `project-level API key` or
+  `organization-level API key`, the widest `KeyLevel` of its operations; `container PDP only`
+  when one of them is `ContainerOnly`; and `waits for sync` when one of them is `WaitsForSync`.
+  A method that does not wait must not say `waits for sync`.
 
 The fixture modules in `testdata/doccheck` prove the rules: `pass` passes them all, and `links`,
-`undocumented`, `examples` and `notstruct` break them.
+`undocumented`, `examples` and `notstruct` break them. `TestDocRulesFromTheRegistry` and
+`TestDocRulesFromTheRegistryThatFail` bind the methods of `pass` to test-only operations.
 
 `readme_test.go` compiles the Go programs of `README.md`. `TestReadmeBlocksCompile` builds each
 fenced go block whose opening fence is on the line right after a `<!-- compile -->` line as the
@@ -1073,8 +1076,10 @@ number of tests that wrote to the record ends it, so a record without it comes f
 did not finish. That count is not the number of tests that ran: a test writes to the record when
 it starts a server or calls `mockpermit.RecordTest`. `internal/testhook` writes the format; the
 end-to-end scenarios record through it in the modes `dryrun`, run offline, and `live`, against
-the Permit cloud *(added in a later commit on this branch)*. Requests to the test-only routes,
-under `/__test/`, are never recorded.
+the Permit cloud *(added in a later commit on this branch)*: the transport writes each attempt
+of a call whose context carries a `testhook.Recorder`, which only a scenario puts there, so a
+wire test's request is recorded once, by the `mockpermit` server. Requests to the test-only
+routes, under `/__test/`, are never recorded.
 
 A record holds no method names, so `testdata/operation-map.json` maps each public method to the
 operations its wire cases send. `TestOperationMap` fails when a wire case names an operation that
@@ -1161,9 +1166,9 @@ these entries pass.
 ## Errors and redaction
 
 `errors.go` holds `Error`, which a failed call returns or wraps, and the sentinel errors. The SDK
-creates an `Error` only through the unexported constructors there, which the transport *(added in
-a later commit on this branch)* calls: for a reply with an error status, for a reply in 200-299
-it cannot decode, and for a request that got no reply.
+creates an `Error` only through the unexported constructors there, which the transport
+(`transport.go`) calls: for a reply with an error status, for a reply in 200-299 it cannot
+decode, and for a request that got no complete reply.
 
 - To add a sentinel, declare it in the `var` block of `errors.go`, with a doc comment and a text
   that starts with `permit: `, and add it to the `sentinels` table of `errors_test.go`. A sentinel
@@ -1174,11 +1179,16 @@ it cannot decode, and for a request that got no reply.
   The constructors replace its members, and what the stateless patterns of `redact.Scrub` find, in
   the fields they read from the reply, in the body they keep and in the text of the cause. No
   package-level variable holds a credential.
-- When a route's body holds a credential in a field whose name does not contain one of the words
-  that `redact.Scrub`'s doc lists, such as secret, token or password, list the field in the
-  `SensitiveBodyFields` of the route's `rest.Op` in the [operation registry](#operation-registry):
-  the transport *(added in a later commit on this branch)* passes them to `redact.Scrub`, which
-  then replaces the field's values in the error bodies of that route.
+- The transport adds the credentials that a reply in 200-299 returns to the client's
+  `redact.Set` with `Set.AddFields`, so that the client's later errors and log lines replace them
+  too: the strings under a key that is, in lower case and without `-` and `_`, one of the
+  credential names that its doc lists, such as secret, token, apikey or accesstoken.
+- When a route's body holds a credential in a field whose name is not one of those names, list
+  the field in the `SensitiveBodyFields` of the route's `rest.Op` in the
+  [operation registry](#operation-registry), also when the name contains one of them, such as
+  `webhook_secret`: the transport passes them to `redact.Scrub`, which then replaces the field's
+  values in the error bodies of that route, and to `Set.AddFields`, which adds their values in a
+  reply in 200-299 to the client's `redact.Set`.
 - `FuzzScrub` (`internal/redact`) and `FuzzError` (the root package) check that no key reaches an
   error. `go test` runs their seeds, in `testdata/fuzz`; to search for new inputs, run one, for
   example `go test -run '^$' -fuzz '^FuzzError$' -fuzztime 1m .`, and add each input that fails
@@ -1199,8 +1209,9 @@ the documentation of `WithLogger`:
   static, and an attribute key on its forbidden list (api_key, token, authorization, password,
   secret).
 - A Debug line says what a request did: its route template, status, attempt, duration and error,
-  never a header or a body. The transport that writes one for each attempt is *(added in a later
-  commit on this branch)*.
+  never a header or a body. The transport writes one for each attempt. The line reports the HTTP
+  attempt: a reply in 200-299 that `do` or `doList` cannot decode is the error of the call, and
+  not of the line, which has its status and no error.
 - Warn is for warnings about the configuration only, each logged once, from `New`.
 
 No go.mod of the repository requires zap, so the zapslog example of `WithLogger`,
@@ -1260,7 +1271,7 @@ its own:
 | `KeyLevel` | The narrowest API key that may call it: `EnvironmentLevel`, `ProjectLevel` or `OrganizationLevel`. |
 | `DeleteSelf` | A DELETE whose path names the object it deletes, so that a 404 means the object is gone already. Not a removal whose body names what it removes. |
 | `NoRetry` | Never sent twice, not even after a 429, such as rotating an API key. |
-| `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name that `redact.Scrub` does not take for one. |
+| `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name other than the credential names of `redact.Set.AddFields`, such as `webhook_secret`. |
 | `MaxPerPage` | The largest `per_page` of a list operation, or 0. |
 | `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty. |
 
@@ -1315,7 +1326,9 @@ is marked *(added in a later commit on this branch)* does not exist yet.
 2. Write or extend the model in `models/`, and its row in the drift map *(added in a later commit
    on this branch)*.
 3. Add the method, and its `rest.Op` to `defaultOps` in `internal/rest/ops.go`, with the fields
-   that the [operation registry](#operation-registry) lists.
+   that the [operation registry](#operation-registry) lists. The method makes its call with one
+   of the functions of `transport.go`: `do` for a reply that holds an object, `doList` for one
+   that holds a list, with the list's shape, and `doNoValue` for one whose body it does not read.
 4. Document it, with the phrases that `docRules` asks of it. Give a new service type, and a new
    decision method, an Example with an output comment in `package permit_test`, and list a
    decision method in `decisionMethods`; see [API reference](#api-reference).

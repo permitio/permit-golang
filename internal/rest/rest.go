@@ -86,8 +86,10 @@ type Op struct {
 	NoRetry bool
 
 	// SensitiveBodyFields are the fields of the operation's bodies that hold a credential under a
-	// name that redact.Scrub does not take for one; their values are replaced in the bodies of
-	// its error replies. The registry keeps its own copy; callers must not change it.
+	// name other than the credential names of redact.Set.AddFields, such as webhook_secret; their
+	// values are replaced in the bodies of its error replies, and their values in a reply in
+	// 200-299 join the client's redact.Set. The registry keeps its own copy; callers must not
+	// change it.
 	SensitiveBodyFields []string
 
 	// MaxPerPage is the largest per_page that a list operation accepts, or 0 for an operation

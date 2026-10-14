@@ -15,6 +15,7 @@ import (
 	"github.com/permitio/permit-golang/v2/internal/logging"
 	"github.com/permitio/permit-golang/v2/internal/redact"
 	"github.com/permitio/permit-golang/v2/internal/rest"
+	"github.com/permitio/permit-golang/v2/internal/transport"
 	"github.com/permitio/permit-golang/v2/internal/validate"
 )
 
@@ -44,6 +45,9 @@ type Client struct {
 	// transport is the transport of httpClient when New created it, which Close closes, and nil
 	// when the http.Client came from WithHTTPClient.
 	transport *http.Transport
+
+	// sender sends each attempt of a request through httpClient, with the API key.
+	sender *transport.Sender
 
 	// logger writes the client's log lines, with the members of secrets replaced.
 	logger *logging.Logger
@@ -102,6 +106,7 @@ func New(opts ...Option) (*Client, error) {
 	if c.httpClient == nil {
 		c.httpClient, c.transport = ownHTTPClient()
 	}
+	c.sender = transport.New(c.httpClient, c.apiKey, Version)
 	if c.transport != nil {
 		// The cleanup gets the transport, not c, so that it does not keep c reachable. It runs
 		// after Close too, for the connections that calls still in flight at Close returned.
@@ -136,16 +141,17 @@ func ownHTTPClient() (*http.Client, *http.Transport) {
 	if !ok {
 		return &http.Client{Transport: http.DefaultTransport}, nil
 	}
-	transport := base.Clone()
-	transport.MaxIdleConnsPerHost = maxIdleConnsPerHost
-	return &http.Client{Transport: transport}, transport
+	own := base.Clone()
+	own.MaxIdleConnsPerHost = maxIdleConnsPerHost
+	return &http.Client{Transport: own}, own
 }
 
 // Close closes the idle connections of the client's own *http.Client, and leaves those of an
 // *http.Client that [WithHTTPClient] gave open. A call that starts after Close fails with an
-// error that matches [ErrClosed]. Close always returns nil, also when it is called again, and is
-// safe to call from many goroutines. A Client that is garbage collected without Close has the
-// idle connections of its own *http.Client closed too.
+// error that matches [ErrClosed] and sends no request; a call in flight when Close is called
+// runs on, and returns its result or its error. Close always returns nil, also when it is called
+// again, and is safe to call from many goroutines. A Client that is garbage collected without
+// Close has the idle connections of its own *http.Client closed too.
 func (c *Client) Close() error {
 	if c == nil || !c.closed.CompareAndSwap(false, true) {
 		return nil

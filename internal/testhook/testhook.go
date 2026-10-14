@@ -10,10 +10,10 @@
 //	 "template": "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
 //	 "path": "/v2/facts/p/e/users/a%2Fb", "status": 200, "test": "TestUsers/get"}
 //
-// written on one line, with the path as the client sent it, escapes kept, and without the
-// query, the headers or the body. The template is the route the request was made for, or empty
-// when the writer knows none, and the status is 0 when no response came. The last line is the
-// session trailer that the run's TestMain writes:
+// written on one line, with the route's path, its parameters escaped, after any path of the base
+// URL, and without the query, the headers or the body. The template is the route the request was
+// made for, or empty when the writer knows none, and the status is 0 when no response came. The
+// last line is the session trailer that the run's TestMain writes:
 //
 //	{"type": "session", "exit_status": 0, "tests": 12}
 //
@@ -90,7 +90,8 @@ type Request struct {
 	// /v2/facts/{proj_id}/{env_id}/users/{user_id}, or empty when the writer knows none.
 	Template string
 
-	// Path is the path as the client sent it, with its escapes and without the query.
+	// Path is the route's path with its parameters escaped: the part of the request's path after
+	// any path of the base URL, without the query.
 	Path string
 
 	// Status is the status of the response, or 0 when none came.
@@ -318,7 +319,8 @@ type Attempt struct {
 	// /v2/facts/{proj_id}/{env_id}/users/{user_id}.
 	Template string
 
-	// Path is the path as the request sent it, with its escapes and without the query.
+	// Path is the route's path with its parameters escaped: the part of the request's path after
+	// any path of the base URL, without the query.
 	Path string
 
 	// Status is the status of the response, or 0 when none came.

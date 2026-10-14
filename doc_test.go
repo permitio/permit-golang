@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/surface"
 )
 
@@ -43,7 +44,7 @@ var sdkModule = docModule{
 // commits that add the methods add them here; until then the list is empty.
 var decisionMethods []string
 
-// docRule requires a phrase in the doc comment of a method.
+// docRule requires a phrase in the doc comment of a method, or forbids it.
 type docRule struct {
 	// Method is the method, as <Type>.<Method>, such as UsersService.Create.
 	Method string
@@ -51,13 +52,63 @@ type docRule struct {
 	// Phrase is what the doc comment must say, such as "waits for sync". The comparison ignores
 	// case, and counts a line break or a run of spaces as one space.
 	Phrase string
+
+	// Absent says that the doc comment must not say Phrase, such as "waits for sync" on a method
+	// that does not wait.
+	Absent bool
 }
 
-// docRules are the phrases that the doc comments of the public methods must hold: the phrase that
-// names the level of API key a method needs, "container PDP only" on the methods that only the
-// container PDP serves, and "waits for sync" on the facts writes that wait for the PDP. The
-// operation registry fills it in a later commit; until then it is empty.
-var docRules []docRule
+// The phrases of the doc rules other than the key levels.
+const (
+	containerOnlyPhrase = "container PDP only"
+	waitsForSyncPhrase  = "waits for sync"
+)
+
+// keyLevelPhrases name the level of API key that an operation needs, as the doc comments of the
+// methods that call it say it.
+var keyLevelPhrases = map[rest.KeyLevel]string{
+	rest.EnvironmentLevel:  "environment-level API key",
+	rest.ProjectLevel:      "project-level API key",
+	rest.OrganizationLevel: "organization-level API key",
+}
+
+// docRules returns the rules of the doc comments of the methods that methods binds to the IDs of
+// the operations they call, such as the Methods of the operation map, with the operations of
+// registry, sorted by method, and a problem for each ID that registry does not hold. The doc
+// comment of each method names the level of API key that it needs, the widest level of its
+// operations; says "container PDP only" when only the container PDP serves one of them; and says
+// "waits for sync" when one of them waits for the PDP's policy, and only then.
+func docRules(methods map[string][]string, registry *rest.Registry) ([]docRule, []string) {
+	var (
+		rules    []docRule
+		problems []string
+	)
+	for _, method := range slices.Sorted(maps.Keys(methods)) {
+		var level rest.KeyLevel
+		var containerOnly, waits, known bool
+		for _, id := range methods[method] {
+			op, ok := registry.Op(id)
+			if !ok {
+				problems = append(problems, fmt.Sprintf("%s calls the operation %s, which the "+
+					"operation registry does not hold", method, id))
+				continue
+			}
+			known = true
+			level = max(level, op.KeyLevel)
+			containerOnly = containerOnly || op.ContainerOnly
+			waits = waits || op.WaitsForSync
+		}
+		if !known {
+			continue
+		}
+		rules = append(rules, docRule{Method: method, Phrase: keyLevelPhrases[level]})
+		if containerOnly {
+			rules = append(rules, docRule{Method: method, Phrase: containerOnlyPhrase})
+		}
+		rules = append(rules, docRule{Method: method, Phrase: waitsForSyncPhrase, Absent: !waits})
+	}
+	return rules, problems
+}
 
 // docModule is a module whose public packages the documentation checks read.
 type docModule struct {
@@ -766,18 +817,25 @@ func exampleProblems(p *docPackage, methods []string) []string {
 }
 
 // docRuleProblems returns a problem for each rule whose method p does not have, whose phrase is
-// empty, or whose phrase the method's doc comment does not hold.
+// empty, or whose phrase the method's doc comment does not hold, or holds when the rule says it
+// must be absent.
 func docRuleProblems(p *docPackage, rules []docRule) []string {
 	var problems []string
 	for _, rule := range rules {
 		m := findMethod(p.doc, rule.Method)
-		switch {
-		case m == nil:
+		if m == nil {
 			problems = append(problems, fmt.Sprintf("docRules names %s, which is not a method of "+
 				"package %s", rule.Method, p.doc.Name))
+			continue
+		}
+		says := strings.Contains(normalizePhrase(m.Doc), normalizePhrase(rule.Phrase))
+		switch {
 		case normalizePhrase(rule.Phrase) == "":
 			problems = append(problems, "docRules has an empty phrase for "+rule.Method)
-		case !strings.Contains(normalizePhrase(m.Doc), normalizePhrase(rule.Phrase)):
+		case rule.Absent && says:
+			problems = append(problems, fmt.Sprintf("%s: the doc comment of %s says %q, which "+
+				"it must not say", position(p.fset, m.Decl.Pos()), rule.Method, rule.Phrase))
+		case !rule.Absent && !says:
 			problems = append(problems, fmt.Sprintf("%s: the doc comment of %s does not say %q",
 				position(p.fset, m.Decl.Pos()), rule.Method, rule.Phrase))
 		}
@@ -841,11 +899,15 @@ func TestDocExamples(t *testing.T) {
 	t.Logf("checked %d Examples and %d decision methods", examples, len(decisionMethods))
 }
 
+// TestDocRules checks the doc comment of every public method that a wire case binds to an
+// operation against the rules that docRules derives from the operation registry.
 func TestDocRules(t *testing.T) {
-	for _, problem := range docRuleProblems(readSDKDocs(t)[0], docRules) {
+	rules, problems := docRules(buildOperationMap(wireCases(t)).Methods, rest.Default())
+	problems = append(problems, docRuleProblems(readSDKDocs(t)[0], rules)...)
+	for _, problem := range problems {
 		t.Error(problem)
 	}
-	t.Logf("checked %d doc rules", len(docRules))
+	t.Logf("checked %d doc rules", len(rules))
 }
 
 // readFixture reads the documentation of the packages in dirs of the fixture module in
@@ -892,6 +954,7 @@ func TestDocChecksPassAFixture(t *testing.T) {
 	problems, links, identifiers := fixtureChecks(t, "pass", []string{"Client.Check"}, []docRule{
 		{Method: "UsersService.Get", Phrase: "waits for sync"},
 		{Method: "Client.Check", Phrase: "Container  PDP\tonly"},
+		{Method: "Client.Check", Phrase: "waits for sync", Absent: true},
 	})
 	if len(problems) != 0 {
 		t.Errorf("the checks found problems in the pass fixture:\n%s",
@@ -1116,17 +1179,113 @@ func TestDocRulesThatFail(t *testing.T) {
 		{Method: "Client.Check", Phrase: "waits for sync"},
 		{Method: "Client.Nothing", Phrase: "container PDP only"},
 		{Method: "UsersService.Get", Phrase: " \n "},
+		{Method: "UsersService.Get", Phrase: "", Absent: true},
 		{Method: "UsersService.Get", Phrase: "waits for the sync"},
+		{Method: "UsersService.Get", Phrase: "Waits  for\nsync", Absent: true},
+		{Method: "Client.Nothing", Phrase: "waits for sync", Absent: true},
 	})
 	const dir = "testdata/doccheck/pass/"
 	want := []string{
 		dir + `sdk.go:36: the doc comment of Client.Check does not say "waits for sync"`,
 		"docRules names Client.Nothing, which is not a method of package sdk",
 		"docRules has an empty phrase for UsersService.Get",
+		"docRules has an empty phrase for UsersService.Get",
 		dir + `sdk.go:45: the doc comment of UsersService.Get does not say "waits for the sync"`,
+		dir + `sdk.go:45: the doc comment of UsersService.Get says "Waits  for\nsync", which ` +
+			"it must not say",
+		"docRules names Client.Nothing, which is not a method of package sdk",
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("docRuleProblems differs (-want +got):\n%s", diff)
+	}
+}
+
+// docTestOps are test-only operations, one for each fact that a doc rule reads.
+var docTestOps = []rest.Op{
+	{
+		ID: "test_doc_check", Method: "POST", Route: rest.TestPrefix + "check",
+		ContainerOnly: true, KeyLevel: rest.EnvironmentLevel,
+	},
+	{
+		ID: "test_doc_get", Method: "GET", Route: rest.TestPrefix + "users/{user_id}",
+		Facts: true, WaitsForSync: true, KeyLevel: rest.ProjectLevel,
+	},
+	{
+		ID: "test_doc_list", Method: "GET", Route: rest.TestPrefix + "users",
+		Facts: true, KeyLevel: rest.EnvironmentLevel,
+	},
+	{
+		ID: "test_doc_org", Method: "GET", Route: rest.TestPrefix + "projects",
+		KeyLevel: rest.OrganizationLevel,
+	},
+}
+
+// docTestRegistry returns rest.Default with docTestOps.
+func docTestRegistry(t *testing.T) *rest.Registry {
+	t.Helper()
+	registry, err := rest.Default().WithTestOps(docTestOps...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return registry
+}
+
+// TestDocRulesFromTheRegistry checks the rules that docRules derives from the facts of the
+// operations a method calls, and that the pass fixture, whose methods say what the rules ask,
+// passes them: a method that calls several operations needs the widest key level of them, waits
+// for sync when one of them waits, and is container PDP only when one of them is, also when an
+// operation without the fact comes after it.
+func TestDocRulesFromTheRegistry(t *testing.T) {
+	rules, problems := docRules(map[string][]string{
+		"UsersService.Get": {"test_doc_get", "test_doc_list"},
+		"Client.Check":     {"test_doc_check", "test_doc_list"},
+	}, docTestRegistry(t))
+	want := []docRule{
+		{Method: "Client.Check", Phrase: "environment-level API key"},
+		{Method: "Client.Check", Phrase: "container PDP only"},
+		{Method: "Client.Check", Phrase: "waits for sync", Absent: true},
+		{Method: "UsersService.Get", Phrase: "project-level API key"},
+		{Method: "UsersService.Get", Phrase: "waits for sync"},
+	}
+	if diff := cmp.Diff(want, rules); diff != "" || problems != nil {
+		t.Errorf("docRules returned the problems %q and rules that differ (-want +got):\n%s",
+			problems, diff)
+	}
+	_, pkgs := readFixture(t, "pass", ".")
+	if problems := docRuleProblems(pkgs[0], rules); problems != nil {
+		t.Errorf("the pass fixture breaks the rules of the registry:\n%s",
+			strings.Join(problems, "\n"))
+	}
+	if rules, problems := docRules(nil, docTestRegistry(t)); rules != nil || problems != nil {
+		t.Errorf("docRules of no methods returned %v and %q, want neither", rules, problems)
+	}
+}
+
+// TestDocRulesFromTheRegistryThatFail binds the methods of the pass fixture to operations whose
+// facts their doc comments do not say: a method that waits for sync without the phrase, one
+// with the phrase that does not wait, a key level that the comment does not name, and an
+// operation that the registry does not hold.
+func TestDocRulesFromTheRegistryThatFail(t *testing.T) {
+	rules, problems := docRules(map[string][]string{
+		"Client.Check":     {"test_doc_get"},
+		"UsersService.Get": {"test_doc_org", "test_doc_list"},
+		"UsersService.Put": {"test_doc_nothing"},
+	}, docTestRegistry(t))
+	_, pkgs := readFixture(t, "pass", ".")
+	problems = append(problems, docRuleProblems(pkgs[0], rules)...)
+	const dir = "testdata/doccheck/pass/"
+	want := []string{
+		"UsersService.Put calls the operation test_doc_nothing, which the operation registry " +
+			"does not hold",
+		dir + `sdk.go:36: the doc comment of Client.Check does not say "project-level API key"`,
+		dir + `sdk.go:36: the doc comment of Client.Check does not say "waits for sync"`,
+		dir + `sdk.go:45: the doc comment of UsersService.Get does not say ` +
+			`"organization-level API key"`,
+		dir + `sdk.go:45: the doc comment of UsersService.Get says "waits for sync", which it ` +
+			"must not say",
+	}
+	if diff := cmp.Diff(want, problems); diff != "" {
+		t.Errorf("the problems differ (-want +got):\n%s", diff)
 	}
 }
 

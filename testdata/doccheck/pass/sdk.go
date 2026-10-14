@@ -32,7 +32,7 @@ func New() *Client {
 }
 
 // Check reports whether the user may act. The container PDP only answers it; see
-// [Client.Users].
+// [Client.Users]. It needs an environment-level API key.
 func (c *Client) Check(ctx context.Context, user string) (bool, error) {
 	return user != "", ctx.Err()
 }
@@ -41,7 +41,7 @@ func (c *Client) Check(ctx context.Context, user string) (bool, error) {
 type UsersService struct{}
 
 // Get returns the user with the key, and waits for
-// sync.
+// sync. It needs a project-level API key.
 func (s *UsersService) Get(ctx context.Context, key string) (models.User, error) {
 	return models.User{Key: key}, ctx.Err()
 }

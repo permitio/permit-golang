@@ -175,6 +175,40 @@ var defaultOps = []Op{
 		KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The tenants of an environment, calls of the facts API, which the PDP container also
+	// serves under /facts. v1 sent them with an environment-level key, and the PDP container
+	// sends them on with its own, an environment-level key. These key levels are not measured
+	// yet: the phase api.tenants of the local harness confirms them. The PDP container waits for
+	// sync on the create alone. The list is a JSON array or a paginated object of at most 100
+	// tenants. A PATCH sets the fields that it names to the values that it gives, so it does the
+	// same when sent twice; a create does not.
+	{
+		ID: "list_tenants", Method: http.MethodGet, Route: "/v2/facts/{proj_id}/{env_id}/tenants",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "TenantRead",
+	},
+	{
+		ID: "create_tenant", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/tenants", Facts: true, WaitsForSync: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "TenantCreate", ResponseModel: "TenantRead",
+	},
+	{
+		ID: "get_tenant", Method: http.MethodGet,
+		Route:      "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, ResponseModel: "TenantRead",
+	},
+	{
+		ID: "update_tenant", Method: http.MethodPatch,
+		Route:      "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, RequestModel: "TenantUpdate",
+		ResponseModel: "TenantRead",
+	},
+	{
+		ID: "delete_tenant", Method: http.MethodDelete,
+		Route:      "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

@@ -1,6 +1,7 @@
 package fake
 
 import (
+	"encoding/json"
 	"maps"
 	"net/http"
 	"net/url"
@@ -95,15 +96,51 @@ func (f *Fake) collection(rt route, segments []string, fields object, query url.
 }
 
 // listed returns the objects of a collection that a GET with query lists, in the order in which
-// they were created: every object when query holds neither page nor per_page, and else the page
-// of page and per_page, the first page of 30 by default, as the Permit API pages a list.
+// they were created: those whose attributes match each attribute filter of query, as matches
+// says; all of them when query holds neither page nor per_page, and else the page of page and
+// per_page, the first page of 30 by default, as the Permit API pages a list.
 func listed(objects []object, query url.Values) []object {
+	objects = slices.DeleteFunc(append([]object{}, objects...), func(o object) bool {
+		return !matches(o, query)
+	})
 	if !query.Has("page") && !query.Has("per_page") {
-		return append([]object{}, objects...)
+		return objects
 	}
 	page, perPage := positive(query, "page", 1), positive(query, "per_page", defaultPerPage)
 	start := min((page-1)*perPage, len(objects))
-	return append([]object{}, objects[start:min(start+perPage, len(objects))]...)
+	return objects[start:min(start+perPage, len(objects))]
+}
+
+// matches reports whether the attributes of o match each attribute filter of query, a parameter
+// attr_<name>: o has the attribute name, and each value of the parameter is the attribute's
+// value as a query writes it, a string as it is and any other value as its JSON text, such as
+// true or 10.
+func matches(o object, query url.Values) bool {
+	attributes, _ := o["attributes"].(object)
+	for param, values := range query {
+		name, ok := strings.CutPrefix(param, "attr_")
+		if !ok {
+			continue
+		}
+		value, ok := attributes[name]
+		if !ok {
+			return false
+		}
+		text, ok := value.(string)
+		if !ok {
+			data, err := json.Marshal(value)
+			if err != nil {
+				return false
+			}
+			text = string(data)
+		}
+		for _, want := range values {
+			if want != text {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // holds reports whether o holds each field of fields with the same value.

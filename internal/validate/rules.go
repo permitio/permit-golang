@@ -186,6 +186,22 @@ var (
 			"up to 60 seconds",
 	}
 
+	// ListAttributeFilterNameEmpty rejects an attribute filter without the name of an attribute,
+	// such as the zero AttributeFilter, which would send the parameter attr_ alone.
+	ListAttributeFilterNameEmpty = Rule{
+		ID: "list.attribute-filter.name-empty",
+		Message: "the attribute filter names no attribute; build it with AttributeEquals and the " +
+			"name of the attribute",
+	}
+
+	// ListAttributeFilterNotFinite rejects an attribute filter whose value is NaN or an
+	// infinity, which a query cannot send as a number.
+	ListAttributeFilterNotFinite = Rule{
+		ID: "list.attribute-filter.not-finite",
+		Message: "the value of the attribute filter is NaN or an infinity, which the API does " +
+			"not read as a number; give a finite number",
+	}
+
 	// ListPageNegative rejects a ListOptions whose Page is less than zero.
 	ListPageNegative = Rule{
 		ID: "list.page.negative",
@@ -266,6 +282,15 @@ var (
 			"the wait",
 	}
 
+	// WaitForSyncPolicyUnknown rejects a wait for sync whose SyncOption gives a policy other
+	// than fail and ignore, such as the zero SyncOption.
+	WaitForSyncPolicyUnknown = Rule{
+		ID: "wait-for-sync.policy.unknown",
+		Message: "the policy of the wait for sync is neither SyncPolicyFail nor " +
+			"SyncPolicyIgnore; pass one of them to WithSyncPolicy, or leave the option out to " +
+			"leave the policy to the PDP container",
+	}
+
 	// WaitForSyncTimeoutNegative rejects a wait for sync whose timeout is less than zero.
 	WaitForSyncTimeoutNegative = Rule{
 		ID:      "wait-for-sync.timeout-negative",
@@ -298,6 +323,8 @@ var rules = []Rule{
 	DecisionResourceTypeEmpty,
 	DecisionURLEmpty,
 	DecisionUserKeyEmpty,
+	ListAttributeFilterNameEmpty,
+	ListAttributeFilterNotFinite,
 	ListPageNegative,
 	ListPerPageNegative,
 	PathAPIKeyIDScope,
@@ -307,6 +334,7 @@ var rules = []Rule{
 	ScopeProjectMissing,
 	WaitForSyncFactsViaAPI,
 	WaitForSyncNotWaiting,
+	WaitForSyncPolicyUnknown,
 	WaitForSyncTimeoutNegative,
 }
 

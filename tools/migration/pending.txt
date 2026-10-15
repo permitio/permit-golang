@@ -18,12 +18,6 @@ api.NewConditionSetsApi condition-sets
 api.Elements elements
 api.Elements.* elements
 api.NewElementsApi elements
-api.IPermitBaseFactsApi facts
-api.PermitBaseFactsApi facts
-api.PermitBaseFactsApi.* facts
-api.NewPermitBaseFactsApi facts
-api.NewFactsClientConfig facts
-api.WaitForSyncOptions facts
 api.ImplicitGrants implicit-grants
 api.ImplicitGrants.* implicit-grants
 api.NewImplicitGrantsApi implicit-grants
@@ -58,21 +52,10 @@ api.RoleRead roles
 api.Roles roles
 api.Roles.* roles
 api.NewRolesApi roles
-api.Tenants tenants
-api.Tenants.* tenants
-api.NewTenantsApi tenants
+api.Tenants.ListTenantUsers tenants
 api.Users users
 api.Users.* users
 api.NewUsersApi users
-
-# Block a: pkg/config
-config.PermitConfig.GetFactsSyncTimeout facts
-config.PermitConfig.GetFactsSyncTimeoutPolicy facts
-config.PermitConfig.WithFactsSyncTimeout facts
-config.DefaultFactsSyncTimeout facts
-config.FactsSyncTimeoutPolicy facts
-config.FactsSyncTimeoutPolicyFail facts
-config.FactsSyncTimeoutPolicyIgnore facts
 
 # Block a: pkg/enforcement and pkg/permit
 permit.Client.SyncUser users

@@ -1432,17 +1432,19 @@ deletion makes every object in it read as gone; a scenario may also give the bui
 its own. `TestSeedBuilder` runs every call of the builder offline against the fake in every run,
 live runs included, and the fake checks each body against the spec.
 
-The dry run runs every scenario offline against the fake of the Permit API in
-`tools/e2e/fake`, which keeps the objects of each collection of the control plane's spec in
-memory and checks each request body with the walker of `tools/drift`. The SDK's clients of a dry
-run call a fake PDP beside it, `Fake.StartPDP`, which answers the decisions and the lists of the
-PDP that the scenarios send from the same store: the role assignments of the environment, by
-user, role, tenant and resource instance, and the permissions of its roles and resource roles. A
-role assignment counts only when its user, tenant, role and instance were created before it, as
-the Permit API refuses one that names an object that does not exist, so a seed that leaves an
-object out, or creates it too late, grants nothing. It checks each body against the spec of the
-PDP container, `tools/specs/pdp-container.json`, as the fake of the Permit API does. It is an
-approximation that proves that a scenario's calls and its seed reach a PDP, never how the PDP
+The dry run runs every scenario offline against the fake of the Permit API in `tools/e2e/fake`,
+which keeps the objects of each collection of the control plane's spec in memory, lists those whose
+attributes match the `attr_<name>` filters of a query, and checks each request body with the walker
+of `tools/drift`, which also accepts null for a top-level field of the request whose null policy in
+`tools/drift/model-map.yaml` is `accepts`, as the API does, though the spec does not say so. The
+SDK's clients of a dry run call a fake PDP beside it, `Fake.StartPDP`, which answers the decisions
+and the lists of the PDP that the scenarios send from the same store: the role assignments of the
+environment, by user, role, tenant and resource instance, and the permissions of its roles and
+resource roles. A role assignment counts only when its user, tenant, role and instance were created
+before it, as the Permit API refuses one that names an object that does not exist, so a seed that
+leaves an object out, or creates it too late, grants nothing. It checks each body against the spec
+of the PDP container, `tools/specs/pdp-container.json`, as the fake of the Permit API does. It is
+an approximation that proves that a scenario's calls and its seed reach a PDP, never how the PDP
 decides: it knows no attributes, conditions, relations or role derivations, lists tenants
 without attributes, and filters the role assignments that it lists by user only. The `test` job
 runs the dry run on every pull request; run it from the repository root:
@@ -1953,10 +1955,16 @@ on the environment of the client's scope, and a list whose options filter it: `r
    the first page, as `resources.go` does. A method of the facts API instead gets
    its request from `facts.prepare` (`facts.go`), with the parameters that follow `{env_id}`:
    with `WithFactsViaPDP` the call goes to the PDP container under `/facts` and needs no scope,
-   and without it to the API with the scope. A call through a copy that waits for sync carries
-   the wait's headers, and fails with an error that matches `ErrInvalidConfig`, sending nothing,
-   without `WithFactsViaPDP`, for an operation that is not `WaitsForSync` and for a timeout less
-   than zero.
+   and without it to the API, with the scope that `c.inScope` puts in. A call through a copy
+   that waits for sync carries the wait's headers, and fails with an error that matches
+   `ErrInvalidConfig`, sending nothing, without `WithFactsViaPDP`, for an operation that is not
+   `WaitsForSync`, for a timeout less than zero and for a `SyncOption` that is not valid, in any
+   place among the options. A facts service holds a `facts` and has a `WaitForSync` method that
+   returns a copy of the service with `facts.withWait`, as `TenantsService` (`tenants.go`) does.
+   Its List method checks `c.checkOpen()` before its options, so that a closed client returns
+   `ErrClosed` first; its All method does the same inside the iterator, on each loop, then calls
+   `facts.direct` and returns the pages of `all` for the PDP container or of `allInScope` for the
+   API, so that the iterator sends nothing until a loop asks for an item.
 4. Document it, with the phrases that `docRules` asks of it, the errors it returns and how its
    request is sent again. Give a new service type, and a new decision method, an Example with an
    output comment in `package permit_test`, whose routes `TestMain` (`main_test.go`) registers,

@@ -5,9 +5,10 @@
 // The fake serves the routes that it is given, those of a spec snapshot, and keeps the objects of
 // each collection in memory, a collection being the path of a route without its last parameter:
 // a POST to a collection creates an object with an ID, a GET, a PATCH, a PUT or a DELETE of an
-// item reads, changes or deletes it, a GET of a collection lists it, one page of it when the query
-// holds page or per_page, and a DELETE of a collection with a body removes the objects that hold
-// each field of the body. A parameter matches an object by its ID or its identifier: its key, or
+// item reads, changes or deletes it, a GET of a collection lists it, one page of it when the
+// query holds page or per_page, and only the objects whose attributes match each attr_<name>
+// of the query, and a DELETE of a collection with a body removes the objects that hold each
+// field of the body. A parameter matches an object by its ID or its identifier: its key, or
 // for a resource instance, an object with a resource, <resource>:<key>, as the Permit API names it.
 // A parameter that is not the last segment of its route and follows resources, roles, tenants or
 // users, such as {resource_id} in .../resources/{resource_id}/roles, must match an object, or the

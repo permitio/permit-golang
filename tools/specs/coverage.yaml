@@ -336,11 +336,11 @@ control-plane:
   - {op: set_scope_config, route: "PUT /v2/projects/{proj_id}/{env_id}/opal_scope", stage: GA, status: excluded, reason: project-setup}
   - {op: reset_scope_config, route: "DELETE /v2/projects/{proj_id}/{env_id}/opal_scope", stage: GA, status: excluded, reason: project-setup}
   # Tenants
-  - {op: list_tenants, route: "GET /v2/facts/{proj_id}/{env_id}/tenants", stage: GA, status: planned}
-  - {op: create_tenant, route: "POST /v2/facts/{proj_id}/{env_id}/tenants", stage: GA, status: planned}
-  - {op: get_tenant, route: "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: planned}
-  - {op: update_tenant, route: "PATCH /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: planned}
-  - {op: delete_tenant, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: planned}
+  - {op: list_tenants, route: "GET /v2/facts/{proj_id}/{env_id}/tenants", stage: GA, status: covered}
+  - {op: create_tenant, route: "POST /v2/facts/{proj_id}/{env_id}/tenants", stage: GA, status: covered}
+  - {op: get_tenant, route: "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
+  - {op: update_tenant, route: "PATCH /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
+  - {op: delete_tenant, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
   - {op: list_tenant_users, route: "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: planned}
   - {op: add_user_to_tenant, route: "POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: planned}
   - {op: delete_tenant_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}", stage: GA, status: planned}
@@ -458,7 +458,7 @@ pdp:
   - {op: update_resource_instance_facts_resource_instances__instance_id__patch, route: "PATCH /facts/resource_instances/{instance_id}", stage: GA, status: planned}
   - {op: create_role_assignment_facts_role_assignments_post, route: "POST /facts/role_assignments", stage: GA, status: planned}
   - {op: delete_role_assignment_facts_role_assignments_delete, route: "DELETE /facts/role_assignments", stage: GA, status: planned}
-  - {op: create_tenant_facts_tenants_post, route: "POST /facts/tenants", stage: GA, status: planned}
+  - {op: create_tenant_facts_tenants_post, route: "POST /facts/tenants", stage: GA, status: covered}
   - {op: create_user_facts_users_post, route: "POST /facts/users", stage: GA, status: planned}
   - {op: sync_user_facts_users__user_id__put, route: "PUT /facts/users/{user_id}", stage: GA, status: planned}
   - {op: update_user_facts_users__user_id__patch, route: "PATCH /facts/users/{user_id}", stage: GA, status: planned}
@@ -467,7 +467,7 @@ pdp:
   - op: forward_remaining_requests
     route: "ANY /facts/{full_path}"
     stage: GA
-    status: planned
+    status: covered
     sdk_only: "With facts sent through the PDP container, every facts route but the 11 that its spec lists goes to this catch-all, which forwards it to the API without waiting for the PDP to sync. The PDP's spec does not list it."
   # Local Queries
   - {op: list_role_assignments_local_role_assignments_get, route: "GET /local/role_assignments", stage: GA, status: covered}
@@ -493,4 +493,4 @@ sdk_only_params:
     reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; the SDK keeps them until a check against the API shows whether it applies them."
   - op: list_tenants
     param: "attr_*"
-    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; the SDK keeps them until a check against the API shows whether it applies them."
+    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; a check against the local stack showed that the API applies them, so the SDK keeps them."

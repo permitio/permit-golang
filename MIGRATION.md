@@ -1375,6 +1375,194 @@ is gone already, such as when a retry follows a delete that succeeded; v1 return
 the code `NotFound`. A mistyped key returns nil too, so check the key before a delete that must
 remove something. Any other error status is a `*permit.Error` with the status and the body.
 
+<a id="M-tenants-1"></a>
+### M-tenants-1: Tenants becomes Client.Tenants
+
+- v1: `api.Tenants`
+- v1: `api.NewTenantsApi`
+- v2: `permit.TenantsService`
+
+Call the methods of the tenants on the `Tenants` field of the client, `client.Tenants`, in place
+of `client.Api.Tenants`; `permit.New` builds it, so nothing takes the place of
+`api.NewTenantsApi`. Each method takes a `context.Context` first. The calls act on the
+environment of the client's scope, as v1's acted on the environment of its context: the project
+and the environment of `permit.WithScope`, or else those of the API key, as
+[M-scope-2](#M-scope-2) says. With `permit.WithFactsViaPDP()`, they go to the PDP container, as
+[M-facts-2](#M-facts-2) says. An environment-level API key may call each of them.
+
+`models.TenantRead` has `ID`, `OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`,
+`OrganizationId`, `ProjectId` and `EnvironmentId`; `Description` is a plain string, empty when
+the reply has none, in place of a pointer; `CreatedAt`, `UpdatedAt` and `LastActionAt` are
+`models.Time`, which embeds `time.Time`; and `Attributes` is a `models.Attributes`, whose numbers
+are `json.Number`, as [M-models-1](#M-models-1) says. `Attributes` is nil when the reply holds
+null, as it does after an update that set them to null, and an empty map that is not nil when it
+holds `{}`.
+
+<a id="M-tenants-2"></a>
+### M-tenants-2: GetById and GetByKey become Get
+
+- v1: `api.Tenants.Get`
+- v1: `api.Tenants.GetById`
+- v1: `api.Tenants.GetByKey`
+- v2: `permit.TenantsService.Get`
+
+`TenantsService.Get(ctx, tenantKey)` takes the key or the ID of the tenant, as all three v1
+methods sent the same request: pass `id.String()` for a `uuid.UUID`. A key that holds a `/` or a
+`%` is sent escaped, as one segment of the path, and an empty key, `.` or `..` is an error that
+matches `permit.ErrInvalidConfig`, with no request for the tenant. A tenant that the environment
+does not have is a `*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-tenants-3"></a>
+### M-tenants-3: List and ListByAttributes become List with TenantsListOptions
+
+- v1: `api.Tenants.List`
+- v1: `api.Tenants.ListByAttributes`
+- v2: `permit.TenantsService.List`
+
+`TenantsService.List(ctx, opts)` takes a `*permit.TenantsListOptions`, nil for the first page of
+every tenant with the API's default of 30 tenants, in place of the page and the number of tenants
+as two ints, and returns a `*permit.Page[models.TenantRead]`, as [M-lists-1](#M-lists-1) says. v1
+failed for more than 100 tenants on a page before any request; v2 sends the number as given, and
+the API answers above 100 with an error. A request that fails is an error, also a 500; before
+v1.3.0, `List` and `ListByAttributes` returned no error for it, so it looked like an empty list.
+
+The `Attributes` of the options take the place of `ListByAttributes`: each
+`permit.AttributeFilter`, which `permit.AttributeEquals(name, value)` builds, keeps the tenants
+whose attribute `name` equals the value, and is sent as the query parameter `attr_<name>`, as v1
+sent each entry of its map. The value is a string, a bool, an int, an int64 or a float64, in
+place of any value that v1 printed with `%v`; a float64 is sent as JSON writes it, such as
+`1000000` where v1 sent `1e+06`, and NaN or an infinity is an error that matches
+`permit.ErrInvalidConfig`, as is a filter without a name.
+`TenantsService.All(ctx, opts)` returns an `iter.Seq2[models.TenantRead, error]` that reads every
+page, 100 tenants at a time:
+
+```go
+opts := &permit.TenantsListOptions{
+	Attributes: []permit.AttributeFilter{permit.AttributeEquals("tier", "gold")},
+}
+for tenant, err := range client.Tenants.All(ctx, opts) {
+	if err != nil {
+		return err
+	}
+	fmt.Println(tenant.Key)
+}
+```
+
+<a id="M-tenants-4"></a>
+### M-tenants-4: Tenants.Create takes models.TenantCreate
+
+- v1: `api.Tenants.Create`
+- v2: `permit.TenantsService.Create`
+
+Build the tenant as a struct literal, such as
+`models.TenantCreate{Key: "tenant-a", Name: "Tenant A"}`, in place of `models.NewTenantCreate`.
+`Description` is a plain string, left out of the request when empty, in place of a `*string`,
+and `Attributes`, a `models.Attributes`, is left out when nil; an empty map that is not nil sends
+`{}`. A key that another tenant of the environment has is a `*permit.Error` that matches
+`permit.ErrConflict`. Create is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as
+the API may have created the tenant when a request got no complete reply.
+
+<a id="M-tenants-5"></a>
+### M-tenants-5: Tenants.Update takes models.TenantUpdate, which can send null
+
+- v1: `api.Tenants.Update`
+- v2: `permit.TenantsService.Update`
+
+Build the change as a struct literal of `models.TenantUpdate`, in place of
+`models.NewTenantUpdate` and its setters. The request holds only the fields that are set, and the
+tenant keeps the others. `Name` is a plain string, left out when empty. `Description` and
+`Attributes` are a `models.Optional[string]` and a `models.Optional[models.Attributes]`: unset
+leaves the field out; `models.Null[T]()` sends null, which v1 could not send, and removes the
+description, or stores the attributes as null; and `models.Some(value)` sends the value. The
+attributes that an update sends replace the tenant's attributes as a whole: `models.Some` of an
+empty map sends `{}`, which removes every attribute.
+
+<a id="M-tenants-6"></a>
+### M-tenants-6: Tenants.Delete of a tenant that is gone returns nil
+
+- v1: `api.Tenants.Delete`
+- v2: `permit.TenantsService.Delete`
+
+`TenantsService.Delete(ctx, tenantKey)` returns nil when the API answers 404, as the tenant is
+gone already, such as when a retry follows a delete that succeeded; v1 returned an error with the
+code `NotFound`. A mistyped key returns nil too, so check the key before a delete that must remove
+something. Any other error status is a `*permit.Error` with the status and the body.
+
+<a id="M-tenants-7"></a>
+### M-tenants-7: Tenants.WaitForSync takes a time.Duration and waits on creates only
+
+- v1: `api.Tenants.WaitForSync`
+- v2: `permit.TenantsService.WaitForSync`
+
+`TenantsService.WaitForSync(timeout, opts...)` takes the timeout as a `time.Duration`, in place
+of a `*time.Duration` whose nil meant the timeout of the configuration, and options, in place of
+`api.WaitForSyncOptions`, as [M-facts-3](#M-facts-3) says. It returns a copy of the service whose
+calls carry the wait; the service that it is called on keeps none.
+
+The PDP container waits for sync on the create of a tenant only. A call through the copy of any
+other method, such as `Update` or `Delete`, is an error that matches `permit.ErrInvalidConfig`,
+and no request is sent; v1 sent the headers of the wait with every call through its copy. A
+client without `permit.WithFactsViaPDP()` gets the same error for every call through the copy,
+as only the PDP container waits; v1 logged a warning and made the calls without the wait.
+
+<a id="M-facts-3"></a>
+### M-facts-3: WaitForSyncOptions becomes SyncOption
+
+- v1: `api.WaitForSyncOptions`
+- v2: `permit.SyncOption`
+
+Pass `permit.WithSyncPolicy(policy)` to the `WaitForSync` method of a service, such as
+`client.Tenants.WaitForSync(10*time.Second, permit.WithSyncPolicy(permit.SyncPolicyFail))`, in
+place of `api.WaitForSyncOptions{Policy: policy}`. Without the option, the call sends no
+`X-Timeout-Policy`, and the PDP container decides; v1 sent the policy of the configuration then,
+when it had one. A policy other than `permit.SyncPolicyFail` and `permit.SyncPolicyIgnore`, and the
+zero `permit.SyncOption`, in any place among the options, are errors that match
+`permit.ErrInvalidConfig` when a call is made through the copy, and no request is sent.
+
+<a id="M-facts-4"></a>
+### M-facts-4: FactsSyncTimeoutPolicy becomes SyncPolicy
+
+- v1: `config.FactsSyncTimeoutPolicy`
+- v1: `config.FactsSyncTimeoutPolicyFail`
+- v1: `config.FactsSyncTimeoutPolicyIgnore`
+- v2: `permit.SyncPolicy`
+
+Use `permit.SyncPolicyFail` and `permit.SyncPolicyIgnore`, of the type `permit.SyncPolicy`, in
+place of `config.FactsSyncTimeoutPolicyFail` and `config.FactsSyncTimeoutPolicyIgnore`; they send
+the same values, `fail` and `ignore`.
+
+<a id="M-facts-5"></a>
+### M-facts-5: The configuration has no wait for sync
+
+- v1: `config.DefaultFactsSyncTimeout`
+- v1: `config.PermitConfig.WithFactsSyncTimeout`
+- v1: `config.PermitConfig.GetFactsSyncTimeout`
+- v1: `config.PermitConfig.GetFactsSyncTimeoutPolicy`
+- v2: not exposed in v2
+
+v1 kept a timeout and a policy of the wait for sync in its configuration, a timeout of 10 seconds
+in one that `config.NewConfigBuilder` built, which `WaitForSync` used when it got no timeout or no
+policy. v2 has no such setting: give the timeout, and the policy when you want one, to each
+`WaitForSync` call, such as `client.Tenants.WaitForSync(10*time.Second)` for the timeout of v1's
+builder.
+
+<a id="M-facts-6"></a>
+### M-facts-6: The base type of the facts APIs has no counterpart
+
+- v1: `api.IPermitBaseFactsApi`
+- v1: `api.PermitBaseFactsApi`
+- v1: `api.PermitBaseFactsApi.WaitForSync`
+- v1: `api.NewPermitBaseFactsApi`
+- v1: `api.NewFactsClientConfig`
+- v2: not exposed in v2
+
+v1's facts APIs, such as `api.Tenants`, embedded `api.PermitBaseFactsApi`, whose `WaitForSync`
+returned the base type. In v2, each service of the facts API has a `WaitForSync` method of its
+own that returns a copy of that service, such as `permit.TenantsService.WaitForSync`.
+`api.NewFactsClientConfig` built a configuration of the generated client for the PDP URL, which
+v1 did not use; pass `permit.WithFactsViaPDP()` to `permit.New` to send the facts to the PDP
+container.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -1526,6 +1714,9 @@ What v2 keeps from v1 although a new major version could change it:
 
 - The name of the package: v2's root package is `permit`, as v1's `pkg/permit` was, so code that
   refers to `permit.` keeps its qualifier.
+- The attribute filters of the tenants: `permit.TenantsListOptions` sends each as the query
+  parameter `attr_<name>`, as v1's `ListByAttributes` did, although the API's spec does not list
+  these parameters: the API applies them.
 
 ## Appendix: v1 models types
 
@@ -1570,7 +1761,10 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceReplace` | `models.ResourceReplace` |
 | `models.ResourceRoleRead` | `models.ResourceRoleRead` |
 | `models.ResourceUpdate` | `models.ResourceUpdate` |
+| `models.TenantCreate` | `models.TenantCreate` |
+| `models.TenantRead` | `models.TenantRead` |
+| `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 350 of the 384 types of v1's pkg/models.
+Not mapped yet: 347 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

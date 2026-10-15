@@ -58,6 +58,7 @@ var routes = []Route{
 	{"GET", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors", "get_role_ancestors"},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/roles", "create_role"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/tenants", "create_tenant"},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants", "list_tenants"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "list_tenant_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "assign_role_to_user"},
@@ -533,6 +534,43 @@ func TestResourceInstances(t *testing.T) {
 	if got := h.expect(200, "GET", instances+"/folder:a", "", projectKey); got["resource"] !=
 		"folder" {
 		t.Errorf("the instance folder:a is %v after the deletion of document:a", got)
+	}
+}
+
+// TestAttributeFilters checks that a GET of a collection lists the objects whose attributes
+// match each attr_<name> of its query: a string as it is, a bool and a number as their JSON text,
+// every filter at once, and no object for an attribute that none has or for a name given twice
+// with two values; and that it pages what the filters keep.
+func TestAttributeFilters(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	tenants := "/v2/facts/proj/dev/tenants"
+	for _, body := range []string{
+		`{"key": "a", "name": "a", "attributes": {"tier": "gold", "seats": 10, "on": true}}`,
+		`{"key": "b", "name": "b", "attributes": {"tier": "gold", "seats": 2}}`,
+		`{"key": "c", "name": "c"}`,
+	} {
+		h.expect(200, "POST", tenants, body, projectKey)
+	}
+	for query, want := range map[string][]any{
+		"":                                    {"a", "b", "c"},
+		"?attr_tier=gold":                     {"a", "b"},
+		"?attr_tier=gold&attr_seats=10":       {"a"},
+		"?attr_on=true":                       {"a"},
+		"?attr_tier=silver":                   {},
+		"?attr_region=eu":                     {},
+		"?attr_tier=gold&attr_tier=silver":    {},
+		"?attr_tier=gold&page=2&per_page=1":   {"b"},
+		"?attr_seats=2&page=1&per_page=30&x=": {"b"},
+	} {
+		keys := []any{}
+		for _, tenant := range h.list(tenants+query, projectKey) {
+			o, _ := tenant.(map[string]any)
+			keys = append(keys, o["key"])
+		}
+		if !slices.Equal(keys, want) {
+			t.Errorf("GET %s%s listed %v, want %v", tenants, query, keys, want)
+		}
 	}
 }
 

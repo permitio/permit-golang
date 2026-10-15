@@ -34,6 +34,11 @@ allow:
       the API answers the scope of an organization-level API key with environment_id null, which
       the published spec types as a string only
     trigger: when the published spec allows null for environment_id of APIKeyScopeRead
+  - key: reply update_tenant.200.null-attributes.json#/attributes
+    reason: >-
+      the API stores null for the attributes of a tenant that an update sets to null, and then
+      returns them as null, which the published spec types as an object only
+    trigger: when the published spec allows null for attributes of TenantRead
   - key: model CheckRequest field sdk
     reason: >-
       the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every

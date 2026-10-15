@@ -85,5 +85,11 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("get_resource.200.json")})
 	servers.API.Handle("PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}",
 		mockpermit.Reply{Body: replyFixture("replace_resource.200.json")})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/tenants",
+		mockpermit.Reply{Body: replyFixture("list_tenants.200.page.json")})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}",
+		mockpermit.Reply{Body: replyFixture("get_tenant.200.json")})
+	servers.PDP.Handle("POST /facts/tenants",
+		mockpermit.Reply{Body: replyFixture("create_tenant.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

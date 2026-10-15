@@ -580,6 +580,40 @@ models:
       error: {required: false, null_policy: n/a}
   TaskStatus:
     schema: TaskStatus
+  # A tenant of an environment, as a create sends it, as an update changes it and as the API
+  # returns it. The local harness measured the update: the API rejects null for the name with a
+  # 422, clears the description for null, stores null for the attributes, which a read then
+  # returns as null, and stores {} as {}. A create reads null for the description, which has no
+  # default, as the field left out, and rejects null for its required fields and for the
+  # attributes, which have a default, as every create does; these null policies of the create
+  # are not measured yet: the phase api.tenants of the local harness confirms them.
+  TenantCreate:
+    schema: TenantCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: rejects}
+  TenantRead:
+    schema: TenantRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      last_action_at: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  TenantUpdate:
+    schema: TenantUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      attributes: {required: false, null_policy: accepts}
   TenantDetails:
     spec: pdp-container
     schema: _TenantDetails

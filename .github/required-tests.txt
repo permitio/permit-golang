@@ -1023,6 +1023,23 @@ github.com/permitio/permit-golang/v2 TestMalformedResourceReplies
 github.com/permitio/permit-golang/v2 TestResourcesAfterClose
 github.com/permitio/permit-golang/v2 ExampleResourcesService
 github.com/permitio/permit-golang/v2 ExampleResourcesService_Replace
+github.com/permitio/permit-golang/v2 TestTenantsListReturnsTheError
+github.com/permitio/permit-golang/v2 TestTenantsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestTenantsAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestTenantAttributeFilters
+github.com/permitio/permit-golang/v2 TestInvalidTenantListOptions
+github.com/permitio/permit-golang/v2 TestTenantsScope
+github.com/permitio/permit-golang/v2 TestTenantKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteTenantThatIsGone
+github.com/permitio/permit-golang/v2 TestTenantBodies
+github.com/permitio/permit-golang/v2 TestTenantAttributesReadBack
+github.com/permitio/permit-golang/v2 TestTenantRetries
+github.com/permitio/permit-golang/v2 TestMalformedTenantReplies
+github.com/permitio/permit-golang/v2 TestTenantsAfterClose
+github.com/permitio/permit-golang/v2 TestTenantsWaitForSync
+github.com/permitio/permit-golang/v2 TestTenantsWaitForSyncMisuse
+github.com/permitio/permit-golang/v2 ExampleTenantsService
+github.com/permitio/permit-golang/v2 ExampleTenantsService_WaitForSync
 
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
@@ -1070,6 +1087,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestStatsAndCopies
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoutes
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestParents
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceInstances
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestAttributeFilters
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1087,6 +1105,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_stats_and_copy
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_environment_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenant_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check
@@ -1132,6 +1151,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestPlan
 github.com/permitio/permit-golang/v2/tools/e2e TestContainerOnlyScenarios
 github.com/permitio/permit-golang/v2/tools/e2e TestRequiredScenarios
 github.com/permitio/permit-golang/v2/tools/e2e TestAwaitValue
+github.com/permitio/permit-golang/v2/tools/e2e TestAcceptingNull
 
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckE2ELegs
 github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregateAdvisoryE2ELegs

@@ -4,8 +4,11 @@ import (
 	"cmp"
 	"context"
 	"iter"
+	"math"
+	"strconv"
 
 	"github.com/permitio/permit-golang/v2/internal/validate"
+	"github.com/permitio/permit-golang/v2/internal/wire"
 )
 
 // ListOptions picks the page of a list that a List method returns, and the page that an All
@@ -22,6 +25,68 @@ type ListOptions struct {
 	// sends a PerPage that is not 0 as it is, without a limit of its own, also when it is above
 	// the route's limit: the API may then reject the request, or give fewer items on a page.
 	PerPage int
+}
+
+// AttributeFilter keeps the items of a list whose attribute has a value, such as the tenants
+// whose tier is gold. A list sends it as the query parameter attr_<name>, with the value as
+// text, and the API keeps the items whose attribute matches it; the API's spec does not list
+// these parameters. Build one with [AttributeEquals]. The zero AttributeFilter is not valid: a
+// call that gets one returns an error that matches [ErrInvalidConfig] and sends no request.
+type AttributeFilter struct {
+	// name is the name of the attribute, which the parameter's name holds after attr_.
+	name string
+
+	// value is the value as the query sends it.
+	value string
+
+	// notFinite says that the value is a float64 that is NaN or an infinity, which the API does
+	// not read as a number.
+	notFinite bool
+}
+
+// AttributeEquals returns the filter that keeps the items whose attribute name equals value: a
+// string, a bool, an int, an int64 or a float64, such as AttributeEquals("tier", "gold") or
+// AttributeEquals("seats", 10). The query sends a string as it is, a bool as true or false, an
+// integer as its decimal digits, and a float64 as encoding/json writes it, such as 0.5, 1000000,
+// 1e-7 or 1e+21. An empty name, and a float64 that is NaN or an infinity, make a filter that is
+// not valid: a call that gets it returns an error that matches [ErrInvalidConfig] and sends no
+// request.
+func AttributeEquals[T string | bool | int | int64 | float64](name string, value T,
+) AttributeFilter {
+	f := AttributeFilter{name: name}
+	switch v := any(value).(type) {
+	case string:
+		f.value = v
+	case bool:
+		f.value = strconv.FormatBool(v)
+	case int:
+		f.value = strconv.Itoa(v)
+	case int64:
+		f.value = strconv.FormatInt(v, 10)
+	case float64:
+		f.value = wire.FormatFloat(v)
+		f.notFinite = math.IsNaN(v) || math.IsInf(v, 0)
+	}
+	return f
+}
+
+// addAttributeFilters adds each of filters to query as the parameter attr_<name>, in order, for
+// a call of the operation op. It returns the error of the first filter that is not valid, which
+// names op and the filter's place in filters, and then adds none.
+func addAttributeFilters(query *wire.Query, op string, filters []AttributeFilter) error {
+	for i, f := range filters {
+		setting := op + ": attribute filter " + strconv.Itoa(i+1)
+		switch {
+		case f.name == "":
+			return &configError{setting: setting, rule: validate.ListAttributeFilterNameEmpty}
+		case f.notFinite:
+			return &configError{setting: setting, rule: validate.ListAttributeFilterNotFinite}
+		}
+	}
+	for _, f := range filters {
+		query.AddString("attr_"+f.name, &f.value)
+	}
+	return nil
 }
 
 // listOptions returns a copy of the options that opts points to, or the zero ListOptions for a

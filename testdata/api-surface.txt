@@ -349,9 +349,33 @@ models: type TaskResultEnvironmentRead struct, Result *EnvironmentRead
 models: type TaskResultEnvironmentRead struct, Status TaskStatus
 models: type TaskResultEnvironmentRead struct, TaskID string
 models: type TaskStatus string
+models: type TenantCreate struct
+models: type TenantCreate struct, Attributes Attributes
+models: type TenantCreate struct, Description string
+models: type TenantCreate struct, Key string
+models: type TenantCreate struct, Name string
+models: type TenantRead struct
+models: type TenantRead struct, Attributes Attributes
+models: type TenantRead struct, CreatedAt Time
+models: type TenantRead struct, Description string
+models: type TenantRead struct, EnvironmentID string
+models: type TenantRead struct, ID string
+models: type TenantRead struct, Key string
+models: type TenantRead struct, LastActionAt Time
+models: type TenantRead struct, Name string
+models: type TenantRead struct, OrganizationID string
+models: type TenantRead struct, ProjectID string
+models: type TenantRead struct, UpdatedAt Time
+models: type TenantUpdate struct
+models: type TenantUpdate struct, Attributes Optional[Attributes]
+models: type TenantUpdate struct, Description Optional[string]
+models: type TenantUpdate struct, Name string
 models: type Time struct
 models: type Time struct, embedded time.Time
+permit: const SyncPolicyFail SyncPolicy = "fail"
+permit: const SyncPolicyIgnore SyncPolicy = "ignore"
 permit: const Version = "2.0.0"
+permit: func AttributeEquals[T string | bool | int | int64 | float64](name string, value T) AttributeFilter
 permit: func New(opts ...Option) (*Client, error)
 permit: func WithAPIKey(apiKey string) Option
 permit: func WithAPIURL(apiURL string) Option
@@ -364,6 +388,7 @@ permit: func WithResourceTypes(resourceTypes ...string) PermissionsOption
 permit: func WithResources(resources ...string) PermissionsOption
 permit: func WithRetry(policy RetryPolicy) Option
 permit: func WithScope(project string, environment string) Option
+permit: func WithSyncPolicy(policy SyncPolicy) SyncOption
 permit: func WithTenants(tenants ...string) PermissionsOption
 permit: func WithTimeout(timeout time.Duration) Option
 permit: method (*APIKeysService) All(ctx context.Context, opts *APIKeysListOptions) iter.Seq2[models.APIKeyRead, error]
@@ -415,6 +440,13 @@ permit: method (*ResourcesService) Get(ctx context.Context, resourceKey string) 
 permit: method (*ResourcesService) List(ctx context.Context, opts *ResourcesListOptions) (*Page[models.ResourceRead], error)
 permit: method (*ResourcesService) Replace(ctx context.Context, resourceKey string, resource models.ResourceReplace) (*models.ResourceRead, error)
 permit: method (*ResourcesService) Update(ctx context.Context, resourceKey string, update models.ResourceUpdate) (*models.ResourceRead, error)
+permit: method (*TenantsService) All(ctx context.Context, opts *TenantsListOptions) iter.Seq2[models.TenantRead, error]
+permit: method (*TenantsService) Create(ctx context.Context, tenant models.TenantCreate) (*models.TenantRead, error)
+permit: method (*TenantsService) Delete(ctx context.Context, tenantKey string) error
+permit: method (*TenantsService) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error)
+permit: method (*TenantsService) List(ctx context.Context, opts *TenantsListOptions) (*Page[models.TenantRead], error)
+permit: method (*TenantsService) Update(ctx context.Context, tenantKey string, update models.TenantUpdate) (*models.TenantRead, error)
+permit: method (*TenantsService) WaitForSync(timeout time.Duration, opts ...SyncOption) *TenantsService
 permit: method (Option) Format(f fmt.State, verb rune)
 permit: method (Option) GoString() string
 permit: method (Option) LogValue() slog.Value
@@ -424,6 +456,7 @@ permit: type APIKeysListOptions struct, ObjectType models.MemberAccessObj
 permit: type APIKeysListOptions struct, Project string
 permit: type APIKeysListOptions struct, embedded ListOptions
 permit: type APIKeysService struct
+permit: type AttributeFilter struct
 permit: type AuthorizedUserAssignment struct
 permit: type AuthorizedUserAssignment struct, Resource string
 permit: type AuthorizedUserAssignment struct, Role string
@@ -454,6 +487,7 @@ permit: type Client struct, APIKeys *APIKeysService
 permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Projects *ProjectsService
 permit: type Client struct, Resources *ResourcesService
+permit: type Client struct, Tenants *TenantsService
 permit: type CopyResultOptions struct
 permit: type CopyResultOptions struct, Wait time.Duration
 permit: type EnvironmentsService struct
@@ -517,9 +551,15 @@ permit: type RetryPolicy struct, MaxRetries int
 permit: type Scope struct
 permit: type Scope struct, Environment string
 permit: type Scope struct, Project string
+permit: type SyncOption struct
+permit: type SyncPolicy string
 permit: type TenantDetails struct
 permit: type TenantDetails struct, Attributes map[string]any
 permit: type TenantDetails struct, Key string
+permit: type TenantsListOptions struct
+permit: type TenantsListOptions struct, Attributes []AttributeFilter
+permit: type TenantsListOptions struct, embedded ListOptions
+permit: type TenantsService struct
 permit: type User struct
 permit: type User struct, Attributes map[string]any
 permit: type User struct, Email string

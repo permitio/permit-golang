@@ -112,6 +112,7 @@ var wireCaseLists = []func() []wireCase{
 	environmentCases,
 	apiKeyCases,
 	resourceCases,
+	tenantCases,
 }
 
 // routeMethods are the request methods a route can have.
@@ -388,75 +389,41 @@ func TestWireCases(t *testing.T) {
 	}
 }
 
-// The tests below check the runner on a test-only operation of the facts API.
+// The tests below check the runner on the case of an operation of the facts API, the delete of
+// a tenant.
 
-// The test-only operations of the runner's tests: one of the facts API, a removal whose body
-// names nothing, which permit.Client.CallFacts calls, and one that is not of the facts API.
-var (
-	opWireFacts = rest.Op{
-		ID: "test_wire_facts", Method: http.MethodDelete,
-		Route:      rest.TestPrefix + "v2/facts/{proj_id}/{env_id}/objects/{object_id}/members",
-		Idempotent: true, Facts: true, KeyLevel: rest.EnvironmentLevel,
-	}
-	opWirePlain = rest.Op{
-		ID: "test_wire_plain", Method: http.MethodGet, Route: rest.TestPrefix + "plain",
-		Idempotent: true, KeyLevel: rest.EnvironmentLevel,
-	}
-)
-
-// conflictBody is the API's error body of a conflict.
-const conflictBody = `{"error_code":"CONFLICT","title":"Conflict",` +
-	`"message":"the object changed","id":"req-2"}`
-
-// wireFactsCase returns the wire case of a call of opWireFacts for the object a/b, in both
-// modes.
-func wireFactsCase() wireCase {
-	return wireCase{
-		Method: "ObjectsService.RemoveMembers",
-		Op:     opWireFacts.ID,
-		Route:  "DELETE /__test/v2/facts/{proj_id}/{env_id}/objects/{object_id}/members",
-		Modes:  []wireMode{apiMode, factsViaPDPMode},
-		Call: func(ctx context.Context, c *permit.Client) (any, error) {
-			return wireNoResult{}, c.CallFacts(ctx, opWireFacts.ID, "a/b")
-		},
-		Request:    wireRequest{RawPath: "/__test/v2/facts/p/e/objects/a%2Fb/members"},
-		Reply:      mockpermit.Reply{Status: http.StatusNoContent},
-		WantResult: wireNoResult{},
-		ErrorReply: mockpermit.Reply{Status: http.StatusConflict, Body: conflictBody},
-		WantErr: &permit.Error{
-			Op: opWireFacts.ID, Method: http.MethodDelete,
-			Route:      "/__test/v2/facts/{proj_id}/{env_id}/objects/{object_id}/members",
-			StatusCode: http.StatusConflict, Code: "CONFLICT", Title: "Conflict",
-			Detail: "the object changed", RequestID: "req-2", Body: []byte(conflictBody),
-		},
-	}
+// opWirePlain is the test-only operation of the runner's tests that is not of the facts API.
+var opWirePlain = rest.Op{
+	ID: "test_wire_plain", Method: http.MethodGet, Route: rest.TestPrefix + "plain",
+	Idempotent: true, KeyLevel: rest.EnvironmentLevel,
 }
 
-// wireFactsClient is the wireClientFunc of the runner's tests, whose client also holds
-// opWireFacts.
-func wireFactsClient(tb testing.TB, api, pdp *mockpermit.Server,
-	opts ...permit.Option,
-) *permit.Client {
+// wireFactsCase returns the wire case of TenantsService.Delete, a call of the facts API, which
+// lists both modes.
+func wireFactsCase(tb testing.TB) wireCase {
 	tb.Helper()
-	base := []permit.Option{
-		permit.WithAPIKey(mockpermit.APIKey), permit.WithAPIURL(api.URL),
-		permit.WithPDPURL(pdp.URL),
+	for _, c := range tenantCases() {
+		if c.Method == "TenantsService.Delete" {
+			return c
+		}
 	}
-	c := permit.NewTestClient(tb, append(base, opts...), opWireFacts)
-	tb.Cleanup(func() { _ = c.Close() })
-	return c
+	tb.Fatal("tenantCases has no case of TenantsService.Delete")
+	return wireCase{}
 }
 
 // TestWireRunnerRunsFactsInBothModes runs the case of a call of the facts API in each of its
 // modes: to the API with the runner's scope, and to the PDP container under /facts, each time
 // with nothing reaching the other server.
 func TestWireRunnerRunsFactsInBothModes(t *testing.T) {
-	c := wireFactsCase()
+	c := wireFactsCase(t)
 	if problems := checkWireCase(c); problems != nil {
 		t.Fatalf("checkWireCase rejected the case: %q", problems)
 	}
+	if !slices.Equal(c.Modes, []wireMode{apiMode, factsViaPDPMode}) {
+		t.Fatalf("the case has the modes %q, want both", c.Modes)
+	}
 	for _, mode := range c.Modes {
-		t.Run(string(mode), func(t *testing.T) { runWireCase(t, c, mode, wireFactsClient) })
+		t.Run(string(mode), func(t *testing.T) { runWireCase(t, c, mode, wireTestClient) })
 	}
 }
 
@@ -494,9 +461,9 @@ func TestWireRunnerFailsAWrongServer(t *testing.T) {
 				tb.Helper()
 				opts := append([]permit.Option{permit.WithScope(wireProject, wireEnvironment)},
 					tc.opts...)
-				return wireFactsClient(tb, api, pdp, opts...)
+				return wireTestClient(tb, api, pdp, opts...)
 			}
-			got := runFake(t, wireFactsCase(), tc.mode, misrouted)
+			got := runFake(t, wireFactsCase(t), tc.mode, misrouted)
 			for _, want := range []string{tc.want, "sent 0 requests to its server, want 1"} {
 				if !strings.Contains(got, want) {
 					t.Errorf("the runner reported\n%s\nwant a line that contains %q", got, want)
@@ -531,10 +498,10 @@ func changingHeaders(newClient wireClientFunc, change func(http.Header)) wireCli
 // TestWireRunnerFailsAWaitHeader checks that the runner fails a request that carries a wait for
 // sync that its call did not ask for.
 func TestWireRunnerFailsAWaitHeader(t *testing.T) {
-	leaking := changingHeaders(wireFactsClient, func(h http.Header) {
+	leaking := changingHeaders(wireTestClient, func(h http.Header) {
 		h.Set("X-Wait-Timeout", "1")
 	})
-	got := runFake(t, wireFactsCase(), factsViaPDPMode, leaking)
+	got := runFake(t, wireFactsCase(t), factsViaPDPMode, leaking)
 	want := `sent X-Wait-Timeout: ["1"], which only a call that waits for sync sends`
 	if !strings.Contains(got, want) {
 		t.Errorf("the runner reported\n%s\nwant a line that contains %q", got, want)
@@ -752,11 +719,11 @@ func TestWireScope(t *testing.T) {
 }
 
 func TestFactsModeProblems(t *testing.T) {
-	registry, err := rest.Default().WithTestOps(opWireFacts, opWirePlain)
+	registry, err := rest.Default().WithTestOps(opWirePlain)
 	if err != nil {
 		t.Fatal(err)
 	}
-	facts, plain := wireFactsCase(), syntheticCase("PlainService.Get", "GET /__test/plain",
+	facts, plain := wireFactsCase(t), syntheticCase("PlainService.Get", "GET /__test/plain",
 		"/__test/plain")
 	plain.Op = opWirePlain.ID
 	unknown := syntheticCase("UnknownService.Get", "GET /x", "/x")
@@ -777,9 +744,9 @@ func TestFactsModeProblems(t *testing.T) {
 		withModes(plain, apiMode, factsViaPDPMode),
 	}, registry)
 	want := []string{
-		`the wire case of ObjectsService.RemoveMembers (test_wire_facts) has the modes ["api"]; ` +
-			"the case of an operation of the facts API lists api and facts-via-pdp",
-		`the wire case of ObjectsService.RemoveMembers (test_wire_facts) has the modes ` +
+		`the wire case of TenantsService.Delete (delete_tenant) has the modes ["api"]; the ` +
+			"case of an operation of the facts API lists api and facts-via-pdp",
+		`the wire case of TenantsService.Delete (delete_tenant) has the modes ` +
 			`["facts-via-pdp"]; the case of an operation of the facts API lists api and ` +
 			"facts-via-pdp",
 		"the wire case of PlainService.Get (test_wire_plain) lists facts-via-pdp, which only the " +

@@ -282,8 +282,8 @@ func TestWaitForSyncHeaders(t *testing.T) {
 		{syncWait{timeout: 0}, "0 -"},
 		{syncWait{timeout: 500 * time.Millisecond}, "0.5 -"},
 		{syncWait{timeout: 1500 * time.Millisecond}, "1.5 -"},
-		{syncWait{timeout: 10 * time.Second, policy: syncPolicyFail}, "10 fail"},
-		{syncWait{timeout: 250 * time.Millisecond, policy: syncPolicyIgnore}, "0.25 ignore"},
+		{syncWait{timeout: 10 * time.Second, policy: SyncPolicyFail}, "10 fail"},
+		{syncWait{timeout: 250 * time.Millisecond, policy: SyncPolicyIgnore}, "0.25 ignore"},
 	} {
 		t.Run(tc.want, func(t *testing.T) {
 			api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
@@ -332,14 +332,14 @@ func TestWaitSeconds(t *testing.T) {
 func TestWithWaitReturnsACopy(t *testing.T) {
 	plain := facts{client: &Client{}}
 	short := plain.withWait(syncWait{timeout: time.Second})
-	long := short.withWait(syncWait{timeout: time.Minute, policy: syncPolicyFail})
+	long := short.withWait(syncWait{timeout: time.Minute, policy: SyncPolicyFail})
 	if plain.wait != nil {
 		t.Errorf("withWait gave the facts it was called on the wait %+v", *plain.wait)
 	}
 	if short.wait == nil || *short.wait != (syncWait{timeout: time.Second}) {
 		t.Errorf("the first copy has the wait %+v, want 1s without a policy", short.wait)
 	}
-	if long.wait == nil || *long.wait != (syncWait{timeout: time.Minute, policy: syncPolicyFail}) ||
+	if long.wait == nil || *long.wait != (syncWait{timeout: time.Minute, policy: SyncPolicyFail}) ||
 		long.client != plain.client {
 		t.Errorf("the second copy has the wait %+v, want 1m and fail, and the same client",
 			long.wait)
@@ -351,7 +351,7 @@ func TestWithWaitReturnsACopy(t *testing.T) {
 // Each returns an error that matches ErrInvalidConfig and names the operation and the rule, and
 // no call sends a request, not even a lookup of the scope.
 func TestWaitForSyncMisuse(t *testing.T) {
-	wait := syncWait{timeout: time.Second, policy: syncPolicyFail}
+	wait := syncWait{timeout: time.Second, policy: SyncPolicyFail}
 	for _, tc := range []struct {
 		name   string
 		viaPDP bool
@@ -476,7 +476,7 @@ func TestFactsConcurrentWaits(t *testing.T) {
 	}
 	pdp.Handle(pdpUpdateRoute, replies...)
 	plain := facts{client: factsClient(t, api, pdp, WithFactsViaPDP())}
-	policies := []syncPolicy{syncPolicyFail, syncPolicyIgnore}
+	policies := []SyncPolicy{SyncPolicyFail, SyncPolicyIgnore}
 	want := func(i int) string {
 		if i%2 == 1 {
 			return "- -"

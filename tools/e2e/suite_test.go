@@ -8,13 +8,17 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	permit "github.com/permitio/permit-golang/v2"
+	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/testhook"
 	"github.com/permitio/permit-golang/v2/tools/drift"
 	"github.com/permitio/permit-golang/v2/tools/e2e/fake"
@@ -71,6 +75,13 @@ var cloudScenarios = []scenario{
 			"ResourcesService.Delete",
 		},
 		run: resourceLifecycle,
+	},
+	{
+		name: "tenant_lifecycle", methods: []string{
+			"TenantsService.Create", "TenantsService.Get", "TenantsService.List",
+			"TenantsService.All", "TenantsService.Update", "TenantsService.Delete",
+		},
+		run: tenantLifecycle,
 	},
 	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
@@ -272,8 +283,13 @@ var specs = sync.OnceValues(func() (*drift.Specs, error) {
 	return drift.ReadSpecs("../specs")
 })
 
+// modelMap is the map of the models of tools/drift, whose null policies say which fields of a
+// request the API accepts null for.
+const modelMap = "../drift/model-map.yaml"
+
 // startFake starts a fake of the routes of the control plane's spec, which checks each request
-// body with the structural walker of tools/drift, that of a fake PDP too.
+// body with the structural walker of tools/drift, that of a fake PDP too, and accepts null where
+// the API does, as acceptingNull says.
 func startFake(t *testing.T) *fake.Fake {
 	t.Helper()
 	s, err := specs()
@@ -281,14 +297,106 @@ func startFake(t *testing.T) *fake.Fake {
 		markBroken(t, "reading the spec snapshots: %v", err)
 		t.FailNow()
 	}
+	nullable, err := nullFields(modelMap)
+	if err != nil {
+		markBroken(t, "reading %s: %v", modelMap, err)
+		t.FailNow()
+	}
 	var routes []fake.Route
 	for _, op := range s.Operations("control-plane") {
 		routes = append(routes, fake.Route{Method: op.Method, Template: op.Route, Op: op.ID})
 	}
 	return fake.New(t, fake.Config{
-		Routes: routes, Check: s.CheckRequestBody, Project: dryRunProject,
-		ProjectAPIKey: dryRunProjectKey,
+		Routes: routes, Check: acceptingNull(s.CheckRequestBody, nullable),
+		Project: dryRunProject, ProjectAPIKey: dryRunProjectKey,
 	})
+}
+
+// nullFields returns the pointers of the top-level fields of the request of each operation of
+// the registry whose null policy in the map of the models at path is accepts, by the ID of the
+// operation, such as #/attributes of update_tenant: the API accepts null for them, as a
+// models.Optional sends it, which the specs do not say.
+func nullFields(path string) (map[string][]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var m struct {
+		Models map[string]struct {
+			Fields map[string]struct {
+				NullPolicy string `yaml:"null_policy"` //nolint:tagliatelle // The file's key.
+			} `yaml:"fields"`
+		} `yaml:"models"`
+	}
+	if err := yaml.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+	fields := map[string][]string{}
+	for _, op := range rest.Default().Ops() {
+		for name, field := range m.Models[op.RequestModel].Fields {
+			if field.NullPolicy == "accepts" {
+				fields[op.ID] = append(fields[op.ID], "#/"+name)
+			}
+		}
+	}
+	return fields, nil
+}
+
+// acceptingNull returns check, which also accepts null at the pointers of nullable for the
+// operation of a request: it leaves out each problem that check finds there because the value is
+// null, and keeps every other.
+func acceptingNull(check fake.Check, nullable map[string][]string) fake.Check {
+	return func(op string, body []byte) ([]string, error) {
+		problems, err := check(op, body)
+		return slices.DeleteFunc(problems, func(problem string) bool {
+			return slices.ContainsFunc(nullable[op], func(pointer string) bool {
+				return strings.HasPrefix(problem, pointer+" is null, ")
+			})
+		}), err
+	}
+}
+
+// TestAcceptingNull checks the check of the dry run on update_tenant, whose attributes and
+// description the API accepts null for, as the map of the models says, and whose name it does
+// not: null for the first two passes, null for the name and a string for the attributes do not.
+// It checks create_tenant too, whose fields accept no null, as the null policy of none of them is
+// accepts: null for its description, whose policy is ignores, does not pass either.
+func TestAcceptingNull(t *testing.T) {
+	s, err := specs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	nullable, err := nullFields(modelMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := slices.Sorted(slices.Values(nullable["update_tenant"])),
+		[]string{"#/attributes", "#/description"}; !slices.Equal(got, want) {
+		t.Fatalf("the fields of update_tenant that accept null are %q, want %q", got, want)
+	}
+	if got := nullable["create_tenant"]; len(got) != 0 {
+		t.Fatalf("the fields of create_tenant that accept null are %q, want none", got)
+	}
+	check := acceptingNull(s.CheckRequestBody, nullable)
+	for _, tc := range []struct {
+		op, body string
+		want     int
+	}{
+		{"update_tenant", `{"attributes":null,"description":null}`, 0},
+		{"update_tenant", `{"name":null}`, 1},
+		{"update_tenant", `{"attributes":"gold"}`, 1},
+		{"create_tenant", `{"key":"k","name":"n"}`, 0},
+		{"create_tenant", `{"key":"k","name":"n","description":null}`, 1},
+	} {
+		problems, err := check(tc.op, []byte(tc.body))
+		if err != nil || len(problems) != tc.want {
+			t.Errorf("the check of %s for %s found %q, %v; want %d problems", tc.body, tc.op,
+				problems, err, tc.want)
+		}
+	}
+	if _, err := nullFields("no-such-map.yaml"); err == nil {
+		t.Error("nullFields of a map that does not exist returned no error")
+	}
 }
 
 // client returns a client of the scratch environment that authenticates with key, has opts,

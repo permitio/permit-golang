@@ -122,6 +122,24 @@
     ],
     "ResourcesService.Update": [
       "update_resource"
+    ],
+    "TenantsService.All": [
+      "list_tenants"
+    ],
+    "TenantsService.Create": [
+      "create_tenant"
+    ],
+    "TenantsService.Delete": [
+      "delete_tenant"
+    ],
+    "TenantsService.Get": [
+      "get_tenant"
+    ],
+    "TenantsService.List": [
+      "list_tenants"
+    ],
+    "TenantsService.Update": [
+      "update_tenant"
     ]
   }
 }

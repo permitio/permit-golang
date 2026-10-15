@@ -27,6 +27,8 @@ decision.option.zero the CheckOption is the zero value; build options with the W
 decision.resource-type.empty the resource type is empty; give the key of the resource type, such as document, as the PDP rejects a request without one
 decision.url.empty the URL is empty; give the URL of the request to check, as the PDP rejects a request without one
 decision.user-key.empty the user key is empty; give the key of the user, as the PDP rejects a request without one
+list.attribute-filter.name-empty the attribute filter names no attribute; build it with AttributeEquals and the name of the attribute
+list.attribute-filter.not-finite the value of the attribute filter is NaN or an infinity, which the API does not read as a number; give a finite number
 list.page.negative Page is less than zero; give 0 or 1 for the first page, or the number of a later page
 list.per-page.negative PerPage is less than zero; give 0 to leave the number of items on a page to the method, or a number from 1
 path.api-key-id.scope the API key ID is scope, which names the route of the scope of the API key, not a key; pass the ID of an API key
@@ -36,4 +38,5 @@ scope.environment.missing the operation acts on an environment, and the client's
 scope.project.missing the operation acts on a project, and the client's scope has none; pass WithScope(project, environment) to New
 wait-for-sync.facts-via-api the call waits for sync, which only the PDP container does, and the client sends facts to the API; pass WithFactsViaPDP to New, or make the call without the wait
 wait-for-sync.not-waiting the PDP container does not wait for sync on this route; make the call without the wait
+wait-for-sync.policy.unknown the policy of the wait for sync is neither SyncPolicyFail nor SyncPolicyIgnore; pass one of them to WithSyncPolicy, or leave the option out to leave the policy to the PDP container
 wait-for-sync.timeout-negative the timeout of the wait for sync is less than zero; give 0 or more

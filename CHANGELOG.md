@@ -293,6 +293,46 @@ change from v1 and what to use instead.
   after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply or a
   failed connection too.
 
+### Tenants
+
+- The `Tenants` field of the client, a `*permit.TenantsService`, lists, reads, creates, changes
+  and deletes the tenants of an environment: `List` returns a page as a
+  `*permit.Page[models.TenantRead]`, with the counts of a paginated reply, and `All` reads every
+  page, 100 tenants at a time; `Get` reads one tenant by its key or its ID, in place of v1's
+  `Get`, `GetById` and `GetByKey`; `Create` takes a `models.TenantCreate`, `Update` a
+  `models.TenantUpdate`, and both return the tenant as a `*models.TenantRead`; `Delete` deletes a
+  tenant. A reply with an error status to `List` is an error, also a 500; before v1.3.0, v1's
+  `List` and `ListByAttributes` returned no error for a failed request, so a 500 looked like an
+  empty list.
+- The calls are calls of the facts API: they act on the environment of the client's scope, or,
+  with `WithFactsViaPDP`, go to the PDP container under `/facts/tenants`. Each is sent with an
+  environment-level API key, or higher.
+- `permit.TenantsListOptions` filters a list by the attributes of the tenants, in place of v1's
+  `ListByAttributes`: each `permit.AttributeFilter`, which `permit.AttributeEquals(name, value)`
+  builds from a string, a bool, an int, an int64 or a float64, is sent as the query parameter
+  `attr_<name>`, which the API's spec does not list. A filter without a name, and a float64 that
+  is NaN or an infinity, are errors that match `ErrInvalidConfig`, with the rules
+  `list.attribute-filter.name-empty` and `list.attribute-filter.not-finite`, and no request is
+  sent.
+- `models.TenantUpdate.Description` and `Attributes` are `models.Optional` fields: unset leaves
+  the field out, `models.Null` sends null and `models.Some` sends the value; attributes replace the
+  tenant's attributes as a whole, and an empty map sends `{}`, which removes them all. The
+  `Attributes` of a `models.TenantRead` are nil when the reply holds null, as after an update
+  that sent null, and an empty map that is not nil for `{}`.
+- `TenantsService.WaitForSync(timeout, opts...)` returns a copy of the service whose creates the
+  PDP container holds until the new tenant reaches its policy, for at most `timeout`, sent in
+  `X-Wait-Timeout` as decimal seconds, such as `0.5`; `permit.WithSyncPolicy` sends
+  `permit.SyncPolicyFail` or `permit.SyncPolicyIgnore` in `X-Timeout-Policy`. The copy shares no
+  state with the service it came from. Only `Create` waits: any other call through the copy, a
+  call from a client without `WithFactsViaPDP`, a timeout less than zero and a `permit.SyncOption`
+  that is not valid, in any place among the options, are errors that match `ErrInvalidConfig`,
+  the last with the rule `wait-for-sync.policy.unknown`, and no request is sent.
+- A key of a tenant is sent as one segment of the path, escaped; an empty key, `.` or `..` is an
+  error that matches `ErrInvalidConfig`, and no request for the tenant is sent. `Delete` returns
+  nil when the API answers 404, as the tenant is gone already. `Create` is sent again after a 429
+  only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection
+  too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

@@ -294,3 +294,16 @@ allow:
     trigger: >-
       when the API's documentation describes the v1compat_attributes of a create of a role of a
       resource
+  - key: model ResourceRoleList field roles
+    reason: >-
+      the published spec gives the roles of the ancestors or the descendants of a role of a
+      resource as a JSON array or as the paginated object that holds them in data;
+      ResourceRoleList decodes either form into Roles, a slice, and keeps no counts, as these
+      calls take no page
+    trigger: when the published spec gives the roles of ResourceRoleList one form
+  - key: round trip ResourceRoleList#/roles
+    reason: >-
+      ResourceRoleList decodes roles of the paginated form into a slice, which encodes back as a
+      JSON array, as the entry of the field roles of ResourceRoleList says; the SDK never sends a
+      ResourceRoleList
+    trigger: when the published spec gives the roles of ResourceRoleList one form

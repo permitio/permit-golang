@@ -850,16 +850,17 @@ models:
       attributes: {required: false, null_policy: accepts}
       extends: {required: false, null_policy: ignores}
       granted_to: {required: false, null_policy: accepts}
-  # A role of a resource, as a create and an update send it; the API returns a role of a resource
-  # as ResourceRoleRead, and the calls that grant and remove its permissions send
-  # AddRolePermissions and RemoveRolePermissions. No run of the local harness has measured null
-  # policies for the routes of the roles of a resource yet: the update takes those that a run
-  # measured for the update of a role of an environment, and the create reads null for a field
-  # that the schema does not require as the field left out, as every create does, and rejects
-  # null for a required one. The two update schemas differ: ResourceRoleUpdate.extends has a
-  # default of [] in the spec, which RoleUpdate.extends lacks, and RoleUpdate has v1compat_*
-  # fields, which ResourceRoleUpdate lacks. The phase api.resource_roles of the local harness
-  # confirms these policies, and that a PATCH without extends keeps the role's extends.
+  # A role of a resource, as a create and an update send it, and the list of its ancestors or its
+  # descendants; the API returns a role of a resource as ResourceRoleRead, and the calls that
+  # grant and remove its permissions send AddRolePermissions and RemoveRolePermissions. No run of
+  # the local harness has measured null policies for the routes of the roles of a resource yet:
+  # the update takes those that a run measured for the update of a role of an environment, and
+  # the create reads null for a field that the schema does not require as the field left out, as
+  # every create does, and rejects null for a required one. The two update schemas differ:
+  # ResourceRoleUpdate.extends has a default of [] in the spec, which RoleUpdate.extends lacks,
+  # and RoleUpdate has v1compat_* fields, which ResourceRoleUpdate lacks. The phase
+  # api.resource_roles of the local harness confirms these policies, and that a PATCH without
+  # extends keeps the role's extends.
   ResourceRoleCreate:
     schema: ResourceRoleCreate
     left_out:
@@ -873,6 +874,10 @@ models:
       attributes: {required: false, null_policy: ignores}
       extends: {required: false, null_policy: ignores}
       granted_to: {required: false, null_policy: ignores}
+  ResourceRoleList:
+    schema: ResourceRoleList
+    fields:
+      roles: {required: true, null_policy: n/a}
   ResourceRoleUpdate:
     schema: ResourceRoleUpdate
     fields:

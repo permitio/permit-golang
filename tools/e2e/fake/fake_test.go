@@ -55,6 +55,14 @@ var routes = []Route{
 		"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions",
 		"remove_permissions_from_resource_role",
 	},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/ancestors",
+		"get_resource_role_ancestors",
+	},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/descendants",
+		"get_resource_role_descendants",
+	},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/resource_instances", "create_resource_instance"},
 	{
 		"GET", "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
@@ -910,4 +918,52 @@ func TestResourceRolePermissions(t *testing.T) {
 	h.expect(404, "POST", roles+"/none/permissions", `{"permissions": ["read"]}`, projectKey)
 	h.expect(404, "DELETE", schema+"/resources/none/roles/editor/permissions",
 		`{"permissions": ["read"]}`, projectKey)
+}
+
+// TestResourceRoleRelatives checks the ancestors and the descendants of a role of a resource: the
+// roles of its resource that it extends, or that extend it, directly or through other roles, each
+// once, in the order in which the fake finds them, as a JSON array in roles, which is empty, not
+// null, for a role without any; not the roles of another resource or of the environment with the
+// same keys; a role named by its ID; and 404 for a role or a resource that does not exist.
+func TestResourceRoleRelatives(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	schema := "/v2/schema/proj/dev"
+	h.expect(200, "POST", schema+"/resources", `{"key": "doc"}`, projectKey)
+	h.expect(200, "POST", schema+"/resources", `{"key": "folder"}`, projectKey)
+	for path, top := range map[string]string{
+		"/resources/doc/roles": "owner", "/resources/folder/roles": "manager", "/roles": "admin",
+	} {
+		for _, body := range []string{
+			`{"key": "viewer"}`, `{"key": "editor", "extends": ["viewer"]}`,
+			`{"key": "` + top + `", "extends": ["editor", "viewer"]}`,
+		} {
+			h.expect(200, "POST", schema+path, body, projectKey)
+		}
+	}
+	roles := schema + "/resources/doc/roles"
+	viewer := h.expect(200, "GET", roles+"/viewer", "", projectKey)
+	viewerID, _ := viewer["id"].(string)
+	for _, tc := range []struct{ path, want string }{
+		{"/owner/ancestors", "[viewer editor]"},
+		{"/editor/ancestors", "[viewer]"},
+		{"/viewer/ancestors", "[]"},
+		{"/viewer/descendants", "[editor owner]"},
+		{"/" + viewerID + "/descendants", "[editor owner]"},
+		{"/owner/descendants", "[]"},
+	} {
+		reply := h.expect(200, "GET", roles+tc.path, "", projectKey)
+		list, ok := reply["roles"].([]any)
+		keys := []any{}
+		for _, role := range list {
+			o, _ := role.(map[string]any)
+			keys = append(keys, o["key"])
+		}
+		if got := fmt.Sprint(keys); !ok || len(reply) != 1 || got != tc.want {
+			t.Errorf("GET %s answered %v, want the roles %s alone", tc.path, reply, tc.want)
+		}
+	}
+	h.expect(404, "GET", roles+"/none/ancestors", "", projectKey)
+	h.expect(404, "GET", roles+"/none/descendants", "", projectKey)
+	h.expect(404, "GET", schema+"/resources/none/roles/viewer/ancestors", "", projectKey)
 }

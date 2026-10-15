@@ -1,5 +1,12 @@
 package models
 
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/permitio/permit-golang/v2/internal/wire"
+)
+
 // ResourceRoleCreate is a role of a resource to create. Key and Name are required, and the
 // request always holds them; each other field that is its zero value (nil for a slice, a map or a
 // pointer, empty for a string) is left out of the request.
@@ -62,4 +69,42 @@ type ResourceRoleUpdate struct {
 	// resources: unset leaves it out, and the role keeps it; [Null] sends null, and [Some] sends
 	// the value.
 	GrantedTo Optional[DerivedRoleBlockEdit] `json:"granted_to,omitzero"`
+}
+
+// ResourceRoleList is the reply of the ancestors or the descendants of a role of a resource,
+// which ResourceRolesService.Ancestors and ResourceRolesService.Descendants of the root package
+// read. The reply holds the roles in roles, either as a JSON array of them or as the paginated
+// JSON object whose data array holds them; decoding reads either form into Roles, as
+// [ResourceRoleList.UnmarshalJSON] says.
+type ResourceRoleList struct {
+	// Roles are the roles of the reply, in its order: empty, not nil, when it holds none.
+	Roles []ResourceRoleRead `json:"roles"`
+}
+
+// UnmarshalJSON sets l to the roles of data, a JSON object whose roles is a JSON array of roles
+// or the paginated JSON object whose data array holds them; the counts of the paginated object
+// are not kept. A roles that is left out or null, and an empty array, set Roles to an empty
+// slice that is not nil. Data that is not a JSON object, and any other value of roles, such as a
+// string or an object without a data array, is an error, and leaves l as it is; null leaves l as
+// it is too, as encoding/json does.
+func (l *ResourceRoleList) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
+	}
+	var reply struct {
+		Roles json.RawMessage `json:"roles"`
+	}
+	if err := wire.Decode(data, &reply); err != nil {
+		return err
+	}
+	roles := []ResourceRoleRead{}
+	if len(reply.Roles) > 0 && string(reply.Roles) != jsonNull {
+		list, err := wire.DecodeList[ResourceRoleRead](reply.Roles)
+		if err != nil {
+			return fmt.Errorf("models: the roles of a ResourceRoleList: %w", err)
+		}
+		roles = list.Data
+	}
+	l.Roles = roles
+	return nil
 }

@@ -124,6 +124,9 @@ func TestMain(m *testing.M) {
 	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles",
 		mockpermit.Reply{Body: replyFixture("list_resource_roles.200.json")},
 		mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/"+
+		"{role_id}/ancestors",
+		mockpermit.Reply{Body: replyFixture("get_resource_role_ancestors.200.json")})
 	servers.API.Handle("PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/"+
 		"{role_id}", mockpermit.Reply{Body: replyFixture("update_resource_role.200.json")})
 	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/users/attributes",

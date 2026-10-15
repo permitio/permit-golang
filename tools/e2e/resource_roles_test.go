@@ -22,7 +22,8 @@ import (
 // base, which grants read and has attributes whose values are a string, a number and an object, and
 // child, which extends base. It registers each with the ledger before it creates it. It lists the
 // roles of the resource with List, and with All, one role on each page, which list base and child;
-// gets child by its key and by its ID; updates child to grant write, with Extends nil, which keeps
+// gets child by its key and by its ID; reads the ancestors of child, base alone, and the
+// descendants of base, child alone; updates child to grant write, with Extends nil, which keeps
 // base in its extends, and then to grant write and to extend no role; and grants it share and
 // removes write, each sent as <resource>:<action>. A role holds the keys of the actions of its
 // resource, and the checks read a permission given as <resource>:<action> as the key of the action
@@ -83,6 +84,7 @@ func resourceRoleLifecycle(s *suite) func(t *testing.T) {
 					ref, got.ID, got.Extends, extending.ID, base)
 			}
 		}
+		resourceRoleRelatives(ctx, t, c, resource, base, child)
 		changeResourceRole(ctx, t, c, resource, base, child)
 		for _, key := range []string{child, base} {
 			if err := c.ResourceRoles.Delete(ctx, resource, key); err != nil {
@@ -133,6 +135,28 @@ func listResourceRoles(ctx context.Context, t *testing.T, c *permit.Client,
 	if keys := resourceRoleKeys(all); !slices.Equal(keys, []string{base, child}) {
 		t.Errorf("All of the roles of %s, one on a page, listed %q, want %s and %s", resource,
 			keys, base, child)
+	}
+}
+
+// resourceRoleRelatives checks that Ancestors of the role child of resource, which extends base,
+// lists base alone, and that Descendants of base lists child alone.
+func resourceRoleRelatives(ctx context.Context, t *testing.T, c *permit.Client,
+	resource, base, child string,
+) {
+	t.Helper()
+	ancestors, err := c.ResourceRoles.Ancestors(ctx, resource, child)
+	if err != nil {
+		t.Fatalf("Ancestors of the role %s of %s: %v", child, resource, err)
+	}
+	if keys := resourceRoleKeys(ancestors); !slices.Equal(keys, []string{base}) {
+		t.Errorf("Ancestors of the role %s returned %q, want %s alone", child, keys, base)
+	}
+	descendants, err := c.ResourceRoles.Descendants(ctx, resource, base)
+	if err != nil {
+		t.Fatalf("Descendants of the role %s of %s: %v", base, resource, err)
+	}
+	if keys := resourceRoleKeys(descendants); !slices.Equal(keys, []string{child}) {
+		t.Errorf("Descendants of the role %s returned %q, want %s alone", base, keys, child)
 	}
 }
 

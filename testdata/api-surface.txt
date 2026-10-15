@@ -56,6 +56,7 @@ models: func Some[T any](v T) Optional[T]
 models: func StringList(values ...string) StringOrList
 models: method (*Attributes) UnmarshalJSON(data []byte) error
 models: method (*Optional[T]) UnmarshalJSON(data []byte) error
+models: method (*ResourceRoleList) UnmarshalJSON(data []byte) error
 models: method (*RoleList) UnmarshalJSON(data []byte) error
 models: method (*Secret) UnmarshalJSON(data []byte) error
 models: method (*StringOrList) UnmarshalJSON(data []byte) error
@@ -444,6 +445,8 @@ models: type ResourceRoleCreate struct, GrantedTo *DerivedRoleBlockEdit
 models: type ResourceRoleCreate struct, Key string
 models: type ResourceRoleCreate struct, Name string
 models: type ResourceRoleCreate struct, Permissions []string
+models: type ResourceRoleList struct
+models: type ResourceRoleList struct, Roles []ResourceRoleRead
 models: type ResourceRoleRead struct
 models: type ResourceRoleRead struct, Attributes Attributes
 models: type ResourceRoleRead struct, CreatedAt Time
@@ -656,9 +659,11 @@ permit: method (*ResourceRelationsService) Delete(ctx context.Context, resourceK
 permit: method (*ResourceRelationsService) Get(ctx context.Context, resourceKey string, relationKey string) (*models.RelationRead, error)
 permit: method (*ResourceRelationsService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.RelationRead], error)
 permit: method (*ResourceRolesService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.ResourceRoleRead, error]
+permit: method (*ResourceRolesService) Ancestors(ctx context.Context, resourceKey string, roleKey string) ([]models.ResourceRoleRead, error)
 permit: method (*ResourceRolesService) AssignPermissions(ctx context.Context, resourceKey string, roleKey string, permissions []string) (*models.ResourceRoleRead, error)
 permit: method (*ResourceRolesService) Create(ctx context.Context, resourceKey string, role models.ResourceRoleCreate) (*models.ResourceRoleRead, error)
 permit: method (*ResourceRolesService) Delete(ctx context.Context, resourceKey string, roleKey string) error
+permit: method (*ResourceRolesService) Descendants(ctx context.Context, resourceKey string, roleKey string) ([]models.ResourceRoleRead, error)
 permit: method (*ResourceRolesService) Get(ctx context.Context, resourceKey string, roleKey string) (*models.ResourceRoleRead, error)
 permit: method (*ResourceRolesService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceRoleRead], error)
 permit: method (*ResourceRolesService) RemovePermissions(ctx context.Context, resourceKey string, roleKey string, permissions []string) (*models.ResourceRoleRead, error)

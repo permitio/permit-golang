@@ -30,8 +30,6 @@ api.NewRelationshipTuplesApi relationship-tuples
 api.ResourceInstances resource-instances
 api.ResourceInstances.* resource-instances
 api.NewResourceInstancesApi resource-instances
-api.ResourceRoles.GetAncestors resource-roles
-api.ResourceRoles.GetDescendants resource-roles
 api.RoleAssignments role-assignments
 api.RoleAssignments.* role-assignments
 api.NewRoleAssignmentsApi role-assignments

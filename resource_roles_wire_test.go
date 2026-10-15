@@ -113,12 +113,15 @@ func firstResourceRoles(seq iter.Seq2[models.ResourceRoleRead, error], n int,
 // of the resources and of the roles hold characters that the path escapes, a slash, a percent
 // sign and a letter outside ASCII, as a/b and 50%é do, and a key has a leading dot, .hidden,
 // which the path sends as it is. The replies of List, All and Get hold attributes whose values
-// are numbers and objects.
+// are numbers and objects; that of Ancestors holds its roles in a JSON array, and that of
+// Descendants in the paginated object.
 func resourceRoleCases() []wireCase {
 	const (
 		rolesRoute       = "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles"
 		roleRoute        = rolesRoute + "/{role_id}"
 		permissionsRoute = roleRoute + "/permissions"
+		ancestorsRoute   = roleRoute + "/ancestors"
+		descendantsRoute = roleRoute + "/descendants"
 		schema           = "/v2/schema/p/e/resources/"
 	)
 	forbidden := func(op, method, route string) *permit.Error {
@@ -151,6 +154,8 @@ func resourceRoleCases() []wireCase {
 		"level": json.Number("2"), "scope": map[string]any{"all": true},
 	}
 	created.Extends = []string{"viewer"}
+	listed := listedResourceRoles()
+	viewer, editor, owner := listed[0], listed[1], listed[2]
 	seats := models.Attributes{"seats": json.Number("10")}
 	return []wireCase{
 		{
@@ -321,6 +326,43 @@ func resourceRoleCases() []wireCase {
 			},
 			WantErr: notFound("remove_permissions_from_resource_role", http.MethodDelete,
 				permissionsRoute),
+		},
+		{
+			Method: "ResourceRolesService.Ancestors",
+			Op:     "get_resource_role_ancestors",
+			Route:  "GET " + ancestorsRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.ResourceRoles.Ancestors(ctx, ".hidden", "50%é")
+			},
+			Request: wireRequest{RawPath: schema + ".hidden/roles/50%25%C3%A9/ancestors"},
+			Reply: mockpermit.Reply{
+				Body: replyFixture("get_resource_role_ancestors.200.json"),
+			},
+			WantResult: []models.ResourceRoleRead{editor, viewer},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusNotFound, Body: resourceRoleNotFoundBody,
+			},
+			WantErr: notFound("get_resource_role_ancestors", http.MethodGet, ancestorsRoute),
+		},
+		{
+			Method: "ResourceRolesService.Descendants",
+			Op:     "get_resource_role_descendants",
+			Route:  "GET " + descendantsRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.ResourceRoles.Descendants(ctx, "a/b", ".hidden")
+			},
+			Request: wireRequest{RawPath: schema + "a%2Fb/roles/.hidden/descendants"},
+			Reply: mockpermit.Reply{
+				Body: replyFixture("get_resource_role_descendants.200.json"),
+			},
+			WantResult: []models.ResourceRoleRead{editor, owner},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusForbidden, Body: resourceRoleForbiddenBody,
+			},
+			WantErr: forbidden("get_resource_role_descendants", http.MethodGet,
+				descendantsRoute),
 		},
 	}
 }

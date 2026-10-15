@@ -27,6 +27,8 @@ const (
 
 	opAssignResourceRolePermissions = "assign_permissions_to_resource_role"
 	opRemoveResourceRolePermissions = "remove_permissions_from_resource_role"
+	opResourceRoleAncestors         = "get_resource_role_ancestors"
+	opResourceRoleDescendants       = "get_resource_role_descendants"
 
 	opConditionSetAncestors   = "get_condition_set_ancestors"
 	opConditionSetDescendants = "get_condition_set_descendants"
@@ -62,7 +64,7 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 			return f.rolePermissions(rt.Op, segments, fields)
 		}
 		return f.unsupported(rt)
-	case opRoleAncestors, opRoleDescendants:
+	case opRoleAncestors, opRoleDescendants, opResourceRoleAncestors, opResourceRoleDescendants:
 		return f.roleRelatives(rt.Op, segments)
 	case opBulkReplaceRoles:
 		if fields != nil {
@@ -381,22 +383,22 @@ func (f *Fake) rolePermissions(op string, segments []string, fields object) (int
 	return http.StatusOK, role
 }
 
-// roleRelatives answers the ancestors, op get_role_ancestors, or the descendants, op
-// get_role_descendants, of the role of the path, which has segments, with IDs in place of keys, as
-// resolve found it: the roles that it extends, or that extend it, directly or through other
-// roles, in the order in which the fake finds them, as a JSON array in the roles of an object.
-// The caller holds f.mu.
+// roleRelatives answers the ancestors, op get_role_ancestors or get_resource_role_ancestors, or
+// the descendants, op get_role_descendants or get_resource_role_descendants, of the role of the
+// path, which has segments, with IDs in place of keys, as resolve found it: the roles of its
+// collection that it extends, or that extend it, directly or through other roles, in the order
+// in which the fake finds them, as a JSON array in the roles of an object. The caller holds f.mu.
 func (f *Fake) roleRelatives(op string, segments []string) (int, any) {
-	roles := f.store[collectionOf(segments[:6])]
-	start, _ := find(roles, segments[6])
+	roles := f.store[collectionOf(segments[:len(segments)-2])]
+	start, _ := find(roles, segments[len(segments)-2])
+	ancestors := op == opRoleAncestors || op == opResourceRoleAncestors
 	found := []object{}
 	queue := []object{start}
 	for len(queue) > 0 {
 		role := queue[0]
 		queue = queue[1:]
 		for _, other := range roles {
-			step := op == opRoleAncestors && extends(role, other) ||
-				op == opRoleDescendants && extends(other, role)
+			step := ancestors && extends(role, other) || !ancestors && extends(other, role)
 			known := other["id"] == start["id"] || slices.ContainsFunc(found, func(o object) bool {
 				return o["id"] == other["id"]
 			})

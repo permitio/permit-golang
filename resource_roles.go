@@ -16,15 +16,18 @@ const (
 	opDeleteResourceRole            = "delete_resource_role"
 	opAssignResourceRolePermissions = "assign_permissions_to_resource_role"
 	opRemoveResourceRolePermissions = "remove_permissions_from_resource_role"
+	opResourceRoleAncestors         = "get_resource_role_ancestors"
+	opResourceRoleDescendants       = "get_resource_role_descendants"
 )
 
 // ResourceRolesService lists, reads, creates, changes and deletes the roles of a resource of an
-// environment, such as editor of the resource document, and grants permissions to them and
-// removes permissions from them; [Client.ResourceRoles] holds it. Each method takes the key or the
-// ID of the resource first, such as document, and a method that acts on one role takes the key
-// or the ID of the role after it, such as editor. The call sends each as one segment of the path,
-// escaped: a key that holds a / or a % names that resource or that role, not another route. A
-// role extends other roles of its resource with the Extends of its create or its update, such as
+// environment, such as editor of the resource document, grants permissions to them and removes
+// permissions from them, and reads the ancestors and the descendants of a role;
+// [Client.ResourceRoles] holds it. Each method takes the key or the ID of the resource first,
+// such as document, and a method that acts on one role takes the key or the ID of the role after
+// it, such as editor. The call sends each as one segment of the path, escaped: a key that holds a
+// / or a % names that resource or that role, not another route. A role extends other roles of
+// its resource with the Extends of its create or its update, such as
 // [models.ResourceRoleUpdate]; no method adds or removes one role that it extends.
 //
 // A role's attributes are a [models.Attributes], whose values may be of any JSON type, such as a
@@ -290,6 +293,62 @@ func (s *ResourceRolesService) RemovePermissions(ctx context.Context, resourceKe
 	})
 }
 
+// Ancestors returns the roles that the API lists as the ancestors of the role whose key or ID is
+// roleKey of the resource whose key or ID is resourceKey, such as a role that it extends, with
+// GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/ancestors, in the
+// order of the reply. The reply holds them as a JSON array or as a paginated JSON object, and
+// Ancestors reads either, as [models.ResourceRoleList] says; a reply without roles returns an
+// empty slice, not nil.
+//
+// Ancestors is sent with an environment-level API key, or with a key of a wider level and
+// [WithScope], as [ResourceRolesService] says. The call changes nothing, so it sends its request
+// again after a 500, 502, 503 or 504 reply or a failed connection, as after a 429.
+//
+// Ancestors returns an error, and no roles:
+//
+//   - for a scope without an environment, or a resourceKey or a roleKey that is empty, . or ..:
+//     an error that matches [ErrInvalidConfig], and no request for the roles; without WithScope,
+//     the lookup of the scope comes first;
+//   - for a reply with an error status: an [Error] with the status and the body of the reply,
+//     such as one that matches [ErrNotFound] for a 404;
+//   - for a reply in 200-299 that is not a JSON object whose roles are a list of roles: an Error
+//     that says so;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *ResourceRolesService) Ancestors(ctx context.Context, resourceKey, roleKey string,
+) ([]models.ResourceRoleRead, error) {
+	return s.relatives(ctx, opResourceRoleAncestors, resourceKey, roleKey)
+}
+
+// Descendants returns the roles that the API lists as the descendants of the role whose key or
+// ID is roleKey of the resource whose key or ID is resourceKey, such as a role that extends it,
+// with GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/descendants, in
+// the order of the reply. The reply holds them as a JSON array or as a paginated JSON object, and
+// Descendants reads either, as [models.ResourceRoleList] says; a reply without roles returns an
+// empty slice, not nil.
+//
+// Descendants is sent with an environment-level API key, or with a key of a wider level and
+// [WithScope], as [ResourceRolesService] says. The call changes nothing, so it sends its request
+// again after a 500, 502, 503 or 504 reply or a failed connection, as after a 429.
+//
+// Descendants returns an error, and no roles:
+//
+//   - for a scope without an environment, or a resourceKey or a roleKey that is empty, . or ..:
+//     an error that matches [ErrInvalidConfig], and no request for the roles; without WithScope,
+//     the lookup of the scope comes first;
+//   - for a reply with an error status: an [Error] with the status and the body of the reply,
+//     such as one that matches [ErrNotFound] for a 404;
+//   - for a reply in 200-299 that is not a JSON object whose roles are a list of roles: an Error
+//     that says so;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *ResourceRolesService) Descendants(ctx context.Context, resourceKey, roleKey string,
+) ([]models.ResourceRoleRead, error) {
+	return s.relatives(ctx, opResourceRoleDescendants, resourceKey, roleKey)
+}
+
 // call makes the call of r, a request of an operation of the roles of a resource whose reply
 // holds a role, with the project and the environment of the client's scope, and returns the role.
 func (s *ResourceRolesService) call(ctx context.Context, r request,
@@ -299,4 +358,22 @@ func (s *ResourceRolesService) call(ctx context.Context, r request,
 		return nil, err
 	}
 	return do[models.ResourceRoleRead](ctx, s.client, r)
+}
+
+// relatives makes the call of op, the ancestors or the descendants of the role whose key or ID is
+// roleKey of the resource whose key or ID is resourceKey, with the project and the environment of
+// the client's scope, and returns the roles of its reply.
+func (s *ResourceRolesService) relatives(ctx context.Context, op, resourceKey, roleKey string,
+) ([]models.ResourceRoleRead, error) {
+	r, err := s.client.inScope(ctx, request{
+		op: op, target: apiTarget, params: []string{resourceKey, roleKey},
+	})
+	if err != nil {
+		return nil, err
+	}
+	list, err := do[models.ResourceRoleList](ctx, s.client, r)
+	if err != nil {
+		return nil, err
+	}
+	return list.Roles, nil
 }

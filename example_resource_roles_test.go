@@ -10,11 +10,12 @@ import (
 )
 
 // Create a role of the resource document that extends another, with attributes whose values are
-// a number and an object, list the roles of the resource, reading every page, and then make a
-// role extend no role, with an empty slice, which the update sends as [] to clear the list; nil
-// would leave the list out of the request. The calls of ResourceRolesService act on the
-// environment of the client's scope: WithScope gives it here, and without it, the client looks up
-// the scope of its environment-level API key.
+// a number and an object, list the roles of the resource, reading every page, read the ancestors
+// of the role owner, such as the roles that it extends, and then make a role extend no role, with
+// an empty slice, which the update sends as [] to clear the list; nil would leave the list out of
+// the request. The calls of ResourceRolesService act on the environment of the client's scope:
+// WithScope gives it here, and without it, the client looks up the scope of its
+// environment-level API key.
 func ExampleResourceRolesService() {
 	client, err := permit.New(
 		permit.WithAPIKey(exampleAPIKey),
@@ -52,6 +53,15 @@ func ExampleResourceRolesService() {
 		fmt.Println(role.Key, role.Attributes)
 	}
 
+	ancestors, err := client.ResourceRoles.Ancestors(ctx, "document", "owner")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, ancestor := range ancestors {
+		fmt.Println("an ancestor of owner:", ancestor.Key)
+	}
+
 	editor, err := client.ResourceRoles.Update(ctx, "document", "editor",
 		models.ResourceRoleUpdate{Extends: []string{}})
 	if err != nil {
@@ -64,5 +74,7 @@ func ExampleResourceRolesService() {
 	// viewer map[tier:free]
 	// editor map[seats:10]
 	// owner map[quota:map[max:3 unlimited:false]]
+	// an ancestor of owner: editor
+	// an ancestor of owner: viewer
 	// editor extends 0 roles
 }

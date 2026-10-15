@@ -19,7 +19,7 @@
 // body that the check rejects gets 422. The fake also serves the scope of an API key and the API
 // key of an environment, which it makes up, the statistics and the copies of an environment, as
 // stats and copyEnvironment say, the grants and removals of the permissions of a role or of a role
-// of a resource, the ancestors and the descendants of a role, and the bulk replace of roles, as
+// of a resource, its ancestors and its descendants, and the bulk replace of roles, as
 // rolePermissions, roleRelatives and bulkRoles say, and the ancestors and the descendants of a
 // condition set, as conditionSetRelatives says.
 //

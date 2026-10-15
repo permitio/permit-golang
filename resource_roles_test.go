@@ -31,6 +31,8 @@ const (
 	deleteResourceRoleRoute            = "DELETE " + resourceRolePath
 	assignResourceRolePermissionsRoute = "POST " + resourceRolePath + "/permissions"
 	removeResourceRolePermissionsRoute = "DELETE " + resourceRolePath + "/permissions"
+	resourceRoleAncestorsRoute         = "GET " + resourceRolePath + "/ancestors"
+	resourceRoleDescendantsRoute       = "GET " + resourceRolePath + "/descendants"
 )
 
 // resourceRoleBody is the body of a reply of the API that holds the role editor of the resource
@@ -136,6 +138,22 @@ var resourceRoleCalls = []resourceRoleCall{
 		},
 	},
 	{
+		name: "Ancestors", op: opResourceRoleAncestors, route: resourceRoleAncestorsRoute,
+		keyed: true, reply: mockpermit.Reply{Body: `{"roles":[` + resourceRoleBody + `]}`},
+		call: func(ctx context.Context, c *Client, resourceKey, roleKey string,
+		) ([]models.ResourceRoleRead, error) {
+			return c.ResourceRoles.Ancestors(ctx, resourceKey, roleKey)
+		},
+	},
+	{
+		name: "Descendants", op: opResourceRoleDescendants, route: resourceRoleDescendantsRoute,
+		keyed: true, reply: mockpermit.Reply{Body: `{"roles":[` + resourceRoleBody + `]}`},
+		call: func(ctx context.Context, c *Client, resourceKey, roleKey string,
+		) ([]models.ResourceRoleRead, error) {
+			return c.ResourceRoles.Descendants(ctx, resourceKey, roleKey)
+		},
+	},
+	{
 		name: "Delete", op: opDeleteResourceRole, route: deleteResourceRoleRoute, keyed: true,
 		reply: mockpermit.Reply{Status: http.StatusNoContent},
 		call: func(ctx context.Context, c *Client, resourceKey, roleKey string,
@@ -157,9 +175,10 @@ func handleResourceRoleCalls(api *mockpermit.Server, calls []resourceRoleCall) {
 	}
 }
 
-// TestResourceRoleAttributesOfAnyType checks that each method that returns a role, and All, reads
+// TestResourceRoleAttributesOfAnyType checks that each method that returns roles, and All, reads
 // attributes whose values are of each JSON type: a string, a fraction, an integer beyond 2^53,
-// which it keeps as a json.Number with every digit, a boolean, null, an array and an object. v1's
+// which it keeps as a json.Number with every digit, a boolean, null, an array and an object, also
+// from the roles of Ancestors in a JSON array and of Descendants in the paginated object. v1's
 // model of a role of a resource had no attributes.
 func TestResourceRoleAttributesOfAnyType(t *testing.T) {
 	attributes := `{"tier":"gold","ratio":0.5,"limit":9007199254740993,"on":true,"gone":null,` +
@@ -170,16 +189,21 @@ func TestResourceRoleAttributesOfAnyType(t *testing.T) {
 		"on": true, "gone": nil, "tags": []any{"a", json.Number("1")},
 		"quota": map[string]any{"max": json.Number("3"), "regions": []any{"eu"}},
 	}
+	replies := map[string]string{
+		listResourceRolesRoute:       `[` + body + `]`,
+		resourceRoleAncestorsRoute:   `{"roles":[` + body + `]}`,
+		resourceRoleDescendantsRoute: `{"roles":{"data":[` + body + `],"total_count":1}}`,
+	}
 	for _, m := range resourceRoleCalls {
 		if m.op == opDeleteResourceRole {
 			continue
 		}
-		api := mockpermit.NewAPI(t)
-		reply := mockpermit.Reply{Body: body}
-		if m.op == opListResourceRoles {
-			reply.Body = `[` + body + `]`
+		reply, ok := replies[m.route]
+		if !ok {
+			reply = body
 		}
-		api.Handle(m.route, reply)
+		api := mockpermit.NewAPI(t)
+		api.Handle(m.route, mockpermit.Reply{Body: reply})
 		roles, err := m.call(t.Context(), resourceClient(t, api), "document", "editor")
 		if err != nil || len(roles) != 1 {
 			t.Fatalf("%s returned the roles %+v and %v, want one role", m.name, roles, err)
@@ -511,9 +535,9 @@ func TestDeleteResourceRoleThatIsGone(t *testing.T) {
 }
 
 // TestNotFoundOfOtherResourceRoleCalls checks that a 404 to each call of the roles of a resource
-// but Delete is an *Error that matches ErrNotFound: List, Create, Get, Update and
-// AssignPermissions delete nothing, and RemovePermissions names in its body what it removes, so a
-// 404 to it can mean a mistyped key, not a removal that happened already.
+// but Delete is an *Error that matches ErrNotFound: List, Create, Get, Update, AssignPermissions,
+// Ancestors and Descendants delete nothing, and RemovePermissions names in its body what it
+// removes, so a 404 to it can mean a mistyped key, not a removal that happened already.
 func TestNotFoundOfOtherResourceRoleCalls(t *testing.T) {
 	const body = `{"error_code":"NOT_FOUND","title":"Not Found","message":"no such object"}`
 	for _, m := range resourceRoleCalls {
@@ -715,14 +739,20 @@ func TestResourceRoleRetries(t *testing.T) {
 }
 
 // TestMalformedResourceRoleReplies checks that a reply in 200-299 that is not a role, to each
-// method that returns one, or for List and All not a JSON array of roles, is an *Error that names
-// the operation, its route and the model, and no role, no page and no role of the iterator.
-// Attributes that are not a JSON object, such as a string, are not those of a role either.
+// method that returns one, for List and All not a JSON array of roles, and for Ancestors and
+// Descendants not an object whose roles are a JSON array or the paginated object of roles, is an
+// *Error that names the operation, its route and the model, and no role, no page, no role of the
+// iterator and no roles. Attributes that are not a JSON object, such as a string, are not those
+// of a role either.
 func TestMalformedResourceRoleReplies(t *testing.T) {
 	bodies := map[string][]string{
 		"models.ResourceRoleRead": {``, `null`, `[]`, `"a"`, `{"attributes":"a"}`, `{} {}`},
 		"list of models.ResourceRoleRead": {
 			``, `null`, `"a"`, `[1]`, `[{"attributes":[]}]`, `{"data":[]}`,
+		},
+		"models.ResourceRoleList": {
+			``, `null`, `[]`, `"a"`, `{"roles":"a"}`, `{"roles":{}}`, `{"roles":{"data":{}}}`,
+			`{"roles":[1]}`, `{"roles":[{"attributes":"a"}]}`, `{"roles":[]} {}`,
 		},
 	}
 	for _, m := range resourceRoleCalls {
@@ -732,6 +762,8 @@ func TestMalformedResourceRoleReplies(t *testing.T) {
 			continue
 		case opListResourceRoles:
 			model = "list of models.ResourceRoleRead"
+		case opResourceRoleAncestors, opResourceRoleDescendants:
+			model = "models.ResourceRoleList"
 		}
 		want := "permit: " + m.op + ": " + m.route + ": status 200: the reply is not a valid " +
 			model
@@ -755,6 +787,46 @@ func TestMalformedResourceRoleReplies(t *testing.T) {
 			if items != nil || len(errs) != 1 || mustError(t, errs[0]).Error() != want {
 				t.Errorf("All of the reply %q yielded %+v and %v, want only the error\n%s", body,
 					items, errs, want)
+			}
+		}
+	}
+}
+
+// TestResourceRoleRelativesReadBothForms checks that Ancestors and Descendants return the roles of
+// the reply in its order, whether its roles are a JSON array or the paginated object of the API,
+// whose data array holds them, with or without its counts; and an empty slice, not nil, when its
+// roles are an empty array or an empty page, null or left out.
+func TestResourceRoleRelativesReadBothForms(t *testing.T) {
+	roles := []models.ResourceRoleRead{
+		resourceRolesOf(2, 3)[0], resourceRolesOf(0, 1)[0], resourceRolesOf(1, 2)[0],
+	}
+	array := arrayOf(t, roles).Body
+	for _, tc := range []struct {
+		name  string
+		reply string
+		want  []models.ResourceRoleRead
+	}{
+		{"an array", `{"roles":` + array + `}`, roles},
+		{"a page", `{"roles":{"data":` + array + `,"total_count":3,"page_count":1}}`, roles},
+		{"a page without counts", `{"roles":{"data":` + array + `}}`, roles},
+		{"an empty array", `{"roles":[]}`, []models.ResourceRoleRead{}},
+		{"an empty page", `{"roles":{"data":[],"total_count":0}}`, []models.ResourceRoleRead{}},
+		{"null", `{"roles":null}`, []models.ResourceRoleRead{}},
+		{"no roles", `{}`, []models.ResourceRoleRead{}},
+	} {
+		for _, m := range resourceRoleCalls {
+			if m.op != opResourceRoleAncestors && m.op != opResourceRoleDescendants {
+				continue
+			}
+			api := mockpermit.NewAPI(t)
+			api.Handle(m.route, mockpermit.Reply{Body: tc.reply})
+			got, err := m.call(t.Context(), resourceClient(t, api), "document", "editor")
+			if err != nil {
+				t.Fatalf("%s of %s returned %v", m.name, tc.name, err)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" || got == nil {
+				t.Errorf("%s of %s returned roles that differ (-want +got), or nil:\n%s", m.name,
+					tc.name, diff)
 			}
 		}
 	}

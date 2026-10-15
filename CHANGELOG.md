@@ -495,6 +495,10 @@ change from v1 and what to use instead.
   an update can send null for them.
 - `AssignPermissions` and `RemovePermissions` take the permissions as a `[]string`, in place of
   v1's request models, and return the role after the change; a nil slice sends `[]`.
+- `Ancestors` and `Descendants` take the place of v1's `GetAncestors` and `GetDescendants`: each
+  returns the roles that the API lists as the ancestors or the descendants of a role of a
+  resource, as a `[]models.ResourceRoleRead`, whether the reply holds them as a JSON array or as a
+  paginated object, and an empty slice, not nil, when it holds none.
 - v1's `AddParent` and `RemoveParent` are removed: they sent a route that the API's documentation
   does not list. A role's parents are the roles of its resource that it extends: set them with
   the `Extends` of `Update`.

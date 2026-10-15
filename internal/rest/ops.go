@@ -404,11 +404,12 @@ var defaultOps = []Op{
 
 	// The roles of a resource of an environment, each at the environment level, as v1 sends them
 	// too. These key levels are not measured yet: the phase api.resource_roles of the local
-	// harness confirms them. The list is a JSON array of at most 100 roles. A PATCH sets the
-	// fields that it names to the values that it gives, so it does the same when sent twice; so
-	// does a grant or a removal of permissions, which v1's documentation says skips a permission
-	// that the role has already, or does not have. A create does not. A removal of permissions
-	// names them in its body, so a 404 to it is an error.
+	// harness confirms them. The list is a JSON array of at most 100 roles, and the ancestors and
+	// the descendants are a JSON array or a paginated object in the roles of an object. A PATCH
+	// sets the fields that it names to the values that it gives, so it does the same when sent
+	// twice; so does a grant or a removal of permissions, which v1's documentation says skips a
+	// permission that the role has already, or does not have. A create does not. A removal of
+	// permissions names them in its body, so a 404 to it is an error.
 	{
 		ID: "list_resource_roles", Method: http.MethodGet,
 		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", Idempotent: true,
@@ -449,6 +450,18 @@ var defaultOps = []Op{
 			"permissions",
 		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "RemoveRolePermissions",
 		ResponseModel: "ResourceRoleRead",
+	},
+	{
+		ID: "get_resource_role_ancestors", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/" +
+			"ancestors",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ResourceRoleList",
+	},
+	{
+		ID: "get_resource_role_descendants", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/" +
+			"descendants",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ResourceRoleList",
 	},
 
 	// The attributes of the users of an environment, each at the environment level, as the

@@ -204,6 +204,9 @@
     "ResourceRolesService.All": [
       "list_resource_roles"
     ],
+    "ResourceRolesService.Ancestors": [
+      "get_resource_role_ancestors"
+    ],
     "ResourceRolesService.AssignPermissions": [
       "assign_permissions_to_resource_role"
     ],
@@ -212,6 +215,9 @@
     ],
     "ResourceRolesService.Delete": [
       "delete_resource_role"
+    ],
+    "ResourceRolesService.Descendants": [
+      "get_resource_role_descendants"
     ],
     "ResourceRolesService.Get": [
       "get_resource_role"

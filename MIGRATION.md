@@ -2338,6 +2338,38 @@ _, err = client.ResourceRoles.Update(ctx, "document", "editor",
 	models.ResourceRoleUpdate{Extends: extends})
 ```
 
+<a id="M-resource-roles-10"></a>
+### M-resource-roles-10: ResourceRoles.GetAncestors becomes Ancestors, which returns a slice
+
+- v1: `api.ResourceRoles.GetAncestors`
+- v2: `permit.ResourceRolesService.Ancestors`
+
+`ResourceRolesService.Ancestors(ctx, resourceKey, roleKey)` takes the key or the ID of the
+resource and of the role, as v1's `GetAncestors` did, and returns the roles that the API lists as
+the ancestors of the role as a `[]models.ResourceRoleRead`, in place of a pointer to a slice. It
+reads a reply that holds the roles as a JSON array or as a paginated object, as v1.3.0 does, and
+returns an empty slice, not nil, for a reply whose roles are empty, null or left out.
+`models.ResourceRoleList` holds `Roles` as a `[]models.ResourceRoleRead`, in place of v1's
+`models.Roles`, which held either the array or the page. A reply in 200-299 with an empty body is
+an error, where v1.3.0 returned an empty list. A 404 is a `*permit.Error` that matches
+`permit.ErrNotFound`. It is sent again after a 500, 502, 503 or 504 reply or a failed connection,
+as it changes nothing.
+
+<a id="M-resource-roles-11"></a>
+### M-resource-roles-11: ResourceRoles.GetDescendants becomes Descendants, which returns a slice
+
+- v1: `api.ResourceRoles.GetDescendants`
+- v2: `permit.ResourceRolesService.Descendants`
+
+`ResourceRolesService.Descendants(ctx, resourceKey, roleKey)` takes the key or the ID of the
+resource and of the role, as v1's `GetDescendants` did, and returns the roles that the API lists
+as the descendants of the role as a `[]models.ResourceRoleRead`, in place of a pointer to a
+slice. It reads a reply that holds the roles as a JSON array or as a paginated object, as v1.3.0
+does, and returns an empty slice, not nil, for a reply whose roles are empty, null or left out. A
+reply in 200-299 with an empty body is an error, where v1.3.0 returned an empty list. A 404 is a
+`*permit.Error` that matches `permit.ErrNotFound`. It is sent again after a 500, 502, 503 or 504
+reply or a failed connection, as it changes nothing.
+
 <a id="M-user-attributes-1"></a>
 ### M-user-attributes-1: ListUserAttributes of the generated client becomes Client.UserAttributes.List
 
@@ -2788,6 +2820,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceRead` | `models.ResourceRead` |
 | `models.ResourceReplace` | `models.ResourceReplace` |
 | `models.ResourceRoleCreate` | `models.ResourceRoleCreate` |
+| `models.ResourceRoleList` | `models.ResourceRoleList` |
 | `models.ResourceRoleRead` | `models.ResourceRoleRead` |
 | `models.ResourceRoleUpdate` | `models.ResourceRoleUpdate` |
 | `models.ResourceUpdate` | `models.ResourceUpdate` |
@@ -2798,6 +2831,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 326 of the 384 types of v1's pkg/models.
+Not mapped yet: 325 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

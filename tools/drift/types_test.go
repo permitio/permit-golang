@@ -78,6 +78,7 @@ var modelTypes = []any{
 	models.ResourceRead{},
 	models.ResourceReplace{},
 	models.ResourceRoleCreate{},
+	models.ResourceRoleList{},
 	models.ResourceRoleRead{},
 	models.ResourceRoleUpdate{},
 	models.ResourceUpdate{},

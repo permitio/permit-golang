@@ -98,13 +98,13 @@ control-plane:
   - {op: assign_set_permissions, route: "POST /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: planned}
   - {op: unassign_set_permissions, route: "DELETE /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: planned}
   # Condition Sets
-  - {op: list_condition_sets, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets", stage: GA, status: planned}
-  - {op: create_condition_set, route: "POST /v2/schema/{proj_id}/{env_id}/condition_sets", stage: GA, status: planned}
-  - {op: get_condition_set, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: planned}
-  - {op: update_condition_set, route: "PATCH /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: planned}
-  - {op: delete_condition_set, route: "DELETE /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: planned}
-  - {op: get_condition_set_ancestors, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/ancestors", stage: GA, status: planned}
-  - {op: get_condition_set_descendants, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/descendants", stage: GA, status: planned}
+  - {op: list_condition_sets, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets", stage: GA, status: covered}
+  - {op: create_condition_set, route: "POST /v2/schema/{proj_id}/{env_id}/condition_sets", stage: GA, status: covered}
+  - {op: get_condition_set, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: covered}
+  - {op: update_condition_set, route: "PATCH /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: covered}
+  - {op: delete_condition_set, route: "DELETE /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: covered}
+  - {op: get_condition_set_ancestors, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/ancestors", stage: GA, status: covered}
+  - {op: get_condition_set_descendants, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/descendants", stage: GA, status: covered}
   # Data Export
   - {op: start_organization_export, route: "POST /v2/data-export", stage: GA, status: excluded, reason: account-admin}
   - {op: get_organization_export, route: "GET /v2/data-export/{task_id}", stage: GA, status: excluded, reason: account-admin}

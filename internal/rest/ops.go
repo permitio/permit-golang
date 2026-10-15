@@ -487,6 +487,52 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The condition sets of an environment, each at the environment level, as v1 sends them too;
+	// v1 sent the ancestors and the descendants only through its generated client. These key
+	// levels are not measured yet: the phase api.condition_sets of the local harness confirms
+	// them. The list is a JSON array or a paginated object of at most 100 sets, and the ancestors
+	// and the descendants are each a JSON array of at most 100 sets. A PATCH sets the fields that
+	// it names to the values that it gives, so it does the same when sent twice; a create does
+	// not.
+	{
+		ID: "list_condition_sets", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/condition_sets", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ConditionSetRead",
+	},
+	{
+		ID: "create_condition_set", Method: http.MethodPost,
+		Route: "/v2/schema/{proj_id}/{env_id}/condition_sets", KeyLevel: EnvironmentLevel,
+		RequestModel: "ConditionSetCreate", ResponseModel: "ConditionSetRead",
+	},
+	{
+		ID: "get_condition_set", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ConditionSetRead",
+	},
+	{
+		ID: "update_condition_set", Method: http.MethodPatch,
+		Route:      "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "ConditionSetUpdate",
+		ResponseModel: "ConditionSetRead",
+	},
+	{
+		ID: "delete_condition_set", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+	{
+		ID: "get_condition_set_ancestors", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/ancestors",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "ConditionSetRead",
+	},
+	{
+		ID: "get_condition_set_descendants", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/descendants",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "ConditionSetRead",
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

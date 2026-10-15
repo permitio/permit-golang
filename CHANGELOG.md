@@ -530,6 +530,34 @@ change from v1 and what to use instead.
   `Create` is sent again after a 429 only; the other calls are sent again after a 500, 502, 503
   or 504 reply or a failed connection too.
 
+### Condition sets
+
+- The `ConditionSets` field of the client, a `*permit.ConditionSetsService`, lists, reads,
+  creates, changes and deletes the condition sets of the environment of the client's scope, its
+  user sets and resource sets: `List` returns a page as a `*permit.Page[models.ConditionSetRead]`
+  and `All` reads every page, 100 sets at a time; `Get` reads one set by its key or its ID, in
+  place of v1's `Get`, `GetById` and `GetByKey`; `Create` takes a `models.ConditionSetCreate` and
+  `Update` a `models.ConditionSetUpdate`, and each returns the set as a
+  `*models.ConditionSetRead`; `Delete` deletes a set.
+- `List` and `All` read the list whether the API answers it as a JSON array or as the paginated
+  object, as v1.3.0 does. A reply in 200-299 whose body is empty, `null`, or an object without a
+  `data` array is an error that names the model, where v1.3.0 returned an empty list. The `Type`
+  and the `Search` of `permit.ConditionSetsListOptions`, which v1 did not send, are sent in the
+  query only when they are set.
+- `Ancestors` and `Descendants`, which v1 sent only through its generated client, are new: each
+  returns a page of the sets that the API lists as the ancestors or the descendants of a set, as
+  a `*permit.Page[models.ConditionSetRead]`, and `AncestorsAll` and `DescendantsAll` read every
+  page.
+- `models.ConditionSetType` is an open enum, with `ConditionSetTypeUserSet` and
+  `ConditionSetTypeResourceSet`: a set of a type that the API adds later is read, where v1 failed
+  on it. The conditions of a set are a `models.Attributes`, whose numbers keep every digit.
+- A user set takes no resource: `Create` refuses a user set with a `ResourceID` before any
+  request, with an error that matches `ErrInvalidConfig`. Only a resource set has a resource.
+- A key of a set is sent as one segment of the path, escaped; an empty key, `.` or `..` is an
+  error that matches `ErrInvalidConfig`, and no request for the call is sent. `Delete` returns nil
+  when the API answers 404, as the set is gone already. `Create` is sent again after a 429 only;
+  the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

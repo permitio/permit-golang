@@ -179,6 +179,14 @@ var (
 // The rules of the arguments of a call, which the SDK checks before it sends the request. The
 // error of such a rule names the argument before the message.
 var (
+	// ConditionSetUserSetResource rejects a create of a user set with a resource: a user set
+	// takes no resource, only a resource set has one.
+	ConditionSetUserSetResource = Rule{
+		ID: "condition-set.user-set.resource",
+		Message: "the user set has a ResourceID, and a user set has no resource; leave " +
+			"ResourceID empty, or set Type to ConditionSetTypeResourceSet for a resource set",
+	}
+
 	// CopyResultWaitNegative rejects a CopyResultOptions whose Wait is less than zero.
 	CopyResultWaitNegative = Rule{
 		ID: "copy-result.wait.negative",
@@ -308,6 +316,7 @@ var (
 
 // rules lists every rule, sorted by ID.
 var rules = []Rule{
+	ConditionSetUserSetResource,
 	APIKeyEmpty,
 	APIKeyMissing,
 	HTTPClientNil,

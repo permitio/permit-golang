@@ -142,6 +142,16 @@ var cloudScenarios = []scenario{
 		run: userAttributeLifecycle,
 	},
 	{
+		name: "condition_set_lifecycle", methods: []string{
+			"ConditionSetsService.Create", "ConditionSetsService.Get",
+			"ConditionSetsService.List", "ConditionSetsService.All",
+			"ConditionSetsService.Update", "ConditionSetsService.Ancestors",
+			"ConditionSetsService.AncestorsAll", "ConditionSetsService.Descendants",
+			"ConditionSetsService.DescendantsAll", "ConditionSetsService.Delete",
+		},
+		run: conditionSetLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

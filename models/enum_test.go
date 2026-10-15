@@ -82,6 +82,7 @@ func TestOpenEnums(t *testing.T) {
 			models.EnvironmentCopyConflictStrategyOverwrite),
 		checkOpenEnum(t, models.TaskStatusProcessing, models.TaskStatusSuccess,
 			models.TaskStatusFailure, models.TaskStatusCancelled),
+		checkOpenEnum(t, models.ConditionSetTypeUserSet, models.ConditionSetTypeResourceSet),
 		checkOpenEnum(t, models.ErrorCodeInvalidInput, models.ErrorCodeInvalidJWKSConfiguration,
 			models.ErrorCodeUnexpectedError, models.ErrorCodeNotFound,
 			models.ErrorCodeDuplicateEntity, models.ErrorCodeEmptyDecisionLogs,

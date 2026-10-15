@@ -82,6 +82,11 @@ type Client struct {
 	// the environment of the client's scope: the schema of what a user may hold, not its values.
 	UserAttributes *UserAttributesService `json:"-"`
 
+	// ConditionSets lists, reads, creates, changes and deletes the condition sets of the
+	// environment of the client's scope, its user sets and resource sets, and lists their
+	// ancestors and descendants.
+	ConditionSets *ConditionSetsService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -179,6 +184,7 @@ func New(opts ...Option) (*Client, error) {
 	c.Roles = &RolesService{client: c}
 	c.ResourceRoles = &ResourceRolesService{client: c}
 	c.UserAttributes = &UserAttributesService{client: c}
+	c.ConditionSets = &ConditionSetsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

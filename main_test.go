@@ -132,5 +132,13 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: `[]`})
 	servers.API.Handle("POST /v2/schema/{proj_id}/{env_id}/users/attributes",
 		mockpermit.Reply{Body: replyFixture("create_user_attribute.200.json")})
+	servers.API.Handle("POST /v2/schema/{proj_id}/{env_id}/condition_sets",
+		mockpermit.Reply{Body: replyFixture("create_condition_set.200.json")})
+	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/condition_sets",
+		mockpermit.Reply{Body: replyFixture("list_condition_sets.200.json")},
+		mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/"+
+		"ancestors", mockpermit.Reply{Body: replyFixture("get_condition_set_ancestors.200.json")},
+		mockpermit.Reply{Body: `[]`})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

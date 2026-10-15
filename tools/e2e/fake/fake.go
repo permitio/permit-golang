@@ -11,16 +11,17 @@
 // the first 30 by default; and a DELETE of a collection with a body removes the objects that hold
 // each field of the body. A parameter matches an object by its ID or its identifier: its key, or
 // for a resource instance, an object with a resource, <resource>:<key>, as the Permit API names it.
-// A parameter that is not the last segment of its route and follows resources, roles, tenants or
-// users, such as {resource_id} in .../resources/{resource_id}/roles, must match an object, or the
-// request gets 404; another parameter, such as {group_instance_key}, stays as it is when it matches
-// none. Deleting an environment revokes its API keys. Each request body goes through the check that
-// the fake is given, such as the structural walker of tools/drift, and a body that the check
-// rejects gets 422. The fake also serves the scope of an API key and the API key of an environment,
-// which it makes up, the statistics and the copies of an environment, as stats and
-// copyEnvironment say, the grants and removals of the permissions of a role or of a role of a
-// resource, the ancestors and the descendants of a role, and the bulk replace of roles, as
-// rolePermissions, roleRelatives and bulkRoles say.
+// A parameter that is not the last segment of its route and follows condition_sets, resources,
+// roles, tenants or users, such as {resource_id} in .../resources/{resource_id}/roles, must match
+// an object, or the request gets 404; another parameter, such as {group_instance_key}, stays as it
+// is when it matches none. Deleting an environment revokes its API keys. Each request body goes
+// through the check that the fake is given, such as the structural walker of tools/drift, and a
+// body that the check rejects gets 422. The fake also serves the scope of an API key and the API
+// key of an environment, which it makes up, the statistics and the copies of an environment, as
+// stats and copyEnvironment say, the grants and removals of the permissions of a role or of a role
+// of a resource, the ancestors and the descendants of a role, and the bulk replace of roles, as
+// rolePermissions, roleRelatives and bulkRoles say, and the ancestors and the descendants of a
+// condition set, as conditionSetRelatives says.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An
@@ -122,7 +123,9 @@ const projects = "/v2/projects"
 // keyed are the collections, by the last segment of their path, whose objects the Permit API
 // names by key and whose routes go on after the object's parameter: a parameter that follows one
 // of them and is not the last segment of its route must match an object.
-var keyed = map[string]bool{"resources": true, "roles": true, "tenants": true, "users": true}
+var keyed = map[string]bool{
+	"condition_sets": true, "resources": true, "roles": true, "tenants": true, "users": true,
+}
 
 // collectionOf returns the key of the collection whose path has segments, unescaped: the
 // path with each segment escaped, so that a segment that holds a slash stays one segment.

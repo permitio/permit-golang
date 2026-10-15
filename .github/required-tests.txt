@@ -1164,6 +1164,23 @@ github.com/permitio/permit-golang/v2 TestUserAttributeRetries
 github.com/permitio/permit-golang/v2 TestMalformedUserAttributeReplies
 github.com/permitio/permit-golang/v2 TestUserAttributesAfterClose
 github.com/permitio/permit-golang/v2 ExampleUserAttributesService
+github.com/permitio/permit-golang/v2 TestConditionSetsListReadsBothForms
+github.com/permitio/permit-golang/v2 TestConditionSetsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestConditionSetsAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestConditionSetsAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestConditionSetListQueries
+github.com/permitio/permit-golang/v2 TestInvalidConditionSetListOptions
+github.com/permitio/permit-golang/v2 TestConditionSetsUseTheScope
+github.com/permitio/permit-golang/v2 TestConditionSetKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteConditionSetThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherConditionSetCalls
+github.com/permitio/permit-golang/v2 TestConditionSetBodies
+github.com/permitio/permit-golang/v2 TestUserSetWithAResource
+github.com/permitio/permit-golang/v2 TestConditionSetBodiesThatCannotBeJSON
+github.com/permitio/permit-golang/v2 TestConditionSetRetries
+github.com/permitio/permit-golang/v2 TestMalformedConditionSetReplies
+github.com/permitio/permit-golang/v2 TestConditionSetsAfterClose
+github.com/permitio/permit-golang/v2 ExampleConditionSetsService
 
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
@@ -1219,6 +1236,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestRolePermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoleRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRoles
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceRolePermissions
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestConditionSetRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1245,6 +1263,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_role_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle/update
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

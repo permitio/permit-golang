@@ -12,9 +12,9 @@
 # item to have its entry. Blank lines and lines that start with # are ignored.
 
 # Block a: pkg/api
-api.ConditionSets condition-sets
-api.ConditionSets.* condition-sets
-api.NewConditionSetsApi condition-sets
+api.ConditionSets.AssignSetPermissions condition-set-rules
+api.ConditionSets.ListSetPermissions condition-set-rules
+api.ConditionSets.UnassignSetPermissions condition-set-rules
 api.Elements elements
 api.Elements.* elements
 api.NewElementsApi elements
@@ -54,7 +54,6 @@ openapi.AuthenticationApiService.LogoutGet auth
 openapi.AuthenticationApiService.LogoutPost auth
 openapi.AuthenticationApiService.Me auth
 openapi.AuthenticationApiService.SwitchOrganization auth
-openapi.ConditionSetsApiService.* condition-sets
 openapi.DecisionLogsApiService.* decision-logs
 openapi.DecisionLogsIngressApiService.* decision-logs
 openapi.DefaultApiService.* stress

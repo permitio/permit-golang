@@ -77,6 +77,19 @@ var routes = []Route{
 		"remove_permissions_from_role",
 	},
 	{"PUT", "/v2/schema/{proj_id}/{env_id}/bulk/roles", "bulk_create_or_replace_roles"},
+	{"POST", "/v2/schema/{proj_id}/{env_id}/condition_sets", "create_condition_set"},
+	{
+		"PATCH", "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}",
+		"update_condition_set",
+	},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/ancestors",
+		"get_condition_set_ancestors",
+	},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/descendants",
+		"get_condition_set_descendants",
+	},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/tenants", "create_tenant"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants", "list_tenants"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},
@@ -750,6 +763,57 @@ func TestRoleRelatives(t *testing.T) {
 	}
 	h.expect(404, "GET", roles+"/none/ancestors", "", projectKey)
 	h.expect(404, "GET", roles+"/none/descendants", "", projectKey)
+}
+
+// TestConditionSetRelatives checks the ancestors and the descendants of a condition set, by its
+// key or its ID: the sets that its parent_id leads to, its parent first, and the sets whose
+// parent_id leads to it, each once, as a JSON array of the page of the query, and never the set
+// itself, also when the parent_id fields of the sets make a cycle; and 404 for a set that the
+// environment does not have.
+func TestConditionSetRelatives(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	sets := "/v2/schema/proj/dev/condition_sets"
+	ids := map[string]string{}
+	for _, tc := range []struct{ key, parent string }{
+		{"root", ""}, {"mid", "root"}, {"leaf", "mid"}, {"twin", "root"}, {"other", ""},
+	} {
+		body := `{"key": "` + tc.key + `"}`
+		if tc.parent != "" {
+			body = `{"key": "` + tc.key + `", "parent_id": "` + ids[tc.parent] + `"}`
+		}
+		created := h.expect(200, "POST", sets, body, projectKey)
+		ids[tc.key], _ = created["id"].(string)
+	}
+	for _, tc := range []struct{ path, want string }{
+		{"/leaf/ancestors", "[mid root]"},
+		{"/" + ids["leaf"] + "/ancestors", "[mid root]"},
+		{"/root/ancestors", "[]"},
+		{"/root/descendants", "[mid twin leaf]"},
+		{"/root/descendants?page=2&per_page=2", "[leaf]"},
+		{"/leaf/descendants", "[]"},
+	} {
+		h.expectRelatives(sets+tc.path, tc.want)
+	}
+	h.expect(200, "PATCH", sets+"/root", `{"parent_id": "`+ids["leaf"]+`"}`, projectKey)
+	h.expectRelatives(sets+"/leaf/ancestors", "[mid root]")
+	h.expectRelatives(sets+"/root/descendants", "[mid twin leaf]")
+	h.expect(404, "GET", sets+"/none/ancestors", "", projectKey)
+	h.expect(404, "GET", sets+"/none/descendants", "", projectKey)
+}
+
+// expectRelatives fails the test unless GET of path, with the project's API key, answers 200 and
+// a JSON array of the condition sets whose keys, in order, print as want.
+func (h *harness) expectRelatives(path, want string) {
+	h.t.Helper()
+	var keys []any
+	for _, set := range h.list(path, projectKey) {
+		o, _ := set.(map[string]any)
+		keys = append(keys, o["key"])
+	}
+	if got := fmt.Sprint(keys); got != want {
+		h.t.Errorf("GET %s answered the sets %s, want %s", path, got, want)
+	}
 }
 
 // TestBulkRoles checks the bulk replace of roles, which creates a role that does not exist and

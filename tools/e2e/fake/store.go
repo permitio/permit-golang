@@ -27,6 +27,9 @@ const (
 
 	opAssignResourceRolePermissions = "assign_permissions_to_resource_role"
 	opRemoveResourceRolePermissions = "remove_permissions_from_resource_role"
+
+	opConditionSetAncestors   = "get_condition_set_ancestors"
+	opConditionSetDescendants = "get_condition_set_descendants"
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -66,6 +69,8 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 			return f.bulkRoles(segments, fields)
 		}
 		return f.unsupported(rt)
+	case opConditionSetAncestors, opConditionSetDescendants:
+		return f.conditionSetRelatives(rt.Op, segments, query)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
@@ -409,6 +414,35 @@ func (f *Fake) roleRelatives(op string, segments []string) (int, any) {
 func extends(role, other object) bool {
 	keys, _ := role["extends"].([]any)
 	return slices.Contains(keys, other["key"])
+}
+
+// conditionSetRelatives answers the ancestors, op get_condition_set_ancestors, or the
+// descendants, op get_condition_set_descendants, of the condition set of the path, which has
+// segments, with IDs in place of keys, as resolve found it: the sets that its parent_id leads to,
+// its parent first, or the sets whose parent_id leads to it, in the order in which the fake finds
+// them, as the page of query of a JSON array, as listed says. The caller holds f.mu.
+func (f *Fake) conditionSetRelatives(op string, segments []string, query url.Values,
+) (int, any) {
+	sets := f.store[collectionOf(segments[:6])]
+	start, _ := find(sets, segments[6])
+	found := []object{}
+	queue := []object{start}
+	for len(queue) > 0 {
+		set := queue[0]
+		queue = queue[1:]
+		for _, other := range sets {
+			step := op == opConditionSetAncestors && set["parent_id"] == other["id"] ||
+				op == opConditionSetDescendants && other["parent_id"] == set["id"]
+			known := other["id"] == start["id"] || slices.ContainsFunc(found, func(o object) bool {
+				return o["id"] == other["id"]
+			})
+			if step && !known {
+				found = append(found, other)
+				queue = append(queue, other)
+			}
+		}
+	}
+	return http.StatusOK, listed(found, query)
 }
 
 // createRole is the route of the create of a role, as which a bulk replace creates a role.

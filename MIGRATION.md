@@ -2749,6 +2749,147 @@ they are set. It returns a `*permit.Page[models.ConditionSetRuleRead]` in place 
 error]` that reads every page, 100 rules at a time. A reply in 200-299 that is not a JSON array of
 rules is a `*permit.Error` that names the model, never an empty list.
 
+<a id="M-users-1"></a>
+### M-users-1: Users becomes Client.Users
+
+- v1: `api.Users`
+- v1: `api.NewUsersApi`
+- v2: `permit.UsersService`
+
+Call the methods of the users on the `Users` field of the client, `client.Users`, in place of
+`client.Api.Users`; `permit.New` builds it, so nothing takes the place of `api.NewUsersApi`. Each
+method takes a `context.Context` first. The calls act on the environment of the client's scope,
+as v1's acted on the environment of its context: the project and the environment of
+`permit.WithScope`, or else those of the API key, as [M-scope-2](#M-scope-2) says. With
+`permit.WithFactsViaPDP()`, they go to the PDP container, as [M-facts-2](#M-facts-2) says. An
+environment-level API key may call each of them.
+
+`models.UserRead` has `ID`, `OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`,
+`OrganizationId`, `ProjectId` and `EnvironmentId`; `Email`, `FirstName` and `LastName` are plain
+strings, empty when the reply has none, in place of pointers; and `Attributes` is a
+`models.Attributes`, whose numbers are `json.Number`, as [M-models-1](#M-models-1) says. It adds
+`CreatedAt` and `UpdatedAt`, as `models.Time`, and `AssociatedTenants`, each tenant in which the
+user has a role, with the keys of its roles in the tenant, its status there and its roles on the
+tenant's resource instances. It has no `Roles`, which the API's spec marks deprecated: read the
+roles of the user in each tenant from `AssociatedTenants`.
+
+<a id="M-users-2"></a>
+### M-users-2: GetById and GetByKey become Get
+
+- v1: `api.Users.Get`
+- v1: `api.Users.GetById`
+- v1: `api.Users.GetByKey`
+- v2: `permit.UsersService.Get`
+
+`UsersService.Get(ctx, userKey)` takes the key or the ID of the user, as all three v1 methods
+sent the same request: pass `id.String()` for a `uuid.UUID`. A key that holds a `/`, a `%` or a
+`|` is sent escaped, as one segment of the path, and an empty key, `.` or `..` is an error that
+matches `permit.ErrInvalidConfig`, with no request for the user. A user that the environment
+does not have is a `*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-users-3"></a>
+### M-users-3: List takes UsersListOptions, and All reads every page
+
+- v1: `api.Users.List`
+- v2: `permit.UsersService.List`
+
+`UsersService.List(ctx, opts)` takes a `*permit.UsersListOptions`, nil for the first page of every
+user with the API's default of 30 users, in place of the page and the number of users as two
+ints, and returns a `*permit.Page[models.UserRead]` with the counts of the reply, as
+[M-lists-1](#M-lists-1) says. v1 failed for a page below 1, and for a number of users below 1 or
+above 100, before any request; v2 sends a number that is not 0 as given, and the API answers above
+100 with an error. The options also filter the list: `Search` keeps the users that the API's text
+search for it matches, and `Role` the users that have the role, sent in the query parameters
+`search` and `role`; v1 could not send them. `UsersService.All(ctx, opts)` returns an
+`iter.Seq2[models.UserRead, error]` that reads every page, 100 users at a time.
+
+<a id="M-users-4"></a>
+### M-users-4: Users.Create takes models.UserCreate, which can assign roles
+
+- v1: `api.Users.Create`
+- v2: `permit.UsersService.Create`
+
+Build the user as a struct literal, such as `models.UserCreate{Key: "alice", Email:
+"alice@example.com"}`, in place of `models.NewUserCreate` and its setters. `Email`, `FirstName`
+and `LastName` are plain strings, left out of the request when empty, in place of pointers, and
+`Attributes`, a `models.Attributes`, is left out when nil; an empty map that is not nil sends
+`{}`. `RoleAssignments`, which v1's `models.UserCreate` did not have, assigns roles with the
+create: each `models.UserRoleCreate` names a role and a tenant, or a role of a resource and an
+instance as `<resource>:<key>`. A key that another user of the environment has is a
+`*permit.Error` that matches `permit.ErrConflict`. Create is sent again only after a 429, as
+[M-wire-5](#M-wire-5) says, as the API may have created the user when a request got no complete
+reply.
+
+<a id="M-users-5"></a>
+### M-users-5: SyncUser becomes Sync, which replaces the user: fields left out are cleared
+
+- v1: `api.Users.SyncUser`
+- v1: `permit.Client.SyncUser`
+- v1: `openapi.UsersApiService.ReplaceUser`
+- v2: `permit.UsersService.Sync`
+
+**`Sync` replaces the whole user: each of `Email`, `FirstName`, `LastName` and `Attributes` that
+the `models.UserCreate` leaves out, such as an empty `FirstName` or nil `Attributes`, is cleared,
+where v1's `SyncUser` kept it. Renaming `SyncUser` to `Sync` without giving every field of the
+user removes the fields that are left out. Give `Sync` the whole user, or use
+`UsersService.Update` to change some fields and keep the others.**
+
+**The request also sends the `RoleAssignments` of the `models.UserCreate`, as a create does, and
+none when it has none. What a sync with or without them does to the roles that the user has
+already is not confirmed yet.**
+
+`UsersService.Sync(ctx, user)` sends the user to `PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}`,
+with the user's key in the path, as v1's generated client did with `ReplaceUser`, and the API
+creates the user when the environment has none with the key, or replaces it. It returns a
+`*permit.UserSyncResult`, in place of a `*models.UserRead`: its `User` is the user as the API
+stores it, and `Created` is true when the API created it, a reply of 201, and false when it
+replaced it. `client.Users.Sync` takes the place of `client.SyncUser` too, as v2's client has no
+shortcut for it. It is sent again after a 500, 502, 503 or 504 reply or a failed connection, as
+sending the same user twice stores the same user; [M-users-9](#M-users-9) says what v2 sends.
+
+<a id="M-users-6"></a>
+### M-users-6: Users.Update takes models.UserUpdate, which can send null
+
+- v1: `api.Users.Update`
+- v2: `permit.UsersService.Update`
+
+Build the change as a struct literal of `models.UserUpdate`, in place of `models.NewUserUpdate`
+and its setters. The request holds only the fields that are set, and the user keeps the others.
+Each field is a `models.Optional`: unset leaves the field out; `models.Null[T]()` sends null,
+which v1 could not send, and removes the email or a name, or stores the attributes as null; and
+`models.Some(value)` sends the value. The attributes that an update sends replace the user's
+attributes as a whole: `models.Some` of an empty map sends `{}`, which removes every attribute.
+
+<a id="M-users-7"></a>
+### M-users-7: Users.Delete of a user that is gone returns nil
+
+- v1: `api.Users.Delete`
+- v2: `permit.UsersService.Delete`
+
+`UsersService.Delete(ctx, userKey)` returns nil when the API answers 404, as the user is gone
+already, such as when a retry follows a delete that succeeded; v1 returned an error with the code
+`NotFound`. A mistyped key returns nil too, so check the key before a delete that must remove
+something. Any other error status is a `*permit.Error` with the status and the body.
+
+<a id="M-users-8"></a>
+### M-users-8: Users.WaitForSync takes a time.Duration and waits on creates, syncs and updates
+
+- v1: `api.Users.WaitForSync`
+- v2: `permit.UsersService.WaitForSync`
+
+`UsersService.WaitForSync(timeout, opts...)` takes the timeout as a `time.Duration`, in place of
+a `*time.Duration` whose nil meant the timeout of the configuration, and options, in place of
+`api.WaitForSyncOptions`, as [M-facts-3](#M-facts-3) says. It returns a copy of the service whose
+calls carry the wait; the service that it is called on keeps none.
+
+Only `Create`, `Sync` and `Update` wait for sync: of the routes that `UsersService` calls, the PDP
+container waits on `POST /facts/users` and on `PUT` and `PATCH /facts/users/{user_id}`, and
+answers the reads and the delete without waiting. A call through the copy of any other method,
+such as `Get` or `Delete`, is an error that matches `permit.ErrInvalidConfig`, and no request is
+sent; v1 sent the headers of the wait with every call through its copy. A client without
+`permit.WithFactsViaPDP()` gets the same error for every call through the copy, as only the PDP
+container waits; v1 logged a warning and made the calls without the wait.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -2894,6 +3035,22 @@ such as numbers, booleans and nested objects, and leaves out a nil or empty one,
 The rest of the body is that of `Client.Check`: a resource without a tenant is sent with the tenant
 `default`.
 
+<a id="M-users-9"></a>
+### M-users-9: Sync sends one PUT in place of a read and a PATCH or a POST
+
+- v1: a `GET` of the user, then a `PATCH` of the fields that were set, or a `POST` of a new user when the error of the read said NotFound
+- v2: one `PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}` of the whole user
+
+v1's `SyncUser` read the user first, and told a user that does not exist from any other error by the
+text of the error. When the user existed, it sent a `PATCH` of the email and the names that were not
+empty, and of the attributes when they were not nil, an empty map as `{}`, so the user kept the
+fields that were left out; when it did not, it sent a `POST`, which failed with 409 when another
+call created the user between the read and the create. v2's `Sync` sends one `PUT` of the whole
+user, which creates or replaces it in one request: it reads nothing first, and two syncs of the
+same new user at once each send their own `PUT`, with no read between. The email, the names and
+the attributes that the user leaves out are cleared, as [M-users-5](#M-users-5) says. With `permit.WithFactsViaPDP()`, the `PUT` goes to the PDP container,
+`PUT /facts/users/{user_id}`, which can wait for sync, as [M-users-8](#M-users-8) says.
+
 ## Kept on purpose
 
 What v2 keeps from v1 although a new major version could change it:
@@ -2976,7 +3133,11 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantCreate` | `models.TenantCreate` |
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
+| `models.UserCreate` | `models.UserCreate` |
+| `models.UserRead` | `models.UserRead` |
+| `models.UserRoleCreate` | `models.UserRoleCreate` |
+| `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 321 of the 384 types of v1's pkg/models.
+Not mapped yet: 317 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

@@ -1029,6 +1029,71 @@ models:
     fields:
       user: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
+  # A user of an environment, as a create and a sync, the PUT of a user, send it, as an update
+  # changes it and as the API returns it, with the tenants in which it has a role. A create and a
+  # sync read null for a field that the schema does not require and that has no default as the
+  # field left out, as every create does, and reject null for a required field and for the
+  # attributes, which have a default; so does a role that they assign. An update accepts null for
+  # each of its fields, which clears the email and the names and stores null for the attributes.
+  # These null policies are not measured yet: the phase api.users of the local harness confirms
+  # them. The model of the reply leaves out roles, which the spec marks deprecated:
+  # associated_tenants holds the roles of the user in each tenant.
+  UserCreate:
+    schema: UserCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      email: {required: false, null_policy: ignores}
+      first_name: {required: false, null_policy: ignores}
+      last_name: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: rejects}
+      role_assignments: {required: false, null_policy: ignores}
+  UserRoleCreate:
+    schema: UserRoleCreate
+    fields:
+      role: {required: true, null_policy: rejects}
+      tenant: {required: false, null_policy: ignores}
+      resource_instance: {required: false, null_policy: ignores}
+  UserUpdate:
+    schema: UserUpdate
+    fields:
+      email: {required: false, null_policy: accepts}
+      first_name: {required: false, null_policy: accepts}
+      last_name: {required: false, null_policy: accepts}
+      attributes: {required: false, null_policy: accepts}
+  UserRead:
+    schema: UserRead
+    left_out:
+      roles: >-
+        the spec marks it deprecated; associated_tenants holds the roles of the user in each
+        tenant
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      email: {required: false, null_policy: n/a}
+      first_name: {required: false, null_policy: n/a}
+      last_name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      associated_tenants: {required: false, null_policy: n/a}
+  UserInTenant:
+    schema: UserInTenant
+    fields:
+      tenant: {required: true, null_policy: n/a}
+      roles: {required: true, null_policy: n/a}
+      status: {required: true, null_policy: n/a}
+      resource_instance_roles: {required: false, null_policy: n/a}
+  UserResourceInstanceRole:
+    schema: UserResourceInstanceRole
+    fields:
+      resource_instance: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+  UserStatus:
+    schema: UserStatus
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property
   Optional: a field that the API accepts null for, whose null policy is accepts

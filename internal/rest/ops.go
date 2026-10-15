@@ -209,6 +209,47 @@ var defaultOps = []Op{
 		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The users of an environment, calls of the facts API, which the PDP container also serves
+	// under /facts. v1 sent them with an environment-level key, and the PDP container sends them
+	// on with its own, an environment-level key. These key levels are not measured yet: the
+	// phase api.users of the local harness confirms them. The PDP container waits for sync on
+	// the create, the PUT and the PATCH of a user, and not on its delete. The list is the
+	// paginated object of at most 100 users. A PUT sends the whole user, and a PATCH sets the
+	// fields that it names to the values that it gives, so each does the same when sent twice; a
+	// create does not.
+	{
+		ID: "list_users", Method: http.MethodGet, Route: "/v2/facts/{proj_id}/{env_id}/users",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "UserRead",
+	},
+	{
+		ID: "create_user", Method: http.MethodPost, Route: "/v2/facts/{proj_id}/{env_id}/users",
+		Facts: true, WaitsForSync: true, KeyLevel: EnvironmentLevel, RequestModel: "UserCreate",
+		ResponseModel: "UserRead",
+	},
+	{
+		ID: "get_user", Method: http.MethodGet,
+		Route:      "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, ResponseModel: "UserRead",
+	},
+	{
+		ID: "replace_user", Method: http.MethodPut,
+		Route:      "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
+		Idempotent: true, Facts: true, WaitsForSync: true, KeyLevel: EnvironmentLevel,
+		RequestModel: "UserCreate", ResponseModel: "UserRead",
+	},
+	{
+		ID: "update_user", Method: http.MethodPatch,
+		Route:      "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
+		Idempotent: true, Facts: true, WaitsForSync: true, KeyLevel: EnvironmentLevel,
+		RequestModel: "UserUpdate", ResponseModel: "UserRead",
+	},
+	{
+		ID: "delete_user", Method: http.MethodDelete,
+		Route:      "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The actions of a resource of an environment, each at the environment level, as v1 sends
 	// them too. These key levels are not measured yet: the phase api.resource_actions of the
 	// local harness confirms them. The list is a JSON array of at most 100 actions. A PATCH sets

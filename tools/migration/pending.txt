@@ -30,12 +30,11 @@ api.NewRoleAssignmentsApi role-assignments
 api.Roles.BulkAssignRole role-assignments
 api.Roles.BulkUnAssignRole role-assignments
 api.Tenants.ListTenantUsers tenants
-api.Users users
-api.Users.* users
-api.NewUsersApi users
-
-# Block a: pkg/enforcement and pkg/permit
-permit.Client.SyncUser users
+api.Users.AssignRole users
+api.Users.AssignResourceRole users
+api.Users.UnassignRole users
+api.Users.UnassignResourceRole users
+api.Users.GetAssignedRoles role-assignments
 
 # Block b: operations of pkg/openapi
 openapi.AuthenticationApiService.ElementsLoginAs elements
@@ -68,7 +67,6 @@ openapi.PolicyDecisionPointsApiService.* pdp-configs
 openapi.PolicyGitRepositoriesApiService.* policy-repos
 openapi.RoleAssignmentsApiService.* role-assignments
 openapi.TenantsApiService.* tenants
-openapi.UsersApiService.* users
 
 # Block c: pkg/models
 models.* models

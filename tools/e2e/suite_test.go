@@ -162,6 +162,17 @@ var cloudScenarios = []scenario{
 		run: conditionSetLifecycle,
 	},
 	{
+		name: "user_lifecycle", methods: []string{
+			"UsersService.Create", "UsersService.Get", "UsersService.List", "UsersService.All",
+			"UsersService.Update", "UsersService.Sync", "UsersService.Delete",
+		},
+		run: userLifecycle,
+	},
+	{
+		name: "concurrent_sync_of_a_new_user", methods: []string{"UsersService.Sync"},
+		run: concurrentSyncOfANewUser,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

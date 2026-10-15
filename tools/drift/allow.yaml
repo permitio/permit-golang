@@ -42,6 +42,11 @@ allow:
       the API stores null for the attributes of a tenant that an update sets to null, and then
       returns them as null, which the published spec types as an object only
     trigger: when the published spec allows null for attributes of TenantRead
+  - key: model UserRead field roles
+    reason: >-
+      the reply of a user holds roles, which the published spec marks deprecated, and UserRead
+      leaves out, as associated_tenants holds the roles of the user in each tenant
+    trigger: when the published spec drops roles from UserRead
   - key: model CheckRequest field sdk
     reason: >-
       the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every

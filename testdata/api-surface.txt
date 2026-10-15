@@ -49,6 +49,8 @@ models: const TaskStatusCancelled TaskStatus = "cancelled"
 models: const TaskStatusFailure TaskStatus = "failure"
 models: const TaskStatusProcessing TaskStatus = "processing"
 models: const TaskStatusSuccess TaskStatus = "success"
+models: const UserStatusActive UserStatus = "active"
+models: const UserStatusPending UserStatus = "pending"
 models: func NewSecret(credential string) Secret
 models: func Null[T any]() Optional[T]
 models: func OneString(s string) StringOrList
@@ -86,6 +88,7 @@ models: method (StringOrList) IsZero() bool
 models: method (StringOrList) MarshalJSON() ([]byte, error)
 models: method (StringOrList) Values() []string
 models: method (TaskStatus) Known() bool
+models: method (UserStatus) Known() bool
 models: type APIKeyCreate struct
 models: type APIKeyCreate struct, AccessLevel MemberAccessLevel
 models: type APIKeyCreate struct, EnvironmentID string
@@ -592,6 +595,45 @@ models: type TenantUpdate struct, Description Optional[string]
 models: type TenantUpdate struct, Name string
 models: type Time struct
 models: type Time struct, embedded time.Time
+models: type UserCreate struct
+models: type UserCreate struct, Attributes Attributes
+models: type UserCreate struct, Email string
+models: type UserCreate struct, FirstName string
+models: type UserCreate struct, Key string
+models: type UserCreate struct, LastName string
+models: type UserCreate struct, RoleAssignments []UserRoleCreate
+models: type UserInTenant struct
+models: type UserInTenant struct, ResourceInstanceRoles []UserResourceInstanceRole
+models: type UserInTenant struct, Roles []string
+models: type UserInTenant struct, Status UserStatus
+models: type UserInTenant struct, Tenant string
+models: type UserRead struct
+models: type UserRead struct, AssociatedTenants []UserInTenant
+models: type UserRead struct, Attributes Attributes
+models: type UserRead struct, CreatedAt Time
+models: type UserRead struct, Email string
+models: type UserRead struct, EnvironmentID string
+models: type UserRead struct, FirstName string
+models: type UserRead struct, ID string
+models: type UserRead struct, Key string
+models: type UserRead struct, LastName string
+models: type UserRead struct, OrganizationID string
+models: type UserRead struct, ProjectID string
+models: type UserRead struct, UpdatedAt Time
+models: type UserResourceInstanceRole struct
+models: type UserResourceInstanceRole struct, Resource string
+models: type UserResourceInstanceRole struct, ResourceInstance string
+models: type UserResourceInstanceRole struct, Role string
+models: type UserRoleCreate struct
+models: type UserRoleCreate struct, ResourceInstance string
+models: type UserRoleCreate struct, Role string
+models: type UserRoleCreate struct, Tenant string
+models: type UserStatus string
+models: type UserUpdate struct
+models: type UserUpdate struct, Attributes Optional[Attributes]
+models: type UserUpdate struct, Email Optional[string]
+models: type UserUpdate struct, FirstName Optional[string]
+models: type UserUpdate struct, LastName Optional[string]
 permit: const SyncPolicyFail SyncPolicy = "fail"
 permit: const SyncPolicyIgnore SyncPolicy = "ignore"
 permit: const Version = "2.0.0"
@@ -734,6 +776,14 @@ permit: method (*UserAttributesService) Delete(ctx context.Context, attributeKey
 permit: method (*UserAttributesService) Get(ctx context.Context, attributeKey string) (*models.ResourceAttributeRead, error)
 permit: method (*UserAttributesService) List(ctx context.Context, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
 permit: method (*UserAttributesService) Update(ctx context.Context, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
+permit: method (*UsersService) All(ctx context.Context, opts *UsersListOptions) iter.Seq2[models.UserRead, error]
+permit: method (*UsersService) Create(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
+permit: method (*UsersService) Delete(ctx context.Context, userKey string) error
+permit: method (*UsersService) Get(ctx context.Context, userKey string) (*models.UserRead, error)
+permit: method (*UsersService) List(ctx context.Context, opts *UsersListOptions) (*Page[models.UserRead], error)
+permit: method (*UsersService) Sync(ctx context.Context, user models.UserCreate) (*UserSyncResult, error)
+permit: method (*UsersService) Update(ctx context.Context, userKey string, update models.UserUpdate) (*models.UserRead, error)
+permit: method (*UsersService) WaitForSync(timeout time.Duration, opts ...SyncOption) *UsersService
 permit: method (Option) Format(f fmt.State, verb rune)
 permit: method (Option) GoString() string
 permit: method (Option) LogValue() slog.Value
@@ -785,6 +835,7 @@ permit: type Client struct, Resources *ResourcesService
 permit: type Client struct, Roles *RolesService
 permit: type Client struct, Tenants *TenantsService
 permit: type Client struct, UserAttributes *UserAttributesService
+permit: type Client struct, Users *UsersService
 permit: type ConditionSetRulesListOptions struct
 permit: type ConditionSetRulesListOptions struct, Permission string
 permit: type ConditionSetRulesListOptions struct, ResourceSet string
@@ -894,9 +945,17 @@ permit: type UserPermissionsRequest struct, ResourceTypes []string
 permit: type UserPermissionsRequest struct, Resources []string
 permit: type UserPermissionsRequest struct, Tenants []string
 permit: type UserPermissionsRequest struct, User User
+permit: type UserSyncResult struct
+permit: type UserSyncResult struct, Created bool
+permit: type UserSyncResult struct, User models.UserRead
 permit: type UserTenantsRequest struct
 permit: type UserTenantsRequest struct, Context map[string]any
 permit: type UserTenantsRequest struct, User User
+permit: type UsersListOptions struct
+permit: type UsersListOptions struct, Role string
+permit: type UsersListOptions struct, Search string
+permit: type UsersListOptions struct, embedded ListOptions
+permit: type UsersService struct
 permit: var ErrClosed = errors.New("permit: the client is closed")
 permit: var ErrConflict = errors.New("permit: conflict")
 permit: var ErrContainerPDPOnly = errors.New("permit: only the PDP container serves this route")

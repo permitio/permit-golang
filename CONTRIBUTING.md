@@ -1978,9 +1978,12 @@ on the environment of the client's scope, and a list whose options filter it: `r
    place among the options. A facts service holds a `facts` and has a `WaitForSync` method that
    returns a copy of the service with `facts.withWait`, as `TenantsService` (`tenants.go`) does.
    Its List method checks `c.checkOpen()` before its options, so that a closed client returns
-   `ErrClosed` first; its All method does the same inside the iterator, on each loop, then calls
-   `facts.direct` and returns the pages of `all` for the PDP container or of `allInScope` for the
-   API, so that the iterator sends nothing until a loop asks for an item.
+   `ErrClosed` first; its All method returns the iterator of `factsAll` (`facts.go`), which calls
+   `facts.direct` on each loop, so that a closed client yields `ErrClosed` first, and then reads
+   the pages of `all` for the PDP container or of `allInScope` for the API, so that the iterator
+   sends nothing until a loop asks for an item. When its options can be invalid, such as an
+   attribute filter, All returns instead an iterator that yields `ErrClosed` after `Close` and
+   else the error of the options, as `TenantsService.All` does.
 4. Document it, with the phrases that `docRules` asks of it, the errors it returns and how its
    request is sent again. Give a new service type, and a new decision method, an Example with an
    output comment in `package permit_test`, whose routes `TestMain` (`main_test.go`) registers,

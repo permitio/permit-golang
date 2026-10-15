@@ -143,30 +143,16 @@ func (s *TenantsService) List(ctx context.Context, opts *TenantsListOptions,
 func (s *TenantsService) All(ctx context.Context, opts *TenantsListOptions,
 ) iter.Seq2[models.TenantRead, error] {
 	r, page, optsErr := tenantsRequest(opts)
-	return func(yield func(models.TenantRead, error) bool) {
-		c := s.facts.client
-		err := c.checkOpen()
-		if err == nil {
-			err = optsErr
-		}
-		var direct request
-		if err == nil {
-			direct, err = s.facts.direct(r)
-		}
-		if err != nil {
-			yield(models.TenantRead{}, err)
-			return
-		}
-		pages := allInScope[models.TenantRead]
-		if direct.target == pdpTarget {
-			pages = all[models.TenantRead]
-		}
-		for tenant, pageErr := range pages(ctx, c, direct, arrayOrPageShape, page) {
-			if !yield(tenant, pageErr) {
-				return
+	if optsErr != nil {
+		return func(yield func(models.TenantRead, error) bool) {
+			err := s.facts.client.checkOpen()
+			if err == nil {
+				err = optsErr
 			}
+			yield(models.TenantRead{}, err)
 		}
 	}
+	return factsAll[models.TenantRead](ctx, s.facts, r, arrayOrPageShape, page)
 }
 
 // Get returns the tenant whose key or ID is tenantKey, with

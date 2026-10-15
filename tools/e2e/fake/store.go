@@ -39,6 +39,8 @@ const (
 
 	opListSetPermissions   = "list_set_permissions"
 	opAssignSetPermissions = "assign_set_permissions" //nolint:gosec // G101: an operation ID
+
+	opReplaceUser = "replace_user"
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -90,6 +92,11 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 	case opAssignSetPermissions:
 		if fields != nil {
 			return f.assignSetRule(rt, segments, fields)
+		}
+		return f.unsupported(rt)
+	case opReplaceUser:
+		if fields != nil {
+			return f.replaceUser(rt, segments, fields)
 		}
 		return f.unsupported(rt)
 	}
@@ -273,6 +280,32 @@ func (f *Fake) item(rt route, segments []string, fields object) (int, any) {
 		return http.StatusNoContent, nil
 	}
 	return f.unsupported(rt)
+}
+
+// replaceUser answers PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}, whose path has segments,
+// with IDs in place of keys, as the Permit API replaces a user: the user of the path becomes the
+// user of fields, keeps its ID and the IDs of its scope, and loses each field that fields leaves
+// out, with 200; or, when the environment has no such user, the user of fields is created as a
+// POST to the users creates it, with 201. The caller holds f.mu.
+func (f *Fake) replaceUser(rt route, segments []string, fields object) (int, any) {
+	users := segments[:len(segments)-1]
+	path := collectionOf(users)
+	i := slices.IndexFunc(f.store[path], func(o object) bool {
+		return o["id"] == segments[len(segments)-1]
+	})
+	if i < 0 {
+		status, created := f.create(rt, users, fields)
+		if status == http.StatusOK {
+			status = http.StatusCreated
+		}
+		return status, created
+	}
+	replaced := maps.Clone(fields)
+	for _, kept := range []string{"id", "organization_id", "project_id", "environment_id"} {
+		replaced[kept] = f.store[path][i][kept]
+	}
+	f.store[path][i] = replaced
+	return http.StatusOK, replaced
 }
 
 // createEnvironment is the route of the create of an environment, as which a copy into a new

@@ -94,6 +94,7 @@ func TestOpenEnums(t *testing.T) {
 			models.ErrorCodeMismatchResourceInstancesTenants,
 			models.ErrorCodePaginationSizeOverreached, models.ErrorCodeMismatchRelationType,
 			models.ErrorCodeConcurrentOperationDisallowed, models.ErrorCodeUnauthorized),
+		checkOpenEnum(t, models.UserStatusActive, models.UserStatusPending),
 	}
 
 	p, err := surface.Read(".")

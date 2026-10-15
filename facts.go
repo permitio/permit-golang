@@ -3,6 +3,7 @@ package permit
 import (
 	"context"
 	"fmt"
+	"iter"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -203,6 +204,35 @@ func (f facts) direct(r request) (request, error) {
 		r.target = pdpTarget
 	}
 	return r, nil
+}
+
+// factsAll returns the iterator of the All method of a facts service whose calls f makes, over
+// the list that r requests, whose replies have shape, from the page of opts on. Each loop gets r
+// ready with facts.direct before its first page, and yields its error, such as ErrClosed after
+// Close or that of a wait that the call cannot make, once, with the zero T, and stops; else it
+// yields the items of the pages of all for the PDP container, which needs no scope, or of
+// allInScope for the API, which gets the scope before the first page. Nothing is sent until a
+// loop asks for an item.
+func factsAll[T any](ctx context.Context, f facts, r request, shape listShape,
+	opts ListOptions,
+) iter.Seq2[T, error] {
+	return func(yield func(T, error) bool) {
+		direct, err := f.direct(r)
+		if err != nil {
+			var zero T
+			yield(zero, err)
+			return
+		}
+		pages := allInScope[T]
+		if direct.target == pdpTarget {
+			pages = all[T]
+		}
+		for item, pageErr := range pages(ctx, f.client, direct, shape, opts) {
+			if !yield(item, pageErr) {
+				return
+			}
+		}
+	}
 }
 
 // checkWait returns the error of w, the wait for sync of a call of the operation id, when the

@@ -341,6 +341,27 @@
     ],
     "UserAttributesService.Update": [
       "update_user_attribute"
+    ],
+    "UsersService.All": [
+      "list_users"
+    ],
+    "UsersService.Create": [
+      "create_user"
+    ],
+    "UsersService.Delete": [
+      "delete_user"
+    ],
+    "UsersService.Get": [
+      "get_user"
+    ],
+    "UsersService.List": [
+      "list_users"
+    ],
+    "UsersService.Sync": [
+      "replace_user"
+    ],
+    "UsersService.Update": [
+      "update_user"
     ]
   }
 }

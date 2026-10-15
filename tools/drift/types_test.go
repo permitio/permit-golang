@@ -101,8 +101,15 @@ var modelTypes = []any{
 	models.TenantRead{},
 	models.TenantUpdate{},
 	permit.User{},
+	models.UserCreate{},
+	models.UserInTenant{},
 	permit.UserPermissionsRequest{},
+	models.UserRead{},
+	models.UserResourceInstanceRole{},
+	models.UserRoleCreate{},
+	models.UserStatus(""),
 	permit.UserTenantsRequest{},
+	models.UserUpdate{},
 }
 
 // rootPath is the import path of the root package, whose decision types modelTypes holds.

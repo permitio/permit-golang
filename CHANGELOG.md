@@ -604,6 +604,42 @@ change from v1 and what to use instead.
   are skipped, so each call is sent again after a 500, 502, 503 or 504 reply or a failed
   connection, as after a 429.
 
+### Users
+
+- The `Users` field of the client, a `*permit.UsersService`, lists, reads, creates, syncs,
+  changes and deletes the users of an environment: `List` returns a page as a
+  `*permit.Page[models.UserRead]`, with the counts of the reply, and `All` reads every page, 100
+  users at a time; `permit.UsersListOptions` filters the list with `Search` and `Role`; `Get`
+  reads one user by its key or its ID, in place of v1's `Get`, `GetById` and `GetByKey`; `Create`
+  takes a `models.UserCreate` and `Update` a `models.UserUpdate`; `Delete` deletes a user.
+- `Sync`, in place of v1's `SyncUser`, sends the whole user in one request,
+  `PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}`, which creates the user or replaces it:
+  **each of `Email`, `FirstName`, `LastName` and `Attributes` that the `models.UserCreate` leaves
+  out is cleared**, where v1's `SyncUser` read the user and then sent a `PATCH` of the fields that
+  were set, or a `POST`. The request also sends the `RoleAssignments` of the `models.UserCreate`;
+  what a sync with or without them does to the roles that the user has already is not confirmed
+  yet. It returns a `*permit.UserSyncResult`, with the user as the API stores it and `Created`,
+  true for a reply of 201 and false for a 200. The client's own `SyncUser` is gone: call
+  `client.Users.Sync`.
+- `models.UserCreate.RoleAssignments` assigns roles with a create or a sync, each a
+  `models.UserRoleCreate` in a tenant or on a resource instance. `models.UserRead` adds
+  `CreatedAt`, `UpdatedAt` and `AssociatedTenants`, the tenants in which the user has a role, and
+  leaves out `Roles`, which the API's spec marks deprecated. Each field of `models.UserUpdate` is
+  a `models.Optional`: unset leaves the field out, `models.Null` sends null and `models.Some`
+  sends the value; attributes replace the user's attributes as a whole.
+- The calls are calls of the facts API: they act on the environment of the client's scope, or,
+  with `WithFactsViaPDP`, go to the PDP container under `/facts/users`. Each is sent with an
+  environment-level API key, or higher. `UsersService.WaitForSync(timeout, opts...)` returns a
+  copy whose `Create`, `Sync` and `Update` the PDP container holds until the change reaches its
+  policy; any other call through the copy, and a call from a client without `WithFactsViaPDP`,
+  is an error that matches `ErrInvalidConfig`, and no request is sent.
+- A key of a user is sent as one segment of the path, escaped; an empty key, `.` or `..` is an
+  error that matches `ErrInvalidConfig`, and no request for the user is sent. `Delete` returns
+  nil when the API answers 404, as the user is gone already. A reply in 200-299 that is not a
+  user, an empty body too, is an error that names the model. `Create` is sent again after a 429
+  only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection
+  too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

@@ -38,6 +38,7 @@ var routes = []Route{
 	{"GET", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "get_user"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/users/bulk", "bulk_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "post_user"},
+	{"PUT", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", opReplaceUser},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users", "delete_users"},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/resources", "create_resource"},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", "create_resource_role"},
@@ -671,6 +672,51 @@ func TestResourceInstances(t *testing.T) {
 	if got := h.expect(200, "GET", instances+"/folder:a", "", projectKey); got["resource"] !=
 		"folder" {
 		t.Errorf("the instance folder:a is %v after the deletion of document:a", got)
+	}
+}
+
+// TestReplaceUser checks the PUT of a user: of a user that the environment does not have, it
+// creates the user, with 201 and an ID; of one that it has, by its key or its ID, it replaces the
+// user with the body, with 200, and the user keeps its ID and the IDs of its organization, its
+// project and its environment, and loses each field that the body leaves out; and a PUT without a
+// body is a request that the fake does not implement.
+func TestReplaceUser(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	users := "/v2/facts/proj/dev/users/"
+	created := h.expect(201, "PUT", users+"alice",
+		`{"key": "alice", "first_name": "Alice", "attributes": {"tier": "gold"}}`, projectKey)
+	id, _ := created["id"].(string)
+	if id == "" || created["first_name"] != "Alice" || created["organization_id"] == nil ||
+		created["project_id"] != h.fake.ProjectID() || created["environment_id"] == nil {
+		t.Fatalf("the PUT of a new user answered %v, want the user with an ID and a scope", created)
+	}
+	for _, ident := range []string{"alice", id} {
+		replaced := h.expect(200, "PUT", users+ident, `{"key": "alice", "email": "a@example.com"}`,
+			projectKey)
+		got := h.expect(200, "GET", users+"alice", "", projectKey)
+		for _, user := range []map[string]any{replaced, got} {
+			_, hasName := user["first_name"]
+			_, hasAttributes := user["attributes"]
+			if user["id"] != id || user["email"] != "a@example.com" || hasName || hasAttributes {
+				t.Errorf("the PUT of %s left the user %v, want %s with the email alone", ident,
+					user, id)
+			}
+			for _, kept := range []string{"organization_id", "project_id", "environment_id"} {
+				if user[kept] != created[kept] {
+					t.Errorf("the PUT of %s left the %s %v, want %v", ident, kept, user[kept],
+						created[kept])
+				}
+			}
+		}
+	}
+	if n := len(h.list("/v2/facts/proj/dev/users", projectKey)); n != 1 {
+		t.Errorf("the environment has %d users after the PUTs of one, want 1", n)
+	}
+	h.expect(501, "PUT", users+"alice", "", projectKey)
+	if errs := h.tb.take(); len(errs) != 1 ||
+		!strings.Contains(errs[0], "does not implement this request") {
+		t.Errorf("the PUT without a body reported %q, want that it is not implemented", errs)
 	}
 }
 

@@ -101,6 +101,13 @@ func do[T any](ctx context.Context, c *Client, r request) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
+	return decodeObject[T](op, reply)
+}
+
+// decodeObject decodes the body of reply, a reply in 200-299 to a call of op, a JSON object,
+// into a new T, and returns it. A body that is empty, null or not an object, or does not decode
+// into a T, is a *Error that names the model, never a nil T without an error.
+func decodeObject[T any](op rest.Op, reply transport.Reply) (*T, error) {
 	value := new(T)
 	if firstByte(reply.Body) != '{' || wire.Decode(reply.Body, value) != nil {
 		return nil, opCall(op).decodeError(reply.Status, modelName(op, "JSON object"))

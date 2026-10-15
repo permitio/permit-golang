@@ -1208,6 +1208,21 @@ github.com/permitio/permit-golang/v2 TestConditionSetRuleRetries
 github.com/permitio/permit-golang/v2 TestMalformedConditionSetRuleReplies
 github.com/permitio/permit-golang/v2 TestConditionSetRulesAfterClose
 github.com/permitio/permit-golang/v2 ExampleConditionSetRulesService
+github.com/permitio/permit-golang/v2 TestSyncSendsOnePUT
+github.com/permitio/permit-golang/v2 TestUsersAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestUsersAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestUsersScope
+github.com/permitio/permit-golang/v2 TestUserKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteUserThatIsGone
+github.com/permitio/permit-golang/v2 TestUserBodies
+github.com/permitio/permit-golang/v2 TestUserRetries
+github.com/permitio/permit-golang/v2 TestMalformedUserReplies
+github.com/permitio/permit-golang/v2 FuzzUserRead
+github.com/permitio/permit-golang/v2 TestUsersAfterClose
+github.com/permitio/permit-golang/v2 TestUsersWaitForSync
+github.com/permitio/permit-golang/v2 TestUsersWaitForSyncMisuse
+github.com/permitio/permit-golang/v2 ExampleUsersService
+github.com/permitio/permit-golang/v2 ExampleUsersService_Sync
 
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
@@ -1267,6 +1282,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestConditionSetRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceRoleRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestSetRules
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestImplicitGrants
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestReplaceUser
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1295,6 +1311,8 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/implicit_grant_lifecycl
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle/update
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/concurrent_sync_of_a_new_user
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

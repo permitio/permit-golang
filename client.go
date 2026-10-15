@@ -96,6 +96,9 @@ type Client struct {
 	// resources of a resource set.
 	ConditionSetRules *ConditionSetRulesService `json:"-"`
 
+	// Users lists, reads, creates, syncs, changes and deletes the users of an environment.
+	Users *UsersService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -196,6 +199,7 @@ func New(opts ...Option) (*Client, error) {
 	c.UserAttributes = &UserAttributesService{client: c}
 	c.ConditionSets = &ConditionSetsService{client: c}
 	c.ConditionSetRules = &ConditionSetRulesService{client: c}
+	c.Users = &UsersService{facts: facts{client: c}}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

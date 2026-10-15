@@ -22,11 +22,11 @@
 // of a resource, its ancestors and its descendants, and the bulk replace of roles, as
 // rolePermissions, roleRelatives and bulkRoles say, the implicit grants of a role of a resource
 // and their conditions, as implicitGrant says, the ancestors and the descendants of a condition
-// set, as conditionSetRelatives says, and the list of the condition set rules, with its filters,
-// and their creates, which answer a JSON array, as setRules and assignSetRule say. A delete of a
-// condition set rule that the fake does not hold gets 404, as a DELETE of a collection with a body
-// does; the API's documentation says that it skips such a delete, and what the API answers is not
-// confirmed yet.
+// set, as conditionSetRelatives says, the list of the condition set rules, with its filters, and
+// their creates, which answer a JSON array, as setRules and assignSetRule say, and the PUT of a
+// user, which replaces it or creates it, as replaceUser says. A delete of a condition set rule
+// that the fake does not hold gets 404, as a DELETE of a collection with a body does; the API's
+// documentation says that it skips such a delete, and what the API answers is not confirmed yet.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An

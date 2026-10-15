@@ -32,6 +32,9 @@ const (
 
 	opConditionSetAncestors   = "get_condition_set_ancestors"
 	opConditionSetDescendants = "get_condition_set_descendants"
+
+	opListSetPermissions   = "list_set_permissions"
+	opAssignSetPermissions = "assign_set_permissions" //nolint:gosec // G101: an operation ID
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -73,6 +76,13 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 		return f.unsupported(rt)
 	case opConditionSetAncestors, opConditionSetDescendants:
 		return f.conditionSetRelatives(rt.Op, segments, query)
+	case opListSetPermissions:
+		return http.StatusOK, listed(setRules(f.store[collectionOf(segments)], query), query)
+	case opAssignSetPermissions:
+		if fields != nil {
+			return f.assignSetRule(rt, segments, fields)
+		}
+		return f.unsupported(rt)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
@@ -445,6 +455,42 @@ func (f *Fake) conditionSetRelatives(op string, segments []string, query url.Val
 		}
 	}
 	return http.StatusOK, listed(found, query)
+}
+
+// setRuleFields are the fields of a condition set rule that say what it grants: each is a filter
+// of the list of the rules, and a create of a rule whose three fields another rule has grants
+// nothing new.
+var setRuleFields = []string{"user_set", "permission", "resource_set"}
+
+// setRules returns the condition set rules of rules, in order, whose fields user_set, permission
+// and resource_set each equal the query parameter of the same name, when query holds it.
+func setRules(rules []object, query url.Values) []object {
+	return slices.DeleteFunc(slices.Clone(rules), func(rule object) bool {
+		for _, name := range setRuleFields {
+			if query.Has(name) && rule[name] != query.Get(name) {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+// assignSetRule answers POST /v2/facts/{proj_id}/{env_id}/set_rules, whose path has segments,
+// with IDs in place of keys: it creates the rule of fields, as a POST to a collection creates an
+// object, and answers with a JSON array of the rule, as the Permit API answers. The API skips a
+// rule that grants what a rule that it holds grants already, with a reply that is not confirmed,
+// so the fake does not implement such a create. The caller holds f.mu.
+func (f *Fake) assignSetRule(rt route, segments []string, fields object) (int, any) {
+	granted := url.Values{}
+	for _, name := range setRuleFields {
+		value, _ := fields[name].(string)
+		granted.Set(name, value)
+	}
+	if len(setRules(f.store[collectionOf(segments)], granted)) > 0 {
+		return f.unsupported(rt)
+	}
+	status, rule := f.create(rt, segments, fields)
+	return status, []any{rule}
 }
 
 // createRole is the route of the create of a role, as which a bulk replace creates a role.

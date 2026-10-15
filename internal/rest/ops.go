@@ -546,6 +546,31 @@ var defaultOps = []Op{
 		ResponseModel: "ConditionSetRead",
 	},
 
+	// The condition set rules of an environment, each at the environment level, as v1 sends them
+	// too. These key levels are not measured yet: the phase api.condition_set_rules of the local
+	// harness confirms them. Their routes start with /v2/facts/, but the PDP container does not
+	// serve them, so they are not Facts, and none waits for sync. The list is a JSON array of at
+	// most 100 rules, and the reply to a create is a JSON array of rules. The API's documentation
+	// says that a create skips a permission that is granted already, and a delete one that is
+	// not, so each does the same when sent twice. A delete names the rule in its body, not in its
+	// path, so it is not DeleteSelf: a 404 can mean a mistyped key.
+	{
+		ID: "list_set_permissions", Method: http.MethodGet,
+		Route: "/v2/facts/{proj_id}/{env_id}/set_rules", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ConditionSetRuleRead",
+	},
+	{
+		ID: "assign_set_permissions", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/set_rules", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "ConditionSetRuleCreate",
+		ResponseModel: "[]ConditionSetRuleRead",
+	},
+	{
+		ID: "unassign_set_permissions", Method: http.MethodDelete,
+		Route: "/v2/facts/{proj_id}/{env_id}/set_rules", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "ConditionSetRuleRemove",
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

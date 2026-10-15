@@ -169,3 +169,6 @@ M-condition-sets-7
 M-condition-sets-8
 M-resource-roles-10
 M-resource-roles-11
+M-condition-set-rules-1
+M-condition-set-rules-2
+M-condition-set-rules-3

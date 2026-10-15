@@ -137,3 +137,90 @@ type ConditionSetUpdate struct {
 	// parent.
 	ParentID string `json:"parent_id,omitzero"`
 }
+
+// ConditionSetRuleRead is a condition set rule of an environment, as the API returns it: a
+// permission that the users of a user set have on the resources of a resource set.
+type ConditionSetRuleRead struct {
+	// ID is the rule's ID, a UUID.
+	ID string `json:"id"`
+
+	// Key is the key by which the API identifies the rule.
+	Key string `json:"key"`
+
+	// UserSet names the user set whose users the rule grants the permission to.
+	UserSet string `json:"user_set"`
+
+	// Permission is the permission that the rule grants, an action of the resource of the
+	// resource set.
+	Permission string `json:"permission"`
+
+	// ResourceSet names the resource set on whose resources the rule grants the permission.
+	ResourceSet string `json:"resource_set"`
+
+	// OrganizationID is the ID of the rule's organization.
+	OrganizationID string `json:"organization_id"`
+
+	// ProjectID is the ID of the rule's project.
+	ProjectID string `json:"project_id"`
+
+	// EnvironmentID is the ID of the rule's environment.
+	EnvironmentID string `json:"environment_id"`
+
+	// CreatedAt is when the rule was created.
+	CreatedAt Time `json:"created_at"`
+
+	// UpdatedAt is when the rule was last changed.
+	UpdatedAt Time `json:"updated_at"`
+}
+
+// ConditionSetRuleCreate is a condition set rule to create: it grants the users of a user set a
+// permission on the resources of a resource set. UserSet, Permission and ResourceSet are
+// required, and the request always holds them; IsRole and IsResource are left out when they are
+// false, and the API reads them as false.
+type ConditionSetRuleCreate struct {
+	// UserSet is the key of the user set whose users get the permission, such as adults; with
+	// IsRole, the key of a role.
+	UserSet string `json:"user_set"`
+
+	// Permission is the permission to grant, as the key of the resource and the key of the
+	// action joined by a colon, such as document:read, or as the ID of the action.
+	Permission string `json:"permission"`
+
+	// ResourceSet is the key of the resource set on whose resources the users get the
+	// permission, such as public_docs; with IsResource, the key of a resource.
+	ResourceSet string `json:"resource_set"`
+
+	// IsRole says that UserSet is the key of a role, and the rule grants the permission to the
+	// user set that the API created for the role. False leaves it out.
+	IsRole bool `json:"is_role,omitzero"`
+
+	// IsResource says that ResourceSet is the key of a resource, and the rule grants the
+	// permission on the resource set that the API created for the resource. False leaves it out.
+	IsResource bool `json:"is_resource,omitzero"`
+}
+
+// ConditionSetRuleRemove is a condition set rule to delete: the permission of the users of a user
+// set on the resources of a resource set, named as a [ConditionSetRuleCreate] names it.
+// UserSet, Permission and ResourceSet are required, and the request always holds them; IsRole
+// and IsResource are left out when they are false, and the API reads them as false.
+type ConditionSetRuleRemove struct {
+	// UserSet is the key of the user set whose users lose the permission, such as adults; with
+	// IsRole, the key of a role.
+	UserSet string `json:"user_set"`
+
+	// Permission is the permission to remove, as the key of the resource and the key of the
+	// action joined by a colon, such as document:read, or as the ID of the action.
+	Permission string `json:"permission"`
+
+	// ResourceSet is the key of the resource set on whose resources the users lose the
+	// permission, such as public_docs; with IsResource, the key of a resource.
+	ResourceSet string `json:"resource_set"`
+
+	// IsRole says that UserSet is the key of a role, and the rule to delete is that of the user
+	// set that the API created for the role. False leaves it out.
+	IsRole bool `json:"is_role,omitzero"`
+
+	// IsResource says that ResourceSet is the key of a resource, and the rule to delete is that
+	// of the resource set that the API created for the resource. False leaves it out.
+	IsResource bool `json:"is_resource,omitzero"`
+}

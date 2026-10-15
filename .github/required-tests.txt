@@ -1185,6 +1185,19 @@ github.com/permitio/permit-golang/v2 TestConditionSetRetries
 github.com/permitio/permit-golang/v2 TestMalformedConditionSetReplies
 github.com/permitio/permit-golang/v2 TestConditionSetsAfterClose
 github.com/permitio/permit-golang/v2 ExampleConditionSetsService
+github.com/permitio/permit-golang/v2 TestConditionSetRulesAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestConditionSetRulesAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestConditionSetRuleListQueries
+github.com/permitio/permit-golang/v2 TestInvalidConditionSetRuleListOptions
+github.com/permitio/permit-golang/v2 TestConditionSetRulesUseTheScope
+github.com/permitio/permit-golang/v2 TestConditionSetRulesStayOnTheAPI
+github.com/permitio/permit-golang/v2 TestConditionSetRuleNotFound
+github.com/permitio/permit-golang/v2 TestConditionSetRuleBodies
+github.com/permitio/permit-golang/v2 TestConditionSetRuleCreateReply
+github.com/permitio/permit-golang/v2 TestConditionSetRuleRetries
+github.com/permitio/permit-golang/v2 TestMalformedConditionSetRuleReplies
+github.com/permitio/permit-golang/v2 TestConditionSetRulesAfterClose
+github.com/permitio/permit-golang/v2 ExampleConditionSetRulesService
 
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
@@ -1242,6 +1255,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRoles
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceRolePermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestConditionSetRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceRoleRelatives
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestSetRules
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1316,6 +1330,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestRequiredScenarios
 github.com/permitio/permit-golang/v2/tools/e2e TestAwaitValue
 github.com/permitio/permit-golang/v2/tools/e2e TestAcceptingNull
 github.com/permitio/permit-golang/v2/tools/e2e TestSkipsUserAttributeUpdate
+github.com/permitio/permit-golang/v2/tools/e2e TestListsAnyRule
 
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckE2ELegs
 github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregateAdvisoryE2ELegs

@@ -212,6 +212,40 @@ models:
       description: {required: false, null_policy: n/a}
       conditions: {required: false, null_policy: n/a}
       parent_id: {required: false, null_policy: n/a}
+  # A condition set rule of an environment, as a create and a delete send it and as the API
+  # returns it, in a list and in the JSON array of the reply to a create. A create and a delete
+  # reject null for a required field and for a field with a default, as every create does; these
+  # null policies are not measured yet: the phase api.condition_set_rules of the local harness
+  # confirms them.
+  ConditionSetRuleCreate:
+    schema: ConditionSetRuleCreate
+    fields:
+      user_set: {required: true, null_policy: rejects}
+      permission: {required: true, null_policy: rejects}
+      resource_set: {required: true, null_policy: rejects}
+      is_role: {required: false, null_policy: rejects}
+      is_resource: {required: false, null_policy: rejects}
+  ConditionSetRuleRead:
+    schema: ConditionSetRuleRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      user_set: {required: true, null_policy: n/a}
+      permission: {required: true, null_policy: n/a}
+      resource_set: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ConditionSetRuleRemove:
+    schema: ConditionSetRuleRemove
+    fields:
+      user_set: {required: true, null_policy: rejects}
+      permission: {required: true, null_policy: rejects}
+      resource_set: {required: true, null_policy: rejects}
+      is_role: {required: false, null_policy: rejects}
+      is_resource: {required: false, null_policy: rejects}
   ConditionSetType:
     schema: ConditionSetType
   ConditionSetUpdate:

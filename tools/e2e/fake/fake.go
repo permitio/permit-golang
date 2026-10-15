@@ -20,8 +20,12 @@
 // key of an environment, which it makes up, the statistics and the copies of an environment, as
 // stats and copyEnvironment say, the grants and removals of the permissions of a role or of a role
 // of a resource, its ancestors and its descendants, and the bulk replace of roles, as
-// rolePermissions, roleRelatives and bulkRoles say, and the ancestors and the descendants of a
-// condition set, as conditionSetRelatives says.
+// rolePermissions, roleRelatives and bulkRoles say, the ancestors and the descendants of a
+// condition set, as conditionSetRelatives says, and the list of the condition set rules, with its
+// filters, and their creates, which answer a JSON array, as setRules and assignSetRule say. A
+// delete of a rule that the fake does not hold gets 404, as a DELETE of a collection with a body
+// does; the API's documentation says that it skips such a delete, and what the API answers is not
+// confirmed yet.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An

@@ -87,6 +87,11 @@ type Client struct {
 	// ancestors and descendants.
 	ConditionSets *ConditionSetsService `json:"-"`
 
+	// ConditionSetRules lists, creates and deletes the condition set rules of the environment of
+	// the client's scope, each of which grants the users of a user set a permission on the
+	// resources of a resource set.
+	ConditionSetRules *ConditionSetRulesService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -185,6 +190,7 @@ func New(opts ...Option) (*Client, error) {
 	c.ResourceRoles = &ResourceRolesService{client: c}
 	c.UserAttributes = &UserAttributesService{client: c}
 	c.ConditionSets = &ConditionSetsService{client: c}
+	c.ConditionSetRules = &ConditionSetRulesService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

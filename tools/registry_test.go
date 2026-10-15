@@ -183,9 +183,12 @@ func modelTypes(items []surface.Item) map[string]bool {
 // coverage.yaml that is planned or covered, whose method and route are not those that a spec
 // lists for its ID, or that the row's route of an SDK-only row is, and whose RequestModel or
 // ResponseModel names no exported type of package models or of the root package, after the []
-// of a RequestModel that the SDK sends as a JSON array, such as []CheckRequest. rows are the
-// rows of coverage.yaml by their op, routes the routes of the specs by operationId, and models the
-// names of the exported types of the two packages.
+// of a body that is a JSON array, such as the []CheckRequest that the SDK sends or the
+// []ConditionSetRuleRead that the API answers the create of a condition set rule with, and for
+// each list, an operation with a MaxPerPage, whose ResponseModel starts with [] although it names
+// the type of the items of the list. rows are the rows of coverage.yaml by their op, routes the
+// routes of the specs by operationId, and models the names of the exported types of the two
+// packages.
 func registryProblems(ops []rest.Op, rows map[string]coverageRow, routes map[string][]string,
 	models map[string]bool,
 ) []string {
@@ -220,14 +223,19 @@ func registryProblems(ops []rest.Op, rows map[string]coverageRow, routes map[str
 				strings.Join(quoted, " or "))
 		}
 		request, _ := strings.CutPrefix(op.RequestModel, "[]")
+		response, _ := strings.CutPrefix(op.ResponseModel, "[]")
 		for _, model := range []struct{ field, value, name string }{
 			{"RequestModel", op.RequestModel, request},
-			{"ResponseModel", op.ResponseModel, op.ResponseModel},
+			{"ResponseModel", op.ResponseModel, response},
 		} {
 			if model.value != "" && !models[model.name] {
 				add(op, "its %s %q names no exported type of package models or permit",
 					model.field, model.value)
 			}
+		}
+		if op.MaxPerPage > 0 && strings.HasPrefix(op.ResponseModel, "[]") {
+			add(op, "its ResponseModel %q starts with [], but a list names the type of its "+
+				"items, without []", op.ResponseModel)
 		}
 	}
 	return problems
@@ -310,6 +318,14 @@ func TestRepositoryRegistryProblems(t *testing.T) {
 			ID: "get_user", Method: http.MethodGet, Route: "/v2/users/{user_id}",
 			RequestModel: "[]UserCreate",
 		},
+		{
+			ID: "login_as", Method: http.MethodPost, Route: "/v2/login_as",
+			RequestModel: "UserCreate", ResponseModel: "[]UserRead",
+		},
+		{
+			ID: "get_user", Method: http.MethodGet, Route: "/v2/users/{user_id}",
+			MaxPerPage: 100, ResponseModel: "UserRead",
+		},
 	}
 	if problems := registryProblems(valid, rows, routes, models); problems != nil {
 		t.Errorf("registryProblems of valid operations = %q, want none", problems)
@@ -375,17 +391,35 @@ func TestRepositoryRegistryProblems(t *testing.T) {
 				"no exported type of package models or permit"},
 		},
 		{
-			name: "a list of no type, and a list as a ResponseModel",
+			name: "lists of no type",
 			op: rest.Op{
 				ID: "get_user", Method: http.MethodGet, Route: "/v2/users/{user_id}",
-				RequestModel: "[]", ResponseModel: "[]UserRead",
+				RequestModel: "[]", ResponseModel: "[]",
 			},
 			want: []string{
 				`the operation get_user: its RequestModel "[]" names no exported type of ` +
 					"package models or permit",
-				`the operation get_user: its ResponseModel "[]UserRead" names no exported type ` +
-					"of package models or permit",
+				`the operation get_user: its ResponseModel "[]" names no exported type of ` +
+					"package models or permit",
 			},
+		},
+		{
+			name: "a list of a ResponseModel that names no type",
+			op: rest.Op{
+				ID: "get_user", Method: http.MethodGet, Route: "/v2/users/{user_id}",
+				ResponseModel: "[]UserCreated",
+			},
+			want: []string{`the operation get_user: its ResponseModel "[]UserCreated" names no ` +
+				"exported type of package models or permit"},
+		},
+		{
+			name: "a list whose ResponseModel starts with []",
+			op: rest.Op{
+				ID: "get_user", Method: http.MethodGet, Route: "/v2/users/{user_id}",
+				MaxPerPage: 100, ResponseModel: "[]UserRead",
+			},
+			want: []string{`the operation get_user: its ResponseModel "[]UserRead" starts ` +
+				"with [], but a list names the type of its items, without []"},
 		},
 		{
 			name: "everything wrong",

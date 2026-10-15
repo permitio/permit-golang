@@ -122,8 +122,10 @@ type Op struct {
 	RequestModel string
 
 	// ResponseModel is the name of the type of package models that the reply body holds, such
-	// as UserRead, or empty when the SDK reads no model from the reply, such as an operation of
-	// the PDP, whose reply the SDK reads itself.
+	// as UserRead, or the items of a list, an operation with a MaxPerPage; [] and the name, such
+	// as []ConditionSetRuleRead, when the reply of an operation that is not a list is a JSON
+	// array of the type; or empty when the SDK reads no model from the reply, such as an
+	// operation of the PDP, whose reply the SDK reads itself.
 	ResponseModel string
 }
 

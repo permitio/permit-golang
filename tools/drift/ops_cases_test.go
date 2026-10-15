@@ -216,6 +216,41 @@ func TestOperation(t *testing.T) {
 					"pdp-cloud",
 			},
 		},
+		{
+			"a reply of an array of its model, as a create of several items answers",
+			rest.Op{
+				ID: "is_allowed_bulk", RequestModel: "[]RemoteScope",
+				ResponseModel: "[]RemoteScope",
+			},
+			nil,
+		},
+		{
+			"a reply of an array of another model",
+			rest.Op{ID: "is_allowed_bulk", RequestModel: "[]RemoteScope", ResponseModel: "[]Scope"},
+			[]string{
+				"operation is_allowed_bulk response: its 200 reply: the model Scope maps to the " +
+					"schema Scope of control-plane, and the body holds an array of Scope of " +
+					"pdp-cloud; the ResponseModel []Scope is a JSON array of the model",
+			},
+		},
+		{
+			"a reply of an array, where the spec returns one model",
+			rest.Op{ID: "get_env", ResponseModel: "[]EnvReadWithEmailConfig"},
+			[]string{
+				"operation get_env response: its 200 reply: the model EnvReadWithEmailConfig " +
+					"maps to the schema EnvReadWithEmailConfig of control-plane, and the body " +
+					"holds EnvReadWithEmailConfig of control-plane; the ResponseModel " +
+					"[]EnvReadWithEmailConfig is a JSON array of the model",
+			},
+		},
+		{
+			"a reply of an array of a model without a row",
+			rest.Op{ID: "is_allowed_bulk", RequestModel: "[]RemoteScope", ResponseModel: "[]Lost"},
+			[]string{
+				"the operation is_allowed_bulk: its model Lost has no row under models in " +
+					"model-map.yaml",
+			},
+		},
 		{"an inline reply", rest.Op{
 			ID: "is_allowed", RequestModel: "RemoteScope",
 			ResponseModel: "RemoteScope",

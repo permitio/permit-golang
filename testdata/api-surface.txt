@@ -162,6 +162,29 @@ models: type ConditionSetRead struct, Resource *ResourceRead
 models: type ConditionSetRead struct, ResourceID string
 models: type ConditionSetRead struct, Type ConditionSetType
 models: type ConditionSetRead struct, UpdatedAt Time
+models: type ConditionSetRuleCreate struct
+models: type ConditionSetRuleCreate struct, IsResource bool
+models: type ConditionSetRuleCreate struct, IsRole bool
+models: type ConditionSetRuleCreate struct, Permission string
+models: type ConditionSetRuleCreate struct, ResourceSet string
+models: type ConditionSetRuleCreate struct, UserSet string
+models: type ConditionSetRuleRead struct
+models: type ConditionSetRuleRead struct, CreatedAt Time
+models: type ConditionSetRuleRead struct, EnvironmentID string
+models: type ConditionSetRuleRead struct, ID string
+models: type ConditionSetRuleRead struct, Key string
+models: type ConditionSetRuleRead struct, OrganizationID string
+models: type ConditionSetRuleRead struct, Permission string
+models: type ConditionSetRuleRead struct, ProjectID string
+models: type ConditionSetRuleRead struct, ResourceSet string
+models: type ConditionSetRuleRead struct, UpdatedAt Time
+models: type ConditionSetRuleRead struct, UserSet string
+models: type ConditionSetRuleRemove struct
+models: type ConditionSetRuleRemove struct, IsResource bool
+models: type ConditionSetRuleRemove struct, IsRole bool
+models: type ConditionSetRuleRemove struct, Permission string
+models: type ConditionSetRuleRemove struct, ResourceSet string
+models: type ConditionSetRuleRemove struct, UserSet string
 models: type ConditionSetType string
 models: type ConditionSetUpdate struct
 models: type ConditionSetUpdate struct, Conditions Attributes
@@ -606,6 +629,10 @@ permit: method (*Client) Scope(ctx context.Context) (Scope, error)
 permit: method (*Client) String() string
 permit: method (*Client) UserPermissions(ctx context.Context, user User, opts ...PermissionsOption) (map[string]ObjectPermissions, error)
 permit: method (*Client) UserTenants(ctx context.Context, user User, opts ...CheckOption) ([]TenantDetails, error)
+permit: method (*ConditionSetRulesService) All(ctx context.Context, opts *ConditionSetRulesListOptions) iter.Seq2[models.ConditionSetRuleRead, error]
+permit: method (*ConditionSetRulesService) Create(ctx context.Context, rule models.ConditionSetRuleCreate) ([]models.ConditionSetRuleRead, error)
+permit: method (*ConditionSetRulesService) Delete(ctx context.Context, rule models.ConditionSetRuleRemove) error
+permit: method (*ConditionSetRulesService) List(ctx context.Context, opts *ConditionSetRulesListOptions) (*Page[models.ConditionSetRuleRead], error)
 permit: method (*ConditionSetsService) All(ctx context.Context, opts *ConditionSetsListOptions) iter.Seq2[models.ConditionSetRead, error]
 permit: method (*ConditionSetsService) Ancestors(ctx context.Context, conditionSetKey string, opts *ListOptions) (*Page[models.ConditionSetRead], error)
 permit: method (*ConditionSetsService) AncestorsAll(ctx context.Context, conditionSetKey string, opts *ListOptions) iter.Seq2[models.ConditionSetRead, error]
@@ -736,6 +763,7 @@ permit: type CheckURLRequest struct, URL string
 permit: type CheckURLRequest struct, User User
 permit: type Client struct
 permit: type Client struct, APIKeys *APIKeysService
+permit: type Client struct, ConditionSetRules *ConditionSetRulesService
 permit: type Client struct, ConditionSets *ConditionSetsService
 permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Projects *ProjectsService
@@ -748,6 +776,12 @@ permit: type Client struct, Resources *ResourcesService
 permit: type Client struct, Roles *RolesService
 permit: type Client struct, Tenants *TenantsService
 permit: type Client struct, UserAttributes *UserAttributesService
+permit: type ConditionSetRulesListOptions struct
+permit: type ConditionSetRulesListOptions struct, Permission string
+permit: type ConditionSetRulesListOptions struct, ResourceSet string
+permit: type ConditionSetRulesListOptions struct, UserSet string
+permit: type ConditionSetRulesListOptions struct, embedded ListOptions
+permit: type ConditionSetRulesService struct
 permit: type ConditionSetsListOptions struct
 permit: type ConditionSetsListOptions struct, Search string
 permit: type ConditionSetsListOptions struct, Type models.ConditionSetType

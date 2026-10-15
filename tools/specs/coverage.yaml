@@ -94,9 +94,9 @@ control-plane:
   - {op: bulk_delete_users, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: planned}
   - {op: bulk_create_or_replace_roles, route: "PUT /v2/schema/{proj_id}/{env_id}/bulk/roles", stage: GA, status: covered}
   # Condition Set Rules
-  - {op: list_set_permissions, route: "GET /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: planned}
-  - {op: assign_set_permissions, route: "POST /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: planned}
-  - {op: unassign_set_permissions, route: "DELETE /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: planned}
+  - {op: list_set_permissions, route: "GET /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: covered}
+  - {op: assign_set_permissions, route: "POST /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: covered}
+  - {op: unassign_set_permissions, route: "DELETE /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: covered}
   # Condition Sets
   - {op: list_condition_sets, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets", stage: GA, status: covered}
   - {op: create_condition_set, route: "POST /v2/schema/{proj_id}/{env_id}/condition_sets", stage: GA, status: covered}

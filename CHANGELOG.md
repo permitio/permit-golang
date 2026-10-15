@@ -562,6 +562,27 @@ change from v1 and what to use instead.
   when the API answers 404, as the set is gone already. `Create` is sent again after a 429 only;
   the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection too.
 
+### Condition set rules
+
+- The `ConditionSetRules` field of the client, a `*permit.ConditionSetRulesService`, lists,
+  creates and deletes the condition set rules of the environment of the client's scope, each of
+  which grants the users of a user set a permission on the resources of a resource set, in place
+  of v1's `ConditionSets.ListSetPermissions`, `AssignSetPermissions` and `UnassignSetPermissions`:
+  `List` returns a page as a `*permit.Page[models.ConditionSetRuleRead]` and `All` reads every
+  page, 100 rules at a time; `Create` takes a `models.ConditionSetRuleCreate` and returns the
+  rules of the API's reply as a `[]models.ConditionSetRuleRead`; `Delete` takes a
+  `models.ConditionSetRuleRemove`.
+- The `UserSet`, `Permission` and `ResourceSet` of `permit.ConditionSetRulesListOptions` are sent
+  in the query only when they are set, where v1.3.0 sent `user_set=`, `permission=` and
+  `resource_set=` on every call, and `All` reads past the first page, where v1.3.0 read only the
+  API's first page of 30 rules.
+- The routes of the rules start with `/v2/facts/`, but only the API serves them: a client with
+  `WithFactsViaPDP` sends them to the API, and no call waits for sync. A 404 to `Delete`, whose
+  body names the rule, is an error that matches `ErrNotFound`, never nil. The API's documentation
+  says that a create of a permission that is granted already, and a delete of one that is not,
+  are skipped, so each call is sent again after a 500, 502, 503 or 504 reply or a failed
+  connection, as after a 429.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

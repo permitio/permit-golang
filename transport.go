@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/permitio/permit-golang/v2/internal/logging"
 	"github.com/permitio/permit-golang/v2/internal/rest"
@@ -292,12 +293,14 @@ func opCall(op rest.Op) call {
 }
 
 // modelName returns the name of the model that the replies of op hold, such as models.UserRead,
-// for the error of a reply that is not one, or unnamed when op names no model.
+// also for a reply that is a JSON array of it, for the error of a reply that is not one, or
+// unnamed when op names no model.
 func modelName(op rest.Op, unnamed string) string {
-	if op.ResponseModel == "" {
+	model, _ := strings.CutPrefix(op.ResponseModel, "[]")
+	if model == "" {
 		return unnamed
 	}
-	return "models." + op.ResponseModel
+	return "models." + model
 }
 
 // firstByte returns the first byte of body that is not JSON white space, or 0 when there is none.

@@ -15,14 +15,16 @@ import (
 // and path, as the cloud PDP lists the routes of the PDP container that it serves. The request
 // holds the model when one of its alternatives does, as the SDK chooses what it sends; a reply
 // holds it only when each of its alternatives does, as the API chooses. An alternative holds the
-// model when it is the model's schema; for a RequestModel of [] and a name, which the SDK sends
-// as a JSON array, when it is an array of the model instead; and in the reply of a list, an
-// operation with a MaxPerPage, when it is an array or a paginated envelope of it instead. Its
-// error is an *unsupportedError when a schema holds what the walker does not implement.
+// model when it is the model's schema; for a RequestModel or a ResponseModel of [] and a name, a
+// body that is a JSON array, such as the request of a bulk route, when it is an array of the
+// model instead; and in the reply of a list, an operation with a MaxPerPage, when it is an array
+// or a paginated envelope of it instead. Its error is an *unsupportedError when a schema holds
+// what the walker does not implement.
 func (c *comparer) operation(op rest.Op) ([]finding, error) {
 	var missing []finding
 	request, _ := requestModel(op)
-	for _, name := range []string{request, op.ResponseModel} {
+	response, _ := responseModel(op)
+	for _, name := range []string{request, response} {
 		if _, ok := c.rows[name]; name != "" && !ok {
 			missing = append(missing, finding{text: "the operation " + op.ID + ": its model " +
 				name + " has no row under models in model-map.yaml"})
@@ -89,7 +91,8 @@ func (c *comparer) request(op rest.Op, o specOperation) ([]finding, error) {
 			"the operation no JSON request body"}}, nil
 	}
 	model, array := requestModel(op)
-	return c.body(bodyCheck{model: model, key: key, array: array}, schema, at, o.spec)
+	check := bodyCheck{model: model, key: key, array: array, field: "RequestModel"}
+	return c.body(check, schema, at, o.spec)
 }
 
 // response returns the findings of the ResponseModel of op against each reply of o in 200-299
@@ -99,7 +102,11 @@ func (c *comparer) response(op rest.Op, o specOperation) ([]finding, error) {
 		return nil, nil
 	}
 	key := "operation " + label(op, o) + " response"
-	check := bodyCheck{model: op.ResponseModel, key: key, every: true, list: op.MaxPerPage > 0}
+	model, array := responseModel(op)
+	check := bodyCheck{
+		model: model, key: key, every: true, list: op.MaxPerPage > 0, array: array,
+		field: "ResponseModel",
+	}
 	responses, _ := o.node["responses"].(map[string]any)
 	var found []finding
 	replies := 0
@@ -143,6 +150,10 @@ type bodyCheck struct {
 	// array says that the body is a JSON array of the model, rather than the model itself, as
 	// the request of a bulk route is.
 	array bool
+
+	// field is the field of the operation that names the model, RequestModel or ResponseModel,
+	// which the finding of an array names.
+	field string
 }
 
 // body returns the findings of check against schema, a body that at locates in s: the model's row
@@ -187,7 +198,7 @@ func (c *comparer) body(check bodyCheck, schema any, at string, s *spec) ([]find
 	case check.list:
 		text += "; the reply of a list is an array or a paginated envelope of its model"
 	case check.array:
-		text += "; the RequestModel []" + check.model + " is a JSON array of the model"
+		text += "; the " + check.field + " []" + check.model + " is a JSON array of the model"
 	}
 	return []finding{{check.key, text}}, nil
 }

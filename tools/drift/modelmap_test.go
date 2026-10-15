@@ -410,6 +410,12 @@ func requestModel(op rest.Op) (string, bool) {
 	return strings.CutPrefix(op.RequestModel, "[]")
 }
 
+// responseModel returns the name of the type that the reply of op holds, and whether the reply
+// is a JSON array of it, as a ResponseModel that starts with [] says.
+func responseModel(op rest.Op) (string, bool) {
+	return strings.CutPrefix(op.ResponseModel, "[]")
+}
+
 // sentModels returns the types of the packages pkgPaths that ops send, by name, with the ID of an
 // operation that sends each: the type of each RequestModel that types holds, and each named
 // struct of the packages that a field of one holds, at any depth, through slices, maps, pointers

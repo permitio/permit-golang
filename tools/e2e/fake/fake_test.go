@@ -98,6 +98,9 @@ var routes = []Route{
 		"GET", "/v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/descendants",
 		"get_condition_set_descendants",
 	},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/set_rules", "list_set_permissions"},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/set_rules", "assign_set_permissions"},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/set_rules", "unassign_set_permissions"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/tenants", "create_tenant"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants", "list_tenants"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},
@@ -821,6 +824,88 @@ func (h *harness) expectRelatives(path, want string) {
 	}
 	if got := fmt.Sprint(keys); got != want {
 		h.t.Errorf("GET %s answered the sets %s, want %s", path, got, want)
+	}
+}
+
+// TestSetRules checks the condition set rules: a create answers a JSON array of the rule, with an
+// ID and the IDs of its organization, project and environment; the list keeps the rules that
+// match each of the filters user_set, permission and resource_set of its query, in the order of
+// their creates, one page of them with page or per_page; a create without a body, or of a rule
+// whose fields another rule has, is not implemented; and a delete of a rule by its fields removes
+// it, with 404 for a rule that the fake does not hold, as for a DELETE of a collection with a body.
+// The API's documentation says that it skips the delete of a rule that it does not hold; what the
+// API answers then is not confirmed yet.
+func TestSetRules(t *testing.T) {
+	h := newHarness(t)
+	env, _ := h.createEnv("dev")
+	rules := "/v2/facts/proj/dev/set_rules"
+	body := func(userSet, permission, resourceSet string) string {
+		return `{"user_set": "` + userSet + `", "permission": "` + permission +
+			`", "resource_set": "` + resourceSet + `"}`
+	}
+	for _, tc := range [][3]string{
+		{"adults", "doc:read", "public"},
+		{"adults", "doc:write", "public"},
+		{"seniors", "doc:read", "public"},
+		{"adults", "doc:read", "private"},
+	} {
+		status, reply := h.do("POST", rules, body(tc[0], tc[1], tc[2]), projectKey)
+		created, _ := reply.([]any)
+		var rule map[string]any
+		if len(created) == 1 {
+			rule, _ = created[0].(map[string]any)
+		}
+		if status != 200 || rule == nil || rule["user_set"] != tc[0] ||
+			rule["permission"] != tc[1] || rule["resource_set"] != tc[2] || rule["id"] == nil ||
+			rule["organization_id"] == nil || rule["project_id"] == nil ||
+			rule["environment_id"] != env["id"] {
+			t.Errorf("POST of the rule %v answered %d %v, want a JSON array of the rule with "+
+				"its IDs", tc, status, reply)
+		}
+	}
+	for _, tc := range []struct{ query, want string }{
+		{"", "[adults/doc:read/public adults/doc:write/public seniors/doc:read/public " +
+			"adults/doc:read/private]"},
+		{"?user_set=adults", "[adults/doc:read/public adults/doc:write/public " +
+			"adults/doc:read/private]"},
+		{
+			"?user_set=adults&permission=doc%3Aread",
+			"[adults/doc:read/public adults/doc:read/private]",
+		},
+		{"?resource_set=private", "[adults/doc:read/private]"},
+		{"?user_set=adults&page=2&per_page=2", "[adults/doc:read/private]"},
+		{"?user_set=none", "[]"},
+	} {
+		h.expectRules(rules+tc.query, tc.want)
+	}
+	for _, request := range []string{"", body("adults", "doc:read", "public")} {
+		h.do("POST", rules, request, projectKey)
+		if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0],
+			"assign_set_permissions): the fake does not implement this request") {
+			t.Errorf("POST of %q reported %q, want that the fake does not implement it", request,
+				errs)
+		}
+	}
+	h.expect(204, "DELETE", rules, body("adults", "doc:read", "public"), projectKey)
+	h.expectRules(
+		rules+"?permission=doc%3Aread",
+		"[seniors/doc:read/public adults/doc:read/private]",
+	)
+	h.expect(404, "DELETE", rules, body("adults", "doc:read", "public"), projectKey)
+}
+
+// expectRules fails the test unless GET of path, with the project's API key, answers 200 and a
+// JSON array of the condition set rules that print as want, each as its user set, its
+// permission and its resource set joined by slashes, in order.
+func (h *harness) expectRules(path, want string) {
+	h.t.Helper()
+	got := []string{}
+	for _, rule := range h.list(path, projectKey) {
+		o, _ := rule.(map[string]any)
+		got = append(got, fmt.Sprint(o["user_set"], "/", o["permission"], "/", o["resource_set"]))
+	}
+	if fmt.Sprint(got) != want {
+		h.t.Errorf("GET %s answered the rules %v, want %s", path, got, want)
 	}
 }
 

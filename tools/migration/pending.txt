@@ -12,9 +12,6 @@
 # item to have its entry. Blank lines and lines that start with # are ignored.
 
 # Block a: pkg/api
-api.ConditionSets.AssignSetPermissions condition-set-rules
-api.ConditionSets.ListSetPermissions condition-set-rules
-api.ConditionSets.UnassignSetPermissions condition-set-rules
 api.Elements elements
 api.Elements.* elements
 api.NewElementsApi elements

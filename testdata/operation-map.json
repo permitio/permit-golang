@@ -54,6 +54,18 @@
     "Client.UserTenants": [
       "Get_User_Tenants_user_tenants_post"
     ],
+    "ConditionSetRulesService.All": [
+      "list_set_permissions"
+    ],
+    "ConditionSetRulesService.Create": [
+      "assign_set_permissions"
+    ],
+    "ConditionSetRulesService.Delete": [
+      "unassign_set_permissions"
+    ],
+    "ConditionSetRulesService.List": [
+      "list_set_permissions"
+    ],
     "ConditionSetsService.All": [
       "list_condition_sets"
     ],

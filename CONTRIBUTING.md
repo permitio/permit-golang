@@ -1195,12 +1195,13 @@ They check five things:
   lists the routes of the PDP container that it serves. A request holds the model when one of its
   alternatives does, as the SDK chooses what it sends; a reply only when each of its alternatives
   does, as the API chooses. An alternative holds the model when it is the model's schema; for a
-  `RequestModel` of `[]` and a name, such as `[]CheckRequest`, which the SDK sends as a JSON
-  array, as the request of `POST /allowed/bulk` is, when it is an array of the model instead; and
-  in the reply of a list, an operation with a `MaxPerPage`, when it is an array or a paginated
-  envelope of it instead. So a Get whose model is smaller than the schema that the API returns,
-  such as an environment without its email configuration, fails, and so does an operation that
-  sends one model where the spec takes an array, or an array where it takes one.
+  `RequestModel` or a `ResponseModel` of `[]` and a name, a body that is a JSON array, such as the
+  `[]CheckRequest` of the request of `POST /allowed/bulk` or the `[]ConditionSetRuleRead` of the
+  reply to `POST /v2/facts/{proj_id}/{env_id}/set_rules`, when it is an array of the model
+  instead; and in the reply of a list, an operation with a `MaxPerPage`, when it is an array or a
+  paginated envelope of it instead. So a Get whose model is smaller than the schema that the API
+  returns, such as an environment without its email configuration, fails, and so does an operation
+  that sends one model where the spec takes an array, or an array where it takes one.
 - **Reply fixtures.** Each file in `testdata/replies` is the body of a reply that the wire tests
   serve, named `<operationId>.<status>[.<variant>].json`, such as `get_user.200.json` or
   `list_users.200.page.json`, with a variant of lower-case letters, digits and hyphens. The tests
@@ -1845,7 +1846,7 @@ its own:
 | `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name other than the credential names of `redact.Set.AddFields`, such as `webhook_secret`. |
 | `NoReplyCredentials` | Its replies in 200-299 hold no credential that the server issued, so their values do not join the client's `redact.Set`: the PDP's decisions and the PDP's lists of permissions, of authorized users, of tenants and of role assignments, whose replies hold the application's values and can echo the request. |
 | `MaxPerPage` | The largest `per_page` of a list operation, or 0. |
-| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty; an operation of the PDP names the type of the root package that its request holds, such as `CheckRequest`, and no `ResponseModel`, as the SDK reads the reply itself: `allow` of a decision, or the entries of the permissions of a user, of the authorized users or of the tenants; a list of the PDP whose items are a type of the root package, such as `LocalRoleAssignment`, names none either, as its reply holds no type of `models`. A request that is a JSON array of the type names it after `[]`, such as `[]CheckRequest`. |
+| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty; an operation of the PDP names the type of the root package that its request holds, such as `CheckRequest`, and no `ResponseModel`, as the SDK reads the reply itself: `allow` of a decision, or the entries of the permissions of a user, of the authorized users or of the tenants; a list of the PDP whose items are a type of the root package, such as `LocalRoleAssignment`, names none either, as its reply holds no type of `models`. A request that is a JSON array of the type names it after `[]`, such as `[]CheckRequest`, and so does the reply of an operation that is not a list, one without a `MaxPerPage`, when it is a JSON array of the type, such as the `[]ConditionSetRuleRead` of the create of a condition set rule. |
 
 A `*permit.Client` holds the registry, `rest.Default()`. The registry fails on an operation that
 is not valid, such as one without a key level, `DeleteSelf` on another method than DELETE,
@@ -1856,10 +1857,11 @@ operation is `WaitsForSync` exactly when the PDP container waits on its route, o
 under `/facts` that `pdp-container.json` lists; see [Model drift](#model-drift).
 `TestRepositoryRegistry`, in `tools/registry_test.go`, checks each operation of `rest.Default()` against `tools/specs`: its ID
 is the op of a planned or covered row of `coverage.yaml`, its method and route are those that a
-spec lists for the ID, or those of the row when the row is `sdk_only`, and its `RequestModel`,
-after the `[]` of a JSON array, and `ResponseModel` name exported types of `models` or of the root
-package. `TestOperationMap` fails when a wire case names an operation that the registry does not
-hold.
+spec lists for the ID, or those of the row when the row is `sdk_only`, and its `RequestModel` and
+`ResponseModel`, after the `[]` of a JSON array, name exported types of `models` or of the root
+package; the `ResponseModel` of a list, an operation with a `MaxPerPage`, names the type of its
+items without `[]`. `TestOperationMap` fails when a wire case names an operation that the registry
+does not hold.
 
 A test that needs an operation the SDK does not have, such as to check the transport, builds its
 client with `newTestClient` (`export_test.go`), which takes test-only operations, whose routes

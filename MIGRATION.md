@@ -2480,7 +2480,8 @@ as that of a project-level API key without `permit.WithScope`, is an error that 
 `permit.ErrInvalidConfig`, with no request for the call. Every method returns a `*permit.Error`,
 or an error that wraps one, as [M-errors-1](#M-errors-1) says. v1's `AssignSetPermissions`,
 `UnassignSetPermissions` and `ListSetPermissions` act on the rules that grant the users of a user
-set a permission on a resource set; they move with the condition set rules.
+set a permission on a resource set; they move to `permit.ConditionSetRulesService`, as
+[M-condition-set-rules-1](#M-condition-set-rules-1) says.
 
 The condition set models keep their names and change their fields: `models.ConditionSetRead` has
 `ID`, `OrganizationID`, `ProjectID`, `EnvironmentID`, `ResourceID` and `ParentID` in place of
@@ -2606,6 +2607,73 @@ a route that the API's documentation does not list, and no method of v1's `api` 
 it. v2 has no counterpart. The parent of a set is the `ParentID` of its
 `models.ConditionSetCreate` or `models.ConditionSetUpdate`, the ID of another set of the
 environment, which `ConditionSetsService.All` lists.
+
+<a id="M-condition-set-rules-1"></a>
+### M-condition-set-rules-1: AssignSetPermissions becomes ConditionSetRules.Create
+
+- v1: `api.ConditionSets.AssignSetPermissions`
+- v2: `permit.ConditionSetRulesService.Create`
+
+The methods of v1's `ConditionSets` that act on the condition set rules, the rules that grant the
+users of a user set a permission on the resources of a resource set, move to the
+`ConditionSetRules` field of the client, `client.ConditionSetRules`, in place of
+`client.Api.ConditionSets`. Each takes a `context.Context` first, acts on the environment of the
+client's scope, as [M-condition-sets-1](#M-condition-sets-1) says, and returns a `*permit.Error`,
+or an error that wraps one, as [M-errors-1](#M-errors-1) says. Their routes start with
+`/v2/facts/`, but only the API serves them: a client with `permit.WithFactsViaPDP` sends them to
+the API too, as v1 did with `WithProxyFactsViaPDP(true)`, and none waits for sync.
+
+`ConditionSetRulesService.Create(ctx, rule)` takes a `models.ConditionSetRuleCreate` as a struct
+literal, in place of the key of the user set, the permission and the key of the resource set as
+three strings, and returns the rules of the API's reply as a `[]models.ConditionSetRuleRead`, as
+v1 did. The request holds the user set, the permission and the resource set always; v1 also sent
+`is_role` and `is_resource` as false, and v2 leaves each out while it is false, and the API gives
+them the same default. Set `IsRole` to name a role in `UserSet`, or `IsResource` to name a
+resource in `ResourceSet`, whose set the API created. The API's documentation says that a
+permission that the user set has on the resource set already is skipped, so Create is sent again
+after a 500, 502, 503 or 504 reply or a failed connection, as well as after a 429, as
+[M-wire-5](#M-wire-5) says.
+
+The rule models keep their names and change their fields: `models.ConditionSetRuleRead` has
+`ID`, `OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`, `OrganizationId`,
+`ProjectId` and `EnvironmentId`, and `CreatedAt` and `UpdatedAt` are `models.Time`, which embeds
+`time.Time`. `models.ConditionSetRuleCreate` and `models.ConditionSetRuleRemove` have `IsRole` and
+`IsResource` as plain booleans in place of pointers; build them as struct literals, in place of
+their constructors and setters.
+
+<a id="M-condition-set-rules-2"></a>
+### M-condition-set-rules-2: UnassignSetPermissions becomes ConditionSetRules.Delete, and a 404 stays an error
+
+- v1: `api.ConditionSets.UnassignSetPermissions`
+- v2: `permit.ConditionSetRulesService.Delete`
+
+`ConditionSetRulesService.Delete(ctx, rule)` takes a `models.ConditionSetRuleRemove` as a struct
+literal, in place of the key of the user set, the permission and the key of the resource set as
+three strings, and sends it as the body of the `DELETE`, with `is_role` and `is_resource` left out
+while they are false, where v1 sent them as false. The body, not the path, names the rule, so a
+404 can mean a mistyped key: Delete returns it as a `*permit.Error` that matches
+`permit.ErrNotFound`, as v1 returned an error, unlike `ConditionSetsService.Delete`, which returns
+nil for a set that is gone ([M-condition-sets-6](#M-condition-sets-6)). The API's documentation
+says that a permission that the user set does not have on the resource set is skipped, so Delete
+is sent again after a 500, 502, 503 or 504 reply or a failed connection, as well as after a 429.
+
+<a id="M-condition-set-rules-3"></a>
+### M-condition-set-rules-3: ListSetPermissions becomes ConditionSetRules.List, which sends only the filters that are set, and All reads every page
+
+- v1: `api.ConditionSets.ListSetPermissions`
+- v2: `permit.ConditionSetRulesService.List`
+
+v1.3.0's `ListSetPermissions` sends `user_set=`, `permission=` and `resource_set=` in the query of
+every call, also for an argument that is empty, and reads only the first page of the reply, which
+holds at most the API's default of 30 rules: a list of more than 30 rules is cut short there.
+`ConditionSetRulesService.List(ctx, opts)` takes a `*permit.ConditionSetRulesListOptions`, nil for
+the first page of every rule, in place of the three strings, and sends its `UserSet`, `Permission`
+and `ResourceSet` in the query parameters `user_set`, `permission` and `resource_set` only when
+they are set. It returns a `*permit.Page[models.ConditionSetRuleRead]` in place of a
+`[]models.ConditionSetRuleRead`, as [M-lists-1](#M-lists-1) says, and
+`ConditionSetRulesService.All(ctx, opts)` returns an `iter.Seq2[models.ConditionSetRuleRead,
+error]` that reads every page, 100 rules at a time. A reply in 200-299 that is not a JSON array of
+rules is a `*permit.Error` that names the model, never an empty list.
 
 ## Wire behaviour
 
@@ -2784,6 +2852,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.Attributes` | `models.Attributes` |
 | `models.ConditionSetCreate` | `models.ConditionSetCreate` |
 | `models.ConditionSetRead` | `models.ConditionSetRead` |
+| `models.ConditionSetRuleCreate` | `models.ConditionSetRuleCreate` |
+| `models.ConditionSetRuleRead` | `models.ConditionSetRuleRead` |
+| `models.ConditionSetRuleRemove` | `models.ConditionSetRuleRemove` |
 | `models.ConditionSetType` | `models.ConditionSetType` |
 | `models.ConditionSetUpdate` | `models.ConditionSetUpdate` |
 | `models.DerivedRoleBlockEdit` | `models.DerivedRoleBlockEdit` |
@@ -2831,6 +2902,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 325 of the 384 types of v1's pkg/models.
+Not mapped yet: 322 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

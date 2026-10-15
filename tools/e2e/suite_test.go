@@ -149,6 +149,8 @@ var cloudScenarios = []scenario{
 			"ConditionSetsService.Update", "ConditionSetsService.Ancestors",
 			"ConditionSetsService.AncestorsAll", "ConditionSetsService.Descendants",
 			"ConditionSetsService.DescendantsAll", "ConditionSetsService.Delete",
+			"ConditionSetRulesService.Create", "ConditionSetRulesService.All",
+			"ConditionSetRulesService.List", "ConditionSetRulesService.Delete",
 		},
 		run: conditionSetLifecycle,
 	},

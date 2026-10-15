@@ -115,6 +115,7 @@ github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestModules
 github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestBadInputExits2WithoutScanning
 github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestRunCommand
 github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestRepositoryFiles
+github.com/permitio/permit-golang/v2/tools/cmd/vulnscan TestModuleTemplate
 
 github.com/permitio/permit-golang/v2/tools/cmd/secreport TestReport
 github.com/permitio/permit-golang/v2/tools/cmd/secreport TestReportWithoutSummary

@@ -50,8 +50,10 @@
 // no entry that is out of date. In both files, blank lines and lines that start with # are ignored.
 //
 // A scan is complete when govulncheck exits 0 or 3 and its output holds its config, of source mode
-// and symbol level, a module list that has every module that go list -deps lists for the tree's
-// package patterns, and vulnerability database entries.
+// and symbol level, a module list, and vulnerability database entries. The module list must have
+// every module that go list -deps lists for the tree's package patterns, other than a module
+// replaced by a local directory: govulncheck scans such a module's code but leaves it out of its
+// module list.
 //
 // Exit codes:
 //
@@ -523,11 +525,18 @@ func (r *report) checkModules(ctx context.Context, cmd command) {
 	}
 }
 
+// moduleTemplate is the go list template that prints the module of each package of the build,
+// once per package, except a module that a replace directive points at a local directory: such a
+// replacement has no version, and govulncheck leaves it out of its module list while it scans its
+// code with the rest of the build.
+const moduleTemplate = "{{with .Module}}{{if or (not .Replace) .Replace.Version}}{{.Path}}" +
+	"{{end}}{{end}}"
+
 // scan runs go list and govulncheck on one tree and adds the findings to the report.
 func (r *report) scan(ctx context.Context, cmd command, t tree) {
 	golist := "go list -deps " + strings.Join(t.patterns, " ")
 	listed, err := cmd(ctx, t.dir, "go", slices.Concat(
-		[]string{"list", "-deps", "-f", "{{with .Module}}{{.Path}}{{end}}"}, t.patterns)...)
+		[]string{"list", "-deps", "-f", moduleTemplate}, t.patterns)...)
 	if err == nil && listed.code != 0 {
 		err = fmt.Errorf("exit %d: %s", listed.code, strings.TrimSpace(string(listed.stderr)))
 	}

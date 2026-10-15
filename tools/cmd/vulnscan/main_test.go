@@ -226,7 +226,7 @@ func TestScanWithoutFindingsPasses(t *testing.T) {
 			"standard library (reported only); 3 of 3 trees scanned\nvulnscan: PASS\n")
 	// The tools tree adds the tool pattern, the programs its tool directives pin. The root and
 	// the ceiling have no tool directive, so they never get it.
-	golist := []string{"list", "-deps", "-f", "{{with .Module}}{{.Path}}{{end}}", "./..."}
+	golist := []string{"list", "-deps", "-f", moduleTemplate, "./..."}
 	scan := []string{"-mode", "source", "-scan", "symbol", "-format", "json", "./..."}
 	want := []call{
 		{dir: ".", name: "git", args: []string{"ls-files", "-z", "--", "go.mod", "*/go.mod"}},
@@ -854,6 +854,39 @@ func TestRunCommand(t *testing.T) {
 	_, err = runCommand(t.Context(), dir, filepath.Join(dir, "missing"))
 	if !errors.Is(err, os.ErrNotExist) && !errors.Is(err, exec.ErrNotFound) {
 		t.Errorf("a missing program returned %v, want a not-found error", err)
+	}
+}
+
+// TestModuleTemplate runs go list with moduleTemplate on a module that replaces one requirement
+// with a local directory: the template prints the main module, and leaves out the module of the
+// local directory, which govulncheck leaves out of its module list too.
+func TestModuleTemplate(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"main/go.mod": "module example.com/main\n\ngo 1.26\n\nrequire example.com/lib v0.0.0\n\n" +
+			"replace example.com/lib => ../lib\n",
+		"main/main.go": "package main\n\nimport \"example.com/lib\"\n\nfunc main() { lib.F() }\n",
+		"lib/go.mod":   "module example.com/lib\n\ngo 1.26\n",
+		"lib/lib.go":   "package lib\n\n// F does nothing.\nfunc F() {}\n",
+	}
+	for name, content := range files {
+		file := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cmd := exec.CommandContext(t.Context(), "go", "list", "-deps", "-f", moduleTemplate, ".")
+	cmd.Dir = filepath.Join(dir, "main")
+	cmd.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS=-mod=mod", "GOPROXY=off")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("go list: %v", err)
+	}
+	if got := strings.Fields(string(out)); !slices.Equal(got, []string{"example.com/main"}) {
+		t.Errorf("go list with moduleTemplate printed %q, want only example.com/main", got)
 	}
 }
 

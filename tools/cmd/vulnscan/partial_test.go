@@ -13,7 +13,7 @@ import (
 const staleEntry = "GO-2025-3503 golang.org/x/net fixed in a later commit 2026-12-31"
 
 func TestOnlyOneTree(t *testing.T) {
-	golist := []string{"list", "-deps", "-f", "{{with .Module}}{{.Path}}{{end}}", "./..."}
+	golist := []string{"list", "-deps", "-f", moduleTemplate, "./..."}
 	scan := []string{"-mode", "source", "-scan", "symbol", "-format", "json", "./..."}
 	tests := []struct {
 		tree, dir string

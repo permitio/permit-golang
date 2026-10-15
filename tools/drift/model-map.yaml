@@ -1102,8 +1102,11 @@ models:
   # field left out, as every create does, and reject null for a required field and for the
   # attributes, which have a default; so does a role that they assign. An update accepts null for
   # each of its fields, which clears the email and the names and stores null for the attributes.
-  # These null policies are not measured yet: the phase api.users of the local harness confirms
-  # them. The model of the reply leaves out roles, which the spec marks deprecated:
+  # The assignment of a role to a user sends UserRoleCreate and returns RoleAssignmentRead, and
+  # its unassignment sends UserRoleRemove, which reads null for the resource instance, which has
+  # no default, as the field left out, and rejects null for the role and the tenant, which it
+  # requires. These null policies are not measured yet: the phase api.users of the local harness
+  # confirms them. The model of the reply leaves out roles, which the spec marks deprecated:
   # associated_tenants holds the roles of the user in each tenant.
   UserCreate:
     schema: UserCreate
@@ -1120,6 +1123,28 @@ models:
       role: {required: true, null_policy: rejects}
       tenant: {required: false, null_policy: ignores}
       resource_instance: {required: false, null_policy: ignores}
+  UserRoleRemove:
+    schema: UserRoleRemove
+    fields:
+      role: {required: true, null_policy: rejects}
+      tenant: {required: true, null_policy: rejects}
+      resource_instance: {required: false, null_policy: ignores}
+  RoleAssignmentRead:
+    schema: RoleAssignmentRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      user: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+      tenant: {required: false, null_policy: n/a}
+      resource_instance: {required: false, null_policy: n/a}
+      resource_instance_id: {required: false, null_policy: n/a}
+      user_id: {required: true, null_policy: n/a}
+      role_id: {required: true, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
   UserUpdate:
     schema: UserUpdate
     fields:

@@ -40,15 +40,20 @@ func (s *suite) registerUser(key string, id func() string) {
 // of its own, whose keys start with the run's prefix and which it registers with the ledger
 // before it creates them. It creates a user with a role in a tenant of its seed, gets it by its
 // key and by its ID, finds it in a page of List that searches for its email and filters by its
-// role, and with All, changes it with Update, which removes its first name with null, deletes
-// it, waits until a get of its ID matches ErrNotFound, and deletes it again, which returns nil.
-// It syncs a second user twice: the first sync creates it, and the second, which leaves its first
-// name and its attributes out, replaces it, so that a get returns the user without them.
+// role, and with All, changes it with Update, which removes its first name with null, assigns
+// it a second role of its seed in the tenant and removes that role again, as assignAndUnassign
+// says, deletes it, waits until a get of its ID matches ErrNotFound, and deletes it again, which
+// returns nil. It syncs a second user twice: the first sync creates it, and the second, which
+// leaves its first name and its attributes out, replaces it, so that a get returns the user
+// without them.
 func userLifecycle(s *suite) func(t *testing.T) {
 	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
 		key, synced := s.cfg.prefix.Key("sdk-user"), s.cfg.prefix.Key("sdk-synced-user")
 		role, tenant := s.cfg.prefix.Key("sdk-user-role"), s.cfg.prefix.Key("sdk-user-tenant")
-		s.seed(t, world{roles: []seed.Role{{Key: role}}, tenants: []string{tenant}})
+		assigned := s.cfg.prefix.Key("sdk-user-assigned-role")
+		s.seed(t, world{
+			roles: []seed.Role{{Key: role}, {Key: assigned}}, tenants: []string{tenant},
+		})
 		var createdID string
 		s.registerUser(key, func() string { return createdID })
 		s.registerUser(synced, func() string { return "" })
@@ -91,6 +96,7 @@ func userLifecycle(s *suite) func(t *testing.T) {
 			t.Errorf("Update of the names of %s returned %+v, %v; want the first name removed, "+
 				"the last name Lovelace and the email kept", key, updated, err)
 		}
+		assignAndUnassign(ctx, t, c, key, models.UserRoleCreate{Role: assigned, Tenant: tenant})
 		syncTwice(ctx, t, c, synced)
 		if err := c.Users.Delete(ctx, key); err != nil {
 			t.Fatalf("Delete of the user %s: %v", key, err)
@@ -137,6 +143,51 @@ func listUser(ctx context.Context, t *testing.T, c *permit.Client, opts *permit.
 	if found != 1 {
 		t.Errorf("All yielded the user %s %d times, want once", id, found)
 	}
+}
+
+// assignAndUnassign assigns the role of assignment in its tenant to the user key with AssignRole,
+// checks the role assignment that it returns, and that a get of the user lists the role among
+// its roles in the tenant; then removes the role with UnassignRole, and checks that a get of the
+// user no longer lists it there.
+func assignAndUnassign(ctx context.Context, t *testing.T, c *permit.Client, key string,
+	assignment models.UserRoleCreate,
+) {
+	t.Helper()
+	got, err := c.Users.AssignRole(ctx, key, assignment)
+	if err != nil || got.User != key || got.Role != assignment.Role ||
+		got.Tenant != assignment.Tenant || got.ID == "" {
+		t.Fatalf("AssignRole of the role %s in the tenant %s to the user %s returned %+v, %v; "+
+			"want the role assignment", assignment.Role, assignment.Tenant, key, got, err)
+	}
+	if !hasRole(ctx, t, c, key, assignment) {
+		t.Errorf("Get of the user %s after AssignRole lists no role %s in the tenant %s", key,
+			assignment.Role, assignment.Tenant)
+	}
+	err = c.Users.UnassignRole(ctx, key,
+		models.UserRoleRemove{Role: assignment.Role, Tenant: assignment.Tenant})
+	if err != nil {
+		t.Fatalf("UnassignRole of the role %s in the tenant %s from the user %s: %v",
+			assignment.Role, assignment.Tenant, key, err)
+	}
+	if hasRole(ctx, t, c, key, assignment) {
+		t.Errorf("Get of the user %s after UnassignRole still lists the role %s in the tenant %s",
+			key, assignment.Role, assignment.Tenant)
+	}
+}
+
+// hasRole reports whether a get of the user key lists the role of assignment among the user's
+// roles in its tenant, in the user's AssociatedTenants. It fails t when the get fails.
+func hasRole(ctx context.Context, t *testing.T, c *permit.Client, key string,
+	assignment models.UserRoleCreate,
+) bool {
+	t.Helper()
+	user, err := c.Users.Get(ctx, key)
+	if err != nil {
+		t.Fatalf("Get of the user %s: %v", key, err)
+	}
+	return slices.ContainsFunc(user.AssociatedTenants, func(in models.UserInTenant) bool {
+		return in.Tenant == assignment.Tenant && slices.Contains(in.Roles, assignment.Role)
+	})
 }
 
 // syncTwice syncs the user key twice: the first sync creates it, with its first name and its

@@ -29,7 +29,21 @@ const (
 	replaceUserRoute = "PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}"
 	updateUserRoute  = "PATCH /v2/facts/{proj_id}/{env_id}/users/{user_id}"
 	deleteUserRoute  = "DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}"
+
+	assignUserRoleRoute   = "POST /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles"
+	unassignUserRoleRoute = "DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles"
 )
+
+// assignmentBody is the body of a reply of the API that holds a role assignment: the role
+// editor of alice in the tenant tenant-a.
+const assignmentBody = `{"id":"00000000-0000-4000-8000-000000000035","user":"alice",` +
+	`"role":"editor","tenant":"tenant-a","user_id":"00000000-0000-4000-8000-000000000031",` +
+	`"role_id":"00000000-0000-4000-8000-000000000036",` +
+	`"tenant_id":"00000000-0000-4000-8000-000000000037",` +
+	`"organization_id":"00000000-0000-4000-8000-000000000001",` +
+	`"project_id":"00000000-0000-4000-8000-000000000002",` +
+	`"environment_id":"00000000-0000-4000-8000-000000000003",` +
+	`"created_at":"2026-10-15T14:00:00Z"}`
 
 // userBody is the body of a reply of the API that holds the user alice.
 const userBody = `{"key":"alice","id":"00000000-0000-4000-8000-000000000031",` +
@@ -227,16 +241,18 @@ func TestUsersScope(t *testing.T) {
 }
 
 // TestUserKeysInThePath checks that each method that names a user sends its key as one segment
-// of the path, escaped, whatever the key holds: Sync the Key of the user that it sends. A key
-// that is empty, . or .. would change the route, so it is an error that matches
-// ErrInvalidConfig and names the placeholder, and no request.
+// of the path, escaped, whatever the key holds, before /roles for AssignRole and UnassignRole:
+// Sync the Key of the user that it sends. A key that is empty, . or .. would change the route, so
+// it is an error that matches ErrInvalidConfig and names the placeholder, and no request.
 func TestUserKeysInThePath(t *testing.T) {
 	ok := mockpermit.Reply{Body: userBody}
 	methods := []struct {
 		name  string
 		route string
 		reply mockpermit.Reply
-		call  func(c *Client, key string) error
+		// suffix follows the key in the path.
+		suffix string
+		call   func(c *Client, key string) error
 	}{
 		{
 			name: "Get", route: getUserRoute, reply: ok,
@@ -264,6 +280,22 @@ func TestUserKeysInThePath(t *testing.T) {
 			reply: mockpermit.Reply{Status: http.StatusNoContent},
 			call:  func(c *Client, key string) error { return c.Users.Delete(t.Context(), key) },
 		},
+		{
+			name: "AssignRole", route: assignUserRoleRoute,
+			reply: mockpermit.Reply{Body: assignmentBody}, suffix: "/roles",
+			call: func(c *Client, key string) error {
+				_, err := c.Users.AssignRole(t.Context(), key, models.UserRoleCreate{Role: "r"})
+				return err
+			},
+		},
+		{
+			name: "UnassignRole", route: unassignUserRoleRoute,
+			reply: mockpermit.Reply{Status: http.StatusNoContent}, suffix: "/roles",
+			call: func(c *Client, key string) error {
+				return c.Users.UnassignRole(t.Context(), key,
+					models.UserRoleRemove{Role: "r", Tenant: "t"})
+			},
+		},
 	}
 	for key, want := range map[string]string{
 		"a/b":                 "/v2/facts/p/e/users/a%2Fb",
@@ -281,8 +313,10 @@ func TestUserKeysInThePath(t *testing.T) {
 			if err := m.call(userClient(t, api), key); err != nil {
 				t.Errorf("%s(%q) returned %v", m.name, key, err)
 			}
-			if requests := api.Requests(); len(requests) != 1 || requests[0].RawPath != want {
-				t.Errorf("%s(%q) sent %+v, want one request to %s", m.name, key, requests, want)
+			if requests := api.Requests(); len(requests) != 1 ||
+				requests[0].RawPath != want+m.suffix {
+				t.Errorf("%s(%q) sent %+v, want one request to %s%s", m.name, key, requests, want,
+					m.suffix)
 			}
 		}
 	}
@@ -338,6 +372,84 @@ func TestDeleteUserThatIsGone(t *testing.T) {
 		api.AssertUntouched()
 	}
 }
+
+// TestUnassignRoleReplies checks the replies to UnassignRole, through the API and through the
+// PDP container: nil for a 204 without a body, and for a 200 with the role assignment, with an
+// empty body or with a body that is not a role assignment, which it does not read; and, as its
+// body names the role, an *Error that matches ErrNotFound for a 404 of the API, with or without
+// a body, and of the container with a body, never nil, each after one request, also with a retry
+// policy that allows one more; and, through the container, an error that matches
+// ErrContainerPDPOnly, not ErrNotFound, for a 404 with an empty body.
+func TestUnassignRoleReplies(t *testing.T) {
+	unassign := func(c *Client) error {
+		return c.Users.UnassignRole(t.Context(), "alice",
+			models.UserRoleRemove{Role: "editor", Tenant: "tenant-a"})
+	}
+	for _, viaPDP := range []bool{false, true} {
+		api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
+		to, route := api, unassignUserRoleRoute
+		opts := []Option{WithScope("p", "e")}
+		if viaPDP {
+			to, route = pdp, "DELETE /facts/users/{user_id}/roles"
+			opts = append(opts, WithFactsViaPDP())
+		}
+		replies := []mockpermit.Reply{
+			{Status: http.StatusNoContent},
+			{Status: http.StatusOK, Body: replyFixtureOf(t, "unassign_role_from_user.200.json")},
+			{Status: http.StatusOK, Body: ""},
+			{Status: http.StatusOK, Body: `[1]`},
+		}
+		to.Handle(route, replies...)
+		c := decisionClient(t, api, pdp, opts...)
+		for i, reply := range replies {
+			if err := unassign(c); err != nil {
+				t.Errorf("via the PDP %t: UnassignRole of the reply %d %q returned %v, want nil",
+					viaPDP, reply.Status, reply.Body, err)
+			}
+			if n := len(to.Requests()); n != i+1 {
+				t.Errorf("via the PDP %t: after %d calls, the server got %d requests", viaPDP,
+					i+1, n)
+			}
+		}
+	}
+	notFound := []struct {
+		viaPDP        bool
+		body          string
+		containerOnly bool
+	}{
+		{viaPDP: false, body: unassignNotFoundBody},
+		{viaPDP: false, body: ""},
+		{viaPDP: true, body: unassignNotFoundBody},
+		{viaPDP: true, body: "", containerOnly: true},
+	}
+	for _, tc := range notFound {
+		api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
+		to, route := api, unassignUserRoleRoute
+		opts := []Option{WithScope("p", "e"), WithRetry(RetryPolicy{MaxRetries: 1})}
+		if tc.viaPDP {
+			to, route = pdp, "DELETE /facts/users/{user_id}/roles"
+			opts = append(opts, WithFactsViaPDP())
+		}
+		to.Handle(route, mockpermit.Reply{Status: http.StatusNotFound, Body: tc.body})
+		err := unassign(decisionClient(t, api, pdp, opts...))
+		e := mustError(t, err)
+		if e.StatusCode != http.StatusNotFound || errors.Is(err, ErrNotFound) == tc.containerOnly ||
+			errors.Is(err, ErrContainerPDPOnly) != tc.containerOnly {
+			t.Errorf("via the PDP %t: UnassignRole of a 404 with the body %q returned %v, want an "+
+				"*Error that matches ErrContainerPDPOnly: %t, and else ErrNotFound", tc.viaPDP,
+				tc.body, err, tc.containerOnly)
+		}
+		if n := len(to.Requests()); n != 1 {
+			t.Errorf("via the PDP %t: UnassignRole of a 404 sent %d requests, want 1", tc.viaPDP,
+				n)
+		}
+	}
+}
+
+// unassignNotFoundBody is the body of a 404 of the API to an unassignment of a role that the
+// user does not have.
+const unassignNotFoundBody = `{"error_code":"NOT_FOUND","title":"Not Found",` +
+	`"message":"the user does not have the role in the tenant"}`
 
 // TestUserBodies checks the bodies of Create, Sync and Update byte for byte against the golden
 // files in testdata/golden: a user with the key only, which leaves every other field out, as a
@@ -421,9 +533,81 @@ func TestUserBodies(t *testing.T) {
 	}
 }
 
-// TestUserRetries checks when a call of the users sends its request again: Create, which the API
-// may have acted on, after a 429 only, so a 503 ends it after one request; Sync, Update, Get,
-// Delete and List, which do the same when sent twice, after a 503 too.
+// TestUserRoleBodies checks the bodies of AssignRole and UnassignRole byte for byte against the
+// golden files in testdata/golden: an assignment of a role in a tenant; one of a role on a
+// resource instance without a tenant, which leaves the tenant out, not empty; the zero
+// assignment, which holds the role alone, empty; an unassignment of a role in a tenant and of one
+// on a resource instance; and the zero unassignment, which holds the role and the tenant, empty.
+func TestUserRoleBodies(t *testing.T) {
+	assign := func(role models.UserRoleCreate) func(c *Client) error {
+		return func(c *Client) error {
+			_, err := c.Users.AssignRole(t.Context(), "alice", role)
+			return err
+		}
+	}
+	unassign := func(role models.UserRoleRemove) func(c *Client) error {
+		return func(c *Client) error {
+			return c.Users.UnassignRole(t.Context(), "alice", role)
+		}
+	}
+	for _, tc := range []struct {
+		golden string
+		route  string
+		reply  mockpermit.Reply
+		call   func(c *Client) error
+	}{
+		{
+			"assign_role_to_user.tenant.golden", assignUserRoleRoute,
+			mockpermit.Reply{Body: assignmentBody},
+			assign(models.UserRoleCreate{Role: "editor", Tenant: "tenant-a"}),
+		},
+		{
+			"assign_role_to_user.instance.golden", assignUserRoleRoute,
+			mockpermit.Reply{Body: assignmentBody},
+			assign(models.UserRoleCreate{Role: "owner", ResourceInstance: "document:doc-1"}),
+		},
+		{
+			"assign_role_to_user.empty.golden", assignUserRoleRoute,
+			mockpermit.Reply{Body: assignmentBody},
+			assign(models.UserRoleCreate{}),
+		},
+		{
+			"unassign_role_from_user.tenant.golden", unassignUserRoleRoute,
+			mockpermit.Reply{Status: http.StatusNoContent},
+			unassign(models.UserRoleRemove{Role: "editor", Tenant: "tenant-a"}),
+		},
+		{
+			"unassign_role_from_user.instance.golden", unassignUserRoleRoute,
+			mockpermit.Reply{Status: http.StatusNoContent},
+			unassign(models.UserRoleRemove{
+				Role: "owner", Tenant: "tenant-a", ResourceInstance: "document:doc-1",
+			}),
+		},
+		{
+			"unassign_role_from_user.empty.golden", unassignUserRoleRoute,
+			mockpermit.Reply{Status: http.StatusNoContent},
+			unassign(models.UserRoleRemove{}),
+		},
+	} {
+		t.Run(tc.golden, func(t *testing.T) {
+			api := mockpermit.NewAPI(t)
+			api.Handle(tc.route, tc.reply)
+			if err := tc.call(userClient(t, api)); err != nil {
+				t.Fatalf("the call returned %v", err)
+			}
+			requests := api.Requests()
+			if len(requests) != 1 {
+				t.Fatalf("the call sent %d requests, want 1", len(requests))
+			}
+			requests[0].ExpectBytes(t, filepath.Join("testdata", "golden", tc.golden))
+		})
+	}
+}
+
+// TestUserRetries checks when a call of the users sends its request again: Create and
+// AssignRole, which the API may have acted on, after a 429 only, so a 503 ends each after one
+// request; Sync, Update, Get, Delete, List and UnassignRole, which do the same when sent twice,
+// after a 503 too.
 func TestUserRetries(t *testing.T) {
 	again := http.Header{"Retry-After": {"0"}}
 	limited := mockpermit.Reply{Status: http.StatusTooManyRequests, Header: again, Body: `{}`}
@@ -433,6 +617,11 @@ func TestUserRetries(t *testing.T) {
 	ok := mockpermit.Reply{Body: userBody}
 	createUser := func(c *Client) error {
 		_, err := c.Users.Create(t.Context(), models.UserCreate{Key: "alice"})
+		return err
+	}
+	assignRole := func(c *Client) error {
+		_, err := c.Users.AssignRole(t.Context(), "alice",
+			models.UserRoleCreate{Role: "editor", Tenant: "tenant-a"})
 		return err
 	}
 	for _, tc := range []struct {
@@ -488,6 +677,23 @@ func TestUserRetries(t *testing.T) {
 				return err
 			},
 		},
+		{
+			name: "AssignRole after a 429", route: assignUserRoleRoute,
+			replies: []mockpermit.Reply{limited, {Body: assignmentBody}}, call: assignRole,
+		},
+		{
+			name: "AssignRole after a 503", route: assignUserRoleRoute,
+			replies: []mockpermit.Reply{unavailable}, call: assignRole,
+			status: http.StatusServiceUnavailable,
+		},
+		{
+			name: "UnassignRole after a 503", route: unassignUserRoleRoute,
+			replies: []mockpermit.Reply{unavailable, {Status: http.StatusNoContent}},
+			call: func(c *Client) error {
+				return c.Users.UnassignRole(t.Context(), "alice",
+					models.UserRoleRemove{Role: "editor", Tenant: "tenant-a"})
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			api := mockpermit.NewAPI(t)
@@ -507,10 +713,22 @@ func TestUserRetries(t *testing.T) {
 }
 
 // TestMalformedUserReplies checks that a reply in 200-299 that is not a user, an empty body too,
-// to Get, Create, Sync and Update, or for List not the paginated object of a list of users, is an
+// to Get, Create, Sync and Update, or not a role assignment to AssignRole, such as an object
+// whose key and role are numbers, or for List not the paginated object of a list of users, is an
 // *Error that names the model, with the status of the reply, and no result.
 func TestMalformedUserReplies(t *testing.T) {
+	model := func(route string) string {
+		if route == assignUserRoleRoute {
+			return "models.RoleAssignmentRead"
+		}
+		return "models.UserRead"
+	}
 	calls := map[string]func(c *Client) (bool, error){
+		assignUserRoleRoute: func(c *Client) (bool, error) {
+			assignment, err := c.Users.AssignRole(t.Context(), "alice",
+				models.UserRoleCreate{Role: "editor", Tenant: "tenant-a"})
+			return assignment != nil, err
+		},
 		getUserRoute: func(c *Client) (bool, error) {
 			user, err := c.Users.Get(t.Context(), "alice")
 			return user != nil, err
@@ -530,12 +748,14 @@ func TestMalformedUserReplies(t *testing.T) {
 	}
 	for route, call := range calls {
 		for _, status := range []int{http.StatusOK, http.StatusCreated} {
-			for _, body := range []string{``, ` `, `null`, `[]`, `"u"`, `{"key":1}`, `{} {}`} {
+			for _, body := range []string{
+				``, ` `, `null`, `[]`, `"u"`, `{"key":1,"role":1}`, `{} {}`,
+			} {
 				api := mockpermit.NewAPI(t)
 				api.Handle(route, mockpermit.Reply{Status: status, Body: body})
 				got, err := call(userClient(t, api))
 				want := "status " + strconv.Itoa(status) + ": the reply is not a valid " +
-					"models.UserRead"
+					model(route)
 				if e := mustError(t, err); got || e.StatusCode != status ||
 					!strings.HasSuffix(e.Error(), want) {
 					t.Errorf("%s of the reply %d %q returned a result: %t, and\n%v\nwant no "+
@@ -600,10 +820,10 @@ func FuzzUserRead(f *testing.F) {
 	})
 }
 
-// TestUsersAfterClose checks that each method returns ErrClosed after Close, and sends nothing,
-// not even the lookup of the scope: also List and All with options that are not valid, and each
-// method of a copy of WaitForSync whose wait is not valid, which return ErrInvalidConfig before
-// Close.
+// TestUsersAfterClose checks that each method, AssignRole and UnassignRole too, returns ErrClosed
+// after Close, and sends nothing, not even the lookup of the scope: also List and All with
+// options that are not valid, and each method of a copy of WaitForSync whose wait is not valid,
+// which return ErrInvalidConfig before Close.
 func TestUsersAfterClose(t *testing.T) {
 	invalid := &UsersListOptions{ListOptions: ListOptions{Page: -1}}
 	for _, opts := range [][]Option{nil, {WithScope("p", "e")}, {WithFactsViaPDP()}} {
@@ -628,7 +848,11 @@ func TestUsersAfterClose(t *testing.T) {
 			_, syncErr := s.Sync(ctx, models.UserCreate{Key: "alice"})
 			_, updateErr := s.Update(ctx, "alice", models.UserUpdate{})
 			deleteErr := s.Delete(ctx, "alice")
-			for i, err := range append(errs, getErr, createErr, syncErr, updateErr, deleteErr) {
+			_, assignErr := s.AssignRole(ctx, "alice", models.UserRoleCreate{Role: "editor"})
+			unassignErr := s.UnassignRole(ctx, "alice",
+				models.UserRoleRemove{Role: "editor", Tenant: "tenant-a"})
+			for i, err := range append(errs, getErr, createErr, syncErr, updateErr, deleteErr,
+				assignErr, unassignErr) {
 				if !errors.Is(err, ErrClosed) {
 					t.Errorf("call %d after Close returned %v, want ErrClosed", i, err)
 				}
@@ -640,44 +864,60 @@ func TestUsersAfterClose(t *testing.T) {
 }
 
 // userWrites are the calls of the users that the PDP container waits for sync on, each with its
-// route on the container and its operation.
+// route on the container, its operation and the body of its reply.
 var userWrites = []struct {
 	route string
 	op    string
+	body  string
 	call  func(ctx context.Context, s *UsersService) error
 }{
 	{
-		route: "POST /facts/users", op: opCreateUser,
+		route: "POST /facts/users", op: opCreateUser, body: userBody,
 		call: func(ctx context.Context, s *UsersService) error {
 			_, err := s.Create(ctx, models.UserCreate{Key: "alice"})
 			return err
 		},
 	},
 	{
-		route: "PUT /facts/users/{user_id}", op: opReplaceUser,
+		route: "PUT /facts/users/{user_id}", op: opReplaceUser, body: userBody,
 		call: func(ctx context.Context, s *UsersService) error {
 			_, err := s.Sync(ctx, models.UserCreate{Key: "alice"})
 			return err
 		},
 	},
 	{
-		route: "PATCH /facts/users/{user_id}", op: opUpdateUser,
+		route: "PATCH /facts/users/{user_id}", op: opUpdateUser, body: userBody,
 		call: func(ctx context.Context, s *UsersService) error {
 			_, err := s.Update(ctx, "alice", models.UserUpdate{})
 			return err
 		},
 	},
+	{
+		route: "POST /facts/users/{user_id}/roles", op: opAssignUserRole, body: assignmentBody,
+		call: func(ctx context.Context, s *UsersService) error {
+			_, err := s.AssignRole(ctx, "alice",
+				models.UserRoleCreate{Role: "editor", Tenant: "tenant-a"})
+			return err
+		},
+	},
+	{
+		route: "DELETE /facts/users/{user_id}/roles", op: opUnassignUserRole,
+		call: func(ctx context.Context, s *UsersService) error {
+			return s.UnassignRole(ctx, "alice",
+				models.UserRoleRemove{Role: "editor", Tenant: "tenant-a"})
+		},
+	},
 }
 
-// TestUsersWaitForSync checks the creates, syncs and updates of a copy of WaitForSync through
-// the PDP container: each carries the timeout in decimal seconds and the policy of
-// WithSyncPolicy, and the calls of the service that WaitForSync was called on carry neither,
-// before and after.
+// TestUsersWaitForSync checks the creates, syncs, updates and assignments and unassignments of
+// roles of a copy of WaitForSync through the PDP container: each carries the timeout in decimal
+// seconds and the policy of WithSyncPolicy, and the calls of the service that WaitForSync was
+// called on carry neither, before and after.
 func TestUsersWaitForSync(t *testing.T) {
 	for _, w := range userWrites {
 		t.Run(w.op, func(t *testing.T) {
 			api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
-			reply := mockpermit.Reply{Body: userBody}
+			reply := mockpermit.Reply{Body: w.body}
 			pdp.Handle(w.route, reply, reply, reply)
 			plain := decisionClient(t, api, pdp, WithFactsViaPDP()).Users
 			waiting := plain.WaitForSync(1500*time.Millisecond, WithSyncPolicy(SyncPolicyFail))
@@ -699,10 +939,10 @@ func TestUsersWaitForSync(t *testing.T) {
 }
 
 // TestUsersWaitForSyncMisuse checks the calls through a copy of WaitForSync that cannot wait:
-// List, All, Get and Delete, which the PDP container answers without waiting; and Create, Sync
-// and Update from a client that sends facts to the API, or with a negative timeout. Each returns
-// an error that matches ErrInvalidConfig and names the operation and the rule, and sends no
-// request, not even the lookup of the scope.
+// List, All, Get and Delete, which the PDP container answers without waiting; and Create, Sync,
+// Update, AssignRole and UnassignRole from a client that sends facts to the API, or with a
+// negative timeout. Each returns an error that matches ErrInvalidConfig and names the operation
+// and the rule, and sends no request, not even the lookup of the scope.
 func TestUsersWaitForSyncMisuse(t *testing.T) {
 	type misuse struct {
 		name    string

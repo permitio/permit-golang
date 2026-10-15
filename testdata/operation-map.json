@@ -363,6 +363,9 @@
     "UsersService.All": [
       "list_users"
     ],
+    "UsersService.AssignRole": [
+      "assign_role_to_user"
+    ],
     "UsersService.Create": [
       "create_user"
     ],
@@ -377,6 +380,9 @@
     ],
     "UsersService.Sync": [
       "replace_user"
+    ],
+    "UsersService.UnassignRole": [
+      "unassign_role_from_user"
     ],
     "UsersService.Update": [
       "update_user"

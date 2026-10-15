@@ -25,6 +25,15 @@ const (
 		`"msg":"value is not a valid email address","type":"value_error.email"}]}`
 )
 
+// The error bodies of the Permit API in the wire cases of the roles of a user: a role that the
+// user does not have in the tenant, and a role that the body leaves out.
+const (
+	userRoleNotFoundBody = `{"error_code":"NOT_FOUND","title":"Not Found",` +
+		`"message":"the user does not have the role in the tenant","id":"req-15"}`
+	userRoleInvalidBody = `{"detail":[{"loc":["body","role"],` +
+		`"msg":"field required","type":"value_error.missing"}]}`
+)
+
 // The IDs of the users of the reply fixtures.
 const (
 	userAliceID = "00000000-0000-4000-8000-000000000031"
@@ -107,7 +116,8 @@ func firstUsers(seq iter.Seq2[models.UserRead, error], n int) ([]models.UserRead
 // against the API, with its scope, and against the PDP container under /facts/users, with
 // WithFactsViaPDP. The keys of the users hold characters that the path escapes, a slash, a
 // percent sign, a letter outside ASCII and a |, as a/b, 50%é and idp|dave@example.com do, and
-// one key has a leading dot, .hidden, which the path sends as it is.
+// one key has a leading dot, .hidden, which the path sends as it is. The cases of the roles of a
+// user are those of userRoleCases.
 func userCases() []wireCase {
 	const (
 		users = "/v2/facts/{proj_id}/{env_id}/users"
@@ -141,7 +151,7 @@ func userCases() []wireCase {
 	}
 	syncPath := "/v2/facts/p/e/users/idp%7Cdave@example.com"
 	both := []wireMode{apiMode, factsViaPDPMode}
-	return []wireCase{
+	return append([]wireCase{
 		{
 			Method: "UsersService.List",
 			Op:     "list_users",
@@ -297,7 +307,137 @@ func userCases() []wireCase {
 			ErrorReply: mockpermit.Reply{Status: http.StatusForbidden, Body: userForbiddenBody},
 			WantErr:    forbidden("delete_user", http.MethodDelete, user),
 		},
+	}, userRoleCases(forbidden)...)
+}
+
+// userRoleCases returns the wire cases of the assignments and the unassignments of the roles of
+// a user, in both modes, with the error of a 403 that forbidden returns: a role in a tenant and
+// a role on a resource instance without a tenant, whose body leaves the tenant out; and an
+// unassignment that gets 204 without a body and one that gets 200 with the role assignment,
+// both of which return nil, and a 404, which stays an error that matches ErrNotFound.
+func userRoleCases(forbidden func(op, method, route string) *permit.Error) []wireCase {
+	const roles = "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles"
+	invalid := func(op, method string) *permit.Error {
+		e := projectError(op, method, roles, http.StatusUnprocessableEntity, userRoleInvalidBody)
+		e.Detail = "body.role: field required"
+		return e
 	}
+	notFound := projectError("unassign_role_from_user", http.MethodDelete, roles,
+		http.StatusNotFound, userRoleNotFoundBody)
+	notFound.Code, notFound.Title, notFound.RequestID = "NOT_FOUND", "Not Found", "req-15"
+	notFound.Detail = "the user does not have the role in the tenant"
+	both := []wireMode{apiMode, factsViaPDPMode}
+	return []wireCase{
+		{
+			Method: "UsersService.AssignRole",
+			Op:     "assign_role_to_user",
+			Route:  "POST " + roles,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Users.AssignRole(ctx, "50%é",
+					models.UserRoleCreate{Role: "editor", Tenant: "tenant-a"})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/users/50%25%C3%A9/roles",
+				Body:    `{"role":"editor","tenant":"tenant-a"}`,
+			},
+			Reply:      mockpermit.Reply{Body: replyFixture("assign_role_to_user.200.json")},
+			WantResult: tenantRoleAssignment(),
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusUnprocessableEntity, Body: userRoleInvalidBody,
+			},
+			WantErr: invalid("assign_role_to_user", http.MethodPost),
+		},
+		{
+			Method: "UsersService.AssignRole",
+			Op:     "assign_role_to_user",
+			Route:  "POST " + roles,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Users.AssignRole(ctx, syncedKey,
+					models.UserRoleCreate{Role: "owner", ResourceInstance: "document:doc-1"})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/users/idp%7Cdave@example.com/roles",
+				Body:    `{"role":"owner","resource_instance":"document:doc-1"}`,
+			},
+			Reply: mockpermit.Reply{
+				Body: replyFixture("assign_role_to_user.200.instance.json"),
+			},
+			WantResult: instanceRoleAssignment(),
+			ErrorReply: mockpermit.Reply{Status: http.StatusForbidden, Body: userForbiddenBody},
+			WantErr:    forbidden("assign_role_to_user", http.MethodPost, roles),
+		},
+		{
+			Method: "UsersService.UnassignRole",
+			Op:     "unassign_role_from_user",
+			Route:  "DELETE " + roles,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return wireNoResult{}, c.Users.UnassignRole(ctx, ".hidden",
+					models.UserRoleRemove{Role: "editor", Tenant: "tenant-a"})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/users/.hidden/roles",
+				Body:    `{"role":"editor","tenant":"tenant-a"}`,
+			},
+			Reply:      mockpermit.Reply{Status: http.StatusNoContent},
+			WantResult: wireNoResult{},
+			ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: userRoleNotFoundBody},
+			WantErr:    notFound,
+		},
+		{
+			Method: "UsersService.UnassignRole",
+			Op:     "unassign_role_from_user",
+			Route:  "DELETE " + roles,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return wireNoResult{}, c.Users.UnassignRole(ctx, "a/b", models.UserRoleRemove{
+					Role: "owner", Tenant: "tenant-a", ResourceInstance: "document:doc-1",
+				})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/users/a%2Fb/roles",
+				Body: `{"role":"owner","tenant":"tenant-a",` +
+					`"resource_instance":"document:doc-1"}`,
+			},
+			Reply:      mockpermit.Reply{Body: replyFixture("unassign_role_from_user.200.json")},
+			WantResult: wireNoResult{},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusUnprocessableEntity, Body: userRoleInvalidBody,
+			},
+			WantErr: invalid("unassign_role_from_user", http.MethodDelete),
+		},
+	}
+}
+
+// roleAssignment returns a role assignment of the reply fixtures of the roles of a user: of the
+// role whose ID is roleID to alice in the tenant tenant-a, with the ID id and the scope of the
+// fixtures, created at created.
+func roleAssignment(id, role, roleID, created string) *models.RoleAssignmentRead {
+	return &models.RoleAssignmentRead{
+		ID: id, User: "alice", Role: role, Tenant: "tenant-a", UserID: userAliceID,
+		RoleID: roleID, TenantID: "00000000-0000-4000-8000-000000000037",
+		OrganizationID: exampleOrganizationID, ProjectID: exampleProjectID,
+		EnvironmentID: exampleEnvironmentID, CreatedAt: at(created),
+	}
+}
+
+// tenantRoleAssignment is the role assignment of the reply fixture
+// assign_role_to_user.200.json: the role editor in the tenant tenant-a.
+func tenantRoleAssignment() *models.RoleAssignmentRead {
+	return roleAssignment("00000000-0000-4000-8000-000000000035", "editor",
+		"00000000-0000-4000-8000-000000000036", "2026-10-15T14:00:00Z")
+}
+
+// instanceRoleAssignment is the role assignment of the reply fixture
+// assign_role_to_user.200.instance.json: the role owner on the resource instance document:doc-1.
+func instanceRoleAssignment() *models.RoleAssignmentRead {
+	assignment := roleAssignment("00000000-0000-4000-8000-000000000038", "owner",
+		"00000000-0000-4000-8000-000000000040", "2026-10-15T14:30:00.250000")
+	assignment.ResourceInstance = "document:doc-1"
+	assignment.ResourceInstanceID = "00000000-0000-4000-8000-000000000039"
+	return assignment
 }
 
 // createdUser is the user of the reply fixture create_user.200.json, with the role of its

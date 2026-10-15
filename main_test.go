@@ -170,5 +170,9 @@ func TestMain(m *testing.M) {
 	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/proxy_configs",
 		mockpermit.Reply{Body: replyFixture("list_proxy_configs.200.json")},
 		mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("POST /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles",
+		mockpermit.Reply{Body: replyFixture("assign_role_to_user.200.json")})
+	servers.API.Handle("DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles",
+		mockpermit.Reply{Status: http.StatusNoContent})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

@@ -96,7 +96,8 @@ type Client struct {
 	// resources of a resource set.
 	ConditionSetRules *ConditionSetRulesService `json:"-"`
 
-	// Users lists, reads, creates, syncs, changes and deletes the users of an environment.
+	// Users lists, reads, creates, syncs, changes and deletes the users of an environment, and
+	// assigns and unassigns their roles.
 	Users *UsersService `json:"-"`
 
 	// ProxyConfigs lists, reads, creates, changes and deletes the proxy configs of the

@@ -213,10 +213,14 @@ var defaultOps = []Op{
 	// under /facts. v1 sent them with an environment-level key, and the PDP container sends them
 	// on with its own, an environment-level key. These key levels are not measured yet: the
 	// phase api.users of the local harness confirms them. The PDP container waits for sync on
-	// the create, the PUT and the PATCH of a user, and not on its delete. The list is the
-	// paginated object of at most 100 users. A PUT sends the whole user, and a PATCH sets the
-	// fields that it names to the values that it gives, so each does the same when sent twice; a
-	// create does not.
+	// the create, the PUT and the PATCH of a user and on the assignment and the unassignment of
+	// its roles, and not on its delete. The list is the paginated object of at most 100 users. A
+	// PUT sends the whole user, a PATCH sets the fields that it names to the values that it gives,
+	// and an unassignment of a role leaves the role removed, so each does the same when sent
+	// twice; a create does not, and what the API answers to the assignment of a role that the user
+	// has already is not confirmed, so neither the create nor the assignment is Idempotent. An
+	// unassignment names the role in its body, not in its path, so it is not DeleteSelf: a 404 can
+	// mean a mistyped key.
 	{
 		ID: "list_users", Method: http.MethodGet, Route: "/v2/facts/{proj_id}/{env_id}/users",
 		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
@@ -248,6 +252,18 @@ var defaultOps = []Op{
 		ID: "delete_user", Method: http.MethodDelete,
 		Route:      "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
 		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+	{
+		ID: "assign_role_to_user", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", Facts: true,
+		WaitsForSync: true, KeyLevel: EnvironmentLevel, RequestModel: "UserRoleCreate",
+		ResponseModel: "RoleAssignmentRead",
+	},
+	{
+		ID: "unassign_role_from_user", Method: http.MethodDelete,
+		Route:      "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles",
+		Idempotent: true, Facts: true, WaitsForSync: true, KeyLevel: EnvironmentLevel,
+		RequestModel: "UserRoleRemove",
 	},
 
 	// The actions of a resource of an environment, each at the environment level, as v1 sends

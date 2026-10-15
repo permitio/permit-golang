@@ -607,11 +607,19 @@ change from v1 and what to use instead.
 ### Users
 
 - The `Users` field of the client, a `*permit.UsersService`, lists, reads, creates, syncs,
-  changes and deletes the users of an environment: `List` returns a page as a
-  `*permit.Page[models.UserRead]`, with the counts of the reply, and `All` reads every page, 100
-  users at a time; `permit.UsersListOptions` filters the list with `Search` and `Role`; `Get`
-  reads one user by its key or its ID, in place of v1's `Get`, `GetById` and `GetByKey`; `Create`
-  takes a `models.UserCreate` and `Update` a `models.UserUpdate`; `Delete` deletes a user.
+  changes and deletes the users of an environment, and assigns and unassigns their roles: `List`
+  returns a page as a `*permit.Page[models.UserRead]`, with the counts of the reply, and `All`
+  reads every page, 100 users at a time; `permit.UsersListOptions` filters the list with `Search`
+  and `Role`; `Get` reads one user by its key or its ID, in place of v1's `Get`, `GetById` and
+  `GetByKey`; `Create` takes a `models.UserCreate` and `Update` a `models.UserUpdate`; `Delete`
+  deletes a user.
+- `AssignRole` takes a `models.UserRoleCreate`, a role in a tenant or on a resource instance, in
+  place of v1's `AssignRole` and `AssignResourceRole`, and returns a `*models.RoleAssignmentRead`;
+  an empty tenant is left out of the request, where v1 sent it empty. `UnassignRole` takes a
+  `models.UserRoleRemove`, in place of v1's `UnassignRole` and `UnassignResourceRole`, and returns
+  only an error, where v1 returned a `*models.UserRead`: nil for a reply in 200-299, a 204 without
+  a body or a 200 with the role assignment, and an error that matches `ErrNotFound` for a 404, as
+  its body, not its path, names the role to remove.
 - `Sync`, in place of v1's `SyncUser`, sends the whole user in one request,
   `PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}`, which creates the user or replaces it:
   **each of `Email`, `FirstName`, `LastName` and `Attributes` that the `models.UserCreate` leaves
@@ -630,15 +638,15 @@ change from v1 and what to use instead.
 - The calls are calls of the facts API: they act on the environment of the client's scope, or,
   with `WithFactsViaPDP`, go to the PDP container under `/facts/users`. Each is sent with an
   environment-level API key, or higher. `UsersService.WaitForSync(timeout, opts...)` returns a
-  copy whose `Create`, `Sync` and `Update` the PDP container holds until the change reaches its
-  policy; any other call through the copy, and a call from a client without `WithFactsViaPDP`,
-  is an error that matches `ErrInvalidConfig`, and no request is sent.
+  copy whose `Create`, `Sync`, `Update`, `AssignRole` and `UnassignRole` the PDP container holds
+  until the change reaches its policy; any other call through the copy, and a call from a client
+  without `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
 - A key of a user is sent as one segment of the path, escaped; an empty key, `.` or `..` is an
   error that matches `ErrInvalidConfig`, and no request for the user is sent. `Delete` returns
   nil when the API answers 404, as the user is gone already. A reply in 200-299 that is not a
-  user, an empty body too, is an error that names the model. `Create` is sent again after a 429
-  only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection
-  too.
+  user, or not a role assignment to `AssignRole`, an empty body too, is an error that names the
+  model. `Create` and `AssignRole` are sent again after a 429 only; the other calls are sent
+  again after a 500, 502, 503 or 504 reply or a failed connection too.
 
 ### Proxy configs
 

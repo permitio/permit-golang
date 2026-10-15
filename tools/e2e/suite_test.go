@@ -165,6 +165,7 @@ var cloudScenarios = []scenario{
 		name: "user_lifecycle", methods: []string{
 			"UsersService.Create", "UsersService.Get", "UsersService.List", "UsersService.All",
 			"UsersService.Update", "UsersService.Sync", "UsersService.Delete",
+			"UsersService.AssignRole", "UsersService.UnassignRole",
 		},
 		run: userLifecycle,
 	},

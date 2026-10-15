@@ -40,7 +40,9 @@ const (
 	opListSetPermissions   = "list_set_permissions"
 	opAssignSetPermissions = "assign_set_permissions" //nolint:gosec // G101: an operation ID
 
-	opReplaceUser = "replace_user"
+	opReplaceUser      = "replace_user"
+	opAssignUserRole   = "assign_role_to_user" //nolint:gosec // G101: an operation ID
+	opUnassignUserRole = "unassign_role_from_user"
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -97,6 +99,11 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 	case opReplaceUser:
 		if fields != nil {
 			return f.replaceUser(rt, segments, fields)
+		}
+		return f.unsupported(rt)
+	case opAssignUserRole, opUnassignUserRole:
+		if fields != nil {
+			return f.userRole(rt, segments, fields)
 		}
 		return f.unsupported(rt)
 	}
@@ -306,6 +313,68 @@ func (f *Fake) replaceUser(rt route, segments []string, fields object) (int, any
 	}
 	f.store[path][i] = replaced
 	return http.StatusOK, replaced
+}
+
+// userRole answers an assignment, op assign_role_to_user, or an unassignment, op
+// unassign_role_from_user, of the role of fields in the tenant of fields to or from the user of
+// the path, which has segments, with IDs in place of keys, as resolve found it. The fake keeps the
+// roles of a user in its associated_tenants, which a get of the user returns, as the Permit API
+// lists them: an entry for each tenant, with the keys of the user's roles in it. The role and the
+// tenant are those of the environment, by their keys or IDs, or the request gets 404. An
+// assignment adds the role to the tenant's entry, which it adds when the user has none, and
+// answers the role assignment; an unassignment removes the role from the entry, and answers 204,
+// or 404 when the user does not have the role in the tenant, as the API's documentation says. A
+// role on a resource instance, a role without a tenant and the assignment of a role that the user
+// has already, whose replies are not confirmed, are requests that the fake does not implement.
+// The caller holds f.mu.
+func (f *Fake) userRole(rt route, segments []string, fields object) (int, any) {
+	if _, onInstance := fields["resource_instance"]; onInstance || text(fields, "tenant") == "" {
+		return f.unsupported(rt)
+	}
+	project, environment := segments[3], segments[4]
+	roles := collectionOf([]string{"", "v2", "schema", project, environment, "roles"})
+	role, ok := find(f.store[roles], text(fields, "role"))
+	if !ok {
+		return http.StatusNotFound, errorBody("NOT_FOUND", "no role "+text(fields, "role"))
+	}
+	tenants := collectionOf([]string{"", "v2", "facts", project, environment, "tenants"})
+	tenant, ok := find(f.store[tenants], text(fields, "tenant"))
+	if !ok {
+		return http.StatusNotFound, errorBody("NOT_FOUND", "no tenant "+text(fields, "tenant"))
+	}
+	user, _ := find(f.store[collectionOf(segments[:6])], segments[6])
+	entries, _ := user["associated_tenants"].([]any)
+	i := slices.IndexFunc(entries, func(e any) bool {
+		entry, _ := e.(object)
+		return entry["tenant"] == tenant["key"]
+	})
+	entry := object{"tenant": tenant["key"], "roles": []any{}, "status": "active"}
+	if i >= 0 {
+		entry, _ = entries[i].(object)
+	}
+	held, _ := entry["roles"].([]any)
+	has := slices.Contains(held, role["key"])
+	switch {
+	case rt.Op == opUnassignUserRole && !has:
+		return http.StatusNotFound, errorBody("NOT_FOUND", "the user does not have the role "+
+			text(role, "key")+" in the tenant "+text(tenant, "key"))
+	case rt.Op == opUnassignUserRole:
+		entry["roles"] = slices.DeleteFunc(slices.Clone(held), func(r any) bool {
+			return r == role["key"]
+		})
+		return http.StatusNoContent, nil
+	case has:
+		return f.unsupported(rt)
+	}
+	entry["roles"] = append(held, role["key"])
+	if i < 0 {
+		user["associated_tenants"] = append(entries, entry)
+	}
+	return http.StatusOK, object{
+		"id": f.newID(), "user": user["key"], "role": role["key"], "tenant": tenant["key"],
+		"user_id": user["id"], "role_id": role["id"], "tenant_id": tenant["id"],
+		"organization_id": f.org, "project_id": project, "environment_id": environment,
+	}
 }
 
 // createEnvironment is the route of the create of an environment, as which a copy into a new

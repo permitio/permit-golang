@@ -18,12 +18,15 @@ const (
 	opReplaceUser = "replace_user"
 	opUpdateUser  = "update_user"
 	opDeleteUser  = "delete_user"
+
+	opAssignUserRole   = "assign_role_to_user" //nolint:gosec // G101: an operation ID
+	opUnassignUserRole = "unassign_role_from_user"
 )
 
-// UsersService lists, reads, creates, syncs, changes and deletes the users of an environment;
-// [Client.Users] holds it. A method that acts on one user takes its key or its ID, such as
-// alice, and sends it as one segment of the path, escaped: a key that holds a / or a % names
-// that user, not another route.
+// UsersService lists, reads, creates, syncs, changes and deletes the users of an environment,
+// and assigns and unassigns their roles; [Client.Users] holds it. A method that acts on one user
+// takes its key or its ID, such as alice, and sends it as one segment of the path, escaped: a
+// key that holds a / or a % names that user, not another route.
 //
 // Its calls are calls of the facts API. By default they go to the Permit API, under
 // /v2/facts/{proj_id}/{env_id}/users, and act on the environment of the client's scope: the
@@ -34,8 +37,8 @@ const (
 // for the users. With [WithFactsViaPDP], they go to the PDP container under /facts/users
 // instead, need no scope, and act on the environment of the container's own API key.
 //
-// [UsersService.WaitForSync] returns a copy whose creates, syncs and updates wait until the
-// change reaches the policy of the PDP container.
+// [UsersService.WaitForSync] returns a copy whose creates, syncs, updates and assignments and
+// unassignments of roles wait until the change reaches the policy of the PDP container.
 type UsersService struct {
 	facts facts
 }
@@ -88,21 +91,23 @@ type UserSyncResult struct {
 	Created bool
 }
 
-// WaitForSync returns a copy of the service whose creates, syncs and updates ask the PDP
-// container to wait for sync: to hold its answer until the change reaches its policy, for at
-// most timeout, so that a check made after the call returns sees it. A call through the copy
-// sends the headers X-Wait-Timeout, the timeout in decimal seconds, such as 0 for a timeout of 0
-// or 0.5 for 500 milliseconds, and X-Timeout-Policy when opts give a policy with
-// [WithSyncPolicy]. The service that WaitForSync is called on, and its other copies, keep their
-// own waits: the copy shares no state with them.
+// WaitForSync returns a copy of the service whose creates, syncs, updates and assignments and
+// unassignments of roles ask the PDP container to wait for sync: to hold its answer until the
+// change reaches its policy, for at most timeout, so that a check made after the call returns
+// sees it. A call through the copy sends the headers X-Wait-Timeout, the timeout in decimal
+// seconds, such as 0 for a timeout of 0 or 0.5 for 500 milliseconds, and X-Timeout-Policy when
+// opts give a policy with [WithSyncPolicy]. The service that WaitForSync is called on, and its
+// other copies, keep their own waits: the copy shares no state with them.
 //
-// Only [UsersService.Create], [UsersService.Sync] and [UsersService.Update] wait for sync: of
-// the routes that UsersService calls, the PDP container waits on POST /facts/users and on PUT
-// and PATCH /facts/users/{user_id}, and answers the reads and the delete without waiting. A call
-// through the copy returns an error that matches [ErrInvalidConfig], and sends no request: from a
-// client without [WithFactsViaPDP], as only the PDP container waits; of any other method, such
-// as Get or Delete, which the container answers without waiting; for a timeout less than zero;
-// and for a [SyncOption] that is not valid, in any place among opts.
+// Only [UsersService.Create], [UsersService.Sync], [UsersService.Update],
+// [UsersService.AssignRole] and [UsersService.UnassignRole] wait for sync: of the routes that
+// UsersService calls, the PDP container waits on POST /facts/users, on PUT and PATCH
+// /facts/users/{user_id} and on POST and DELETE /facts/users/{user_id}/roles, and answers the
+// reads and the delete of a user without waiting. A call through the copy returns an error that
+// matches [ErrInvalidConfig], and sends no request: from a client without [WithFactsViaPDP], as
+// only the PDP container waits; of any other method, such as Get or Delete, which the container
+// answers without waiting; for a timeout less than zero; and for a [SyncOption] that is not
+// valid, in any place among opts.
 func (s *UsersService) WaitForSync(timeout time.Duration, opts ...SyncOption) *UsersService {
 	return &UsersService{facts: s.facts.withWait(newSyncWait(timeout, opts))}
 }
@@ -340,6 +345,92 @@ func (s *UsersService) Update(ctx context.Context, userKey string, update models
 // After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
 func (s *UsersService) Delete(ctx context.Context, userKey string) error {
 	r, err := s.facts.prepare(ctx, request{op: opDeleteUser, params: []string{userKey}})
+	if err != nil {
+		return err
+	}
+	return s.facts.client.doNoValue(ctx, r)
+}
+
+// AssignRole assigns role to the user whose key or ID is userKey with
+// POST /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles, and returns the role assignment as
+// the API stores it. The request holds the Role of role always, and its Tenant and its
+// ResourceInstance when each is set, as [models.UserRoleCreate] says: a role in a tenant names
+// the tenant, and a role of a resource on one of its instances names the instance too, such as
+// document:doc-1. An empty Tenant is left out of the request, not sent as an empty string. The
+// API's documentation says that it creates a resource instance that does not exist when the
+// request names a tenant.
+//
+// AssignRole needs an environment-level API key, or higher, and the scope of an environment, as
+// [UsersService] says. Through a copy of [UsersService.WaitForSync], with [WithFactsViaPDP], it
+// waits for sync: the PDP container holds its answer until the new role reaches its policy, or
+// the timeout of the wait passes. It is sent again only after a 429, which the API did not act
+// on: after a 500, 502, 503 or 504 reply or a failed connection, the API may have assigned the
+// role, so AssignRole returns that error, and the AssociatedTenants of [UsersService.Get] of the
+// user tell whether the user has the role.
+//
+// AssignRole returns an error, and no role assignment:
+//
+//   - for a userKey that is empty, . or ..: an error that matches [ErrInvalidConfig], and no
+//     request for the user;
+//   - for a wait that the call cannot make, as [UsersService.WaitForSync] says: an error that
+//     matches ErrInvalidConfig, and no request;
+//   - for a reply with an error status: an [Error] with the status and the body of the reply,
+//     which matches [ErrNotFound] for a 404, and whose Detail names each field that the API
+//     rejects for a 422;
+//   - for a reply in 200-299 that is not a JSON object of a role assignment, such as an empty
+//     body: an Error that says so;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *UsersService) AssignRole(ctx context.Context, userKey string, role models.UserRoleCreate,
+) (*models.RoleAssignmentRead, error) {
+	r, err := s.facts.prepare(ctx, request{
+		op: opAssignUserRole, params: []string{userKey}, body: role,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return do[models.RoleAssignmentRead](ctx, s.facts.client, r)
+}
+
+// UnassignRole removes role from the user whose key or ID is userKey with
+// DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles and a body that holds the Role and
+// the Tenant of role always, and its ResourceInstance when it is set, as [models.UserRoleRemove]
+// says. It reads no body from a reply in 200-299 and returns nil for it: the API's spec lists a
+// 204 without a body, and a 200 with the role assignment for the deprecated query parameter
+// return_deleted, which the SDK does not send. The body, not the path, names the role to remove,
+// so a 404 can mean a mistyped key: UnassignRole returns it as an [Error] that matches
+// [ErrNotFound], never nil, also when the user does not have the role, for which the API's
+// documentation says that it answers 404. With [WithFactsViaPDP], a 404 with an empty body,
+// which is how the cloud PDP answers every route under /facts, is an error that matches
+// [ErrContainerPDPOnly] instead.
+//
+// UnassignRole needs an environment-level API key, or higher, and the scope of an environment, as
+// [UsersService] says. Through a copy of [UsersService.WaitForSync], with [WithFactsViaPDP], it
+// waits for sync: the PDP container holds its answer until the removal reaches its policy, or the
+// timeout of the wait passes. Removing a role twice leaves it removed, so the call sends its
+// request again after a 500, 502, 503 or 504 reply or a failed connection, as after a 429; when
+// an attempt that got no complete reply removed the role, the next attempt can get an error
+// status, such as a 404, which UnassignRole returns.
+//
+// UnassignRole returns an error:
+//
+//   - for a userKey that is empty, . or ..: an error that matches [ErrInvalidConfig], and no
+//     request for the user;
+//   - for a wait that the call cannot make, as [UsersService.WaitForSync] says: an error that
+//     matches ErrInvalidConfig, and no request;
+//   - for a reply with an error status: an Error with the status and the body of the reply,
+//     such as one that matches ErrNotFound for a 404, or one whose Detail names each field that
+//     the API rejects for a 422;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *UsersService) UnassignRole(ctx context.Context, userKey string,
+	role models.UserRoleRemove,
+) error {
+	r, err := s.facts.prepare(ctx, request{
+		op: opUnassignUserRole, params: []string{userKey}, body: role,
+	})
 	if err != nil {
 		return err
 	}

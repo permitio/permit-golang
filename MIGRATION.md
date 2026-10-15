@@ -2872,7 +2872,7 @@ already, such as when a retry follows a delete that succeeded; v1 returned an er
 something. Any other error status is a `*permit.Error` with the status and the body.
 
 <a id="M-users-8"></a>
-### M-users-8: Users.WaitForSync takes a time.Duration and waits on creates, syncs and updates
+### M-users-8: Users.WaitForSync takes a time.Duration and waits on creates, syncs, updates and role changes
 
 - v1: `api.Users.WaitForSync`
 - v2: `permit.UsersService.WaitForSync`
@@ -2882,13 +2882,63 @@ a `*time.Duration` whose nil meant the timeout of the configuration, and options
 `api.WaitForSyncOptions`, as [M-facts-3](#M-facts-3) says. It returns a copy of the service whose
 calls carry the wait; the service that it is called on keeps none.
 
-Only `Create`, `Sync` and `Update` wait for sync: of the routes that `UsersService` calls, the PDP
-container waits on `POST /facts/users` and on `PUT` and `PATCH /facts/users/{user_id}`, and
-answers the reads and the delete without waiting. A call through the copy of any other method,
-such as `Get` or `Delete`, is an error that matches `permit.ErrInvalidConfig`, and no request is
-sent; v1 sent the headers of the wait with every call through its copy. A client without
-`permit.WithFactsViaPDP()` gets the same error for every call through the copy, as only the PDP
-container waits; v1 logged a warning and made the calls without the wait.
+Only `Create`, `Sync`, `Update`, `AssignRole` and `UnassignRole` wait for sync: of the routes that
+`UsersService` calls, the PDP container waits on `POST /facts/users`, on `PUT` and
+`PATCH /facts/users/{user_id}` and on `POST` and `DELETE /facts/users/{user_id}/roles`, and
+answers the reads and the delete of a user without waiting. A call through the copy of any other
+method, such as `Get` or `Delete`, is an error that matches `permit.ErrInvalidConfig`, and no
+request is sent; v1 sent the headers of the wait with every call through its copy. A client
+without `permit.WithFactsViaPDP()` gets the same error for every call through the copy, as only
+the PDP container waits; v1 logged a warning and made the calls without the wait.
+
+<a id="M-users-10"></a>
+### M-users-10: AssignRole and AssignResourceRole become AssignRole, which takes models.UserRoleCreate
+
+- v1: `api.Users.AssignRole`
+- v1: `api.Users.AssignResourceRole`
+- v2: `permit.UsersService.AssignRole`
+
+`UsersService.AssignRole(ctx, userKey, role)` takes the role as a `models.UserRoleCreate`, in
+place of the keys of the role and the tenant, and of the resource instance for
+`AssignResourceRole`, as strings: `models.UserRoleCreate{Role: "editor", Tenant: "tenant-a"}` for
+a role in a tenant, and `ResourceInstance` set too, such as `document:doc-1`, for a role on a
+resource instance. v1's `AssignRole` and `AssignResourceRole` sent the tenant in every request,
+also when it was empty, and `AssignResourceRole` sent the resource instance even when it was
+empty; v2 sends the role always, and leaves the tenant and the resource instance out when they
+are empty. It returns a `*models.RoleAssignmentRead`, as v1's methods did. It is sent again only
+after a 429, as [M-wire-5](#M-wire-5) says, as the API may have assigned the role when a request got
+no complete reply. With `permit.WithFactsViaPDP()`, it goes to the PDP container,
+`POST /facts/users/{user_id}/roles`, which can wait for sync, as [M-users-8](#M-users-8) says.
+
+`models.RoleAssignmentRead` has `ID`, `ResourceInstanceID`, `UserID`, `RoleID`, `TenantID`,
+`OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`, `ResourceInstanceId`, `UserId`,
+`RoleId`, `TenantId`, `OrganizationId`, `ProjectId` and `EnvironmentId`; `ResourceInstance` and
+`ResourceInstanceID` are plain strings, empty when the reply has none, in place of pointers;
+`Tenant` is a plain string, as in v1; and `CreatedAt` is a `models.Time`, which embeds `time.Time`.
+
+<a id="M-users-11"></a>
+### M-users-11: UnassignRole and UnassignResourceRole become UnassignRole, which returns only an error
+
+- v1: `api.Users.UnassignRole`
+- v1: `api.Users.UnassignResourceRole`
+- v2: `permit.UsersService.UnassignRole`
+
+`UsersService.UnassignRole(ctx, userKey, role)` takes the role as a `models.UserRoleRemove`, in
+place of the keys of the role and the tenant, and of the resource instance for
+`UnassignResourceRole`, as strings. The request holds the role and the tenant always, as v1's did,
+and the resource instance when it is set, where v1's `UnassignResourceRole` sent it even when it was
+empty. It returns only an error, nil for a reply in 200-299. v1's `UnassignRole` and
+`UnassignResourceRole` returned a `*models.UserRead`, which they read from the body of the reply:
+the API's spec lists a 204 without a body, unless the request sends the deprecated query parameter
+`return_deleted`, which neither v1 nor v2 sends, so v1 returned a nil `*models.UserRead` with a nil
+error. A 404, such as for a role that the user does not have, is a `*permit.Error` that matches
+`permit.ErrNotFound`, never nil, as the body names the role to remove and a 404 can mean a mistyped
+key; `UsersService.Delete`, whose path names the user, returns nil for a 404 instead, as
+[M-users-7](#M-users-7) says. It is sent again after a 500, 502, 503 or 504 reply or a failed
+connection, as after a 429, as removing a role twice leaves it removed; when an attempt that got no
+complete reply removed the role, the next attempt can get a 404, which `UnassignRole` returns. With
+`permit.WithFactsViaPDP()`, it goes to the PDP container, `DELETE /facts/users/{user_id}/roles`,
+which can wait for sync, as [M-users-8](#M-users-8) says.
 
 <a id="M-proxy-configs-1"></a>
 ### M-proxy-configs-1: ProxyConfigs becomes Client.ProxyConfigs, which acts on the environment of the scope
@@ -3263,6 +3313,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceRoleRead` | `models.ResourceRoleRead` |
 | `models.ResourceRoleUpdate` | `models.ResourceRoleUpdate` |
 | `models.ResourceUpdate` | `models.ResourceUpdate` |
+| `models.RoleAssignmentRead` | `models.RoleAssignmentRead` |
 | `models.RoleCreate` | `models.RoleCreate` |
 | `models.RoleRead` | `models.RoleRead` |
 | `models.RoleUpdate` | `models.RoleUpdate` |
@@ -3272,8 +3323,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.UserCreate` | `models.UserCreate` |
 | `models.UserRead` | `models.UserRead` |
 | `models.UserRoleCreate` | `models.UserRoleCreate` |
+| `models.UserRoleRemove` | `models.UserRoleRemove` |
 | `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 311 of the 384 types of v1's pkg/models.
+Not mapped yet: 309 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

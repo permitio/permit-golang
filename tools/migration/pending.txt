@@ -27,10 +27,6 @@ api.NewRoleAssignmentsApi role-assignments
 api.Roles.BulkAssignRole role-assignments
 api.Roles.BulkUnAssignRole role-assignments
 api.Tenants.ListTenantUsers tenants
-api.Users.AssignRole users
-api.Users.AssignResourceRole users
-api.Users.UnassignRole users
-api.Users.UnassignResourceRole users
 api.Users.GetAssignedRoles role-assignments
 
 # Block b: operations of pkg/openapi

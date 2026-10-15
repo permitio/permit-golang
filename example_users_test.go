@@ -89,3 +89,43 @@ func ExampleUsersService_Sync() {
 	// created: true, first name: "Dave"
 	// created: false, first name: ""
 }
+
+// Assign the role editor to the user alice in the tenant tenant-a, and then remove it. The
+// removal names the role in its body, so a role that the user does not have is an error that
+// matches ErrNotFound.
+func ExampleUsersService_AssignRole() {
+	client, err := permit.New(
+		permit.WithAPIKey(exampleAPIKey),
+		permit.WithAPIURL(exampleAPIURL),
+		permit.WithPDPURL(examplePDPURL),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+	assignment, err := client.Users.AssignRole(ctx, "alice",
+		models.UserRoleCreate{Role: "editor", Tenant: "tenant-a"})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(assignment.User, "has the role", assignment.Role, "in", assignment.Tenant)
+
+	err = client.Users.UnassignRole(ctx, "alice",
+		models.UserRoleRemove{Role: "editor", Tenant: "tenant-a"})
+	if errors.Is(err, permit.ErrNotFound) {
+		fmt.Println("alice does not have the role editor in tenant-a")
+		return
+	}
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("removed")
+	// Output:
+	// alice has the role editor in tenant-a
+	// removed
+}

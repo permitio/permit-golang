@@ -1227,6 +1227,9 @@ github.com/permitio/permit-golang/v2 TestUsersWaitForSync
 github.com/permitio/permit-golang/v2 TestUsersWaitForSyncMisuse
 github.com/permitio/permit-golang/v2 ExampleUsersService
 github.com/permitio/permit-golang/v2 ExampleUsersService_Sync
+github.com/permitio/permit-golang/v2 TestUnassignRoleReplies
+github.com/permitio/permit-golang/v2 TestUserRoleBodies
+github.com/permitio/permit-golang/v2 ExampleUsersService_AssignRole
 
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllYieldsAnErrorOnce
@@ -1308,6 +1311,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceRoleRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestSetRules
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestImplicitGrants
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestReplaceUser
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestUserRoles
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants

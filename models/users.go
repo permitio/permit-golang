@@ -154,3 +154,18 @@ type UserRoleCreate struct {
 	// for a role on the instance. Empty leaves it out, for a role in the tenant.
 	ResourceInstance string `json:"resource_instance,omitzero"`
 }
+
+// UserRoleRemove is a role to remove from a user: a role in a tenant, or a role of a resource on
+// one of its instances. Role and Tenant are required, and the request always holds them, also
+// when they are empty; ResourceInstance is left out of the request when it is empty.
+type UserRoleRemove struct {
+	// Role is the key or the ID of the role, or of the resource's role for an instance.
+	Role string `json:"role"`
+
+	// Tenant is the key or the ID of the tenant.
+	Tenant string `json:"tenant"`
+
+	// ResourceInstance is the instance as <resource>:<key>, such as document:doc-1, or its ID,
+	// for a role on the instance. Empty leaves it out, for a role in the tenant.
+	ResourceInstance string `json:"resource_instance,omitzero"`
+}

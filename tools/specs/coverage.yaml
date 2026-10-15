@@ -364,8 +364,8 @@ control-plane:
   - {op: replace_user, route: "PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}", stage: GA, status: covered}
   - {op: update_user, route: "PATCH /v2/facts/{proj_id}/{env_id}/users/{user_id}", stage: GA, status: covered}
   - {op: delete_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}", stage: GA, status: covered}
-  - {op: assign_role_to_user, route: "POST /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", stage: GA, status: planned}
-  - {op: unassign_role_from_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", stage: GA, status: planned}
+  - {op: assign_role_to_user, route: "POST /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", stage: GA, status: covered}
+  - {op: unassign_role_from_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", stage: GA, status: covered}
   # Users Elements Data
   - {op: set_config_active, route: "POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/active", stage: GA, status: excluded, reason: elements-session}
   - {op: elements_list_roles, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/roles", stage: GA, status: excluded, reason: elements-session}
@@ -462,8 +462,8 @@ pdp:
   - {op: create_user_facts_users_post, route: "POST /facts/users", stage: GA, status: covered}
   - {op: sync_user_facts_users__user_id__put, route: "PUT /facts/users/{user_id}", stage: GA, status: covered}
   - {op: update_user_facts_users__user_id__patch, route: "PATCH /facts/users/{user_id}", stage: GA, status: covered}
-  - {op: assign_user_role_facts_users__user_id__roles_post, route: "POST /facts/users/{user_id}/roles", stage: GA, status: planned}
-  - {op: unassign_user_role_facts_users__user_id__roles_delete, route: "DELETE /facts/users/{user_id}/roles", stage: GA, status: planned}
+  - {op: assign_user_role_facts_users__user_id__roles_post, route: "POST /facts/users/{user_id}/roles", stage: GA, status: covered}
+  - {op: unassign_user_role_facts_users__user_id__roles_delete, route: "DELETE /facts/users/{user_id}/roles", stage: GA, status: covered}
   - op: forward_remaining_requests
     route: "ANY /facts/{full_path}"
     stage: GA

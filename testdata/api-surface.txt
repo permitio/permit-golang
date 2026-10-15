@@ -576,6 +576,20 @@ models: type ResourceUpdate struct, Relations map[string]string
 models: type ResourceUpdate struct, Roles map[string]RoleBlockEditable
 models: type ResourceUpdate struct, TypeAttributes Attributes
 models: type ResourceUpdate struct, URN string
+models: type RoleAssignmentRead struct
+models: type RoleAssignmentRead struct, CreatedAt Time
+models: type RoleAssignmentRead struct, EnvironmentID string
+models: type RoleAssignmentRead struct, ID string
+models: type RoleAssignmentRead struct, OrganizationID string
+models: type RoleAssignmentRead struct, ProjectID string
+models: type RoleAssignmentRead struct, ResourceInstance string
+models: type RoleAssignmentRead struct, ResourceInstanceID string
+models: type RoleAssignmentRead struct, Role string
+models: type RoleAssignmentRead struct, RoleID string
+models: type RoleAssignmentRead struct, Tenant string
+models: type RoleAssignmentRead struct, TenantID string
+models: type RoleAssignmentRead struct, User string
+models: type RoleAssignmentRead struct, UserID string
 models: type RoleBlockEditable struct
 models: type RoleBlockEditable struct, Attributes Attributes
 models: type RoleBlockEditable struct, Description string
@@ -695,6 +709,10 @@ models: type UserRoleCreate struct
 models: type UserRoleCreate struct, ResourceInstance string
 models: type UserRoleCreate struct, Role string
 models: type UserRoleCreate struct, Tenant string
+models: type UserRoleRemove struct
+models: type UserRoleRemove struct, ResourceInstance string
+models: type UserRoleRemove struct, Role string
+models: type UserRoleRemove struct, Tenant string
 models: type UserStatus string
 models: type UserUpdate struct
 models: type UserUpdate struct, Attributes Optional[Attributes]
@@ -850,11 +868,13 @@ permit: method (*UserAttributesService) Get(ctx context.Context, attributeKey st
 permit: method (*UserAttributesService) List(ctx context.Context, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
 permit: method (*UserAttributesService) Update(ctx context.Context, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
 permit: method (*UsersService) All(ctx context.Context, opts *UsersListOptions) iter.Seq2[models.UserRead, error]
+permit: method (*UsersService) AssignRole(ctx context.Context, userKey string, role models.UserRoleCreate) (*models.RoleAssignmentRead, error)
 permit: method (*UsersService) Create(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
 permit: method (*UsersService) Delete(ctx context.Context, userKey string) error
 permit: method (*UsersService) Get(ctx context.Context, userKey string) (*models.UserRead, error)
 permit: method (*UsersService) List(ctx context.Context, opts *UsersListOptions) (*Page[models.UserRead], error)
 permit: method (*UsersService) Sync(ctx context.Context, user models.UserCreate) (*UserSyncResult, error)
+permit: method (*UsersService) UnassignRole(ctx context.Context, userKey string, role models.UserRoleRemove) error
 permit: method (*UsersService) Update(ctx context.Context, userKey string, update models.UserUpdate) (*models.UserRead, error)
 permit: method (*UsersService) WaitForSync(timeout time.Duration, opts ...SyncOption) *UsersService
 permit: method (Option) Format(f fmt.State, verb rune)

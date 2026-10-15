@@ -124,6 +124,7 @@ var routes = []Route{
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "list_tenant_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "assign_role_to_user"},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "unassign_role_from_user"},
 	{
 		"POST", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations",
 		"create_resource_relation",
@@ -718,6 +719,99 @@ func TestReplaceUser(t *testing.T) {
 	if errs := h.tb.take(); len(errs) != 1 ||
 		!strings.Contains(errs[0], "does not implement this request") {
 		t.Errorf("the PUT without a body reported %q, want that it is not implemented", errs)
+	}
+}
+
+// TestUserRoles checks the assignments and the unassignments of the roles of a user: an
+// assignment of a role of the environment in a tenant, by their keys, answers the role
+// assignment with the IDs of the user, the role and the tenant and the scope of the user, and a
+// get of the user, by its key or its ID, holds the role in the tenant's entry of its
+// associated_tenants; a second role, by the IDs of the role and the tenant, joins the entry; an
+// unassignment removes one role and keeps the other, with 204, and a second one, or one in a
+// tenant in which the user has no role, gets 404; a role or a tenant that the environment does
+// not have gets 404; and a role on a resource instance, a role without a tenant, the assignment
+// of a role that the user has already and a request without a body are requests that the fake
+// does not implement.
+func TestUserRoles(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	user := h.expect(200, "POST", "/v2/facts/proj/dev/users", `{"key": "alice"}`, projectKey)
+	editor := h.expect(200, "POST", "/v2/schema/proj/dev/roles", `{"key": "editor"}`, projectKey)
+	viewer := h.expect(200, "POST", "/v2/schema/proj/dev/roles", `{"key": "viewer"}`, projectKey)
+	tenant := h.expect(200, "POST", "/v2/facts/proj/dev/tenants", `{"key": "t1", "name": "T1"}`,
+		projectKey)
+	h.expect(200, "POST", "/v2/facts/proj/dev/tenants", `{"key": "t2", "name": "T2"}`, projectKey)
+	roles := "/v2/facts/proj/dev/users/alice/roles"
+	assigned := h.expect(200, "POST", roles, `{"role": "editor", "tenant": "t1"}`, projectKey)
+	want := map[string]any{
+		"user": "alice", "role": "editor", "tenant": "t1", "user_id": user["id"],
+		"role_id": editor["id"], "tenant_id": tenant["id"],
+		"organization_id": user["organization_id"], "project_id": user["project_id"],
+		"environment_id": user["environment_id"],
+	}
+	for field, value := range want {
+		if assigned[field] != value {
+			t.Errorf("the assignment answered the %s %v, want %v", field, assigned[field], value)
+		}
+	}
+	if id, _ := assigned["id"].(string); id == "" || id == user["id"] {
+		t.Errorf("the assignment answered the ID %q, want an ID of its own", id)
+	}
+	byIDs := fmt.Sprintf(`{"role": %q, "tenant": %q}`, viewer["id"], tenant["id"])
+	h.expect(200, "POST", roles, byIDs, projectKey)
+	h.expectTenants(user, `[{"roles":["editor","viewer"],"status":"active","tenant":"t1"}]`)
+	h.expect(204, "DELETE", roles, `{"role": "editor", "tenant": "t1"}`, projectKey)
+	h.expectTenants(user, `[{"roles":["viewer"],"status":"active","tenant":"t1"}]`)
+	for body, message := range map[string]string{
+		`{"role": "editor", "tenant": "t1"}`: "the user does not have the role editor in the " +
+			"tenant t1",
+		`{"role": "viewer", "tenant": "t2"}`: "the user does not have the role viewer in the " +
+			"tenant t2",
+		`{"role": "admin", "tenant": "t1"}`:  "no role admin",
+		`{"role": "viewer", "tenant": "t3"}`: "no tenant t3",
+	} {
+		if got := h.expect(404, "DELETE", roles, body, projectKey); got["message"] != message {
+			t.Errorf("the unassignment of %s answered %v, want the message %q", body, got,
+				message)
+		}
+	}
+	for body, message := range map[string]string{
+		`{"role": "admin", "tenant": "t1"}`:  "no role admin",
+		`{"role": "editor", "tenant": "t3"}`: "no tenant t3",
+	} {
+		if got := h.expect(404, "POST", roles, body, projectKey); got["message"] != message {
+			t.Errorf("the assignment of %s answered %v, want the message %q", body, got, message)
+		}
+	}
+	for _, r := range []struct{ method, body string }{
+		{"POST", `{"role": "viewer", "tenant": "t1"}`},
+		{"POST", `{"role": "editor"}`},
+		{"POST", `{"role": "editor", "tenant": "t1", "resource_instance": "document:a"}`},
+		{"DELETE", `{"role": "viewer", "tenant": "t1", "resource_instance": "document:a"}`},
+		{"POST", ""},
+		{"DELETE", ""},
+	} {
+		h.expect(501, r.method, roles, r.body, projectKey)
+		if errs := h.tb.take(); len(errs) != 1 ||
+			!strings.Contains(errs[0], "does not implement this request") {
+			t.Errorf("%s %s reported %q, want that it is not implemented", r.method, r.body, errs)
+		}
+	}
+	h.expectTenants(user, `[{"roles":["viewer"],"status":"active","tenant":"t1"}]`)
+}
+
+// expectTenants checks that a get of user, by its key and by its ID, answers the
+// associated_tenants of want, as JSON with its keys in order.
+func (h *harness) expectTenants(user map[string]any, want string) {
+	h.t.Helper()
+	id, _ := user["id"].(string)
+	for _, ident := range []string{"alice", id} {
+		got := h.expect(200, "GET", "/v2/facts/proj/dev/users/"+ident, "", projectKey)
+		data, err := json.Marshal(got["associated_tenants"])
+		if err != nil || string(data) != want {
+			h.t.Errorf("the user %s has the associated_tenants %s (%v), want %s", ident, data, err,
+				want)
+		}
 	}
 }
 

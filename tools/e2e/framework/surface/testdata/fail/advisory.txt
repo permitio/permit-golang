@@ -1,0 +1,2 @@
+Client.Check TICKET-1 waits for a release
+Client.Bulk TICKET-2 waits for a release of another package

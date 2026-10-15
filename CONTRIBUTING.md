@@ -573,7 +573,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | Job | What it does |
 | --- | --- |
 | `prek` | Checks the workflows with cicheck, runs every git hook on every file through `.github/scripts/prek-count.sh`, and on a pull request checks the message of each of its commits through `.github/scripts/commits-check.sh`. |
-| `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. Then the benchmarks of the root package run 100 times each, so that each compiles and runs. |
+| `test` | Runs the tests of both modules and the [end-to-end dry run](#end-to-end-tests) with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. Then the benchmarks of the root package run 100 times each, so that each compiles and runs. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, whose output checkgotest checks; see [API reference](#api-reference). Then builds and runs the zapslog example of `WithLogger`, which needs the module proxy; see [Logging](#logging). |
@@ -1174,7 +1174,7 @@ stricter than JSON Schema in one way: an object schema that lists properties and
 spec does not name. It does not check documentation, defaults, formats and bounds on values, such
 as `pattern` and `minimum`, which say nothing of a value's shape. A keyword that it does not know
 stops the check that meets it, which reports `DID NOT RUN:` with the keyword's name instead of
-skipping it: add the keyword to `keywords` in `tools/drift/schema_test.go`, with its check when it
+skipping it: add the keyword to `keywords` in `tools/drift/schema.go`, with its check when it
 constrains the shape of a value.
 
 ### Rows of the map
@@ -1309,8 +1309,8 @@ the query, the headers or the body. A session trailer with the exit code of the 
 number of tests that wrote to the record ends it, so a record without it comes from a run that
 did not finish. That count is not the number of tests that ran: a test writes to the record when
 it starts a server or calls `mockpermit.RecordTest`. `internal/testhook` writes the format; the
-end-to-end scenarios record through it in the modes `dryrun`, run offline, and `live`, against
-the Permit cloud *(added in a later commit on this branch)*: the transport writes each attempt
+[end-to-end scenarios](#end-to-end-tests) record through it in the modes `dryrun`, run offline,
+and `live`, against the Permit cloud: the transport writes each attempt
 of a call whose context carries a `testhook.Recorder`, which only a scenario puts there, so a
 wire test's request is recorded once, by the `mockpermit` server. Requests to the test-only
 routes, under `/__test/`, are never recorded.
@@ -1352,6 +1352,73 @@ with a path that holds a query, or with fewer requests than covered rows.
 
 The `api-coverage` job of `ci.yml` runs these steps offline on every pull request and push to
 `master`, and writes the report to the job summary, where the end-to-end column is a dry run.
+
+## End-to-end tests
+
+The end-to-end scenarios in [tools/e2e](tools/e2e) build only with the tag `e2e`. `TestCloud`
+runs the scenarios of the cloud lane, the list `cloudScenarios`, in a scratch environment that
+it creates for the run, with the key `gosdk-ci-<run>-<attempt>-<leg>`, and deletes at its end,
+then checks that the Debug logs of every client of the run hold none of its API keys. The code
+that creates and checks what a scenario needs, in `tools/e2e/framework`, uses plain `net/http`
+and not the SDK, so it does not depend on the code under test. It registers the teardown of
+each object in a ledger before the request that creates it, treats a 404 to a deletion as
+success and checks that the object is gone, polls with a bound on the elapsed time rather than
+sleeping, and retries a 429 with the reply's `Retry-After` or a backoff with jitter, apart from
+the SDK's own retries. Each call of the SDK carries the request recorder of `internal/testhook`.
+A seed builder in `tools/e2e/framework/seed` *(added in a later commit on this branch)* creates
+the test data that a scenario needs, such as resources, roles, tenants and users, in plain
+`net/http` too.
+
+The dry run runs every scenario offline against the fake of the Permit API in
+`tools/e2e/fake`, which keeps the objects of each collection of the control plane's spec in
+memory and checks each request body with the walker of `tools/drift`. The `test` job runs it on
+every pull request; run it from the repository root:
+
+```sh
+HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
+  go -C tools test -race -count=1 -p 2 -timeout 5m -tags e2e ./e2e -args -e2e.dryrun
+```
+
+The test binary prints its verdict last and exits 0 on PASS, 1 on FAIL and 2 on DID NOT RUN:
+when the ledger of a run does not reconcile, which means that it may have left objects behind,
+or when an input of the gate below cannot be read. `go test` reports any exit but 0 as 1, so to
+see the code, build the binary and run it in `tools/e2e`:
+
+```sh
+go -C tools test -c -race -tags e2e -o ../bin/e2e.test ./e2e
+(cd tools/e2e && ../../bin/e2e.test -e2e.dryrun)
+```
+
+Without `-e2e.dryrun`, `TestCloud` runs against the Permit API, or the one at
+`PERMIT_E2E_API_URL`, such as a local stack, with the project-level key in
+`PERMIT_E2E_PROJECT_KEY`, in the project that `PERMIT_E2E_PROJECT` names, with the run and the
+attempt in `GITHUB_RUN_ID` and `GITHUB_RUN_ATTEMPT` and the leg that `-e2e.leg` gives, and
+skips when the key is not set *(the job that runs it is added in a later commit on this
+branch)*. `-e2e.record` keeps its request record for apicoverage. `tools/e2e/required.txt`
+lists the tests that every run of the scenarios must run and pass, and the live job checks them
+with checkgotest *(added in a later commit on this branch)*.
+
+`TestE2ESurfaceComplete` runs the cloud scenarios in a dry run of its own and checks that each
+method of `testdata/operation-map.json` is in exactly one end-to-end state, with a count
+sentinel: the methods add up to the four states.
+
+| State | Where |
+| --- | --- |
+| cloud | A cloud scenario lists the method in its `methods`, and its dry run sends each of the method's operations. Two methods may send the same operation, so a request alone makes no method cloud. |
+| local-only | `tools/e2e/local-only.txt`: `<Method> <reason> <phase>`, with the reason `org-key`, `account-level-write`, `needs-pdp-id` or `unverified-response`, and the phase of the local harness that proves the method instead. |
+| advisory | `tools/e2e/advisory.txt`: `<Method> <ticket> <reason>`, for a scenario that may skip while the ticket is open. The scenario skips in the dry run too, with an entry of `.github/allowed-skips.txt` for its test that names the same ticket; the gate fails an advisory line whose ticket no entry for a test of `tools/e2e` names. |
+| pending | `tools/e2e/pending.txt`: `<Method> e2e-pending <area>`, for a method that no scenario calls yet. A release refuses a pending line *(added in a later commit on this branch)*. |
+
+When a commit adds a public method, it adds a line to `pending.txt`, or a scenario that calls
+it. To move a method from pending to cloud, add a scenario to `cloudScenarios`, or extend one,
+that calls the method with the context of `suite.ctx` and lists it in its `methods`, and remove
+the method's line from `pending.txt` in the same commit: a line of a method that a cloud
+scenario covers fails the gate, as a stale local-only line does. A cloud scenario that sends an
+operation whose `KeyLevel` is `OrganizationLevel` fails the gate too, while
+`tools/e2e/keys.yaml` sets `organization_key: false`, as the cloud lane has no
+organization-level key: remove the call from the cloud scenarios and list each method that
+sends the operation in `local-only.txt` with the reason `org-key`, or set `organization_key:
+true` once the lane has the key.
 
 ## Dependency updates
 
@@ -1618,8 +1685,8 @@ later commit on this branch)* does not exist yet.
 6. Rewrite `testdata/operation-map.json`, mark the operation's row of
    `tools/specs/coverage.yaml` covered, and run the API coverage report; see
    [API coverage](#api-coverage).
-7. Add an end-to-end scenario for the method, or mark it pending or local-only *(the end-to-end
-   tests are added in a later commit on this branch)*.
+7. Cover the method in a cloud scenario, or list it in `tools/e2e/pending.txt`, or in
+   `tools/e2e/local-only.txt` with a reason; see [End-to-end tests](#end-to-end-tests).
 8. Add its entries to `CHANGELOG.md` and `MIGRATION.md`, and remove what the `MIGRATION.md` entries
    cover from `tools/migration/pending.txt`; see
    [Public surface and migration](#public-surface-and-migration).

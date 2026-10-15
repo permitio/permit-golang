@@ -1,0 +1,348 @@
+package fake
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"regexp"
+	"slices"
+	"strings"
+	"sync"
+	"testing"
+)
+
+// projectKey is the project's API key of the fakes of these tests.
+const projectKey = "permit_key_FAKEfaketest"
+
+// routes are the routes of the fakes of these tests.
+var routes = []Route{
+	{"GET", "/v2/api-key/scope", opScope},
+	{"GET", "/v2/api-key/{proj_id}/{env_id}", opEnvironmentKey},
+	{"GET", "/v2/projects/{proj_id}/envs", "list_environments"},
+	{"POST", "/v2/projects/{proj_id}/envs", "create_environment"},
+	{"GET", "/v2/projects/{proj_id}/envs/{env_id}", "get_environment"},
+	{"PATCH", "/v2/projects/{proj_id}/envs/{env_id}", "update_environment"},
+	{"DELETE", "/v2/projects/{proj_id}/envs/{env_id}", "delete_environment"},
+	{"PUT", "/v2/projects/{proj_id}/envs/{env_id}/copy", "copy_environment"},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/users", "create_user"},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/users", "list_users"},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "get_user"},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/users/bulk", "bulk_users"},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "post_user"},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users", "delete_users"},
+	{"POST", "/v2/same/{first}", "same_first"},
+	{"POST", "/v2/same/{second}", "same_second"},
+}
+
+// recordingTB is a testing.TB that keeps the errors that the fake reports, rather than failing
+// the test.
+type recordingTB struct {
+	*testing.T
+
+	mu     sync.Mutex
+	errors []string
+}
+
+func (tb *recordingTB) Errorf(format string, args ...any) {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+	tb.errors = append(tb.errors, fmt.Sprintf(format, args...))
+}
+
+func (tb *recordingTB) Fatal(args ...any) {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+	tb.errors = append(tb.errors, fmt.Sprint(args...))
+}
+
+// take returns the errors that tb kept, and forgets them.
+func (tb *recordingTB) take() []string {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+	errs := tb.errors
+	tb.errors = nil
+	return errs
+}
+
+// harness is a fake with the TB that it reports to.
+type harness struct {
+	t    *testing.T
+	tb   *recordingTB
+	fake *Fake
+
+	// checked are the operations whose bodies the check saw.
+	mu      sync.Mutex
+	checked []string
+}
+
+// newHarness starts a fake of routes, whose check rejects a body that holds "bad" and cannot
+// check one that holds "unknown".
+func newHarness(t *testing.T) *harness {
+	t.Helper()
+	tb := &recordingTB{T: t}
+	h := &harness{t: t, tb: tb}
+	check := func(op string, body []byte) ([]string, error) {
+		h.mu.Lock()
+		h.checked = append(h.checked, op)
+		h.mu.Unlock()
+		switch {
+		case strings.Contains(string(body), "unknown"):
+			return nil, errors.New("no schema for " + op)
+		case strings.Contains(string(body), "bad"):
+			return []string{"#/key is bad"}, nil
+		}
+		return nil, nil
+	}
+	f := New(tb, Config{Routes: routes, Check: check, Project: "proj", ProjectAPIKey: projectKey})
+	t.Cleanup(func() {
+		if errs := tb.take(); errs != nil {
+			t.Errorf("the fake reported errors that the test did not take: %q", errs)
+		}
+	})
+	h.fake = f
+	return h
+}
+
+// do sends method to path with body, unless it is empty, and key, and returns the status and
+// the decoded reply.
+func (h *harness) do(method, path, body, key string) (int, any) {
+	h.t.Helper()
+	var reader io.Reader
+	if body != "" {
+		reader = strings.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(h.t.Context(), method, h.fake.URL()+path, reader)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	if key != "" {
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
+	resp, err := http.DefaultTransport.RoundTrip(req)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	var reply any
+	if len(data) > 0 {
+		if err := json.Unmarshal(data, &reply); err != nil {
+			h.t.Fatalf("%s %s: the reply %q is not JSON", method, path, data)
+		}
+	}
+	return resp.StatusCode, reply
+}
+
+// expect sends the request as do does and fails the test unless the status is want; it
+// returns the reply as an object, or nil when it is not one.
+func (h *harness) expect(want int, method, path, body, key string) map[string]any {
+	h.t.Helper()
+	status, reply := h.do(method, path, body, key)
+	if status != want {
+		h.t.Fatalf("%s %s %s answered %d %v, want %d", method, path, body, status, reply, want)
+	}
+	o, _ := reply.(map[string]any)
+	return o
+}
+
+// list sends GET to path with key, fails the test unless the reply is 200 with a JSON array, and
+// returns the array.
+func (h *harness) list(path, key string) []any {
+	h.t.Helper()
+	status, reply := h.do("GET", path, "", key)
+	list, ok := reply.([]any)
+	if status != 200 || !ok {
+		h.t.Fatalf("GET %s answered %d %v, want 200 and a list", path, status, reply)
+	}
+	return list
+}
+
+// createEnv creates the environment key in the project, and returns it and its API key.
+func (h *harness) createEnv(key string) (map[string]any, string) {
+	h.t.Helper()
+	env := h.expect(200, "POST", "/v2/projects/proj/envs", `{"key": "`+key+`"}`, projectKey)
+	secret := h.expect(200, "GET", "/v2/api-key/proj/"+key, "", projectKey)
+	s, _ := secret["secret"].(string)
+	return env, s
+}
+
+func TestEnvironmentLifecycle(t *testing.T) {
+	h := newHarness(t)
+	org := h.expect(200, "GET", "/v2/api-key/scope", "", projectKey)
+	if len(org) != 2 || org["project_id"] != h.fake.ProjectID() || org["organization_id"] == "" {
+		t.Errorf("the scope of the project's key is %v", org)
+	}
+	env, envKey := h.createEnv("dev")
+	id, _ := env["id"].(string)
+	if env["key"] != "dev" || id == "" || env["project_id"] != h.fake.ProjectID() ||
+		env["organization_id"] != org["organization_id"] {
+		t.Errorf("the created environment is %v", env)
+	}
+	if !regexp.MustCompile(`^permit_key_FAKEfakeenv[0-9]{32}$`).MatchString(envKey) {
+		t.Errorf("the environment's API key is %q", envKey)
+	}
+	uuid := regexp.MustCompile(`^00000000-0000-4000-8000-[0-9]{12}$`)
+	if !uuid.MatchString(id) || !uuid.MatchString(h.fake.ProjectID()) {
+		t.Errorf("the IDs %q and %q are not in the shape of a UUID", id, h.fake.ProjectID())
+	}
+	if _, again := h.createEnv("prod"); again == envKey {
+		t.Error("two environments have one API key")
+	}
+	if secret := h.expect(200, "GET", "/v2/api-key/"+h.fake.ProjectID()+"/"+id, "",
+		projectKey); secret["secret"] != envKey || secret["environment_id"] != id {
+		t.Errorf("the API key of the environment by IDs is %v, want the one issued", secret)
+	}
+	scope := h.expect(200, "GET", "/v2/api-key/scope", "", envKey)
+	if scope["environment_id"] != id || scope["project_id"] != h.fake.ProjectID() {
+		t.Errorf("the scope of the environment's key is %v", scope)
+	}
+	h.expect(409, "POST", "/v2/projects/proj/envs", `{"key": "dev"}`, projectKey)
+	if got := h.expect(200, "GET", "/v2/projects/proj/envs/"+id, "", projectKey); got["key"] !=
+		"dev" {
+		t.Errorf("the environment by ID is %v", got)
+	}
+	patched := h.expect(200, "PATCH", "/v2/projects/proj/envs/dev", `{"name": "Dev", "id": "x"}`,
+		projectKey)
+	if patched["name"] != "Dev" || patched["id"] != id {
+		t.Errorf("the patched environment is %v", patched)
+	}
+	if list := h.list("/v2/projects/proj/envs", projectKey); len(list) != 2 {
+		t.Errorf("the list of environments is %v", list)
+	}
+	user := h.expect(200, "POST", "/v2/facts/proj/dev/users", `{"key": "u1"}`, envKey)
+	if user["environment_id"] != id || user["project_id"] != h.fake.ProjectID() {
+		t.Errorf("the created user is %v", user)
+	}
+	h.expect(200, "GET", "/v2/facts/proj/"+id+"/users/u1", "", envKey)
+	h.expect(204, "DELETE", "/v2/projects/proj/envs/dev", "", projectKey)
+	h.expect(404, "GET", "/v2/projects/proj/envs/"+id, "", projectKey)
+	h.expect(404, "DELETE", "/v2/projects/proj/envs/dev", "", projectKey)
+	h.expect(401, "GET", "/v2/api-key/scope", "", envKey)
+	_, envKey = h.createEnv("dev")
+	if list := h.list("/v2/facts/proj/dev/users", envKey); len(list) != 0 {
+		t.Errorf("the users of a new environment of the deleted one's key are %v", list)
+	}
+}
+
+func TestAccess(t *testing.T) {
+	h := newHarness(t)
+	_, devKey := h.createEnv("dev")
+	h.createEnv("prod")
+	for _, tc := range []struct {
+		method, path, key string
+		want              int
+	}{
+		{"GET", "/v2/api-key/scope", "", 401},
+		{"GET", "/v2/api-key/scope", "permit_key_FAKEunknown", 401},
+		{"GET", "/v2/projects/other/envs", projectKey, 404},
+		{"GET", "/v2/projects/proj/envs/staging", projectKey, 404},
+		{"GET", "/v2/facts/proj/staging/users", projectKey, 404},
+		{"GET", "/v2/facts/proj/prod/users", devKey, 403},
+		{"GET", "/v2/projects/proj/envs", devKey, 403},
+		{"GET", "/v2/facts/proj/dev/users", devKey, 200},
+		{"GET", "/v2/facts/proj/prod/users", projectKey, 200},
+		{"GET", "/v2/facts/proj/dev/users/nobody", devKey, 404},
+	} {
+		if status, reply := h.do(tc.method, tc.path, "", tc.key); status != tc.want {
+			t.Errorf("%s %s with key %q answered %d %v, want %d", tc.method, tc.path, tc.key,
+				status, reply, tc.want)
+		}
+	}
+	if body := h.expect(401, "GET", "/v2/api-key/scope", "", ""); body["error_code"] !=
+		"UNAUTHORIZED" || body["message"] == nil {
+		t.Errorf("the reply to an unknown key is %v, want an error body", body)
+	}
+}
+
+func TestBodies(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	h.expect(422, "POST", "/v2/facts/proj/dev/users", `{"key": "bad"}`, projectKey)
+	wantErrs := []string{"fake: POST /v2/facts/{proj_id}/{env_id}/users (create_user): the body " +
+		"does not fit its schema: #/key is bad"}
+	if errs := h.tb.take(); !slices.Equal(errs, wantErrs) {
+		t.Errorf("the fake reported %q, want %q", errs, wantErrs)
+	}
+	h.expect(422, "POST", "/v2/facts/proj/dev/users", `{"key": "unknown"}`, projectKey)
+	if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0],
+		"the body could not be checked: no schema for create_user") {
+		t.Errorf("the fake reported %q for a body it cannot check", errs)
+	}
+	h.expect(422, "POST", "/v2/facts/proj/dev/users", `["u1"]`, projectKey)
+	if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0],
+		"the body is not a JSON object") {
+		t.Errorf("the fake reported %q for an array", errs)
+	}
+	h.expect(200, "POST", "/v2/facts/proj/dev/users", `{"key": "u1", "n": 1}`, projectKey)
+	h.expect(200, "POST", "/v2/facts/proj/dev/users", `{"key": "u2", "n": 2}`, projectKey)
+	h.expect(404, "DELETE", "/v2/facts/proj/dev/users", `{"n": 3}`, projectKey)
+	h.expect(204, "DELETE", "/v2/facts/proj/dev/users", `{"n": 1}`, projectKey)
+	var keys []any
+	for _, user := range h.list("/v2/facts/proj/dev/users", projectKey) {
+		o, _ := user.(map[string]any)
+		keys = append(keys, o["key"])
+	}
+	if !slices.Equal(keys, []any{"u2"}) {
+		t.Errorf("the keys of the users after a removal by body are %v, want u2", keys)
+	}
+}
+
+func TestRoutes(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	h.expect(200, "POST", "/v2/facts/proj/dev/users", `{"key": "a/b"}`, projectKey)
+	if got := h.expect(200, "GET", "/v2/facts/proj/dev/users/a%2Fb", "", projectKey); got["key"] !=
+		"a/b" {
+		t.Errorf("a key with an escaped slash reads %v", got)
+	}
+	h.expect(404, "POST", "/v2/same/x", `{"a": 1}`, projectKey)
+	if last := h.checked[len(h.checked)-1]; last != "same_first" {
+		t.Errorf("of two routes with as many literal segments, the body went to %s, want the "+
+			"first, same_first", last)
+	}
+	if list := h.list("/v2/facts/proj/dev/users/bulk", projectKey); len(list) != 0 {
+		t.Errorf("GET of the literal route bulk answered %v, want the empty list of its own "+
+			"collection, not the user bulk", list)
+	}
+	for _, tc := range []struct{ method, path, body, want string }{
+		{"GET", "/v2/nothing", "", "no route that the fake serves matches GET /v2/nothing"},
+		{"GET", "/v2/projects//envs", "", "matches GET /v2/projects//envs"},
+		{"PUT", "/v2/projects/proj/envs/dev/copy", `{"key": "x"}`, "copy_environment): the " +
+			"fake does not implement this request"},
+		{"POST", "/v2/facts/proj/dev/users", "", "create_user): the fake does not implement"},
+		{"DELETE", "/v2/facts/proj/dev/users", "", "delete_users): the fake does not implement"},
+		{"POST", "/v2/facts/proj/dev/users/a%2Fb", `{"x": 1}`, "post_user): the fake does not"},
+	} {
+		h.do(tc.method, tc.path, tc.body, projectKey)
+		if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0], tc.want) {
+			t.Errorf("%s %s reported %q, want an error with %q", tc.method, tc.path, errs,
+				tc.want)
+		}
+	}
+	for _, key := range []string{"", "permit_key_FAKEunknown"} {
+		status, _ := h.do("GET", "/v2/nothing", "", key)
+		if errs := h.tb.take(); status != 404 || len(errs) != 1 || !strings.Contains(errs[0],
+			"no route that the fake serves matches GET /v2/nothing") {
+			t.Errorf("a route that the fake does not serve, with the key %q, answered %d and "+
+				"reported %q", key, status, errs)
+		}
+	}
+}
+
+func TestNewChecksConfig(t *testing.T) {
+	tb := &recordingTB{T: t}
+	New(tb, Config{Project: "p", ProjectAPIKey: "k"})
+	New(tb, Config{Check: func(string, []byte) ([]string, error) { return nil, nil }})
+	want := []string{
+		"fake: New needs a Check of the request bodies",
+		"fake: New needs the key of the project and the project's API key",
+	}
+	if errs := tb.take(); !slices.Equal(errs, want) {
+		t.Errorf("New reported %q, want %q", errs, want)
+	}
+}

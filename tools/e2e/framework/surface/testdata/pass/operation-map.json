@@ -1,0 +1,19 @@
+{
+  "methods": {
+    "Client.BulkCheck": [
+      "bulk"
+    ],
+    "Client.Check": [
+      "check"
+    ],
+    "Client.FilterObjects": [
+      "bulk"
+    ],
+    "Client.Scope": [
+      "scope"
+    ],
+    "UsersService.List": [
+      "list_users"
+    ]
+  }
+}

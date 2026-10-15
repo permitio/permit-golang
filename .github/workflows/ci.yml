@@ -116,6 +116,7 @@ jobs:
   # release. The floor legs use go.mod and go.sum as committed; the ceiling legs first move every
   # dependency to its newest version in the runner's copy, as an application that requires newer
   # versions would. GOTOOLCHAIN=local keeps the go command from switching to go.mod's toolchain.
+  # The end-to-end dry run of tools/e2e runs with them, and checkgotest checks all three outputs.
   # The modules, and the gitleaks that the tests of gitleaks-range.sh run, are downloaded first,
   # and the tests then run offline. Then the benchmarks of the root package run 100 times each,
   # so that each compiles and runs; the bench job measures them.
@@ -175,15 +176,18 @@ jobs:
           .github/scripts/fetch-tool.sh gitleaks
           go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
-          root=0 tools=0
+          root=0 tools=0 e2e=0
           go test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/root.json" || root=$?
           go -C tools test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/tools.json" ||
             tools=$?
+          go -C tools test -race -shuffle=on -count=1 -json -tags e2e ./e2e -args -e2e.dryrun \
+            >"$RUNNER_TEMP/e2e.json" || e2e=$?
           "$RUNNER_TEMP/checkgotest" -require-file .github/required-tests.txt \
             -allow-skips .github/allowed-skips.txt \
-            "$RUNNER_TEMP/root.json" "$RUNNER_TEMP/tools.json"
-          if [[ $root -ne 0 || $tools -ne 0 ]]; then
-            echo "go test exited $root in the root module and $tools in tools/."
+            "$RUNNER_TEMP/root.json" "$RUNNER_TEMP/tools.json" "$RUNNER_TEMP/e2e.json"
+          if [[ $root -ne 0 || $tools -ne 0 || $e2e -ne 0 ]]; then
+            echo "go test exited $root in the root module, $tools in tools/ and $e2e in the" \
+              "end-to-end dry run."
             exit 1
           fi
           go test -count=1 -run '^$' -bench . -benchtime 100x .

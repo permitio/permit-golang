@@ -1,0 +1,6 @@
+# The API keys of the cloud lane of the end-to-end scenarios, beyond the project-level key of its
+# project. TestE2ESurfaceComplete (completeness_test.go) fails when a cloud scenario calls an
+# operation that needs an organization-level key while organization_key is false: such a method
+# is local-only, with the reason org-key, until the lane gets an organization-level key and this
+# file sets organization_key to true.
+organization_key: false

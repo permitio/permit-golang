@@ -100,7 +100,7 @@ func (s *spec) auditKeyword(key string, value any, at string, seen map[string]bo
 	case checked:
 	default:
 		return unsupported(at, fmt.Sprintf("the keyword %q is not one the walker implements; add "+
-			"it to keywords in tools/drift/schema_test.go", key))
+			"it to keywords in tools/drift/schema.go", key))
 	}
 	switch key {
 	case "$ref":

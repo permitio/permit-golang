@@ -46,7 +46,7 @@ func TestReplyFindings(t *testing.T) {
 	}
 	if len(errs) != 1 || !isUnsupported(errs[0]) || errs[0].Error() !=
 		`get_odd.200.json: #/components/schemas/Odd: the keyword "not" is not one the walker `+
-			"implements; add it to keywords in tools/drift/schema_test.go" {
+			"implements; add it to keywords in tools/drift/schema.go" {
 		t.Errorf("replyFindings did not run on %v, want get_odd.200.json", errs)
 	}
 }

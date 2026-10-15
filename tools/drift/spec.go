@@ -34,7 +34,7 @@ type spec struct {
 
 // readSpec reads the snapshot in file as the spec name.
 func readSpec(name, file string) (*spec, error) {
-	data, err := os.ReadFile(file)
+	data, err := os.ReadFile(file) //nolint:gosec // G304: a snapshot of the spec directory.
 	if err != nil {
 		return nil, err
 	}

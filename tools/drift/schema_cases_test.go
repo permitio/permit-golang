@@ -290,22 +290,22 @@ func TestAudit(t *testing.T) {
 		{
 			"a keyword the walker does not know", `{"S": {"not": {"type": "string"}}}`,
 			`#/components/schemas/S: the keyword "not" is not one the walker implements; add it ` +
-				"to keywords in tools/drift/schema_test.go",
+				"to keywords in tools/drift/schema.go",
 		},
 		{
 			"one in a property", `{"S": {"properties": {"a/b": {"const": 1}}}}`,
 			`#/components/schemas/S/properties/a~1b: the keyword "const" is not one the walker ` +
-				"implements; add it to keywords in tools/drift/schema_test.go",
+				"implements; add it to keywords in tools/drift/schema.go",
 		},
 		{
 			"one behind a $ref", `{"S": {"anyOf": [{"$ref": "#/components/schemas/T"}]},
 			"T": {"if": true}}`,
 			`#/components/schemas/T: the keyword "if" is not one the walker implements; add it ` +
-				"to keywords in tools/drift/schema_test.go",
+				"to keywords in tools/drift/schema.go",
 		},
 		{"an extension", `{"S": {"x-order": 1}}`, `#/components/schemas/S: the keyword ` +
 			`"x-order" is not one the walker implements; add it to keywords in ` +
-			"tools/drift/schema_test.go"},
+			"tools/drift/schema.go"},
 		{"a $ref outside the spec", `{"S": {"$ref": "other.json#/S"}}`, "other.json#/S: the " +
 			"$ref points outside the spec, and the walker reads only the spec it is in"},
 		{
@@ -358,7 +358,7 @@ func TestAudit(t *testing.T) {
 			{"additionalProperties": {"propertyNames": {"contains": true}}}]}}]}}`,
 			"#/components/schemas/S/prefixItems/1/items/oneOf/0/additionalProperties/" +
 				`propertyNames: the keyword "contains" is not one the walker implements; add ` +
-				"it to keywords in tools/drift/schema_test.go",
+				"it to keywords in tools/drift/schema.go",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

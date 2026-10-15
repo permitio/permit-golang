@@ -442,7 +442,7 @@ func TestCompareModelDidNotRun(t *testing.T) {
 	_, err := c.model("Odd")
 	if !isUnsupported(err) || err.Error() != `#/components/schemas/Odd: the `+
 		`keyword "not" is not one the walker implements; add it to keywords in `+
-		"tools/drift/schema_test.go" {
+		"tools/drift/schema.go" {
 		t.Errorf("model(Odd) fails with %v, want the *unsupportedError of not", err)
 	}
 }

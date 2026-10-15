@@ -31,7 +31,10 @@
 //     ADVISORY_JOBS does not name e2e, the job with the pinned PDP; in a job that it does not
 //     name, each step that runs .github/scripts/pdp-up.sh up has a PDP_IMAGE, its own, its
 //     job's or its workflow's, that is <image>@sha256:<64 hex digits> once each ${{ env.NAME }}
-//     in it is replaced with the job's or the workflow's value.
+//     in it is replaced with the job's or the workflow's value. When e2e runs pdp-up.sh up, a
+//     step after the first such step runs specsnap -check-pdp with the if: always() &&
+//     steps.<id>.outcome == 'success', where <id> is the id: of the step that starts the PDP,
+//     so the PDP's spec is checked whatever the tests did.
 //   - Only a job in the integration environment reads a secret whose name starts with
 //     PERMIT_E2E_, and such a job reads no other secret: the environment holds the v1 lane's
 //     secrets too. No job reads PERMIT_API_KEY or PERMIT_ENV, the v1 lane's settings, as a secret
@@ -257,6 +260,9 @@ var (
 	// that every run of the end-to-end scenarios must pass.
 	requiredTestsCall = regexp.MustCompile(`^"?[^\s"]*checkgotest"?\s(?:[^&|;]*\s)?` +
 		`-require-file[\s=]` + regexp.QuoteMeta(requiredTestsFile) + `(?:\s|$)`)
+	// pdpSpecCall matches a command line that runs specsnap -check-pdp, which checks that a
+	// running PDP serves the spec of its snapshot.
+	pdpSpecCall = regexp.MustCompile(`^"?[^\s"]*specsnap"?\s(?:[^&|;]*\s)?-check-pdp[\s=]`)
 	// envExpression matches a read of the env context, ${{ env.NAME }}, and captures the name.
 	envExpression = regexp.MustCompile(`\$\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}`)
 	// digestImage matches an image reference pinned by digest.
@@ -1386,6 +1392,48 @@ func (c *checker) checkE2EJob(path string, job pair, env map[string]envVar, advi
 	if creates && !deletes {
 		c.add(path, job.line, "job %s creates a scratch environment with e2e-env.sh create, so a "+
 			"step of it under if: always() deletes it with e2e-env.sh delete", job.key)
+	}
+	if job.key == pinnedE2EJob {
+		c.checkPDPSpec(path, job)
+	}
+}
+
+// stepRuns reports whether a command line of the run: of step matches.
+func stepRuns(step *yaml.Node, match func(command string) bool) bool {
+	script, _ := scalar(field(step, "run"))
+	return slices.ContainsFunc(commandLines(script), match)
+}
+
+// checkPDPSpec checks that job, the end-to-end job with the pinned PDP, checks that the PDP
+// serves the spec of its snapshot when it starts the PDP: a step after the first one that runs
+// pdp-up.sh up runs specsnap -check-pdp with the if: always() && steps.<id>.outcome ==
+// 'success', where <id> is the id: of the step that starts the PDP, so the check runs once the
+// PDP started, whatever the tests did.
+func (c *checker) checkPDPSpec(path string, job pair) {
+	var up *yaml.Node
+	for _, step := range items(field(job.value, "steps")) {
+		switch {
+		case up == nil && stepRuns(step, func(command string) bool {
+			return runsScript(command, "pdp-up.sh", "up")
+		}):
+			up = step
+		case up != nil && stepRuns(step, pdpSpecCall.MatchString):
+			id, _ := scalar(field(up, "id"))
+			if cond, _ := scalar(field(step, "if")); expression(cond) !=
+				"always() && steps."+id+".outcome == 'success'" {
+				c.add(path, step.Line, "job %s checks the PDP's spec in a step whose if: is not "+
+					"always() && steps.<id>.outcome == 'success', where <id> is the id: of the "+
+					"step that starts the PDP, %q, so the check would not run when the tests "+
+					"fail, or would run without a PDP", job.key, id)
+			}
+			return
+		}
+	}
+	if up != nil {
+		c.add(path, job.line, "job %s starts the pinned PDP, so a step after the one that starts "+
+			"it runs specsnap -check-pdp with the if: always() && steps.<id>.outcome == "+
+			"'success', where <id> is that step's id:, which fails when the PDP does not serve "+
+			"the spec of tools/specs/pdp-container.json", job.key)
 	}
 }
 

@@ -1166,13 +1166,14 @@ jobs:
   # 127.0.0.1:7766, and waits up to 300 seconds for /healthy. The tests run in that environment,
   # and checkgotest checks their output against tools/e2e/required.txt and
   # tools/e2e/allowed-skips.txt; their request record is uploaded as the artifact
-  # e2e-record-pinned. On a failure the PDP's log is printed without the health checks, and at
-  # the end the container is removed and the environment deleted, with a warning when it leaked.
-  # Runs of the job do not wait for each other: each works in an environment of its own, and the
-  # sweep deletes only environments older than 24 hours. A failure on a push to master or in a
-  # release fails CI, which notify-gate-failure posts. The environment deploys from master, pull
-  # requests and release/* branches only: a manual run from another branch fails before its
-  # first step.
+  # e2e-record-pinned. specsnap -check-pdp checks that the PDP serves the spec of its snapshot,
+  # tools/specs/pdp-container.json. On a failure the PDP's log is printed without the health
+  # checks, and at the end the container is removed and the environment deleted, with a warning
+  # when it leaked. Runs of the job do not wait for each other: each works in an environment of
+  # its own, and the sweep deletes only environments older than 24 hours. A failure on a push to
+  # master or in a release fails CI, which notify-gate-failure posts. The environment deploys
+  # from master, pull requests and release/* branches only: a manual run from another branch
+  # fails before its first step.
   e2e:
     name: e2e (pinned PDP)
     if: >-
@@ -1232,6 +1233,20 @@ jobs:
             echo "go test exited $code."
             exit 1
           fi
+      # The models and the dry run's fake PDP are checked against tools/specs/pdp-container.json,
+      # so the pinned PDP must serve that spec: specsnap -check-pdp fetches its /openapi.json,
+      # makes its snapshot and fails on any difference, and on an image other than the one that
+      # lock.json records for the snapshot. It runs whatever the tests did.
+      - name: Check the PDP's spec against its snapshot
+        if: always() && steps.pdp.outcome == 'success'
+        env:
+          PDP_IMAGE: ${{ env.PDP_IMAGE_PINNED_TAG }}@${{ env.PDP_IMAGE_PINNED_DIGEST }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/specsnap" ./cmd/specsnap
+          "$RUNNER_TEMP/specsnap" -check-pdp http://127.0.0.1:7766 -image "$PDP_IMAGE"
       - name: Upload the request record
         if: always() && steps.tests.outcome != 'skipped'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2

@@ -1,14 +1,30 @@
-# Tests that must run and pass in every run of the end-to-end scenarios, dry or live. The e2e
-# jobs of ci.yml check them with checkgotest -require-file (tools/cmd/checkgotest). One test per
-# line: its package import path and its name, separated by a space. Blank lines and lines that
-# start with # are ignored.
+# Tests that must run and pass in every run of the end-to-end scenarios against the PDP
+# container, dry or live, such as the leg pinned. The e2e jobs of ci.yml check them with
+# checkgotest -require-file (tools/cmd/checkgotest). A run selects the scenarios of every PDP and
+# those of the PDP that its clients call, so the scenario of the cloud PDP, which runs on the leg
+# cloudpdp only, is not here: the offline test job requires it in the dry run, which runs every
+# scenario (.github/required-tests.txt). TestRequiredScenarios checks that this file names the
+# subtest of each scenario that such a run selects, and of no other. One test per line: its
+# package import path and its name, separated by a space. Blank lines and lines that start with #
+# are ignored.
 
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_permissions
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/authorized_users
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenants_and_local_role_assignments
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
 github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder
 github.com/permitio/permit-golang/v2/tools/e2e TestVerdict
 github.com/permitio/permit-golang/v2/tools/e2e TestUnrecorded
 github.com/permitio/permit-golang/v2/tools/e2e TestConfigure
+github.com/permitio/permit-golang/v2/tools/e2e TestLegPDP
+github.com/permitio/permit-golang/v2/tools/e2e TestPlan
+github.com/permitio/permit-golang/v2/tools/e2e TestContainerOnlyScenarios
+github.com/permitio/permit-golang/v2/tools/e2e TestRequiredScenarios
+github.com/permitio/permit-golang/v2/tools/e2e TestAwaitValue

@@ -9,7 +9,8 @@ import (
 // Poll calls try until it reports done, it returns an error, or timeout has passed since Poll
 // started, and waits interval, or what is left of timeout when less, between two calls. Each try
 // gets a context that ends when timeout has passed, so the elapsed time bounds Poll, a slow try
-// included, and not a count of tries, and no fixed sleep stands in for a check. It returns nil
+// included, and not a count of tries, and no fixed sleep stands in for a check. A wait that ends
+// at the timeout ends Poll, as a try after it would get a context that has ended. It returns nil
 // when try reported done; an error that gives timeout, the number of tries and the error of the
 // last try, if any, when time ran out; and else the error of try or of ctx.
 func Poll(ctx context.Context, timeout, interval time.Duration,
@@ -33,6 +34,9 @@ func Poll(ctx context.Context, timeout, interval time.Duration,
 		}
 		if err := sleep(ctx, min(interval, time.Until(deadline))); err != nil {
 			return fmt.Errorf("framework: polling: %w", err)
+		}
+		if !time.Now().Before(deadline) {
+			return fmt.Errorf("framework: not done after %s (%d tries)", timeout, tries)
 		}
 	}
 }

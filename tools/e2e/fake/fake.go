@@ -21,6 +21,11 @@
 // other request must carry an API key that the fake knows: the project's, or one it issued. An
 // unknown key gets 401, and a key whose scope does not hold the route's project or environment
 // 403. A body that the check rejects and a check that cannot run fail the test too.
+//
+// [Fake.StartPDP] starts a fake of the PDP container or of the cloud PDP beside it, which answers
+// the decisions and the lists of the PDP that the scenarios send from the same store: an
+// approximation that proves that a scenario's calls and its seed reach a PDP, never how the PDP
+// decides.
 package fake
 
 import (

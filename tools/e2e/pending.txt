@@ -9,13 +9,4 @@
 # One method per line: <Type>.<Method> e2e-pending <area>, such as
 # Client.Check e2e-pending pdp-decisions. Blank lines and lines that start with # are ignored.
 
-Client.AllTenantsCheck e2e-pending pdp-decisions
-Client.BulkCheck e2e-pending pdp-decisions
-Client.Check e2e-pending pdp-decisions
 Client.CheckURL e2e-pending pdp-decisions
-Client.FilterObjects e2e-pending pdp-decisions
-Client.AuthorizedUsers e2e-pending pdp-queries
-Client.LocalRoleAssignments e2e-pending pdp-queries
-Client.LocalRoleAssignmentsAll e2e-pending pdp-queries
-Client.UserPermissions e2e-pending pdp-queries
-Client.UserTenants e2e-pending pdp-queries

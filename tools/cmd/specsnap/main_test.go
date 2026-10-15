@@ -711,7 +711,7 @@ func TestBadArgs(t *testing.T) {
 		args []string
 		want string
 	}{
-		{nil, "give exactly one of -refresh, -verify and -check-live"},
+		{nil, "give exactly one of -refresh, -verify, -check-live and -check-pdp"},
 		{[]string{"-verify", "-check-live"}, "give exactly one of"},
 		{[]string{"-verify", "-refresh", "pdp-cloud"}, "give exactly one of"},
 		{[]string{"-refresh", "pdp-cloud", "-check-live"}, "give exactly one of"},

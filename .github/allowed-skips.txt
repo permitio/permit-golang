@@ -13,3 +13,6 @@
 #   un-skip condition  the rest of the line: what must happen before the test can run again
 #
 # Blank lines and lines that start with # are ignored.
+
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context/abac_allow_and_deny PER-16209 2027-01-31 an attribute-based rule seeded through the API takes effect in the PDP (also PER-16553): then seed one and assert its allow and deny
+github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete/dry_run/decision_context/abac_allow_and_deny PER-16209 2027-01-31 an attribute-based rule seeded through the API takes effect in the PDP (also PER-16553): then seed one and assert its allow and deny

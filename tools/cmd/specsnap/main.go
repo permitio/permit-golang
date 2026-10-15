@@ -7,6 +7,7 @@
 //	specsnap [-dir dir] -refresh name [-from file] [-image ref] [-fetched date] [-note text]
 //	specsnap [-dir dir] -verify
 //	specsnap [-dir dir] -check-live [-out dir]
+//	specsnap [-dir dir] -check-pdp url [-image ref]
 //
 // -dir names the snapshot directory, tools/specs by default, relative to the directory specsnap
 // runs in.
@@ -30,6 +31,12 @@
 // It also reads Docker Hub's newest 100 tags of permitio/pdp-v2 and compares the digest of
 // latest with the image that pdp-container.json was taken from. -out names a directory to write
 // the snapshots of the live specs to, for a pull request that refreshes them.
+//
+// -check-pdp fetches the spec that a running container PDP serves, at GET <url>/openapi.json,
+// such as http://127.0.0.1:7766/openapi.json, makes its snapshot as -refresh does, and compares
+// it with pdp-container.json byte for byte. It fails on any difference, and says where the two
+// first differ. -image names the container's image, as permitio/pdp-v2:<tag>@sha256:<digest>,
+// and fails the check when it is not the image that lock.json records for pdp-container.json.
 //
 // The canonical form is the spec without its prose and examples: every description, summary,
 // title, example and examples keyword is left out, wherever it is a keyword and not a name, such
@@ -61,10 +68,11 @@
 // The last line specsnap prints is its verdict: PASS, FAIL or DID NOT RUN, then a colon and what
 // it found. The exit codes:
 //
-//	0  -refresh wrote the snapshot, every snapshot matches lock.json, or no live spec or image
-//	   differs from its snapshot
+//	0  -refresh wrote the snapshot, every snapshot matches lock.json, no live spec or image
+//	   differs from its snapshot, or the container PDP serves the spec of its snapshot
 //	1  a snapshot does not match lock.json, a live spec or Docker Hub's latest permitio/pdp-v2
-//	   differs from its snapshot, or a pre-fix patch is no longer needed or its defect changed
+//	   differs from its snapshot, the spec or the image of the container PDP that -check-pdp
+//	   asks is not the snapshot's, or a pre-fix patch is no longer needed or its defect changed
 //	2  specsnap did not run: the command line is wrong; a spec, lock.json or Docker Hub's answer
 //	   cannot be fetched, read, parsed or written; a spec has fewer operations than a complete
 //	   one; lock.json has no entry for a spec or one for a spec specsnap does not know; or
@@ -161,8 +169,8 @@ func main() {
 
 // options is the command line.
 type options struct {
-	dir, refresh, from, image, fetched, note, out string
-	verify, checkLive                             bool
+	dir, refresh, from, image, fetched, note, out, checkPDP string
+	verify, checkLive                                       bool
 }
 
 // modeFlags lists the flags each mode takes.
@@ -170,6 +178,7 @@ var modeFlags = map[string][]string{
 	"refresh":    {"dir", "refresh", "from", "image", "fetched", "note"},
 	"verify":     {"dir", "verify"},
 	"check-live": {"dir", "check-live", "out"},
+	"check-pdp":  {"dir", "check-pdp", "image"},
 }
 
 // imagePattern matches the container PDP's image with its tag and digest.
@@ -201,6 +210,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, sys syste
 		return verify(opts.dir, stdout, sys)
 	case opts.checkLive:
 		return checkLive(ctx, opts, stdout, sys)
+	case opts.checkPDP != "":
+		return checkPDP(ctx, opts, stdout, sys)
 	}
 	return refresh(ctx, opts, stdout, sys)
 }
@@ -220,6 +231,8 @@ func parseArgs(args []string, stderr io.Writer, sys system) (options, error) {
 	flags.StringVar(&opts.fetched, "fetched", "", "the `day` the spec was fetched, as YYYY-MM-DD")
 	flags.StringVar(&opts.note, "note", "", "a line of `text` for the spec's entry in lock.json")
 	flags.StringVar(&opts.out, "out", "", "a `directory` to write the live specs' snapshots to")
+	flags.StringVar(&opts.checkPDP, "check-pdp", "",
+		"compare the spec that the container PDP at this `url` serves with its snapshot")
 	if err := flags.Parse(args); err != nil {
 		return options{}, err
 	}
@@ -236,8 +249,12 @@ func parseArgs(args []string, stderr io.Writer, sys system) (options, error) {
 	if opts.checkLive {
 		modes = append(modes, "check-live")
 	}
+	if opts.checkPDP != "" {
+		modes = append(modes, "check-pdp")
+	}
 	if len(modes) != 1 {
-		return options{}, errors.New("give exactly one of -refresh, -verify and -check-live")
+		return options{}, errors.New("give exactly one of -refresh, -verify, -check-live and " +
+			"-check-pdp")
 	}
 	var extra []string
 	flags.Visit(func(f *flag.Flag) {
@@ -251,8 +268,11 @@ func parseArgs(args []string, stderr io.Writer, sys system) (options, error) {
 	if opts.dir == "" {
 		return options{}, errors.New("-dir is empty")
 	}
-	if opts.refresh != "" {
+	switch {
+	case opts.refresh != "":
 		return opts, checkRefreshArgs(opts, sys)
+	case opts.checkPDP != "":
+		return opts, checkPDPArgs(opts)
 	}
 	return opts, nil
 }

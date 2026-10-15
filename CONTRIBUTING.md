@@ -1099,6 +1099,14 @@ bin/specsnap -refresh pdp-container -from openapi.json \
   -image permitio/pdp-v2:<tag>@sha256:<digest>
 ```
 
+`-check-pdp` compares the spec that a running container serves with the snapshot, and its image,
+with `-image`, with the one in `lock.json`; the `e2e` job runs it against the pinned PDP (see
+[Against Permit](#against-permit)):
+
+```sh
+bin/specsnap -check-pdp http://127.0.0.1:7766 -image permitio/pdp-v2:<tag>@sha256:<digest>
+```
+
 When the image changes, check `pdp-container.extra.json` against the PDP repository at the new
 tag. When a refresh drops a route that `v1-routes.json` or `v1-route-fixes.yaml` names, their
 tests fail.
@@ -1404,8 +1412,18 @@ live runs included, and the fake checks each body against the spec.
 
 The dry run runs every scenario offline against the fake of the Permit API in
 `tools/e2e/fake`, which keeps the objects of each collection of the control plane's spec in
-memory and checks each request body with the walker of `tools/drift`. The `test` job runs it on
-every pull request; run it from the repository root:
+memory and checks each request body with the walker of `tools/drift`. The SDK's clients of a dry
+run call a fake PDP beside it, `Fake.StartPDP`, which answers the decisions and the lists of the
+PDP that the scenarios send from the same store: the role assignments of the environment, by
+user, role, tenant and resource instance, and the permissions of its roles and resource roles. A
+role assignment counts only when its user, tenant, role and instance were created before it, as
+the Permit API refuses one that names an object that does not exist, so a seed that leaves an
+object out, or creates it too late, grants nothing. It checks each body against the spec of the
+PDP container, `tools/specs/pdp-container.json`, as the fake of the Permit API does. It is an
+approximation that proves that a scenario's calls and its seed reach a PDP, never how the PDP
+decides: it knows no attributes, conditions, relations or role derivations, lists tenants
+without attributes, and filters the role assignments that it lists by user only. The `test` job
+runs the dry run on every pull request; run it from the repository root:
 
 ```sh
 HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
@@ -1425,13 +1443,58 @@ go -C tools test -c -race -tags e2e -o ../bin/e2e.test ./e2e
 Without `-e2e.dryrun`, `TestCloud` runs against the Permit API, or the one at
 `PERMIT_E2E_API_URL`, such as a local stack, with the project-level key in
 `PERMIT_E2E_PROJECT_KEY`, in the project that `PERMIT_E2E_PROJECT` names, with the run and the
-attempt in `GITHUB_RUN_ID` and `GITHUB_RUN_ATTEMPT` and the leg that `-e2e.leg` gives, and
-skips when the key is not set. It runs in the scratch environment that
+attempt in `GITHUB_RUN_ID` and `GITHUB_RUN_ATTEMPT` and the leg that `-e2e.leg` gives, by default
+`pinned`, the leg of the pinned PDP container that the `e2e` job runs, and skips when the key is
+not set. It runs in the scratch environment that
 `.github/scripts/e2e-env.sh create` made for the run, which exports its ID, its project's ID
 and its API key, and deletes it afterwards (see [Against Permit](#against-permit)); the SDK's
 clients reach the PDP at `PERMIT_PDP_URL`. `-e2e.record` keeps its request record for
-apicoverage. `tools/e2e/required.txt` lists the tests that every run of the scenarios must run
-and pass, and the `e2e` job checks them with checkgotest.
+apicoverage. `tools/e2e/required.txt` lists the tests that every run of the scenarios against
+the PDP container must run and pass, as [the PDP scenarios](#the-pdp-scenarios) say, and the
+`e2e` job checks them with checkgotest.
+
+### The PDP scenarios
+
+The scenarios of the PDP are in `tools/e2e/pdp_*_test.go`. Those that need data seed it with the
+seed builder, each with keys of its own, as the scenarios of a run share its scratch environment:
+
+| Scenario | What it checks |
+| --- | --- |
+| `role_on_one_instance` | A resource role on one of two instances: `Check` allows the first and denies the second, and `FilterObjects` keeps the first only. |
+| `decision_context` | The body of a check with a context, as a `RoundTripper` given with `WithHTTPClient` sees it: numbers keep their digits and booleans their values, and the PDP answers 200 with a decision. Its subtest `abac_allow_and_deny` skips, with an entry in both lists of allowed skips, until an attribute-based rule reaches the PDP. |
+| `two_tenants_bulk_check` | Six checks in two tenants in one `BulkCheck`, whose decisions come back in the order of the checks. |
+| `user_permissions` | `UserPermissions` of a user with a role in two tenants and a resource role on an instance, with the filters of tenants and of resource types and a context. |
+| `authorized_users` | `AuthorizedUsers` of an instance: a user with a role in its tenant and one with a resource role on it, each with that role assignment, and not a user with the role in another tenant. |
+| `tenants_and_local_role_assignments` | The routes that only the PDP container serves: `AllTenantsCheck`, `UserTenants`, `LocalRoleAssignments` and `LocalRoleAssignmentsAll`. |
+| `container_only_routes_on_cloud_pdp` | Each route that only the PDP container serves, against the cloud PDP: one request, and an error that matches `ErrContainerPDPOnly`, not `ErrNotFound`, and names the route. `CheckURL` is called too, and stays pending until a scenario checks its decisions. |
+
+A live PDP gets the seed from the Permit API after a while, so a scenario with a seed first
+waits, polling for at most 2 minutes, for a decision that only its seed allows, and then makes
+its other checks once: a check that the seed denies would pass before the seed arrives too. In a
+dry run, the fake PDP reads the seed at once, and the wait is at most 2 seconds. A seed that
+cannot be created fails the scenario at its setup, with `setup:`, before it asserts anything.
+
+A leg runs the scenarios of every PDP and those of the PDP that its clients call: the cloud PDP
+on the leg `cloudpdp` *(added in a later commit on this branch)*, the PDP container on every
+other leg, such as `pinned`. A scenario that a leg does not select does not run, so it never
+skips. The dry run runs the scenarios as the legs do, with the same plan: first those of the
+leg `cloudpdp`, against the fake of the cloud PDP, which answers each route that only the PDP
+container serves with 404 and an empty body, then the scenarios of the PDP container against
+its fake. So a scenario of every PDP that sends a route that only the PDP container serves fails
+the dry run, and `TestContainerOnlyScenarios` checks that the leg `cloudpdp` runs no scenario
+that covers a method of such a route, other than the cloud PDP's own. `.github/required-tests.txt`
+names the subtest of every scenario, as the offline test job checks the dry run, and
+`tools/e2e/required.txt`, which the `e2e` job checks its live run against, names those that a
+run against the PDP container selects and no other; `TestRequiredScenarios` checks both. The
+completeness gate counts a method as cloud from the dry run, which runs every scenario.
+
+Offline, nothing checks these, so the first live run confirms them: the form in which the Permit
+API lists role assignments, with `resource_instance` as `<resource>:<key>`, and relationship
+tuples, which the seed builder's checks that an object is gone read; the form of the role
+assignments of the PDP container, whose `resource_instance` the scenario does not compare; and
+whether the cloud PDP needs an `X-Request-ID` header, which the SDK does not send.
+
+### The completeness gate
 
 `TestE2ESurfaceComplete` runs the cloud scenarios in a dry run of its own and checks that each
 method of `testdata/operation-map.json` is in exactly one end-to-end state, with a count
@@ -1494,6 +1557,12 @@ API and a stub `docker`, for its leg, `pinned`:
 - The tests run in the environment, and checkgotest checks their output with
   `-require-file tools/e2e/required.txt -allow-skips tools/e2e/allowed-skips.txt`. Their request
   record is uploaded as the artifact `e2e-record-pinned`.
+- `specsnap -check-pdp http://127.0.0.1:7766 -image <image>`, whatever the tests did: fetches the
+  PDP's `/openapi.json`, makes its snapshot as `-refresh` does, and fails on any difference from
+  `tools/specs/pdp-container.json`, which the models and the fake PDP are checked against, and on
+  an image other than the one that `lock.json` records for it. cicheck checks that the step
+  comes after the one that starts the PDP, under
+  `if: always() && steps.<id>.outcome == 'success'` with that step's `id`.
 - `.github/scripts/e2e-env.sh delete <leg>`: deletes the environment, and warns that it leaked
   when the delete fails; a later sweep deletes it.
 

@@ -33,14 +33,37 @@ type scenario struct {
 	// each of the method's operations.
 	methods []string
 
+	// pdp is the PDP that the scenario needs: everyPDP for a scenario that every leg runs, or
+	// the kind of the PDP of the legs that run it, which selects reads.
+	pdp pdpKind
+
 	// run returns the body of the scenario's subtest in the suite s.
 	run func(s *suite) func(t *testing.T)
 }
 
 // cloudScenarios are the scenarios of the cloud lane.
 var cloudScenarios = []scenario{
-	{"scope_single_flight", []string{"Client.Scope"}, scopeSingleFlight},
-	{"unauthorized_key", []string{"Client.Scope"}, unauthorizedKey},
+	{name: "scope_single_flight", methods: []string{"Client.Scope"}, run: scopeSingleFlight},
+	{name: "unauthorized_key", methods: []string{"Client.Scope"}, run: unauthorizedKey},
+	{
+		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
+		run: roleOnOneInstance,
+	},
+	{name: "decision_context", methods: []string{"Client.Check"}, run: decisionContext},
+	{name: "two_tenants_bulk_check", methods: []string{"Client.BulkCheck"}, run: twoTenantsBulk},
+	{
+		name: "user_permissions", methods: []string{"Client.UserPermissions"},
+		run: userPermissions,
+	},
+	{name: "authorized_users", methods: []string{"Client.AuthorizedUsers"}, run: authorizedUsers},
+	{
+		name: "tenants_and_local_role_assignments", methods: containerOnlyMethods,
+		pdp: containerPDP, run: tenantsAndLocalRoleAssignments,
+	},
+	{
+		name: "container_only_routes_on_cloud_pdp", methods: containerOnlyMethods,
+		pdp: cloudPDP, run: containerOnlyRoutesOnCloudPDP,
+	},
 }
 
 // TestCloud runs the scenarios of the cloud lane, then checks that the Debug logs of every
@@ -59,14 +82,16 @@ func TestCloud(t *testing.T) {
 		len(passed))
 }
 
-// runCloud runs each of cloudScenarios as a subtest of t in a suite of cfg that records to
-// record, then checks the suite's logs. It returns the names of the scenarios' subtests that
-// passed, and did not skip.
+// runCloud runs each of cloudScenarios that cfg plans as a subtest of t, in a suite of cfg that
+// records to record, then checks the suite's logs. It returns the names of the scenarios'
+// subtests that passed, and did not skip. In a dry run, the clients of each scenario call the
+// fake of the PDP of the leg that runs it.
 func runCloud(t *testing.T, cfg config, record *testhook.File) []string {
 	t.Helper()
 	s := startSuite(t, cfg, record)
 	var passed []string
-	for _, sc := range cloudScenarios {
+	for _, sc := range cfg.plan(cloudScenarios) {
+		s.pdpURL = s.fakePDPs[sc.calls]
 		var name string
 		skipped := false
 		ok := t.Run(sc.name, func(t *testing.T) {
@@ -121,11 +146,20 @@ type suite struct {
 	record *testhook.File
 
 	// apiURL is the URL of the Permit API that the suite's clients call: in a dry run, the
-	// fake's, which is their PDP's URL too.
+	// fake's.
 	apiURL string
 
-	// env is the scratch environment.
-	env framework.Environment
+	// fakePDPs are the URLs of the fake PDPs of a dry run, by the kind of PDP of the legs whose
+	// scenarios call each, and pdpURL is the one of the scenario that runs. A live run has none:
+	// its clients call the PDP at PERMIT_PDP_URL.
+	fakePDPs map[pdpKind]string
+	pdpURL   string
+
+	// env is the scratch environment, and api and ledger are what seeds it: the API of the
+	// project's key, and the ledger of the suite, which tears the seed down.
+	env    framework.Environment
+	api    *framework.API
+	ledger *framework.Ledger
 
 	// logs holds what the suite's clients log at Debug, and logger writes to it.
 	logs   *lockedBuffer
@@ -171,7 +205,11 @@ func startSuite(t *testing.T, cfg config, record *testhook.File) *suite {
 	}
 	s.logger = newLogger(s.logs)
 	if cfg.mode == testhook.DryRun {
-		s.apiURL = startFake(t).URL()
+		f := startFake(t)
+		s.apiURL = f.URL()
+		s.fakePDPs = map[pdpKind]string{
+			containerPDP: f.StartPDP(fake.ContainerPDP), cloudPDP: f.StartPDP(fake.CloudPDP),
+		}
 	}
 	api, apiErr := framework.NewAPI(s.apiURL, cfg.projectKey, &http.Client{Timeout: time.Minute})
 	if apiErr != nil {
@@ -179,6 +217,7 @@ func startSuite(t *testing.T, cfg config, record *testhook.File) *suite {
 		t.FailNow()
 	}
 	ledger := newLedger(t.Name())
+	s.api, s.ledger = api, ledger
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), teardownTimeout)
 		defer cancel()
@@ -206,7 +245,7 @@ var specs = sync.OnceValues(func() (*drift.Specs, error) {
 })
 
 // startFake starts a fake of the routes of the control plane's spec, which checks each request
-// body with the structural walker of tools/drift.
+// body with the structural walker of tools/drift, that of a fake PDP too.
 func startFake(t *testing.T) *fake.Fake {
 	t.Helper()
 	s, err := specs()
@@ -225,15 +264,15 @@ func startFake(t *testing.T) *fake.Fake {
 }
 
 // client returns a client of the scratch environment that authenticates with key, has opts,
-// and logs to the suite's logs at Debug. In a dry run, its PDP is the fake too. Its calls take
-// the context that ctx returns.
+// and logs to the suite's logs at Debug. In a dry run, its PDP is the fake of the scenario's
+// PDP. Its calls take the context that ctx returns.
 func (s *suite) client(t *testing.T, key string, opts ...permit.Option) *permit.Client {
 	t.Helper()
 	all := []permit.Option{
 		permit.WithAPIKey(key), permit.WithAPIURL(s.apiURL), permit.WithLogger(s.logger),
 	}
-	if s.cfg.mode == testhook.DryRun {
-		all = append(all, permit.WithPDPURL(s.apiURL))
+	if s.pdpURL != "" {
+		all = append(all, permit.WithPDPURL(s.pdpURL))
 	}
 	all = append(all, opts...)
 	c, err := permit.New(all...)

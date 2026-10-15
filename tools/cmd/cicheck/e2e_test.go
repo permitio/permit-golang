@@ -9,6 +9,14 @@ import (
 const pinnedPDP = "permitio/pdp-v2:0.9.16@sha256:" +
 	"0000000000000000000000000000000000000000000000000000000000000000"
 
+// specStep is the step of e2eJob that checks the PDP's spec.
+const specStep = "      - name: Check the PDP's spec\n" +
+	"        if: always() && steps.pdp.outcome == 'success'\n        run: |\n" +
+	"          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \\n')\n" +
+	"          echo \"::stop-commands::$token\"\n" +
+	"          trap 'echo \"::$token::\"' EXIT\n" +
+	"          \"$RUNNER_TEMP/specsnap\" -check-pdp http://127.0.0.1:7766\n"
+
 // e2eJob is an end-to-end job that follows every rule, for the end of ci.yml.
 const e2eJob = "  e2e:\n    if: >-\n" +
 	"      (!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e'\n" +
@@ -18,7 +26,8 @@ const e2eJob = "  e2e:\n    if: >-\n" +
 	"          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}\n" +
 	"          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}\n" +
 	"        run: .github/scripts/e2e-env.sh create pinned\n" +
-	"      - name: Start the PDP\n        env:\n          PDP_IMAGE: " + pinnedPDP + "\n" +
+	"      - name: Start the PDP\n        id: pdp\n        env:\n" +
+	"          PDP_IMAGE: " + pinnedPDP + "\n" +
 	"        run: .github/scripts/pdp-up.sh up\n" +
 	"      - name: Run the end-to-end tests\n        run: |\n" +
 	"          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \\n')\n" +
@@ -26,6 +35,7 @@ const e2eJob = "  e2e:\n    if: >-\n" +
 	"          trap 'echo \"::$token::\"' EXIT\n" +
 	"          \"$RUNNER_TEMP/checkgotest\" -require-file tools/e2e/required.txt \\\n" +
 	"            -allow-skips tools/e2e/allowed-skips.txt \"$RUNNER_TEMP/e2e.json\"\n" +
+	specStep +
 	"      - name: Delete the scratch environment\n        if: always()\n" +
 	"        run: .github/scripts/e2e-env.sh delete pinned\n"
 
@@ -81,7 +91,7 @@ func TestCheckE2E(t *testing.T) {
 			name: "an e2e job and the pull request lane", changes: withE2E("", ""),
 			wantExit: exitPassed,
 			wantStdout: []string{
-				"cicheck: checked 2 workflows, 6 jobs, 11 steps and 4 scripts\ncicheck: PASS\n",
+				"cicheck: checked 2 workflows, 6 jobs, 12 steps and 4 scripts\ncicheck: PASS\n",
 			},
 		},
 		{
@@ -115,7 +125,7 @@ func TestCheckE2E(t *testing.T) {
 			changes:  withE2E(pinnedPDP, "permitio/pdp-v2:0.9.16"),
 			wantExit: exitFailed,
 			wantStdout: []string{
-				"cicheck: " + ciE2E + ":91: job e2e starts the PDP image permitio/pdp-v2:0.9.16, " +
+				"cicheck: " + ciE2E + ":92: job e2e starts the PDP image permitio/pdp-v2:0.9.16, " +
 					"which is not pinned by digest; a required end-to-end job runs " +
 					"<image>@sha256:<64 hex digits>\n",
 			},
@@ -186,7 +196,7 @@ func TestCheckE2E(t *testing.T) {
 				"delete", "        run: .github/scripts/e2e-env.sh delete"),
 			wantExit: exitFailed,
 			wantStdout: []string{
-				"cicheck: " + ciE2E + ":100: job e2e deletes its scratch environment in a step " +
+				"cicheck: " + ciE2E + ":108: job e2e deletes its scratch environment in a step " +
 					"whose if: is not always(), so a failed or cancelled step before it would " +
 					"leave the environment behind\n",
 			},
@@ -207,6 +217,57 @@ func TestCheckE2E(t *testing.T) {
 				"cicheck: " + ciE2E + ":76: job e2e creates a scratch environment with " +
 					"e2e-env.sh create, so a step of it under if: always() deletes it with " +
 					"e2e-env.sh delete\n",
+			},
+		},
+		{
+			name:     "an e2e job that does not check the PDP's spec",
+			changes:  withE2E(specStep, ""),
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: " + ciE2E + ":76: job e2e starts the pinned PDP, so a step after the " +
+					"one that starts it runs specsnap -check-pdp with the if: always() && " +
+					"steps.<id>.outcome == 'success', where <id> is that step's id:, which fails " +
+					"when the PDP does not serve the spec of tools/specs/pdp-container.json\n",
+			},
+		},
+		{
+			name: "an e2e job that checks the PDP's spec before it starts the PDP",
+			changes: append(withE2E("      - name: Start the PDP\n",
+				specStep+"      - name: Start the PDP\n"),
+				inCI(specStep+"      - name: Delete", "      - name: Delete")),
+			wantExit:   exitFailed,
+			wantStdout: []string{"job e2e starts the pinned PDP, so a step after the one that"},
+		},
+		{
+			name: "an e2e job that checks the PDP's spec only when the tests pass",
+			changes: withE2E("if: always() && steps.pdp.outcome",
+				"if: steps.pdp.outcome"),
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: " + ciE2E + ":101: job e2e checks the PDP's spec in a step whose if: " +
+					"is not always() && steps.<id>.outcome == 'success', where <id> is the id: " +
+					"of the step that starts the PDP, \"pdp\", so the check would not run when " +
+					"the tests fail, or would run without a PDP\n",
+			},
+		},
+		{
+			name:     "an e2e job that checks the PDP's spec after another step's outcome",
+			changes:  withE2E("steps.pdp.outcome", "steps.tests.outcome"),
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"job e2e checks the PDP's spec in a step whose if: is not always() && " +
+					"steps.<id>.outcome == 'success', where <id> is the id: of the step that " +
+					"starts the PDP, \"pdp\"",
+			},
+		},
+		{
+			name:     "an e2e job that starts the PDP in a step without an id",
+			changes:  withE2E("        id: pdp\n", ""),
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: " + ciE2E + ":100: job e2e checks the PDP's spec in a step whose if: " +
+					"is not always() && steps.<id>.outcome == 'success', where <id> is the id: " +
+					"of the step that starts the PDP, \"\", so",
 			},
 		},
 		{

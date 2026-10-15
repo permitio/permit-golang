@@ -79,11 +79,17 @@ func TestPoll(t *testing.T) {
 		t.Errorf("Poll returned %v, want the error of try", err)
 	}
 	start := time.Now()
-	err = Poll(t.Context(), 30*time.Millisecond, time.Hour, func(context.Context) (bool, error) {
-		return false, nil
-	})
-	if err == nil || !strings.Contains(err.Error(), "not done after 30ms (2 tries)") {
-		t.Errorf("Poll that never finishes returned %v", err)
+	late := 0
+	notDone := func(ctx context.Context) (bool, error) {
+		if deadline, ok := ctx.Deadline(); !ok || !time.Now().Before(deadline) {
+			late++
+		}
+		return false, ctx.Err()
+	}
+	err = Poll(t.Context(), 30*time.Millisecond, time.Hour, notDone)
+	if err == nil || err.Error() != "framework: not done after 30ms (1 tries)" || late != 0 {
+		t.Errorf("Poll that never finishes returned %v, after %d tries with an ended context; "+
+			"want no try after the timeout, which would get a context that has ended", err, late)
 	}
 	if elapsed := time.Since(start); elapsed > 10*time.Second {
 		t.Errorf("Poll ran %s, past its timeout and its interval", elapsed)

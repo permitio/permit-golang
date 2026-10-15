@@ -8,7 +8,11 @@
 // PERMIT_E2E_API_URL, with the project-level API key in PERMIT_E2E_PROJECT_KEY of the project in
 // PERMIT_E2E_PROJECT, in the environment that .github/scripts/e2e-env.sh created for the run and
 // deletes after it, whose API key the leg's container PDP uses too; it skips when
-// PERMIT_E2E_PROJECT_KEY is not set. Each call of the SDK carries the request recorder of
+// PERMIT_E2E_PROJECT_KEY is not set. A live run runs the scenarios of every PDP and those of the
+// PDP that its leg's clients call, at PERMIT_PDP_URL: the cloud PDP on the leg cloudpdp, and the
+// PDP container on every other, pinned by default; a dry run runs those of the leg cloudpdp
+// against a fake cloud PDP, then the others against a fake PDP container, beside the fake of the
+// Permit API. Each call of the SDK carries the request recorder of
 // internal/testhook, in the mode dryrun or live, and -e2e.record keeps the record for
 // tools/cmd/apicoverage; each scenario that passes must have sent a request of that mode.
 // TestE2ESurfaceComplete runs the scenarios in a dry run of its own and checks that each public
@@ -33,6 +37,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/permitio/permit-golang/v2/internal/testhook"
 	"github.com/permitio/permit-golang/v2/internal/testkit/canary"
@@ -44,7 +49,49 @@ var (
 		"tools/e2e/fake")
 	recordFile = flag.String("e2e.record", "", "write the request record of TestCloud to `file`, "+
 		"which must not exist, for tools/cmd/apicoverage")
-	leg = flag.String("e2e.leg", "cloud", "the leg of a live run, the last part of its prefix")
+	leg = flag.String("e2e.leg", pinnedLeg, "the leg of a live run, the last part of its prefix: "+
+		"by default "+pinnedLeg+", the leg of the pinned PDP container that the job e2e of "+
+		"ci.yml runs; the leg "+cloudPDPLeg+" runs against the cloud PDP")
+)
+
+// pinnedLeg is the leg of the pinned PDP container, which ci.yml passes, and cloudPDPLeg the leg
+// whose clients call the cloud PDP. The clients of every leg but cloudPDPLeg call the PDP
+// container.
+const (
+	pinnedLeg   = "pinned"
+	cloudPDPLeg = "cloudpdp"
+)
+
+// pdpKind is the kind of PDP that the clients of a leg call, and that a scenario needs.
+type pdpKind string
+
+const (
+	// everyPDP is the PDP of a scenario that every leg runs.
+	everyPDP pdpKind = ""
+
+	// containerPDP is the PDP container, such as the one of the leg pinned.
+	containerPDP pdpKind = "container"
+
+	// cloudPDP is the cloud PDP, of the leg cloudpdp.
+	cloudPDP pdpKind = "cloud"
+)
+
+// legPDP returns the kind of PDP that the clients of the leg legName call.
+func legPDP(legName string) pdpKind {
+	if legName == cloudPDPLeg {
+		return cloudPDP
+	}
+	return containerPDP
+}
+
+// How long a scenario waits for its seed to reach the PDP, and how long between two tries: a live
+// PDP syncs the seed from the Permit API, and the fake PDP of a dry run reads it at once, so in a
+// dry run only a scenario that fails waits it out.
+const (
+	liveSync           = 2 * time.Minute
+	liveSyncInterval   = 2 * time.Second
+	dryRunSync         = 2 * time.Second
+	dryRunSyncInterval = 100 * time.Millisecond
 )
 
 // The environment variables of a live run. .github/scripts/e2e-env.sh create exports the last
@@ -88,12 +135,64 @@ type config struct {
 	// env is the scratch environment of a live run, which e2e-env.sh created; a dry run creates
 	// its own.
 	env framework.Environment
+
+	// pdp is the kind of PDP that the clients of a live run call, as its leg says. A dry run
+	// fakes both and runs the scenarios of each leg, as legs says.
+	pdp pdpKind
+
+	// syncTimeout bounds the wait of a scenario for its seed to reach the PDP, and syncInterval
+	// is the wait between two tries.
+	syncTimeout, syncInterval time.Duration
+}
+
+// legs returns the kinds of PDP of the legs whose scenarios a run of c runs, in turn: the one
+// that a live run's clients call; and in a dry run, the cloud PDP, then the PDP container. The
+// fake cloud PDP answers the routes that both serve as the fake PDP container does, so a dry run
+// runs each scenario of every PDP against it, which shows that the scenario sends no route that
+// only the PDP container serves.
+func (c config) legs() []pdpKind {
+	if c.mode == testhook.DryRun {
+		return []pdpKind{cloudPDP, containerPDP}
+	}
+	return []pdpKind{c.pdp}
+}
+
+// selects reports whether a leg whose clients call the PDP kind runs sc: a scenario of every PDP,
+// or of that PDP. A scenario that a leg does not select does not run on it, and does not skip.
+func selects(kind pdpKind, sc scenario) bool {
+	return sc.pdp == everyPDP || sc.pdp == kind
+}
+
+// planned is a scenario that a run runs, with the kind of PDP that its clients call: in a dry
+// run, the fake of which.
+type planned struct {
+	scenario
+
+	calls pdpKind
+}
+
+// plan returns the scenarios of all that a run of c runs, in the order in which runCloud runs
+// them: those that the leg of each of c.legs() selects and no leg before it, each with that leg's
+// kind of PDP. A live run thus runs what its leg selects, and a dry run every scenario once, as a
+// leg that selects it would.
+func (c config) plan(all []scenario) []planned {
+	var p []planned
+	for _, kind := range c.legs() {
+		for _, sc := range all {
+			if selects(kind, sc) && !slices.ContainsFunc(p, func(other planned) bool {
+				return other.name == sc.name
+			}) {
+				p = append(p, planned{scenario: sc, calls: kind})
+			}
+		}
+	}
+	return p
 }
 
 // dryRunConfig is the config of a dry run.
 var dryRunConfig = config{
 	mode: testhook.DryRun, project: dryRunProject, projectKey: dryRunProjectKey,
-	prefix: dryRunPrefix,
+	prefix: dryRunPrefix, syncTimeout: dryRunSync, syncInterval: dryRunSyncInterval,
 }
 
 // run is the state of the test binary's run, which TestMain reads after the tests.
@@ -233,6 +332,7 @@ func configure() (config, string, error) {
 		projectKey: getenv(envProjectKey), prefix: prefix,
 		env: framework.ExistingEnvironment(getenv(envProjectID), getenv(envEnvID), string(prefix),
 			getenv(envEnvAPIKey)),
+		pdp: legPDP(*leg), syncTimeout: liveSync, syncInterval: liveSyncInterval,
 	}, "", nil
 }
 
@@ -315,9 +415,21 @@ func TestConfigure(t *testing.T) {
 			"permit_key_FAKEenvironment")
 		if err != nil || skip != "" || cfg.mode != testhook.Live || cfg.env != want ||
 			string(cfg.prefix) != prefix || cfg.project != "gosdk-e2e" ||
-			cfg.projectKey != "permit_key_FAKEproject" || cfg.apiURL != "https://api.permit.io" {
+			cfg.projectKey != "permit_key_FAKEproject" || cfg.apiURL != "https://api.permit.io" ||
+			cfg.pdp != legPDP(*leg) || cfg.syncTimeout != liveSync ||
+			cfg.syncInterval != liveSyncInterval {
 			t.Errorf("configure() = %+v (environment %s), %q, %v; want a live run in %s", cfg,
 				cfg.env, skip, err, want)
+		}
+	})
+	t.Run("the cloud PDP's leg", func(t *testing.T) {
+		savedLeg := *leg
+		*leg = cloudPDPLeg
+		t.Cleanup(func() { *leg = savedLeg })
+		setenv(t, "")
+		cfg, _, err := configure()
+		if err != nil || cfg.pdp != cloudPDP || string(cfg.prefix) != "gosdk-ci-1234-2-cloudpdp" {
+			t.Errorf("configure() = %+v, %v; want a live run of the cloud PDP", cfg, err)
 		}
 	})
 	for _, name := range []string{envEnvID, envProjectID, envEnvAPIKey, envRun} {
@@ -339,4 +451,57 @@ func TestConfigure(t *testing.T) {
 				skip, err)
 		}
 	})
+}
+
+// TestLegPDP checks the kind of PDP that the clients of each leg call: the cloud PDP on the leg
+// cloudpdp, and the PDP container on every other, such as pinned, the leg of a run without
+// -e2e.leg, latest and local.
+func TestLegPDP(t *testing.T) {
+	for legName, want := range map[string]pdpKind{
+		"cloudpdp": cloudPDP, "pinned": containerPDP, "latest": containerPDP,
+		"local": containerPDP,
+	} {
+		if got := legPDP(legName); got != want {
+			t.Errorf("legPDP(%q) = %q, want %q", legName, got, want)
+		}
+	}
+	if f := flag.Lookup("e2e.leg"); f == nil || f.DefValue != pinnedLeg {
+		t.Errorf("-e2e.leg is %+v, want the default %s, the leg that ci.yml's job e2e passes", f,
+			pinnedLeg)
+	}
+}
+
+// TestPlan checks the scenarios that each run runs, in order, and the PDP that their clients
+// call: a live run those of every PDP and those of the PDP of its leg, against that PDP; a dry
+// run those of the leg of the cloud PDP against it, then those of the PDP container against it.
+func TestPlan(t *testing.T) {
+	all := []scenario{
+		{name: "every"},
+		{name: "container", pdp: containerPDP},
+		{name: "cloud", pdp: cloudPDP},
+		{name: "every-2"},
+	}
+	for _, tc := range []struct {
+		name string
+		cfg  config
+		want []string
+	}{
+		{"dry run", dryRunConfig, []string{
+			"every@cloud", "cloud@cloud", "every-2@cloud", "container@container",
+		}},
+		{"container", config{mode: testhook.Live, pdp: containerPDP}, []string{
+			"every@container", "container@container", "every-2@container",
+		}},
+		{"cloud", config{mode: testhook.Live, pdp: cloudPDP}, []string{
+			"every@cloud", "cloud@cloud", "every-2@cloud",
+		}},
+	} {
+		var got []string
+		for _, p := range tc.cfg.plan(all) {
+			got = append(got, p.name+"@"+string(p.calls))
+		}
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("%s: plan = %q, want %q", tc.name, got, tc.want)
+		}
+	}
 }

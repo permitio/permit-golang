@@ -344,6 +344,12 @@ github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestCommittedSnapshots
 github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestV1Routes
 github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestV1RouteFixes
 github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestContainerExtras
+github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestCheckPDP
+github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestCheckPDPURL
+github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestCheckPDPDidNotRun
+github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestCheckPDPBadArgs
+github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestCheckPDPCommittedSnapshot
+github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestFirstDifference
 
 github.com/permitio/permit-golang/v2 TestOperationMap
 github.com/permitio/permit-golang/v2 TestBuildOperationMap
@@ -962,9 +968,24 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoutes
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestParents
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceInstances
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPUserPermissions
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAuthorizedUsers
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPLocalRoleAssignments
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAccess
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestCloudPDP
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPRoutes
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_permissions
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/authorized_users
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenants_and_local_role_assignments
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/container_only_routes_on_cloud_pdp
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
 github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder
@@ -998,3 +1019,8 @@ github.com/permitio/permit-golang/v2/tools/scripts TestSweepEnvsWithoutTheKey
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestExistingEnvironment
 github.com/permitio/permit-golang/v2/tools/e2e TestUnrecorded
 github.com/permitio/permit-golang/v2/tools/e2e TestConfigure
+github.com/permitio/permit-golang/v2/tools/e2e TestLegPDP
+github.com/permitio/permit-golang/v2/tools/e2e TestPlan
+github.com/permitio/permit-golang/v2/tools/e2e TestContainerOnlyScenarios
+github.com/permitio/permit-golang/v2/tools/e2e TestRequiredScenarios
+github.com/permitio/permit-golang/v2/tools/e2e TestAwaitValue

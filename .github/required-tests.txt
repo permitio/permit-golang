@@ -915,3 +915,6 @@ github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentRepliesAddNoCredenti
 github.com/permitio/permit-golang/v2 TestInvalidLocalRoleAssignmentsOptions
 github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsAfterClose
 github.com/permitio/permit-golang/v2 ExampleClient_LocalRoleAssignmentsAll
+
+github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
+github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun

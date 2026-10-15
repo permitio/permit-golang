@@ -155,6 +155,8 @@ func TestCheck(t *testing.T) {
 	const (
 		weeklyIf = "if: (!inputs.mode && github.event.schedule == '0 1 * * 1') || " +
 			"inputs.mode == 'weekly'"
+		weeklyPushIf = "if: (!inputs.mode && (github.event_name == 'push' || " +
+			"github.event.schedule == '0 1 * * 1')) || inputs.mode == 'weekly'"
 		ciRun     = "        run: .github/scripts/wrap.sh\n"
 		cacheStep = "          go-version-file: go.mod\n          cache: false\n"
 		matrixGo  = "go-version: ${{ env[matrix.go] }}"
@@ -958,6 +960,80 @@ func TestCheck(t *testing.T) {
 			wantExit: exitFailed,
 			wantStdout: []string{
 				"job weekly's if: names the cron \"0 3 * * 1\", but WEEKLY_CRON is \"0 1 * * 1\"",
+			},
+		},
+		{
+			name: "an advisory periodic job that runs on a push too",
+			changes: []change{
+				inCI(weeklyIf, weeklyPushIf), inCI(`ADVISORY_JOBS: ""`, "ADVISORY_JOBS: weekly"),
+			},
+			wantExit: exitPassed,
+		},
+		{
+			name:     "a periodic job that runs on a push too but is not advisory",
+			changes:  []change{inCI(weeklyIf, weeklyPushIf)},
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: .github/workflows/ci.yml:49: job weekly runs on a push too, which no " +
+					"pull request checks first; list it in ADVISORY_JOBS, so that it cannot " +
+					"fail CI on master\n",
+			},
+		},
+		{
+			name: "an advisory periodic job that runs on a push and names another cron",
+			changes: []change{
+				inCI(weeklyIf, strings.Replace(weeklyPushIf, "0 1", "0 3", 1)),
+				inCI(`ADVISORY_JOBS: ""`, "ADVISORY_JOBS: weekly"),
+			},
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"job weekly's if: names the cron \"0 3 * * 1\", but WEEKLY_CRON is \"0 1 * * 1\"",
+			},
+		},
+		{
+			name: "an advisory periodic job that runs on a push and names another mode",
+			changes: []change{
+				inCI(weeklyIf, strings.Replace(weeklyPushIf, "'weekly'", "'pr'", 1)),
+				inCI(`ADVISORY_JOBS: ""`, "ADVISORY_JOBS: weekly"),
+			},
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"job weekly is in SCHEDULED_JOBS for mode weekly, but its if: names mode pr",
+			},
+		},
+		{
+			name: "an advisory periodic job that runs on another event than a push",
+			changes: []change{
+				inCI(weeklyIf, strings.Replace(weeklyPushIf, "'push'", "'pull_request'", 1)),
+				inCI(`ADVISORY_JOBS: ""`, "ADVISORY_JOBS: weekly"),
+			},
+			wantExit:   exitFailed,
+			wantStdout: []string{"job weekly is in SCHEDULED_JOBS, so its if: must be"},
+		},
+		{
+			// Without !inputs.mode, a run with a mode whose caller's event is a push, such as a
+			// release, would select the job.
+			name: "an advisory periodic job that runs on a push in a run with a mode",
+			changes: []change{
+				inCI(weeklyIf, strings.Replace(weeklyPushIf, "!inputs.mode && ", "", 1)),
+				inCI(`ADVISORY_JOBS: ""`, "ADVISORY_JOBS: weekly"),
+			},
+			wantExit:   exitFailed,
+			wantStdout: []string{"job weekly is in SCHEDULED_JOBS, so its if: must be"},
+		},
+		{
+			name: "an advisory periodic job without a cron and mode condition",
+			changes: []change{
+				inCI(weeklyIf, "if: github.event_name == 'push'"),
+				inCI(`ADVISORY_JOBS: ""`, "ADVISORY_JOBS: weekly"),
+			},
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: .github/workflows/ci.yml:49: job weekly is in SCHEDULED_JOBS, so its " +
+					"if: must be (!inputs.mode && github.event.schedule == '<WEEKLY_CRON>') || " +
+					"inputs.mode == 'weekly', or, as it is in ADVISORY_JOBS, to run on a push " +
+					"too: (!inputs.mode && (github.event_name == 'push' || " +
+					"github.event.schedule == '<WEEKLY_CRON>')) || inputs.mode == 'weekly'\n",
 			},
 		},
 		{

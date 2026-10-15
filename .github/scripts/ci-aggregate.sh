@@ -8,7 +8,7 @@
 #   SCHEDULE           github.event.schedule: the cron that started a scheduled run
 #   <MODE>_CRON        the crons of the workflow env, such as WEEKLY_CRON for mode weekly
 #   PULL_REQUEST_JOBS  the jobs that run on pull requests only (space separated)
-#   SCHEDULED_JOBS     the periodic jobs, as job:mode, each run in its mode only
+#   SCHEDULED_JOBS     the periodic jobs, as job:mode, each selected in its mode only
 #   ADVISORY_JOBS      the jobs that may fail or be cancelled without failing CI
 #
 # The run's mode is INPUT_MODE when it is set. Otherwise it is the mode whose <MODE>_CRON is

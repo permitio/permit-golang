@@ -573,7 +573,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | Job | What it does |
 | --- | --- |
 | `prek` | Checks the workflows with cicheck, runs every git hook on every file through `.github/scripts/prek-count.sh`, and on a pull request checks the message of each of its commits through `.github/scripts/commits-check.sh`. |
-| `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. |
+| `test` | Runs the tests of both modules with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. Then the benchmarks of the root package run 100 times each, so that each compiles and runs. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, whose output checkgotest checks; see [API reference](#api-reference). Then builds and runs the zapslog example of `WithLogger`, which needs the module proxy; see [Logging](#logging). |
@@ -589,6 +589,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, checks the models against the published specs, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots) and [Model drift](#model-drift). |
+| `bench` | On a push to `master` and weekly: runs the benchmarks of the decision calls, compares them with the previous result on `master`, writes the report to the job summary and posts a regression, or a run that did not complete, to Slack. Advisory: it never fails CI. See [Benchmarks](#benchmarks). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
 | `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: posts one line to Slack. `CI` does not need it. |
 
@@ -596,7 +597,8 @@ Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
   `test`, `crossbuild`, `consumer`, `docs`, `zipcheck`, `api-coverage`, `vuln` and `secrets`. A
-  pull request runs `mutation`, `dependency-review` and `api-surface` too.
+  pull request runs `mutation`, `dependency-review` and `api-surface` too, and a push to `master`
+  runs `bench`.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, `security` the security scan, and `e2e` the jobs of that mode *(added in a later
   commit on this branch)*. The release workflow *(added in a later commit on this branch)* calls
@@ -607,8 +609,9 @@ Which jobs a run selects depends on its mode:
 
 The `CI` job fails when a job it needs failed or was cancelled, or was skipped in a run that
 selects it, and passes a job that the run does not select. Three lists in its step change that:
-`PULL_REQUEST_JOBS` run on pull requests only, each job in `SCHEDULED_JOBS` (`job:mode`) runs in
-its mode only, and a job in `ADVISORY_JOBS` may fail without failing CI. ci-aggregate.sh exits 0
+`PULL_REQUEST_JOBS` run on pull requests only, each job in `SCHEDULED_JOBS` (`job:mode`) is
+required in its mode only (an advisory one, such as `bench`, may also run on a push to `master`),
+and a job in `ADVISORY_JOBS` may fail without failing CI. ci-aggregate.sh exits 0
 when CI passes, 1 when a job did not succeed, and 2 when it could not decide: the job results
 cannot be read, there are not `EXPECTED_JOBS` of them, a list names a job CI does not need, or
 the mode, event or cron is unknown.
@@ -623,7 +626,11 @@ pull requests, on a cron or as an advisory check, add it to the list for that. G
 - a job in `SCHEDULED_JOBS`:
   `(!inputs.mode && github.event.schedule == '<cron>') || inputs.mode == '<mode>'`, with the cron
   its `<MODE>_CRON` declares. A run that another workflow calls sees its caller's schedule, so
-  `!inputs.mode` keeps the cron from selecting the job in a run that has a mode.
+  `!inputs.mode` keeps the cron from selecting the job in a run that has a mode;
+- a job in `SCHEDULED_JOBS` that runs on a push to `master` too, as `bench` does:
+  `(!inputs.mode && (github.event_name == 'push' || github.event.schedule == '<cron>')) || inputs.mode == '<mode>'`.
+  Only a job in `ADVISORY_JOBS` may: no pull request runs it before the push, so its failure must
+  not fail CI on `master`.
 
 A job that needs `CI` runs after it, so `CI` does not need it; only `notify-gate-failure` does,
 and its `if:` is
@@ -736,6 +743,55 @@ cancelled are tested in the next one. Changed lines in `tools/`, the programs th
 SDK, are tested like SDK code. Maintainers push a pull request's next commit only after CI
 passed on the previous one, so that each commit's lines get a run. The weekly job tests every Go
 file of both modules and only reports.
+
+## Benchmarks
+
+`decisions_bench_test.go` holds the benchmarks of the decision calls, the SDK's hot path:
+`Client.Check`, `Client.BulkCheck` of 10 and of 100 checks, and `Client.FilterObjects` of 100
+resources. Each client sends its requests through an in-memory `http.RoundTripper` that answers
+as the PDP does, with no network, and logs at Debug, through the client's redacting handler, to a
+handler that writes to `io.Discard`. So `ns/op` and `allocs/op` count what the client adds to a
+call: encoding the checks, the retry wrapper, the Debug line of each attempt and decoding the
+decisions. A new benchmark calls `b.ReportAllocs()`. Run them from the repository root, offline,
+and compare two results with benchreport (`tools/cmd/benchreport`), such as those of `master` and
+of your branch on one machine. Building benchreport first creates `bin/`, which holds the results:
+
+```sh
+go -C tools build -o ../bin/benchreport ./cmd/benchreport
+git switch master
+HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
+  go test -run '^$' -bench . -count 6 . | tee bin/old.txt
+git switch -
+HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
+  go test -run '^$' -bench . -count 6 . | tee bin/new.txt
+bin/benchreport bin/old.txt bin/new.txt
+```
+
+The `test` job runs each benchmark 100 times (`-benchtime 100x`), so that each compiles and runs.
+The `bench` job runs them with `-count 6` on a push to `master` and weekly, and compares the
+output with the previous result through benchreport. Once benchreport accepted the output, the
+job keeps it as the artifact `bench-<Go version>`, such as `bench-go1.27.1`; the previous result
+is the artifact of the same name of the newest earlier run of this repository's `master` that
+has one.
+
+benchreport reads both files with benchstat's parser, `golang.org/x/perf/benchfmt`, and prints a
+row for each benchmark and unit: the median of the previous runs, the median of the current runs
+and the change. A change marked `over 20%` is a regression, a median more than 20% higher in
+`ns/op` or `allocs/op`; a benchmark that the previous result does not have shows
+`no previous result`. The last line is the verdict:
+
+- `PASS`: no benchmark regressed;
+- `REGRESSION`: each regression, as `<benchmark> <unit> <change> (<previous> -> <current>)`;
+- `NO PREVIOUS RESULT`: the previous file does not exist, or has none of the benchmarks;
+- `DID NOT RUN`: a file cannot be read, holds no result or a line that is not valid benchmark
+  output, or a benchmark without `ns/op` or `allocs/op`.
+
+It exits 0, 1 on a regression and 2 when it did not run. The `bench` job writes the report to its
+job summary and posts a regression, or a report that did not complete, to Slack; a missing
+previous result passes. The job is in `ADVISORY_JOBS`, so it never fails CI. `ns/op` varies with
+the runner that a run gets, so a regression in `ns/op` alone can be noise: run the job again
+before you look for a cause. `allocs/op` hardly varies within one Go version; as the artifact's
+name holds the version, the first run on a new Go version has no previous result.
 
 ## Vulnerability scan
 
@@ -856,6 +912,7 @@ These jobs of `ci.yml` post to Slack:
 | `digest` | Mondays (`WEEKLY_CRON`), and in the mode `weekly` | `SECURITY_SLACK_WEBHOOK_URL` |
 | `mutation (weekly)` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
 | `spec-drift` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
+| `bench` | A push to `master`, Mondays and the mode `weekly`, when the benchmarks regressed or their report did not complete | `SLACK_WEBHOOK_URL` |
 | `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release | `SLACK_WEBHOOK_URL` |
 
 Each post starts with one line, `<repo> <check>: <result>. <details>. <run URL>`, which
@@ -926,8 +983,8 @@ GITHUB_REPOSITORY=permitio/permit-golang DEPENDABOT_ALERTS_TOKEN="$(gh auth toke
 The scan needs these settings, which a maintainer makes before its first run on `master`:
 
 - the secrets `SECURITY_SLACK_WEBHOOK_URL` and `SLACK_WEBHOOK_URL`, the incoming webhooks of the
-  security channel and of the channel for releases, failures, the weekly mutation report and
-  spec drift;
+  security channel and of the channel for releases, failures, the weekly mutation report, spec
+  drift and benchmark regressions;
 - the environment `security-scan`, which deploys only from `master`, with the secret
   `DEPENDABOT_ALERTS_TOKEN`: a fine-grained token that can read this repository's Dependabot
   alerts and nothing else. Create the environment before the job first runs, since GitHub

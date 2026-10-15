@@ -117,7 +117,8 @@ jobs:
   # dependency to its newest version in the runner's copy, as an application that requires newer
   # versions would. GOTOOLCHAIN=local keeps the go command from switching to go.mod's toolchain.
   # The modules, and the gitleaks that the tests of gitleaks-range.sh run, are downloaded first,
-  # and the tests then run offline.
+  # and the tests then run offline. Then the benchmarks of the root package run 100 times each,
+  # so that each compiles and runs; the bench job measures them.
   test:
     name: test (${{ matrix.go }}, ${{ matrix.deps }} tree)
     if: >-
@@ -185,6 +186,7 @@ jobs:
             echo "go test exited $root in the root module and $tools in tools/."
             exit 1
           fi
+          go test -count=1 -run '^$' -bench . -benchtime 100x .
 
   # Compiles the SDK for every platform that applications commonly build for.
   crossbuild:
@@ -991,6 +993,150 @@ jobs:
             -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           [[ $result == PASS ]]
 
+  # On a push to master, weekly and in the mode weekly: runs the benchmarks of the decision
+  # calls, 6 times each, offline, and compares the output with the previous result through
+  # tools/cmd/benchreport, which writes its report to the job summary. The output is kept as the
+  # artifact bench-<Go version>, such as bench-go1.27.1, since allocs/op depends on the Go
+  # version: the first run on a new one has no previous result. The previous result is the
+  # artifact of the same name of the newest earlier run of this repository's master that has
+  # one, as the artifacts API lists them; a run uploads it only after benchreport accepted it.
+  # Without one, such as once the artifacts expired, the report says so and the job passes. A
+  # median over 20% higher in ns/op or allocs/op is posted to the ops channel, SLACK_WEBHOOK_URL,
+  # and the job passes: it reports, and does not gate. The job fails when the benchmarks or the
+  # report did not complete, which is posted too, or the result cannot be uploaded or posted. It
+  # is in ADVISORY_JOBS, so CI only warns when it fails; that is why it may run on a push, which
+  # no pull request checks first. Reading another run's artifacts needs actions: read.
+  bench:
+    name: bench
+    if: >-
+      (!inputs.mode && (github.event_name == 'push' || github.event.schedule == '41 6 * * 1'))
+      || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read  # the artifacts of earlier runs, for the previous result
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Run the benchmarks
+        id: bench
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          echo "artifact=bench-$(go env GOVERSION)" >>"$GITHUB_OUTPUT"
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          mkdir "$RUNNER_TEMP/bench"
+          go test -count=6 -run '^$' -bench . -timeout 10m . | tee "$RUNNER_TEMP/bench/bench.txt"
+      # Only runs of this repository's master, not of a fork's branch of that name, and only
+      # earlier runs, whose ids are lower: two pushes in a row can run at the same time.
+      - name: Find the previous result
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          ARTIFACT: ${{ steps.bench.outputs.artifact }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          listed=$(gh api "repos/$REPOSITORY/actions/artifacts?name=$ARTIFACT&per_page=100")
+          run=$(jq -r --argjson current "$RUN_ID" '[.artifacts[] | select(.expired | not)
+              | select(.workflow_run.head_branch == "master"
+                and .workflow_run.head_repository_id == .workflow_run.repository_id
+                and .workflow_run.id < $current)]
+            | sort_by(.workflow_run.id) | last | .workflow_run.id // empty' <<<"$listed")
+          echo "The previous result is the $ARTIFACT artifact of run ${run:-(none)}."
+          echo "run-id=$run" >>"$GITHUB_OUTPUT"
+      - name: Download the previous result
+        if: steps.previous.outputs.run-id != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: ${{ steps.bench.outputs.artifact }}
+          path: ${{ runner.temp }}/previous
+          run-id: ${{ steps.previous.outputs.run-id }}
+          github-token: ${{ github.token }}
+      # benchreport exits 1 on a regression, which the next step posts, and 2 when it did not run.
+      - name: Compare with the previous result
+        id: report
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/benchreport" ./cmd/benchreport
+          report=$RUNNER_TEMP/bench-report.txt
+          code=0
+          "$RUNNER_TEMP/benchreport" "$RUNNER_TEMP/previous/bench.txt" \
+            "$RUNNER_TEMP/bench/bench.txt" >"$report" || code=$?
+          cat "$report"
+          {
+            echo "### Decision benchmarks"
+            echo
+            echo '```'
+            cat "$report"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+          [[ $code -le 1 ]]
+      # Only once benchreport accepted the output, exit 0 or 1, so that output it cannot read
+      # never becomes the next run's previous result. overwrite: a re-run of the job replaces the
+      # artifact of its first attempt.
+      - name: Upload the result
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: ${{ steps.bench.outputs.artifact }}
+          path: ${{ runner.temp }}/bench/bench.txt
+          if-no-files-found: error
+          overwrite: true
+      # notify posts one line to the ops channel, SLACK_WEBHOOK_URL: the regressions that
+      # benchreport's verdict lists, or that the benchmarks or the report did not complete; without
+      # the webhook it warns and posts nothing. A report without a regression posts nothing.
+      - name: Post the result
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          OUTCOME: ${{ steps.report.outcome }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          verdict=''
+          if [[ -s $RUNNER_TEMP/bench-report.txt ]]; then
+            verdict=$(tail -n 1 "$RUNNER_TEMP/bench-report.txt")
+          fi
+          result="DID NOT RUN"
+          details="the benchmarks or their report did not complete ($OUTCOME)"
+          case $OUTCOME:$verdict in
+          "success:benchreport: PASS: "* | "success:benchreport: NO PREVIOUS RESULT: "*)
+            echo "Nothing to post: ${verdict#benchreport: }"
+            exit 0
+            ;;
+          "success:benchreport: REGRESSION: "*)
+            result=REGRESSION
+            details="over 20% above the previous result on master:"
+            details="$details ${verdict#benchreport: REGRESSION: }"
+            ;;
+          "failure:benchreport: DID NOT RUN: "*)
+            details="the benchmark report did not complete: ${verdict#benchreport: DID NOT RUN: }"
+            ;;
+          esac
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" -check bench \
+            -result "$result" -details "$details" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          [[ $result == REGRESSION ]]
+
   # The one check to require. It runs whatever happened to the jobs it needs, since GitHub counts
   # a skipped required check as passing. ci-aggregate.sh says how it decides; in short, each job
   # must succeed in the runs that select it: the pull request checks on pull_request, push and
@@ -1020,6 +1166,7 @@ jobs:
       - security-scan
       - digest
       - spec-drift
+      - bench
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -1034,12 +1181,12 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 17
+          EXPECTED_JOBS: 18
           PULL_REQUEST_JOBS: mutation dependency-review api-surface
           SCHEDULED_JOBS: >-
             prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly
-            spec-drift:weekly
-          ADVISORY_JOBS: ""
+            spec-drift:weekly bench:weekly
+          ADVISORY_JOBS: bench
         run: .github/scripts/ci-aggregate.sh
 
   # After CI, when CI failed on a push to master or in a release: posts one line to the ops

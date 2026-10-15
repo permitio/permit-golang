@@ -17,9 +17,11 @@ require (
 	github.com/permitio/permit-golang/v2 v2.0.0-00010101000000-000000000000
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/mod v0.41.0
+	golang.org/x/perf v0.0.0-20260929162123-406019bb8b68
 )
 
 require (
+	github.com/aclements/go-moremath v0.0.0-20241023150245-c8bbc672ef66 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/editorconfig-checker/editorconfig-checker/v4 v4.0.2 // indirect
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.4 // indirect

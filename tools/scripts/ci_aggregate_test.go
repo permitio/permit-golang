@@ -224,6 +224,18 @@ func TestCIAggregate(t *testing.T) {
 			},
 		},
 		{
+			name: "an advisory scheduled job that failed on a push",
+			env: map[string]string{
+				"EVENT": "push", "ADVISORY_JOBS": "prek-upstream",
+				"NEEDS": needs("success", "success", "success", "failure"),
+			},
+			wantExit: 0,
+			wantStdout: []string{
+				"::warning title=CI::prek-upstream failure; it is advisory, so CI does not fail\n",
+				"ci-aggregate: every job that mode push selects succeeded\n",
+			},
+		},
+		{
 			name: "an advisory job skipped in a run that selects it",
 			env: map[string]string{
 				"ADVISORY_JOBS": "crossbuild",

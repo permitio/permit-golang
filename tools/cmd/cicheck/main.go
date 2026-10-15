@@ -25,7 +25,10 @@
 //   - A job in SCHEDULED_JOBS runs on exactly one cron and one mode: its if: is
 //     (!inputs.mode && github.event.schedule == '<cron>') || inputs.mode == '<mode>', where the
 //     workflow's env declares <cron> as <MODE>_CRON. A called run sees its caller's schedule;
-//     !inputs.mode keeps the cron from selecting the job in a run that has a mode.
+//     !inputs.mode keeps the cron from selecting the job in a run that has a mode. A job that is
+//     also in ADVISORY_JOBS may run on a push too, with the if:
+//     (!inputs.mode && (github.event_name == 'push' || github.event.schedule == '<cron>')) ||
+//     inputs.mode == '<mode>'; only such a job, since no pull request runs it before the push.
 //   - Every other job of that workflow but CI has the if: of the pull request checks, exactly as
 //     ci.yml writes it: (!inputs.mode && (github.event_name == 'pull_request' ||
 //     github.event_name == 'push')) || inputs.mode == 'pr' || inputs.mode == 'release'. A job in
@@ -195,6 +198,11 @@ var (
 	// scheduledIf matches the if: of a job in SCHEDULED_JOBS, and captures its cron and mode.
 	scheduledIf = regexp.MustCompile(`^\(!inputs\.mode\s*&&\s*github\.event\.schedule\s*==\s*` +
 		`'([^']*)'\)\s*\|\|\s*inputs\.mode\s*==\s*'([^']*)'$`)
+	// scheduledPushIf matches the if: of a job in SCHEDULED_JOBS and ADVISORY_JOBS that runs on
+	// a push too, and captures its cron and mode.
+	scheduledPushIf = regexp.MustCompile(`^\(!inputs\.mode\s*&&\s*\(github\.event_name\s*==\s*` +
+		`'push'\s*\|\|\s*github\.event\.schedule\s*==\s*'([^']*)'\)\)\s*\|\|\s*` +
+		`inputs\.mode\s*==\s*'([^']*)'$`)
 	// refersToSchedule matches an if: that depends on the schedule.
 	refersToSchedule = regexp.MustCompile(
 		`github\.event\.schedule|github\.event_name\s*==\s*'schedule'`)
@@ -1043,7 +1051,7 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 		c.add(w.path, line, "EXPECTED_JOBS is %q, but CI needs %d jobs", expected, len(needs))
 	}
 	pullRequest := c.listedJobs(w.path, line, stepEnv, "PULL_REQUEST_JOBS", needs)
-	c.listedJobs(w.path, line, stepEnv, "ADVISORY_JOBS", needs)
+	advisory := c.listedJobs(w.path, line, stepEnv, "ADVISORY_JOBS", needs)
 	scheduled := map[string]bool{}
 	value, _ := scalar(field(stepEnv, "SCHEDULED_JOBS"))
 	for entry := range strings.FieldsSeq(value) {
@@ -1055,7 +1063,9 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 			c.add(w.path, line, "SCHEDULED_JOBS names %s, which CI does not need", name)
 		default:
 			scheduled[name] = true
-			c.checkScheduledJob(w.path, name, mode, byID[name], env)
+			c.checkScheduledJob(w.path, scheduledJob{
+				name: name, mode: mode, value: byID[name], advisory: advisory[name],
+			}, env)
 		}
 	}
 	for _, job := range jobs {
@@ -1126,24 +1136,47 @@ func (c *checker) ciStepEnv(path string, ci pair) (*yaml.Node, int) {
 	return nil, 0
 }
 
-// checkScheduledJob checks that a job in SCHEDULED_JOBS runs on one declared cron and one mode.
-func (c *checker) checkScheduledJob(path, name, mode string, job *yaml.Node,
-	env map[string]envVar,
-) {
-	condNode := field(job, "if")
+// scheduledJob is a job in SCHEDULED_JOBS: its id, its mode, the job, and whether ADVISORY_JOBS
+// names it too.
+type scheduledJob struct {
+	name, mode string
+	value      *yaml.Node
+	advisory   bool
+}
+
+// checkScheduledJob checks that a job in SCHEDULED_JOBS runs on one declared cron and one mode,
+// and on a push too only when it is in ADVISORY_JOBS: no pull request runs such a job before the
+// push, so its failure must not fail CI on master.
+func (c *checker) checkScheduledJob(path string, job scheduledJob, env map[string]envVar) {
+	name, mode := job.name, job.mode
+	condNode := field(job.value, "if")
 	cond, _ := scalar(condNode)
 	line := 0
 	if condNode != nil {
 		line = condNode.Line
 	}
-	want := fmt.Sprintf("(!inputs.mode && github.event.schedule == '<%s_CRON>') || "+
-		"inputs.mode == '%s'", strings.ToUpper(mode), mode)
+	cronVar := strings.ToUpper(mode) + "_CRON"
+	want := fmt.Sprintf("(!inputs.mode && github.event.schedule == '<%s>') || "+
+		"inputs.mode == '%s'", cronVar, mode)
+	if job.advisory {
+		want += fmt.Sprintf(", or, as it is in ADVISORY_JOBS, to run on a push too: "+
+			"(!inputs.mode && (github.event_name == 'push' || github.event.schedule == '<%s>')) "+
+			"|| inputs.mode == '%s'", cronVar, mode)
+	}
 	m := scheduledIf.FindStringSubmatch(expression(cond))
+	onPush := false
+	if m == nil {
+		m = scheduledPushIf.FindStringSubmatch(expression(cond))
+		onPush = m != nil
+	}
 	if m == nil {
 		c.add(path, line, "job %s is in SCHEDULED_JOBS, so its if: must be %s", name, want)
 		return
 	}
-	cronVar := strings.ToUpper(mode) + "_CRON"
+	if onPush && !job.advisory {
+		c.add(path, line, "job %s runs on a push too, which no pull request checks first; list "+
+			"it in ADVISORY_JOBS, so that it cannot fail CI on master", name)
+	}
 	declared, ok := env[cronVar]
 	switch {
 	case m[2] != mode:

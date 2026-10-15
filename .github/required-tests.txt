@@ -1077,6 +1077,22 @@ github.com/permitio/permit-golang/v2 TestMalformedResourceActionGroupReplies
 github.com/permitio/permit-golang/v2 TestResourceActionGroupsAfterClose
 github.com/permitio/permit-golang/v2 ExampleResourceActionGroupsService
 
+github.com/permitio/permit-golang/v2 TestResourceAttributeTypes
+github.com/permitio/permit-golang/v2 TestResourceAttributesAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestResourceAttributesAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestResourceAttributesAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestResourceAttributesListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidResourceAttributeListOptions
+github.com/permitio/permit-golang/v2 TestResourceAttributesUseTheScope
+github.com/permitio/permit-golang/v2 TestResourceAttributeKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteResourceAttributeThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherResourceAttributeCalls
+github.com/permitio/permit-golang/v2 TestResourceAttributeBodies
+github.com/permitio/permit-golang/v2 TestResourceAttributeRetries
+github.com/permitio/permit-golang/v2 TestMalformedResourceAttributeReplies
+github.com/permitio/permit-golang/v2 TestResourceAttributesAfterClose
+github.com/permitio/permit-golang/v2 ExampleResourceAttributesService
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1144,6 +1160,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenant_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_group_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

@@ -124,3 +124,9 @@ M-action-groups-3
 M-action-groups-4
 M-action-groups-5
 M-action-groups-6
+M-resource-attributes-1
+M-resource-attributes-2
+M-resource-attributes-3
+M-resource-attributes-4
+M-resource-attributes-5
+M-resource-attributes-6

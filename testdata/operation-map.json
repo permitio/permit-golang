@@ -138,6 +138,24 @@
     "ResourceActionsService.Update": [
       "update_resource_action"
     ],
+    "ResourceAttributesService.All": [
+      "list_resource_attributes"
+    ],
+    "ResourceAttributesService.Create": [
+      "create_resource_attribute"
+    ],
+    "ResourceAttributesService.Delete": [
+      "delete_resource_attribute"
+    ],
+    "ResourceAttributesService.Get": [
+      "get_resource_attribute"
+    ],
+    "ResourceAttributesService.List": [
+      "list_resource_attributes"
+    ],
+    "ResourceAttributesService.Update": [
+      "update_resource_attribute"
+    ],
     "ResourcesService.All": [
       "list_resources"
     ],

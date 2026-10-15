@@ -1806,6 +1806,125 @@ succeeded; v1 returned an error. A mistyped key returns nil too, so check the ke
 that must remove something. Any other error status is a `*permit.Error` with the status and the
 body.
 
+<a id="M-resource-attributes-1"></a>
+### M-resource-attributes-1: ResourceAttributes becomes Client.ResourceAttributes, which acts on the environment of the scope
+
+- v1: `api.ResourceAttributes`
+- v1: `api.NewResourceAttributesApi`
+- v2: `permit.ResourceAttributesService`
+
+Call the methods of the attributes of a resource on the `ResourceAttributes` field of the client,
+`client.ResourceAttributes`, in place of `client.Api.ResourceAttributes`; `permit.New` builds it,
+so nothing takes the place of `api.NewResourceAttributesApi`. Each method takes a
+`context.Context` first and the key or the ID of the resource next, and acts on the environment
+of the client's scope, as v1's methods acted on the environment of the client's context:
+`permit.WithScope`, or else the scope of the API key, which the client looks up once, as
+[M-scope-2](#M-scope-2) says. A scope without an environment, such as that of a project-level API
+key without `permit.WithScope`, is an error that matches `permit.ErrInvalidConfig`, with no
+request for the call.
+
+v1's `List`, `Get`, `Create`, `Update` and `Delete` returned the error of the generated client of
+`pkg/openapi` as it was, not an `errors.PermitError`. Every v2 method returns a
+`*permit.Error`, or an error that wraps one, as [M-errors-1](#M-errors-1) says, so
+`errors.Is(err, permit.ErrNotFound)` and the other sentinels work for each of them.
+
+The attribute models keep their names and change their fields: `models.ResourceAttributeRead` has
+`ID`, `ResourceID`, `OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`,
+`ResourceId`, `OrganizationId`, `ProjectId` and `EnvironmentId`; its description is a plain
+string, empty when the reply has none, in place of a pointer; `CreatedAt` and `UpdatedAt` are
+`models.Time`, which embeds `time.Time`; and it has `BuiltIn`, the `built_in` of the reply, which
+v1 dropped. `Type` is a `models.AttributeType`, an open enum with a constant for each type, such
+as `models.AttributeTypeString` in place of v1's `models.STRING`, and `models.AttributeTypeObject`
+and `models.AttributeTypeObjectArray`, which v1 did not have. Build
+`models.ResourceAttributeCreate` and `models.ResourceAttributeUpdate` as struct literals, in place
+of their constructors and setters.
+
+<a id="M-resource-attributes-2"></a>
+### M-resource-attributes-2: GetById and GetByKey become Get, which reads every attribute type
+
+- v1: `api.ResourceAttributes.Get`
+- v1: `api.ResourceAttributes.GetById`
+- v1: `api.ResourceAttributes.GetByKey`
+- v2: `permit.ResourceAttributesService.Get`
+
+`ResourceAttributesService.Get(ctx, resourceKey, attributeKey)` takes the key or the ID of the
+resource and of the attribute, as all three v1 methods sent the same request: pass `id.String()`
+for a `uuid.UUID`. A key that holds a `/` or a `%` is sent escaped, as one segment of the path,
+and an empty key, `.` or `..` is an error that matches `permit.ErrInvalidConfig`, with no request
+for the attribute. An attribute that the resource does not have is a `*permit.Error` that matches
+`permit.ErrNotFound`.
+
+v1's three methods failed for an attribute of the type `object` or `object_array`, with the error
+`object is not a valid AttributeType`, as v1's `models.AttributeType` rejected every type that it
+did not list. v2 reads an attribute of every type: `models.AttributeType` keeps a type that this
+version of the SDK does not know, such as one that the API adds later, as it is, and its `Known`
+method reports false for it.
+
+<a id="M-resource-attributes-3"></a>
+### M-resource-attributes-3: ResourceAttributes.List returns a page of every attribute type, and All reads every page
+
+- v1: `api.ResourceAttributes.List`
+- v2: `permit.ResourceAttributesService.List`
+
+`ResourceAttributesService.List(ctx, resourceKey, opts)` takes a `*permit.ListOptions`, nil for
+the first page with the API's default of 30 attributes, in place of the page and the number of
+attributes as two ints, and returns a `*permit.Page[models.ResourceAttributeRead]`, as
+[M-lists-1](#M-lists-1) says. v1 failed for more than 100 attributes on a page before any
+request; v2 sends the number as given, and the API answers above 100 with an error.
+`ResourceAttributesService.All(ctx, resourceKey, opts)` returns an
+`iter.Seq2[models.ResourceAttributeRead, error]` that reads every page, 100 attributes at a time.
+
+v1's `List` failed for the whole page when one attribute of the resource had the type `object` or
+`object_array`, as [M-resource-attributes-2](#M-resource-attributes-2) says of `Get`. v2 reads
+every attribute of the page, of any type, also one that the API adds later.
+
+<a id="M-resource-attributes-4"></a>
+### M-resource-attributes-4: ResourceAttributes.Create takes models.ResourceAttributeCreate as a struct literal
+
+- v1: `api.ResourceAttributes.Create`
+- v2: `permit.ResourceAttributesService.Create`
+
+`ResourceAttributesService.Create(ctx, resourceKey, attribute)` sends the
+`models.ResourceAttributeCreate` as [M-resource-attributes-1](#M-resource-attributes-1) says: its
+key and its type always, and its description when it is not empty, in place of
+`models.NewResourceAttributeCreate(key, type)` and `SetDescription`. A key that another attribute
+of the resource has is a `*permit.Error` that matches `permit.ErrConflict`. Create is sent again
+only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created the attribute when
+a request got no complete reply.
+
+v1's `Create` returned an error for an attribute of the type `object` or `object_array`, such as
+`object is not a valid AttributeType`, although the API had created the attribute: v1 could not
+read the reply. v2 reads the reply, and returns the attribute of any type.
+
+<a id="M-resource-attributes-5"></a>
+### M-resource-attributes-5: ResourceAttributes.Update takes models.ResourceAttributeUpdate, which can send null
+
+- v1: `api.ResourceAttributes.Update`
+- v2: `permit.ResourceAttributesService.Update`
+
+Build the change as a struct literal of `models.ResourceAttributeUpdate`, in place of
+`models.NewResourceAttributeUpdate` and its setters. The request holds only the fields that are
+set: `Type` when it is not empty, and `Description`, a `models.Optional[string]`, when it is set:
+`models.Null` sends null, which clears the description and which v1 could not send, and
+`models.Some` sends the value. An update is sent again after a 500, 502, 503 or 504 reply or a
+failed connection, as sending it twice sets the same fields.
+
+v1's `Update` returned an error for an attribute of the type `object` or `object_array`, such as
+`object is not a valid AttributeType`, although the API had changed the attribute: v1 could not
+read the reply. v2 reads the reply, and returns the attribute of any type.
+
+<a id="M-resource-attributes-6"></a>
+### M-resource-attributes-6: ResourceAttributes.Delete of an attribute that is gone returns nil
+
+- v1: `api.ResourceAttributes.Delete`
+- v2: `permit.ResourceAttributesService.Delete`
+
+`ResourceAttributesService.Delete(ctx, resourceKey, attributeKey)` returns nil when the API
+answers 404, as the attribute is gone already, such as when a retry follows a delete that
+succeeded; v1 returned the error of the generated client. A mistyped key of the attribute or of
+the resource returns nil too, so check the keys before a delete that must remove something. Any
+other error status is a `*permit.Error` with the status and the body.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -2004,6 +2123,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceActionGroupRead` | `models.ResourceActionGroupRead` |
 | `models.ResourceActionRead` | `models.ResourceActionRead` |
 | `models.ResourceActionUpdate` | `models.ResourceActionUpdate` |
+| `models.ResourceAttributeCreate` | `models.ResourceAttributeCreate` |
+| `models.ResourceAttributeRead` | `models.ResourceAttributeRead` |
+| `models.ResourceAttributeUpdate` | `models.ResourceAttributeUpdate` |
 | `models.ResourceCreate` | `models.ResourceCreate` |
 | `models.ResourceRead` | `models.ResourceRead` |
 | `models.ResourceReplace` | `models.ResourceReplace` |
@@ -2013,6 +2135,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 342 of the 384 types of v1's pkg/models.
+Not mapped yet: 339 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

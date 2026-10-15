@@ -1,7 +1,8 @@
 # The drift findings that tools/drift accepts, each because the published spec differs from what
-# the API does, and the SDK follows the API, or because the spec lists an optional property that
-# the API reads elsewhere, and the SDK leaves it out. The section Model drift of CONTRIBUTING.md
-# says when to add an entry.
+# the API does, and the SDK follows the API, because the spec lists an optional property that the
+# API reads elsewhere, and the SDK leaves it out, or because a reply fixture holds a value of an
+# enum that the spec does not list, as the API may add one later, to check that the SDK reads
+# it. The section Model drift of CONTRIBUTING.md says when to add an entry.
 #
 # key: the key of the finding, as the failing test prints it before the colon, such as
 #   "model UserRead field email", "operation get_user response" or
@@ -203,3 +204,19 @@ allow:
       the API answers with attributes null for an action after an update that sent null for its
       attributes, which clears them, and the published spec types the attributes as an object only
     trigger: when the published spec allows null for the attributes of ResourceActionRead
+  - key: reply list_resource_attributes.200.unknown-type.json#/0/type
+    reason: >-
+      the fixture holds an attribute of the type geo_point, which the published spec does not
+      list, as the API may add a type later, to check that List and All read it as it is
+    trigger: when the published spec lists geo_point as an attribute type
+  - key: reply get_resource_attribute.200.unknown-type.json#/type
+    reason: >-
+      the fixture holds an attribute of the type geo_point, which the published spec does not
+      list, as the API may add a type later, to check that Get reads it as it is
+    trigger: when the published spec lists geo_point as an attribute type
+  - key: reply update_resource_attribute.200.json#/description
+    reason: >-
+      the API answers with description null for an attribute of a resource after an update that
+      sent null for its description, which clears it, and the published spec types the
+      description as a string only
+    trigger: when the published spec allows null for the description of ResourceAttributeRead

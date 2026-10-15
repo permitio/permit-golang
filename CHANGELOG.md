@@ -392,6 +392,32 @@ change from v1 and what to use instead.
   `Create` is sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or
   504 reply or a failed connection too.
 
+### Resource attributes
+
+- The `ResourceAttributes` field of the client, a `*permit.ResourceAttributesService`, lists,
+  reads, creates, changes and deletes the attributes of a resource of the environment of the
+  client's scope. Each method takes the key or the ID of the resource first: `List` returns a page
+  as a `*permit.Page[models.ResourceAttributeRead]` and `All` reads every page, 100 attributes at
+  a time; `Get` reads one attribute by its key or its ID, in place of v1's `Get`, `GetById` and
+  `GetByKey`; `Create` takes a `models.ResourceAttributeCreate` and `Update` a
+  `models.ResourceAttributeUpdate`, and each returns the attribute as a
+  `*models.ResourceAttributeRead`; `Delete` deletes an attribute.
+- `List`, `All`, `Get`, `Create` and `Update` read an attribute of every type. v1's `List`, `Get`,
+  `Create` and `Update` failed for an attribute of the type `object` or `object_array`, `Create`
+  and `Update` after the API had created or changed it; the open enum `models.AttributeType` has
+  constants for both, and keeps a type that the API adds later as it is, with `Known` reporting
+  false for it.
+- `models.ResourceAttributeRead` has `BuiltIn`, the `built_in` of the reply, which v1 dropped.
+- Every call returns the SDK's errors, a `*permit.Error` for a reply with an error status, where
+  v1's `List`, `Get`, `Create`, `Update` and `Delete` returned the error of the generated client.
+- In `models.ResourceAttributeUpdate`, `Description` is a `models.Optional[string]`, so an update
+  can send null for it, which clears it.
+- The keys of the resource and of the attribute are sent as segments of the path, escaped; an
+  empty key, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request for the call
+  is sent. `Delete` sends no query, and returns nil when the API answers 404, as the attribute is
+  gone already. `Create` is sent again after a 429 only; the other calls are sent again after a
+  500, 502, 503 or 504 reply or a failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

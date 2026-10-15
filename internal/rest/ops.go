@@ -279,6 +279,43 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The attributes of a resource of an environment, each at the environment level, as v1 sends
+	// them too. These key levels are not measured yet: the phase api.resource_attributes of the
+	// local harness confirms them. The list is a JSON array of at most 100 attributes. A PATCH
+	// sets the fields that it names to the values that it gives, so it does the same when sent
+	// twice; a create does not. The spec lists page and per_page on the delete, which names one
+	// attribute in its path; the SDK sends neither.
+	{
+		ID: "list_resource_attributes", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ResourceAttributeRead",
+	},
+	{
+		ID: "create_resource_attribute", Method: http.MethodPost,
+		Route:    "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes",
+		KeyLevel: EnvironmentLevel, RequestModel: "ResourceAttributeCreate",
+		ResponseModel: "ResourceAttributeRead",
+	},
+	{
+		ID: "get_resource_attribute", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/" +
+			"{attribute_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ResourceAttributeRead",
+	},
+	{
+		ID: "update_resource_attribute", Method: http.MethodPatch,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/" +
+			"{attribute_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "ResourceAttributeUpdate",
+		ResponseModel: "ResourceAttributeRead",
+	},
+	{
+		ID: "delete_resource_attribute", Method: http.MethodDelete,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/" +
+			"{attribute_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

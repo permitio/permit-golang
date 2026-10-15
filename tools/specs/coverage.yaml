@@ -280,11 +280,11 @@ control-plane:
   - {op: update_resource_action, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: covered}
   - {op: delete_resource_action, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: covered}
   # Resource Attributes
-  - {op: list_resource_attributes, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", stage: GA, status: planned}
-  - {op: create_resource_attribute, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", stage: GA, status: planned}
-  - {op: get_resource_attribute, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: planned}
-  - {op: update_resource_attribute, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: planned}
-  - {op: delete_resource_attribute, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: planned}
+  - {op: list_resource_attributes, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", stage: GA, status: covered}
+  - {op: create_resource_attribute, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", stage: GA, status: covered}
+  - {op: get_resource_attribute, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: covered}
+  - {op: update_resource_attribute, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: covered}
+  - {op: delete_resource_attribute, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: covered}
   # Resource Instances
   - {op: list_resource_instances, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances", stage: GA, status: planned}
   - {op: create_resource_instance, route: "POST /v2/facts/{proj_id}/{env_id}/resource_instances", stage: GA, status: planned}

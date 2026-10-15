@@ -319,6 +319,26 @@ models: type ResourceActionUpdate struct
 models: type ResourceActionUpdate struct, Attributes Optional[Attributes]
 models: type ResourceActionUpdate struct, Description Optional[string]
 models: type ResourceActionUpdate struct, Name string
+models: type ResourceAttributeCreate struct
+models: type ResourceAttributeCreate struct, Description string
+models: type ResourceAttributeCreate struct, Key string
+models: type ResourceAttributeCreate struct, Type AttributeType
+models: type ResourceAttributeRead struct
+models: type ResourceAttributeRead struct, BuiltIn bool
+models: type ResourceAttributeRead struct, CreatedAt Time
+models: type ResourceAttributeRead struct, Description string
+models: type ResourceAttributeRead struct, EnvironmentID string
+models: type ResourceAttributeRead struct, ID string
+models: type ResourceAttributeRead struct, Key string
+models: type ResourceAttributeRead struct, OrganizationID string
+models: type ResourceAttributeRead struct, ProjectID string
+models: type ResourceAttributeRead struct, ResourceID string
+models: type ResourceAttributeRead struct, ResourceKey string
+models: type ResourceAttributeRead struct, Type AttributeType
+models: type ResourceAttributeRead struct, UpdatedAt Time
+models: type ResourceAttributeUpdate struct
+models: type ResourceAttributeUpdate struct, Description Optional[string]
+models: type ResourceAttributeUpdate struct, Type AttributeType
 models: type ResourceCreate struct
 models: type ResourceCreate struct, Actions map[string]ActionBlockEditable
 models: type ResourceCreate struct, Attributes map[string]AttributeBlockEditable
@@ -494,6 +514,12 @@ permit: method (*ResourceActionsService) Delete(ctx context.Context, resourceKey
 permit: method (*ResourceActionsService) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error)
 permit: method (*ResourceActionsService) List(ctx context.Context, resourceKey string, opts *ResourceActionsListOptions) (*Page[models.ResourceActionRead], error)
 permit: method (*ResourceActionsService) Update(ctx context.Context, resourceKey string, actionKey string, update models.ResourceActionUpdate) (*models.ResourceActionRead, error)
+permit: method (*ResourceAttributesService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.ResourceAttributeRead, error]
+permit: method (*ResourceAttributesService) Create(ctx context.Context, resourceKey string, attribute models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error)
+permit: method (*ResourceAttributesService) Delete(ctx context.Context, resourceKey string, attributeKey string) error
+permit: method (*ResourceAttributesService) Get(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error)
+permit: method (*ResourceAttributesService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
+permit: method (*ResourceAttributesService) Update(ctx context.Context, resourceKey string, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
 permit: method (*ResourcesService) All(ctx context.Context, opts *ResourcesListOptions) iter.Seq2[models.ResourceRead, error]
 permit: method (*ResourcesService) Create(ctx context.Context, resource models.ResourceCreate) (*models.ResourceRead, error)
 permit: method (*ResourcesService) Delete(ctx context.Context, resourceKey string) error
@@ -549,6 +575,7 @@ permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Projects *ProjectsService
 permit: type Client struct, ResourceActionGroups *ResourceActionGroupsService
 permit: type Client struct, ResourceActions *ResourceActionsService
+permit: type Client struct, ResourceAttributes *ResourceAttributesService
 permit: type Client struct, Resources *ResourcesService
 permit: type Client struct, Tenants *TenantsService
 permit: type CopyResultOptions struct
@@ -605,6 +632,7 @@ permit: type ResourceActionsListOptions struct
 permit: type ResourceActionsListOptions struct, Attributes []AttributeFilter
 permit: type ResourceActionsListOptions struct, embedded ListOptions
 permit: type ResourceActionsService struct
+permit: type ResourceAttributesService struct
 permit: type ResourceDetails struct
 permit: type ResourceDetails struct, Attributes map[string]any
 permit: type ResourceDetails struct, Key string

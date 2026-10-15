@@ -100,6 +100,14 @@ var cloudScenarios = []scenario{
 		run: resourceActionGroupLifecycle,
 	},
 	{
+		name: "resource_attribute_lifecycle", methods: []string{
+			"ResourceAttributesService.Create", "ResourceAttributesService.Get",
+			"ResourceAttributesService.List", "ResourceAttributesService.All",
+			"ResourceAttributesService.Update", "ResourceAttributesService.Delete",
+		},
+		run: resourceAttributeLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

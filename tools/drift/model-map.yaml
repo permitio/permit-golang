@@ -500,6 +500,38 @@ models:
       name: {required: false, null_policy: rejects}
       description: {required: false, null_policy: accepts}
       attributes: {required: false, null_policy: accepts}
+  # An attribute of a resource of an environment, as a create and an update send it and as the
+  # API returns it. A run of the local harness against the API measured the null policies of the
+  # update: null clears the description, and the API rejects null for the type. A create reads
+  # null for a field that the schema does not require as the field left out, as every create
+  # does, and rejects null for a required one; these null policies are not measured yet: the
+  # phase api.resource_attributes of the local harness confirms them.
+  ResourceAttributeCreate:
+    schema: ResourceAttributeCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      type: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+  ResourceAttributeRead:
+    schema: ResourceAttributeRead
+    fields:
+      type: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      resource_key: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      built_in: {required: true, null_policy: n/a}
+  ResourceAttributeUpdate:
+    schema: ResourceAttributeUpdate
+    fields:
+      type: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
   ResourceDetails:
     spec: pdp-container
     schema: _ResourceDetails

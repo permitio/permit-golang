@@ -118,8 +118,9 @@ var cloudScenarios = []scenario{
 	{
 		name: "role_lifecycle", methods: []string{
 			"RolesService.Create", "RolesService.Get", "RolesService.List", "RolesService.All",
-			"RolesService.Update", "RolesService.AssignPermissions",
-			"RolesService.RemovePermissions", "RolesService.Delete",
+			"RolesService.Ancestors", "RolesService.Descendants", "RolesService.Update",
+			"RolesService.AssignPermissions", "RolesService.RemovePermissions",
+			"RolesService.BulkReplace", "RolesService.Delete",
 		},
 		run: roleLifecycle,
 	},

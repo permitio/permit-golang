@@ -195,14 +195,23 @@
     "RolesService.All": [
       "list_roles"
     ],
+    "RolesService.Ancestors": [
+      "get_role_ancestors"
+    ],
     "RolesService.AssignPermissions": [
       "assign_permissions_to_role"
+    ],
+    "RolesService.BulkReplace": [
+      "bulk_create_or_replace_roles"
     ],
     "RolesService.Create": [
       "create_role"
     ],
     "RolesService.Delete": [
       "delete_role"
+    ],
+    "RolesService.Descendants": [
+      "get_role_descendants"
     ],
     "RolesService.Get": [
       "get_role"

@@ -54,6 +54,7 @@ models: func Some[T any](v T) Optional[T]
 models: func StringList(values ...string) StringOrList
 models: method (*Attributes) UnmarshalJSON(data []byte) error
 models: method (*Optional[T]) UnmarshalJSON(data []byte) error
+models: method (*RoleList) UnmarshalJSON(data []byte) error
 models: method (*Secret) UnmarshalJSON(data []byte) error
 models: method (*StringOrList) UnmarshalJSON(data []byte) error
 models: method (*Time) UnmarshalJSON(data []byte) error
@@ -441,6 +442,22 @@ models: type RoleCreate struct, GrantedTo *DerivedRoleBlockEdit
 models: type RoleCreate struct, Key string
 models: type RoleCreate struct, Name string
 models: type RoleCreate struct, Permissions []string
+models: type RoleCreateBulk struct
+models: type RoleCreateBulk struct, Attributes Attributes
+models: type RoleCreateBulk struct, Description string
+models: type RoleCreateBulk struct, Extends []string
+models: type RoleCreateBulk struct, GrantedTo *DerivedRoleBlockEdit
+models: type RoleCreateBulk struct, Key string
+models: type RoleCreateBulk struct, Name string
+models: type RoleCreateBulk struct, Permissions []string
+models: type RoleCreateBulk struct, Resource string
+models: type RoleCreateBulkOperation struct
+models: type RoleCreateBulkOperation struct, Operations []RoleCreateBulk
+models: type RoleCreateBulkOperationResult struct
+models: type RoleCreateBulkOperationResult struct, Created []string
+models: type RoleCreateBulkOperationResult struct, Updated []string
+models: type RoleList struct
+models: type RoleList struct, Roles []RoleRead
 models: type RoleRead struct
 models: type RoleRead struct, Attributes Attributes
 models: type RoleRead struct, CreatedAt Time
@@ -587,9 +604,12 @@ permit: method (*ResourcesService) List(ctx context.Context, opts *ResourcesList
 permit: method (*ResourcesService) Replace(ctx context.Context, resourceKey string, resource models.ResourceReplace) (*models.ResourceRead, error)
 permit: method (*ResourcesService) Update(ctx context.Context, resourceKey string, update models.ResourceUpdate) (*models.ResourceRead, error)
 permit: method (*RolesService) All(ctx context.Context, opts *RolesListOptions) iter.Seq2[models.RoleRead, error]
+permit: method (*RolesService) Ancestors(ctx context.Context, roleKey string) ([]models.RoleRead, error)
 permit: method (*RolesService) AssignPermissions(ctx context.Context, roleKey string, permissions []string) (*models.RoleRead, error)
+permit: method (*RolesService) BulkReplace(ctx context.Context, roles []models.RoleCreateBulk) (*models.RoleCreateBulkOperationResult, error)
 permit: method (*RolesService) Create(ctx context.Context, role models.RoleCreate) (*models.RoleRead, error)
 permit: method (*RolesService) Delete(ctx context.Context, roleKey string) error
+permit: method (*RolesService) Descendants(ctx context.Context, roleKey string) ([]models.RoleRead, error)
 permit: method (*RolesService) Get(ctx context.Context, roleKey string) (*models.RoleRead, error)
 permit: method (*RolesService) List(ctx context.Context, opts *RolesListOptions) (*Page[models.RoleRead], error)
 permit: method (*RolesService) RemovePermissions(ctx context.Context, roleKey string, permissions []string) (*models.RoleRead, error)

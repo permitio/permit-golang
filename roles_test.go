@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -30,6 +31,9 @@ const (
 	assignRolePermissionsRoute = "POST /v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions"
 	removeRolePermissionsRoute = "DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}/" +
 		"permissions"
+	roleAncestorsRoute    = "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors"
+	roleDescendantsRoute  = "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}/descendants"
+	bulkReplaceRolesRoute = "PUT /v2/schema/{proj_id}/{env_id}/bulk/roles"
 )
 
 // roleBody is the body of a reply of the API that holds the role editor.
@@ -38,6 +42,13 @@ const roleBody = `{"name":"Editor","key":"editor","id":"00000000-0000-4000-8000-
 	`"project_id":"00000000-0000-4000-8000-000000000002",` +
 	`"environment_id":"00000000-0000-4000-8000-000000000003",` +
 	`"created_at":"2026-10-14T09:30:00Z","updated_at":"2026-10-14T09:30:00Z"}`
+
+// relativesBody is the body of a reply of the API to the ancestors or the descendants of a role,
+// which holds the role editor in a JSON array.
+const relativesBody = `{"roles":[` + roleBody + `]}`
+
+// bulkRolesBody is the body of a reply of the API to a bulk replace of the roles.
+const bulkRolesBody = `{"created":["auditor"],"updated":["viewer"]}`
 
 // rolesOf returns the roles r<from> to r<to-1>, with only a key and a name: an empty list when to
 // is from.
@@ -109,6 +120,22 @@ var keyedRoleCalls = []roleCall{
 		},
 	},
 	{
+		name: "Ancestors", op: opRoleAncestors, route: roleAncestorsRoute,
+		reply: mockpermit.Reply{Body: relativesBody},
+		call: func(ctx context.Context, c *Client, roleKey string) error {
+			_, err := c.Roles.Ancestors(ctx, roleKey)
+			return err
+		},
+	},
+	{
+		name: "Descendants", op: opRoleDescendants, route: roleDescendantsRoute,
+		reply: mockpermit.Reply{Body: relativesBody},
+		call: func(ctx context.Context, c *Client, roleKey string) error {
+			_, err := c.Roles.Descendants(ctx, roleKey)
+			return err
+		},
+	},
+	{
 		name: "Delete", op: opDeleteRole, route: deleteRoleRoute,
 		reply: mockpermit.Reply{Status: http.StatusNoContent},
 		call: func(ctx context.Context, c *Client, roleKey string) error {
@@ -131,6 +158,14 @@ var unkeyedRoleCalls = []roleCall{
 		reply: mockpermit.Reply{Body: roleBody},
 		call: func(ctx context.Context, c *Client, _ string) error {
 			_, err := c.Roles.Create(ctx, models.RoleCreate{Key: "k", Name: "K"})
+			return err
+		},
+	},
+	{
+		name: "BulkReplace", op: opBulkReplaceRoles, route: bulkReplaceRolesRoute,
+		reply: mockpermit.Reply{Body: bulkRolesBody},
+		call: func(ctx context.Context, c *Client, _ string) error {
+			_, err := c.Roles.BulkReplace(ctx, []models.RoleCreateBulk{{Key: "k", Name: "K"}})
 			return err
 		},
 	},
@@ -207,6 +242,19 @@ func TestRoleAttributesOfAnyType(t *testing.T) {
 			"RemovePermissions", removeRolePermissionsRoute, body,
 			func(ctx context.Context, c *Client) ([]models.RoleRead, error) {
 				return one(c.Roles.RemovePermissions(ctx, "editor", permissions))
+			},
+		},
+		{
+			"Ancestors", roleAncestorsRoute, `{"roles":[` + body + `]}`,
+			func(ctx context.Context, c *Client) ([]models.RoleRead, error) {
+				return c.Roles.Ancestors(ctx, "editor")
+			},
+		},
+		{
+			"Descendants", roleDescendantsRoute,
+			`{"roles":{"data":[` + body + `],"total_count":1,"page_count":1}}`,
+			func(ctx context.Context, c *Client) ([]models.RoleRead, error) {
+				return c.Roles.Descendants(ctx, "editor")
 			},
 		},
 	} {
@@ -559,10 +607,8 @@ func TestRoleKeysInThePath(t *testing.T) {
 			if err := m.call(t.Context(), resourceClient(t, api), key); err != nil {
 				t.Errorf("%s(%q) returned %v", m.name, key, err)
 			}
-			want := "/v2/schema/p/e/roles/" + escaped
-			if strings.HasSuffix(m.route, "/permissions") {
-				want += "/permissions"
-			}
+			_, suffix, _ := strings.Cut(m.route, "{role_id}")
+			want := "/v2/schema/p/e/roles/" + escaped + suffix
 			if requests := api.Requests(); len(requests) != 1 || requests[0].RawPath != want {
 				t.Errorf("%s(%q) sent %+v, want one request to %s", m.name, key, requests, want)
 			}
@@ -650,12 +696,14 @@ func TestDeleteRoleThatIsGone(t *testing.T) {
 }
 
 // TestNotFoundOfOtherRoleCalls checks that a 404 to each call of the roles but Delete is an
-// *Error that matches ErrNotFound: List and Create delete nothing, Get, Update and
-// AssignPermissions neither, and RemovePermissions names in its body what it removes, so a 404
-// to it can mean a mistyped key, not a removal that happened already.
+// *Error that matches ErrNotFound: List, Create and BulkReplace delete nothing, Get, Update,
+// AssignPermissions, Ancestors and Descendants neither, and RemovePermissions names in its body
+// what it removes, so a 404 to it can mean a mistyped key, not a removal that happened already.
 func TestNotFoundOfOtherRoleCalls(t *testing.T) {
 	const body = `{"error_code":"NOT_FOUND","title":"Not Found","message":"no such object"}`
-	for _, m := range append(append([]roleCall{}, keyedRoleCalls[:4]...), unkeyedRoleCalls...) {
+	calls := append(append([]roleCall{}, keyedRoleCalls...), unkeyedRoleCalls...)
+	calls = slices.DeleteFunc(calls, func(m roleCall) bool { return m.op == opDeleteRole })
+	for _, m := range calls {
 		api := mockpermit.NewAPI(t)
 		api.Handle(m.route, mockpermit.Reply{Status: http.StatusNotFound, Body: body})
 		err := m.call(t.Context(), resourceClient(t, api), "gone")
@@ -673,8 +721,10 @@ func TestNotFoundOfOtherRoleCalls(t *testing.T) {
 // encoder may change, with a line separator and <, > and &, and attributes of a number and an
 // object; the zero update, which sends {}, as its nil lists are left out; an update whose lists are
 // empty, which sends [] for each, to clear it; one whose lists replace the role's; one that sends
-// null for each field that the API clears for null, and one that sets every field; and the
-// permissions that a grant and a removal send, and [] for nil.
+// null for each field that the API clears for null, and one that sets every field; the
+// permissions that a grant and a removal send, and [] for nil; and a bulk replace of a role with
+// every field and one with the required fields only, of a role whose lists and attributes are
+// empty, which sends [] and {} for them, and of nil roles, which sends [].
 func TestRoleBodies(t *testing.T) {
 	description := "<a>&" + fixtures.LineSeparator + "b"
 	derived := models.DerivedRoleBlockEdit{
@@ -781,10 +831,45 @@ func TestRoleBodies(t *testing.T) {
 				return err
 			},
 		},
+		{
+			"bulk_create_or_replace_roles.every-field.golden", bulkReplaceRolesRoute,
+			func(c *Client) error {
+				_, err := c.Roles.BulkReplace(t.Context(), []models.RoleCreateBulk{
+					{
+						Key: "auditor", Name: "Auditor", Description: description,
+						Permissions: []string{"document:read"}, Attributes: attributes,
+						Extends: []string{"viewer"}, GrantedTo: &derived, Resource: "document",
+					},
+					{Key: "viewer", Name: "Viewer"},
+				})
+				return err
+			},
+		},
+		{
+			"bulk_create_or_replace_roles.empty-lists.golden", bulkReplaceRolesRoute,
+			func(c *Client) error {
+				_, err := c.Roles.BulkReplace(t.Context(), []models.RoleCreateBulk{{
+					Key: "r", Name: "R", Permissions: []string{}, Attributes: models.Attributes{},
+					Extends: []string{},
+				}})
+				return err
+			},
+		},
+		{
+			"bulk_create_or_replace_roles.nil.golden", bulkReplaceRolesRoute,
+			func(c *Client) error {
+				_, err := c.Roles.BulkReplace(t.Context(), nil)
+				return err
+			},
+		},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
+			reply := roleBody
+			if tc.route == bulkReplaceRolesRoute {
+				reply = bulkRolesBody
+			}
 			api := mockpermit.NewAPI(t)
-			api.Handle(tc.route, mockpermit.Reply{Body: roleBody})
+			api.Handle(tc.route, mockpermit.Reply{Body: reply})
 			if err := tc.call(resourceClient(t, api)); err != nil {
 				t.Fatalf("the call returned %v", err)
 			}
@@ -797,10 +882,95 @@ func TestRoleBodies(t *testing.T) {
 	}
 }
 
-// TestRoleBodiesThatCannotBeJSON checks that a create and an update whose attributes hold a value
-// that JSON cannot hold, and an update whose attributes are a nil map of Some, which would send
-// null for a value, are errors that match ErrInvalidConfig and name the operation, and send no
-// request.
+// TestBulkReplaceReturnsTheReply checks that BulkReplace returns the lists of the reply, which
+// name other roles than the request, and in another order, and empty lists as empty, not nil,
+// never the roles that it sent.
+func TestBulkReplaceReturnsTheReply(t *testing.T) {
+	for reply, want := range map[string]models.RoleCreateBulkOperationResult{
+		`{"created":["b"],"updated":["c","a"]}`: {
+			Created: []string{"b"}, Updated: []string{"c", "a"},
+		},
+		`{"created":[],"updated":[]}`: {Created: []string{}, Updated: []string{}},
+	} {
+		api := mockpermit.NewAPI(t)
+		api.Handle(bulkReplaceRolesRoute, mockpermit.Reply{Body: reply})
+		got, err := resourceClient(t, api).Roles.BulkReplace(t.Context(), []models.RoleCreateBulk{
+			{Key: "a", Name: "A"}, {Key: "x", Name: "X"},
+		})
+		if err != nil {
+			t.Fatalf("BulkReplace of the reply %s returned %v", reply, err)
+		}
+		if diff := cmp.Diff(&want, got); diff != "" || got.Created == nil || got.Updated == nil {
+			t.Errorf("BulkReplace of the reply %s returned a result that differs (-want +got), "+
+				"or nil lists:\n%s", reply, diff)
+		}
+	}
+}
+
+// relativesCall is a call of Ancestors or Descendants of the role editor, with the ID of its
+// operation and its route.
+type relativesCall struct {
+	name, op, route string
+	call            func(ctx context.Context, c *Client) ([]models.RoleRead, error)
+}
+
+// relativesCalls returns the calls of Ancestors and Descendants of the role editor.
+func relativesCalls() []relativesCall {
+	return []relativesCall{
+		{
+			"Ancestors", opRoleAncestors, roleAncestorsRoute,
+			func(ctx context.Context, c *Client) ([]models.RoleRead, error) {
+				return c.Roles.Ancestors(ctx, "editor")
+			},
+		},
+		{
+			"Descendants", opRoleDescendants, roleDescendantsRoute,
+			func(ctx context.Context, c *Client) ([]models.RoleRead, error) {
+				return c.Roles.Descendants(ctx, "editor")
+			},
+		},
+	}
+}
+
+// TestRoleRelativesReadBothForms checks that Ancestors and Descendants return the roles of the
+// reply in its order, whether its roles are a JSON array or the paginated object of the API,
+// whose data array holds them, with or without its counts; and an empty slice, not nil, when its
+// roles are an empty array or an empty page, null or left out.
+func TestRoleRelativesReadBothForms(t *testing.T) {
+	roles := []models.RoleRead{rolesOf(2, 3)[0], rolesOf(0, 1)[0], rolesOf(1, 2)[0]}
+	array := arrayOf(t, roles).Body
+	for _, tc := range []struct {
+		name  string
+		reply string
+		want  []models.RoleRead
+	}{
+		{"an array", `{"roles":` + array + `}`, roles},
+		{"a page", `{"roles":{"data":` + array + `,"total_count":3,"page_count":1}}`, roles},
+		{"a page without counts", `{"roles":{"data":` + array + `}}`, roles},
+		{"an empty array", `{"roles":[]}`, []models.RoleRead{}},
+		{"an empty page", `{"roles":{"data":[],"total_count":0}}`, []models.RoleRead{}},
+		{"null", `{"roles":null}`, []models.RoleRead{}},
+		{"no roles", `{}`, []models.RoleRead{}},
+	} {
+		for _, m := range relativesCalls() {
+			api := mockpermit.NewAPI(t)
+			api.Handle(m.route, mockpermit.Reply{Body: tc.reply})
+			got, err := m.call(t.Context(), resourceClient(t, api))
+			if err != nil {
+				t.Fatalf("%s of %s returned %v", m.name, tc.name, err)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" || got == nil {
+				t.Errorf("%s of %s returned roles that differ (-want +got), or nil:\n%s", m.name,
+					tc.name, diff)
+			}
+		}
+	}
+}
+
+// TestRoleBodiesThatCannotBeJSON checks that a create, an update and a bulk replace whose
+// attributes hold a value that JSON cannot hold, and an update whose attributes are a nil map of
+// Some, which would send null for a value, are errors that match ErrInvalidConfig and name the
+// operation, and send no request.
 func TestRoleBodiesThatCannotBeJSON(t *testing.T) {
 	api := mockpermit.NewAPI(t)
 	c := resourceClient(t, api)
@@ -813,11 +983,17 @@ func TestRoleBodiesThatCannotBeJSON(t *testing.T) {
 	_, nilErr := c.Roles.Update(t.Context(), "r", models.RoleUpdate{
 		Attributes: models.Some[models.Attributes](nil),
 	})
+	_, bulkErr := c.Roles.BulkReplace(t.Context(), []models.RoleCreateBulk{
+		{Key: "r", Name: "R", Attributes: models.Attributes{"f": func() {}}},
+	})
 	for _, tc := range []struct {
 		op  string
 		err error
 	}{
-		{opCreateRole, createErr}, {opUpdateRole, updateErr}, {opUpdateRole, nilErr},
+		{opCreateRole, createErr},
+		{opUpdateRole, updateErr},
+		{opUpdateRole, nilErr},
+		{opBulkReplaceRoles, bulkErr},
 	} {
 		if !errors.Is(tc.err, ErrInvalidConfig) || !strings.Contains(tc.err.Error(), tc.op) {
 			t.Errorf("%s returned %v, want an error that matches ErrInvalidConfig and names it",
@@ -878,10 +1054,11 @@ func TestRoleRetries(t *testing.T) {
 }
 
 // TestMalformedRoleReplies checks that a reply in 200-299 that is not a role, to each method that
-// returns one, or for List and All neither a JSON array nor the paginated object of roles, is an
-// *Error that names the operation, its route and the model, and no role, no page and no role of
-// the iterator. Attributes that are not a JSON object, such as a string, are not those of a role
-// either.
+// returns one, or for List and All neither a JSON array nor the paginated object of roles, for
+// Ancestors and Descendants not an object whose roles are either, and for BulkReplace not its
+// result, is an *Error that names the operation, its route and the model, and no role, no page,
+// no role of the iterator, no roles and no result. Attributes that are not a JSON object, such as
+// a string, are not those of a role either.
 func TestMalformedRoleReplies(t *testing.T) {
 	const prefix = "permit: "
 	for _, m := range []struct {
@@ -946,6 +1123,34 @@ func TestMalformedRoleReplies(t *testing.T) {
 		if items != nil || len(errs) != 1 || mustError(t, errs[0]).Error() != want {
 			t.Errorf("All of the reply %q yielded %+v and %v, want only the error\n%s", body,
 				items, errs, want)
+		}
+	}
+	for _, m := range relativesCalls() {
+		_, route, _ := strings.Cut(m.route, " ")
+		want := prefix + m.op + ": GET " + route + ": status 200: the reply is not a valid " +
+			"models.RoleList"
+		for _, body := range []string{
+			``, `null`, `[]`, `"a"`, `{"roles":"a"}`, `{"roles":{}}`, `{"roles":{"data":{}}}`,
+			`{"roles":[1]}`, `{"roles":[{"attributes":"a"}]}`, `{"roles":[]} {}`,
+		} {
+			api := mockpermit.NewAPI(t)
+			api.Handle(m.route, mockpermit.Reply{Body: body})
+			roles, err := m.call(t.Context(), resourceClient(t, api))
+			if e := mustError(t, err); roles != nil || e.Error() != want {
+				t.Errorf("%s of the reply %q returned %+v and\n%v\nwant no roles and\n%s", m.name,
+					body, roles, err, want)
+			}
+		}
+	}
+	for _, body := range []string{``, `null`, `[]`, `{"created":"a"}`, `{"updated":[1]}`} {
+		api := mockpermit.NewAPI(t)
+		api.Handle(bulkReplaceRolesRoute, mockpermit.Reply{Body: body})
+		result, err := resourceClient(t, api).Roles.BulkReplace(t.Context(), nil)
+		want := prefix + "bulk_create_or_replace_roles: PUT /v2/schema/{proj_id}/{env_id}/" +
+			"bulk/roles: status 200: the reply is not a valid models.RoleCreateBulkOperationResult"
+		if e := mustError(t, err); result != nil || e.Error() != want {
+			t.Errorf("BulkReplace of the reply %q returned %+v and\n%v\nwant no result and\n%s",
+				body, result, err, want)
 		}
 	}
 }

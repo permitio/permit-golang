@@ -463,6 +463,13 @@ change from v1 and what to use instead.
 - v1's `AddParentRole` and `RemoveParentRole` are removed: they sent a route that the API's
   documentation does not list. A role's parents are the roles that it extends: set them with the
   `Extends` of `Update`.
+- `Ancestors` and `Descendants` are new: each returns the roles that the API lists as the
+  ancestors or the descendants of a role, as a `[]models.RoleRead`, whether the reply holds them
+  as a JSON array or as a paginated object, and an empty slice, not nil, when it holds none.
+- `BulkReplace` is new: it creates or replaces many roles with one request,
+  `PUT /v2/schema/{proj_id}/{env_id}/bulk/roles`, each a `models.RoleCreateBulk`, and returns the
+  reply's lists of the roles that it created and of those that it replaced, as a
+  `*models.RoleCreateBulkOperationResult`.
 - A key of a role is sent as one segment of the path, escaped; an empty key, `.` or `..` is an
   error that matches `ErrInvalidConfig`, and no request for the call is sent. `Delete` returns
   nil when the API answers 404, as the role is gone already; a 404 to `RemovePermissions` is an

@@ -17,11 +17,15 @@ const (
 	opDeleteRole            = "delete_role"
 	opAssignRolePermissions = "assign_permissions_to_role"
 	opRemoveRolePermissions = "remove_permissions_from_role"
+	opRoleAncestors         = "get_role_ancestors"
+	opRoleDescendants       = "get_role_descendants"
+	opBulkReplaceRoles      = "bulk_create_or_replace_roles"
 )
 
 // RolesService lists, reads, creates, changes and deletes the roles of an environment, such as
-// editor, and grants permissions to them and removes permissions from them; [Client.Roles] holds
-// it. A method that acts on one role takes its key or its ID, such as editor, and sends it as one
+// editor, grants permissions to them and removes permissions from them, reads the ancestors and
+// the descendants of a role, and creates or replaces many roles at once; [Client.Roles] holds it.
+// A method that acts on one role takes its key or its ID, such as editor, and sends it as one
 // segment of the path, escaped: a key that holds a / or a % names that role, not another route. A
 // role extends other roles with the Extends of its create or its update, such as
 // [models.RoleUpdate]; no method adds or removes one role that it extends.
@@ -324,6 +328,95 @@ func (s *RolesService) RemovePermissions(ctx context.Context, roleKey string,
 	})
 }
 
+// Ancestors returns the roles that the API lists as the ancestors of the role whose key or ID is
+// roleKey, such as a role that it extends, with
+// GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors, in the order of the reply. The
+// reply holds them as a JSON array or as a paginated JSON object, and Ancestors reads either, as
+// [models.RoleList] says; a reply without roles returns an empty slice, not nil.
+//
+// Ancestors is sent with an environment-level API key, or with a key of a wider level and
+// [WithScope], as [RolesService] says. The call changes nothing, so it sends its request again
+// after a 500, 502, 503 or 504 reply or a failed connection, as after a 429.
+//
+// Ancestors returns an error, and no roles:
+//
+//   - for a scope without an environment, or a roleKey that is empty, . or ..: an error that
+//     matches [ErrInvalidConfig], and no request for the roles; without WithScope, the lookup of
+//     the scope comes first;
+//   - for a reply with an error status: an [Error] with the status and the body of the reply,
+//     such as one that matches [ErrNotFound] for a 404;
+//   - for a reply in 200-299 that is not a JSON object whose roles are a list of roles: an Error
+//     that says so;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *RolesService) Ancestors(ctx context.Context, roleKey string) ([]models.RoleRead, error) {
+	return s.relatives(ctx, opRoleAncestors, roleKey)
+}
+
+// Descendants returns the roles that the API lists as the descendants of the role whose key or ID
+// is roleKey, such as a role that extends it, with
+// GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}/descendants, in the order of the reply. The
+// reply holds them as a JSON array or as a paginated JSON object, and Descendants reads either,
+// as [models.RoleList] says; a reply without roles returns an empty slice, not nil.
+//
+// Descendants is sent with an environment-level API key, or with a key of a wider level and
+// [WithScope], as [RolesService] says. The call changes nothing, so it sends its request again
+// after a 500, 502, 503 or 504 reply or a failed connection, as after a 429.
+//
+// Descendants returns an error, and no roles:
+//
+//   - for a scope without an environment, or a roleKey that is empty, . or ..: an error that
+//     matches [ErrInvalidConfig], and no request for the roles; without WithScope, the lookup of
+//     the scope comes first;
+//   - for a reply with an error status: an [Error] with the status and the body of the reply,
+//     such as one that matches [ErrNotFound] for a 404;
+//   - for a reply in 200-299 that is not a JSON object whose roles are a list of roles: an Error
+//     that says so;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *RolesService) Descendants(ctx context.Context, roleKey string,
+) ([]models.RoleRead, error) {
+	return s.relatives(ctx, opRoleDescendants, roleKey)
+}
+
+// BulkReplace creates each role of roles that the environment does not have, and replaces each
+// role that it has, by its key, with PUT /v2/schema/{proj_id}/{env_id}/bulk/roles. It returns the
+// reply's lists of the roles that the call created and of those that it replaced, as
+// [models.RoleCreateBulkOperationResult] says, never the roles of the request. The request holds
+// roles in order, each as [models.RoleCreateBulk] says; nil sends [], as an empty slice does.
+//
+// BulkReplace is sent with an environment-level API key, or with a key of a wider level and
+// [WithScope], as [RolesService] says. Sending the same roles twice leaves the environment with
+// them, so the call sends its request again after a 500, 502, 503 or 504 reply or a failed
+// connection, as after a 429; the reply to a request sent again can then list a role that an
+// earlier attempt of the call created as replaced.
+//
+// BulkReplace returns an error, and no result:
+//
+//   - for a scope without an environment: an error that matches [ErrInvalidConfig], and no
+//     request for the roles; without WithScope, the lookup of the scope comes first;
+//   - for an attribute of a role that cannot be JSON, such as a value that is a channel: an
+//     error that matches ErrInvalidConfig, and no request for the roles;
+//   - for a reply with an error status: an [Error] with the status and the body of the reply,
+//     such as one whose Detail names each field that the API rejects for a 422;
+//   - for a reply in 200-299 that is not a JSON object of the result: an Error that says so;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *RolesService) BulkReplace(ctx context.Context, roles []models.RoleCreateBulk,
+) (*models.RoleCreateBulkOperationResult, error) {
+	r, err := s.client.inScope(ctx, request{
+		op: opBulkReplaceRoles, target: apiTarget,
+		body: models.RoleCreateBulkOperation{Operations: orEmpty(roles)},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return do[models.RoleCreateBulkOperationResult](ctx, s.client, r)
+}
+
 // call makes the call of r, a request of an operation of the roles whose reply holds a role,
 // with the project and the environment of the client's scope, and returns the role.
 func (s *RolesService) call(ctx context.Context, r request) (*models.RoleRead, error) {
@@ -334,11 +427,27 @@ func (s *RolesService) call(ctx context.Context, r request) (*models.RoleRead, e
 	return do[models.RoleRead](ctx, s.client, r)
 }
 
+// relatives makes the call of op, the ancestors or the descendants of the role whose key or ID is
+// roleKey, with the project and the environment of the client's scope, and returns the roles of
+// its reply.
+func (s *RolesService) relatives(ctx context.Context, op, roleKey string,
+) ([]models.RoleRead, error) {
+	r, err := s.client.inScope(ctx, request{op: op, target: apiTarget, params: []string{roleKey}})
+	if err != nil {
+		return nil, err
+	}
+	list, err := do[models.RoleList](ctx, s.client, r)
+	if err != nil {
+		return nil, err
+	}
+	return list.Roles, nil
+}
+
 // orEmpty returns items, or an empty slice that is not nil when items is nil, so that a request
 // sends [] for it rather than null.
-func orEmpty(items []string) []string {
+func orEmpty[T any](items []T) []T {
 	if items == nil {
-		return []string{}
+		return []T{}
 	}
 	return items
 }

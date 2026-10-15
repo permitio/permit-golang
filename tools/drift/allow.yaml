@@ -1,8 +1,10 @@
 # The drift findings that tools/drift accepts, each because the published spec differs from what
 # the API does, and the SDK follows the API, because the spec lists an optional property that the
-# API reads elsewhere, and the SDK leaves it out, or because a reply fixture holds a value of an
+# API reads elsewhere, and the SDK leaves it out, because a reply fixture holds a value of an
 # enum that the spec does not list, as the API may add one later, to check that the SDK reads
-# it. The section Model drift of CONTRIBUTING.md says when to add an entry.
+# it, or because the SDK reads a property whose anyOf lists several forms into one Go type, with
+# a reason that names what the type keeps and what it drops. The section Model drift of
+# CONTRIBUTING.md says when to add an entry.
 #
 # key: the key of the finding, as the failing test prints it before the colon, such as
 #   "model UserRead field email", "operation get_user response" or
@@ -255,3 +257,26 @@ allow:
       the fixture holds an attribute of the users of the type geo_point, which the published spec
       does not list, as the API may add a type later, to check that Get reads it as it is
     trigger: when the published spec lists geo_point as an attribute type
+  - key: model RoleCreateBulk field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of a role of a bulk replace, which v1
+      never sent, so RoleCreateBulk leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_settings of a role of a bulk replace
+  - key: model RoleCreateBulk field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of a role of a bulk replace, which v1
+      never sent, so RoleCreateBulk leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_attributes of a role of a bulk replace
+  - key: model RoleList field roles
+    reason: >-
+      the published spec gives the roles of the ancestors or the descendants of a role as a JSON
+      array or as the paginated object that holds them in data; RoleList decodes either form
+      into Roles, a slice, and keeps no counts, as these calls take no page
+    trigger: when the published spec gives the roles of RoleList one form
+  - key: round trip RoleList#/roles
+    reason: >-
+      RoleList decodes roles of the paginated form into a slice, which encodes back as a JSON
+      array, as the entry of the field roles of RoleList says; the SDK never sends a RoleList
+    trigger: when the published spec gives the roles of RoleList one form

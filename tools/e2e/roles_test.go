@@ -23,9 +23,11 @@ import (
 // attributes whose values are a number and an object too, and child with the attribute kind. It
 // lists the roles whose kind is child with List, which lists child alone, and those whose run is
 // the run's prefix with All, one role on each page, which lists both; each call sends one filter,
-// of a string. It gets child by its key and by its ID, updates child to grant write and to extend
-// no role, then grants it share and removes write. It deletes both roles, waits until a get of
-// each matches ErrNotFound, and deletes child again, which returns nil.
+// of a string. It gets child by its key and by its ID, reads the ancestors of child, base alone,
+// and the descendants of base, child alone, updates child to grant write and to extend no role,
+// then grants it share and removes write. It bulk-replaces base and a new role, bulk, which the
+// reply lists as replaced and created. It deletes the three roles, waits until a get of each
+// matches ErrNotFound, and deletes child again, which returns nil.
 func roleLifecycle(s *suite) func(t *testing.T) {
 	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
 		schema := "/v2/schema/" + url.PathEscape(s.env.ProjectID) + "/" + url.PathEscape(s.env.ID)
@@ -45,7 +47,8 @@ func roleLifecycle(s *suite) func(t *testing.T) {
 		}
 		run := string(s.cfg.prefix)
 		base, child := s.cfg.prefix.Key("sdk-role-base"), s.cfg.prefix.Key("sdk-role-child")
-		for _, key := range []string{base, child} {
+		bulk := s.cfg.prefix.Key("sdk-role-bulk")
+		for _, key := range []string{base, child, bulk} {
 			register("role "+key, "/roles/"+url.PathEscape(key))
 		}
 		created, err := c.Roles.Create(ctx, models.RoleCreate{
@@ -86,6 +89,7 @@ func roleLifecycle(s *suite) func(t *testing.T) {
 					ref, got.ID, got.Extends, extending.ID, base)
 			}
 		}
+		roleRelatives(ctx, t, c, base, child)
 		write, share := resource+":write", resource+":share"
 		updated, err := c.Roles.Update(ctx, child, models.RoleUpdate{
 			Permissions: []string{write}, Extends: []string{},
@@ -114,12 +118,13 @@ func roleLifecycle(s *suite) func(t *testing.T) {
 			t.Errorf("RemovePermissions returned the permissions %q, want %s",
 				removed.Permissions, share)
 		}
-		for _, key := range []string{child, base} {
+		bulkReplace(ctx, t, c, base, bulk)
+		for _, key := range []string{child, base, bulk} {
 			if err := c.Roles.Delete(ctx, key); err != nil {
 				t.Fatalf("Delete of the role %s: %v", key, err)
 			}
 		}
-		for _, key := range []string{child, base} {
+		for _, key := range []string{child, base, bulk} {
 			gone := framework.Poll(ctx, framework.AbsenceTimeout, s.cfg.syncInterval,
 				func(ctx context.Context) (bool, error) {
 					_, err := c.Roles.Get(ctx, key)
@@ -166,6 +171,52 @@ func listRoles(ctx context.Context, t *testing.T, c *permit.Client, run, base, c
 	if keys := roleKeys(all); !slices.Equal(keys, []string{base, child}) {
 		t.Errorf("All of the roles whose run is %s, one on a page, listed %q, want %s and %s",
 			run, keys, base, child)
+	}
+}
+
+// roleRelatives checks that Ancestors of child, which extends base, lists base alone, and that
+// Descendants of base lists child alone.
+func roleRelatives(ctx context.Context, t *testing.T, c *permit.Client, base, child string) {
+	t.Helper()
+	ancestors, err := c.Roles.Ancestors(ctx, child)
+	if err != nil {
+		t.Fatalf("Ancestors of the role %s: %v", child, err)
+	}
+	if keys := roleKeys(ancestors); !slices.Equal(keys, []string{base}) {
+		t.Errorf("Ancestors of the role %s returned %q, want %s alone", child, keys, base)
+	}
+	descendants, err := c.Roles.Descendants(ctx, base)
+	if err != nil {
+		t.Fatalf("Descendants of the role %s: %v", base, err)
+	}
+	if keys := roleKeys(descendants); !slices.Equal(keys, []string{child}) {
+		t.Errorf("Descendants of the role %s returned %q, want %s alone", base, keys, child)
+	}
+}
+
+// bulkReplace checks that BulkReplace of the role existing, which the environment has, and of the
+// role added, which it does not have, lists added as created and existing as replaced, each once,
+// and that a get of each, by the name that the reply gives it, reads the definition that the bulk
+// replace sent.
+func bulkReplace(ctx context.Context, t *testing.T, c *permit.Client, existing, added string) {
+	t.Helper()
+	result, err := c.Roles.BulkReplace(ctx, []models.RoleCreateBulk{
+		{Key: existing, Name: existing + " replaced"}, {Key: added, Name: added},
+	})
+	if err != nil {
+		t.Fatalf("BulkReplace of the roles %s and %s: %v", existing, added, err)
+	}
+	if len(result.Created) != 1 || len(result.Updated) != 1 {
+		t.Fatalf("BulkReplace returned %+v, want one role created and one replaced", result)
+	}
+	for _, tc := range []struct{ ref, key, name string }{
+		{result.Created[0], added, added}, {result.Updated[0], existing, existing + " replaced"},
+	} {
+		got, getErr := c.Roles.Get(ctx, tc.ref)
+		if getErr != nil || got.Key != tc.key || got.Name != tc.name {
+			t.Errorf("Get of the role %s that BulkReplace listed returned %+v and %v, want %s "+
+				"named %q", tc.ref, got, getErr, tc.key, tc.name)
+		}
 	}
 }
 

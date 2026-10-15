@@ -342,13 +342,15 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
-	// The roles of an environment, each at the environment level, as v1 sends them too. These key
-	// levels are not measured yet: the phase api.roles of the local harness confirms them. The
-	// list is a JSON array or a paginated object of at most 100 roles. A PATCH sets the fields
-	// that it names to the values that it gives, so it does the same when sent twice; so does a
-	// grant or a removal of permissions, which v1's documentation says skips a permission that
-	// the role has already, or does not have. A create does not. A removal of permissions names
-	// them in its body, so a 404 to it is an error.
+	// The roles of an environment, each at the environment level, as v1 sends them too; v1 did
+	// not send the bulk replace, the ancestors or the descendants, which are operations of the
+	// environment's schema too. These key levels are not measured yet: the phase api.roles of the
+	// local harness confirms them. The list is a JSON array or a paginated object of at most 100
+	// roles. A PATCH sets the fields that it names to the values that it gives, and a PUT the
+	// roles that it names, so each does the same when sent twice; so does a grant or a removal of
+	// permissions, which v1's documentation says skips a permission that the role has already, or
+	// does not have. A create does not. A removal of permissions names them in its body, so a 404
+	// to it is an error.
 	{
 		ID: "list_roles", Method: http.MethodGet, Route: "/v2/schema/{proj_id}/{env_id}/roles",
 		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "RoleRead",
@@ -382,6 +384,22 @@ var defaultOps = []Op{
 		Route: "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", Idempotent: true,
 		KeyLevel: EnvironmentLevel, RequestModel: "RemoveRolePermissions",
 		ResponseModel: "RoleRead",
+	},
+	{
+		ID: "get_role_ancestors", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors", Idempotent: true,
+		KeyLevel: EnvironmentLevel, ResponseModel: "RoleList",
+	},
+	{
+		ID: "get_role_descendants", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/descendants", Idempotent: true,
+		KeyLevel: EnvironmentLevel, ResponseModel: "RoleList",
+	},
+	{
+		ID: "bulk_create_or_replace_roles", Method: http.MethodPut,
+		Route: "/v2/schema/{proj_id}/{env_id}/bulk/roles", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "RoleCreateBulkOperation",
+		ResponseModel: "RoleCreateBulkOperationResult",
 	},
 
 	// The attributes of the users of an environment, each at the environment level, as the

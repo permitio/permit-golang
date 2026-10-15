@@ -21,6 +21,9 @@ const (
 
 	opAssignRolePermissions = "assign_permissions_to_role"
 	opRemoveRolePermissions = "remove_permissions_from_role"
+	opRoleAncestors         = "get_role_ancestors"
+	opRoleDescendants       = "get_role_descendants"
+	opBulkReplaceRoles      = "bulk_create_or_replace_roles"
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -50,6 +53,13 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 	case opAssignRolePermissions, opRemoveRolePermissions:
 		if fields != nil {
 			return f.rolePermissions(rt.Op, segments, fields)
+		}
+		return f.unsupported(rt)
+	case opRoleAncestors, opRoleDescendants:
+		return f.roleRelatives(rt.Op, segments)
+	case opBulkReplaceRoles:
+		if fields != nil {
+			return f.bulkRoles(segments, fields)
 		}
 		return f.unsupported(rt)
 	}
@@ -346,6 +356,80 @@ func (f *Fake) rolePermissions(op string, segments []string, fields object) (int
 	}
 	role["permissions"] = kept
 	return http.StatusOK, role
+}
+
+// roleRelatives answers the ancestors, op get_role_ancestors, or the descendants, op
+// get_role_descendants, of the role of the path, which has segments, with IDs in place of keys, as
+// resolve found it: the roles that it extends, or that extend it, directly or through other
+// roles, in the order in which the fake finds them, as a JSON array in the roles of an object.
+// The caller holds f.mu.
+func (f *Fake) roleRelatives(op string, segments []string) (int, any) {
+	roles := f.store[collectionOf(segments[:6])]
+	start, _ := find(roles, segments[6])
+	found := []object{}
+	queue := []object{start}
+	for len(queue) > 0 {
+		role := queue[0]
+		queue = queue[1:]
+		for _, other := range roles {
+			step := op == opRoleAncestors && extends(role, other) ||
+				op == opRoleDescendants && extends(other, role)
+			known := other["id"] == start["id"] || slices.ContainsFunc(found, func(o object) bool {
+				return o["id"] == other["id"]
+			})
+			if step && !known {
+				found = append(found, other)
+				queue = append(queue, other)
+			}
+		}
+	}
+	return http.StatusOK, object{"roles": found}
+}
+
+// extends reports whether role extends the role other: whether the extends of role hold the key
+// of other.
+func extends(role, other object) bool {
+	keys, _ := role["extends"].([]any)
+	return slices.Contains(keys, other["key"])
+}
+
+// createRole is the route of the create of a role, as which a bulk replace creates a role.
+var createRole = route{
+	Route:    Route{Method: http.MethodPost, Template: "/v2/schema/{proj_id}/{env_id}/roles"},
+	segments: []string{"", "v2", "schema", "{proj_id}", "{env_id}", "roles"},
+}
+
+// bulkRoles answers PUT /v2/schema/{proj_id}/{env_id}/bulk/roles, whose path has segments, with
+// IDs in place of keys: it creates each role of the operations of fields whose key the
+// environment does not have, as a POST to its roles does, and replaces the definition of each
+// that it has, keeping its ID, and answers with the keys of the roles that it created and of
+// those that it replaced. A create that the POST would answer with an error, such as 409 for a
+// key that is the ID of another role, ends the bulk replace with that answer, after the
+// operations before it. The caller holds f.mu.
+func (f *Fake) bulkRoles(segments []string, fields object) (int, any) {
+	scope := append(slices.Clone(segments[:5]), "roles")
+	roles := collectionOf(scope)
+	created, updated := []any{}, []any{}
+	operations, _ := fields["operations"].([]any)
+	for _, operation := range operations {
+		definition, _ := operation.(object)
+		key, _ := definition["key"].(string)
+		i := slices.IndexFunc(f.store[roles], func(o object) bool { return o["key"] == key })
+		if i < 0 {
+			if status, body := f.create(createRole, scope, definition); status != http.StatusOK {
+				return status, body
+			}
+			created = append(created, key)
+			continue
+		}
+		replaced := maps.Clone(definition)
+		for _, kept := range []string{"id", "organization_id", "project_id", "environment_id"} {
+			replaced[kept] = f.store[roles][i][kept]
+		}
+		f.store[roles][i] = replaced
+		updated = append(updated, key)
+	}
+	return http.StatusOK, object{"created": created, "updated": updated}
 }
 
 // unsupported fails the test for a request that the fake does not implement, such as a POST

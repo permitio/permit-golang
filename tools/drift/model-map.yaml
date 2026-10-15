@@ -714,13 +714,15 @@ models:
       attributes: {required: false, null_policy: ignores}
       extends: {required: false, null_policy: ignores}
       granted_to: {required: false, null_policy: ignores}
-  # A role of an environment, as a create and an update send it and as the API returns it, and
-  # the bodies of the calls that grant and remove its permissions. A run of the local harness
-  # against the API measured the null policies of the update: null clears the description, the
-  # attributes and granted_to, the API reads null for the permissions and for extends as the
-  # field left out, and keeps them, and it rejects null for the name. A create reads null for a
-  # field that the schema does not require as the field left out, as every create does, and
-  # rejects null for a required one; these null policies are not measured yet: the phase
+  # A role of an environment, as a create, an update and a bulk replace send it and as the API
+  # returns it, alone and in the list of its ancestors or its descendants; the result of a bulk
+  # replace, which lists the names of the roles that it created and replaced; and the bodies of
+  # the calls that grant and remove its permissions. A run of the local harness against the API
+  # measured the null policies of the update: null clears the description, the attributes and
+  # granted_to, the API reads null for the permissions and for extends as the field left out,
+  # and keeps them, and it rejects null for the name. A create and a bulk replace read null for
+  # a field that the schema does not require as the field left out, as every create does, and
+  # reject null for a required one; these null policies are not measured yet: the phase
   # api.roles of the local harness confirms them.
   AddRolePermissions:
     schema: AddRolePermissions
@@ -744,6 +746,33 @@ models:
       attributes: {required: false, null_policy: ignores}
       extends: {required: false, null_policy: ignores}
       granted_to: {required: false, null_policy: ignores}
+  RoleCreateBulk:
+    schema: RoleCreateBulk
+    left_out:
+      v1compat_settings: the API's documentation hides it and v1 never sent it
+      v1compat_attributes: the API's documentation hides it and v1 never sent it
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      permissions: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      extends: {required: false, null_policy: ignores}
+      granted_to: {required: false, null_policy: ignores}
+      resource: {required: false, null_policy: ignores}
+  RoleCreateBulkOperation:
+    schema: RoleCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  RoleCreateBulkOperationResult:
+    schema: RoleCreateBulkOperationResult
+    fields:
+      created: {required: true, null_policy: n/a}
+      updated: {required: true, null_policy: n/a}
+  RoleList:
+    schema: RoleList
+    fields:
+      roles: {required: true, null_policy: n/a}
   RoleRead:
     schema: RoleRead
     fields:

@@ -1282,10 +1282,12 @@ sets the field to null, and write `accepts` when the API takes it, such as to cl
 
 When the spec is wrong and the SDK follows the API, `tools/drift/allow.yaml` accepts the finding,
 as it does when the spec lists an optional property that the API reads elsewhere and the SDK
-leaves out, such as the `sdk` of a check, as the PDP reads the SDK from a header, and when a
-reply fixture holds a value of an enum that the spec does not list, such as the attribute type
+leaves out, such as the `sdk` of a check, as the PDP reads the SDK from a header, when a reply
+fixture holds a value of an enum that the spec does not list, such as the attribute type
 `geo_point` of `list_resource_attributes.200.unknown-type.json`, to check that the SDK reads a
-value that the API adds later. A failing test prints each finding after its key, such as
+value that the API adds later, and when the SDK reads a property whose anyOf lists several forms
+into one Go type, such as the `roles` of `RoleList`, with a reason that names what the type keeps
+and what it drops. A failing test prints each finding after its key, such as
 `model UserRead field email`, `round trip UserRead#/email` (`#` alone when a value does not decode),
 `operation get_user response` or `reply get_user.200.json#/email`. A finding against a schema of
 `also`, or against the operation of another spec with the same route, names the spec after `@`,

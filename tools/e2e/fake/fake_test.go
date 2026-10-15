@@ -56,7 +56,9 @@ var routes = []Route{
 		"delete_resource_instance",
 	},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors", "get_role_ancestors"},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/descendants", "get_role_descendants"},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/roles", "create_role"},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}", "get_role"},
 	{
 		"POST", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions",
 		"assign_permissions_to_role",
@@ -65,6 +67,7 @@ var routes = []Route{
 		"DELETE", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions",
 		"remove_permissions_from_role",
 	},
+	{"PUT", "/v2/schema/{proj_id}/{env_id}/bulk/roles", "bulk_create_or_replace_roles"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/tenants", "create_tenant"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants", "list_tenants"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},
@@ -695,4 +698,96 @@ func TestRolePermissions(t *testing.T) {
 		}
 	}
 	h.expect(404, "POST", roles+"/none/permissions", `{"permissions": ["doc:read"]}`, projectKey)
+}
+
+// TestRoleRelatives checks the ancestors and the descendants of a role: the roles that it
+// extends, or that extend it, directly or through other roles, each once, in the order in which
+// the fake finds them, as a JSON array in roles, which is empty, not null, for a role without
+// any; a role named by its ID; a cycle of roles that extend each other, which ends; and 404 for a
+// role that does not exist.
+func TestRoleRelatives(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	roles := "/v2/schema/proj/dev/roles"
+	for _, body := range []string{
+		`{"key": "viewer"}`, `{"key": "editor", "extends": ["viewer"]}`,
+		`{"key": "admin", "extends": ["editor", "viewer"]}`, `{"key": "other"}`,
+		`{"key": "x", "extends": ["y"]}`, `{"key": "y", "extends": ["x"]}`,
+	} {
+		h.expect(200, "POST", roles, body, projectKey)
+	}
+	viewer := h.expect(200, "GET", roles+"/viewer", "", projectKey)
+	viewerID, _ := viewer["id"].(string)
+	for _, tc := range []struct{ path, want string }{
+		{"/admin/ancestors", "[viewer editor]"},
+		{"/editor/ancestors", "[viewer]"},
+		{"/viewer/ancestors", "[]"},
+		{"/viewer/descendants", "[editor admin]"},
+		{"/" + viewerID + "/descendants", "[editor admin]"},
+		{"/admin/descendants", "[]"},
+		{"/x/ancestors", "[y]"},
+		{"/x/descendants", "[y]"},
+	} {
+		reply := h.expect(200, "GET", roles+tc.path, "", projectKey)
+		list, ok := reply["roles"].([]any)
+		keys := []any{}
+		for _, role := range list {
+			o, _ := role.(map[string]any)
+			keys = append(keys, o["key"])
+		}
+		if got := fmt.Sprint(keys); !ok || len(reply) != 1 || got != tc.want {
+			t.Errorf("GET %s answered %v, want the roles %s alone", tc.path, reply, tc.want)
+		}
+	}
+	h.expect(404, "GET", roles+"/none/ancestors", "", projectKey)
+	h.expect(404, "GET", roles+"/none/descendants", "", projectKey)
+}
+
+// TestBulkRoles checks the bulk replace of roles, which creates a role that does not exist and
+// replaces the definition of one that does, keeping its ID and the IDs of its organization,
+// project and environment, and answers with the keys of each; that a create that conflicts, of a
+// role whose key is the ID of another role, ends it with the 409 of the create, and lists no key
+// as created; and that a bulk replace without a body is a request that the fake does not
+// implement.
+func TestBulkRoles(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	roles := "/v2/schema/proj/dev/roles"
+	bulk := "/v2/schema/proj/dev/bulk/roles"
+	viewer := h.expect(200, "POST", roles, `{"key": "viewer", "name": "Viewer", "permissions": `+
+		`["doc:read"]}`, projectKey)
+	result := h.expect(200, "PUT", bulk, `{"operations": [`+
+		`{"key": "viewer", "name": "Reader"}, {"key": "editor", "name": "Editor"}]}`, projectKey)
+	if fmt.Sprint(result) != "map[created:[editor] updated:[viewer]]" {
+		t.Errorf("the bulk replace answered %v, want editor created and viewer updated", result)
+	}
+	got := h.expect(200, "GET", roles+"/viewer", "", projectKey)
+	if got["name"] != "Reader" || got["permissions"] != nil {
+		t.Errorf("the replaced role is %v, want viewer with the name Reader and no permissions",
+			got)
+	}
+	for _, kept := range []string{"id", "organization_id", "project_id", "environment_id"} {
+		if got[kept] == nil || got[kept] != viewer[kept] {
+			t.Errorf("the replaced role has the %s %v, want %v, as before the replace", kept,
+				got[kept], viewer[kept])
+		}
+	}
+	editor := h.expect(200, "GET", roles+"/editor", "", projectKey)
+	if editor["id"] == nil || editor["name"] != "Editor" ||
+		editor["environment_id"] != viewer["environment_id"] {
+		t.Errorf("the created role is %v, want editor with an ID in the environment", editor)
+	}
+	viewerID, _ := viewer["id"].(string)
+	conflict := h.expect(409, "PUT", bulk, `{"operations": [{"key": "`+viewerID+`", "name": `+
+		`"Other"}]}`, projectKey)
+	if conflict["message"] != "an object has the key "+viewerID || conflict["created"] != nil {
+		t.Errorf("a bulk replace that creates a role whose key is the ID of viewer answered %v, "+
+			"want the conflict of the create", conflict)
+	}
+	h.do("PUT", bulk, "", projectKey)
+	if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0],
+		"bulk_create_or_replace_roles): the fake does not implement") {
+		t.Errorf("a bulk replace without a body reported %q, want that the fake does not "+
+			"implement it", errs)
+	}
 }

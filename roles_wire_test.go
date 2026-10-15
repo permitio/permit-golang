@@ -13,7 +13,7 @@ import (
 
 // The error bodies of the Permit API in the wire cases of the roles: a key that may not act on
 // the roles of the environment, a role that does not exist, a key that another role of the
-// environment has already, and fields that the API rejects.
+// environment has already, and fields that the API rejects, of an update and of a bulk replace.
 const (
 	roleForbiddenBody = `{"error_code":"FORBIDDEN","title":"Forbidden",` +
 		`"message":"the API key may not act on the roles of the environment","id":"req-21"}`
@@ -23,6 +23,8 @@ const (
 		`"message":"a role with the key auditor exists already","id":"req-23"}`
 	roleInvalidBody = `{"detail":[{"loc":["body","extends"],` +
 		`"msg":"value is not a valid list","type":"type_error.list"}]}`
+	bulkRolesInvalidBody = `{"detail":[{"loc":["body","operations",0,"key"],` +
+		`"msg":"string does not match regex","type":"value_error.str.regex"}]}`
 )
 
 // roleOf returns a role of the reply fixtures, of the environment of the scope fixture, with the
@@ -109,12 +111,16 @@ func firstRoles(seq iter.Seq2[models.RoleRead, error], n int) ([]models.RoleRead
 // ASCII, as a/b and 50%é do, and a key has a leading dot, .hidden, which the path sends as it is;
 // the attribute filters hold one value of each type, and a string and the key of an attribute
 // that the query escapes. The replies of List, All and Get hold attributes whose values are
-// numbers and objects.
+// numbers and objects; that of Ancestors holds its roles in a JSON array, and that of Descendants
+// in the paginated object.
 func roleCases() []wireCase {
 	const (
 		rolesRoute       = "/v2/schema/{proj_id}/{env_id}/roles"
 		roleRoute        = rolesRoute + "/{role_id}"
 		permissionsRoute = roleRoute + "/permissions"
+		ancestorsRoute   = roleRoute + "/ancestors"
+		descendantsRoute = roleRoute + "/descendants"
+		bulkRoute        = "/v2/schema/{proj_id}/{env_id}/bulk/roles"
 		roles            = "/v2/schema/p/e/roles"
 	)
 	forbidden := func(op, method, route string) *permit.Error {
@@ -147,6 +153,11 @@ func roleCases() []wireCase {
 		"level": json.Number("2"), "scope": map[string]any{"all": true},
 	}
 	created.Extends = []string{"viewer"}
+	bulkErr := projectError("bulk_create_or_replace_roles", http.MethodPut, bulkRoute,
+		http.StatusUnprocessableEntity, bulkRolesInvalidBody)
+	bulkErr.Detail = "body.operations.0.key: string does not match regex"
+	listed := listedRoles()
+	viewer, editor, admin := listed[0], listed[1], listed[2]
 	return []wireCase{
 		{
 			Method: "RolesService.List",
@@ -312,6 +323,62 @@ func roleCases() []wireCase {
 			ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: roleNotFoundBody},
 			WantErr: notFound("remove_permissions_from_role", http.MethodDelete,
 				permissionsRoute),
+		},
+		{
+			Method: "RolesService.Ancestors",
+			Op:     "get_role_ancestors",
+			Route:  "GET " + ancestorsRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Roles.Ancestors(ctx, "50%é")
+			},
+			Request:    wireRequest{RawPath: roles + "/50%25%C3%A9/ancestors"},
+			Reply:      mockpermit.Reply{Body: replyFixture("get_role_ancestors.200.json")},
+			WantResult: []models.RoleRead{editor, viewer},
+			ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: roleNotFoundBody},
+			WantErr:    notFound("get_role_ancestors", http.MethodGet, ancestorsRoute),
+		},
+		{
+			Method: "RolesService.Descendants",
+			Op:     "get_role_descendants",
+			Route:  "GET " + descendantsRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Roles.Descendants(ctx, "a/b")
+			},
+			Request:    wireRequest{RawPath: roles + "/a%2Fb/descendants"},
+			Reply:      mockpermit.Reply{Body: replyFixture("get_role_descendants.200.json")},
+			WantResult: []models.RoleRead{editor, admin},
+			ErrorReply: mockpermit.Reply{Status: http.StatusForbidden, Body: roleForbiddenBody},
+			WantErr:    forbidden("get_role_descendants", http.MethodGet, descendantsRoute),
+		},
+		{
+			Method: "RolesService.BulkReplace",
+			Op:     "bulk_create_or_replace_roles",
+			Route:  "PUT " + bulkRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Roles.BulkReplace(ctx, []models.RoleCreateBulk{
+					{Key: "auditor", Name: "Auditor", Permissions: []string{"document:read"}},
+					{Key: "viewer", Name: "Viewer", Attributes: models.Attributes{"seats": 1}},
+					{Key: "editor", Name: "Editor", Extends: []string{"viewer"}},
+				})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/schema/p/e/bulk/roles",
+				Body: `{"operations":[{"key":"auditor","name":"Auditor",` +
+					`"permissions":["document:read"]},{"key":"viewer","name":"Viewer",` +
+					`"attributes":{"seats":1}},{"key":"editor","name":"Editor",` +
+					`"extends":["viewer"]}]}`,
+			},
+			Reply: mockpermit.Reply{Body: replyFixture("bulk_create_or_replace_roles.200.json")},
+			WantResult: &models.RoleCreateBulkOperationResult{
+				Created: []string{"auditor"}, Updated: []string{"viewer", "editor"},
+			},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusUnprocessableEntity, Body: bulkRolesInvalidBody,
+			},
+			WantErr: bulkErr,
 		},
 	}
 }

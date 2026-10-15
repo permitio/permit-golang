@@ -595,6 +595,8 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, checks the models against the published specs, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots) and [Model drift](#model-drift). |
 | `bench` | On a push to `master` and weekly: runs the benchmarks of the decision calls, compares them with the previous result on `master`, writes the report to the job summary and posts a regression, or a run that did not complete, to Slack. Advisory: it never fails CI. See [Benchmarks](#benchmarks). |
 | `e2e` | On a push to `master`, in the mode `e2e` and in a release: the end-to-end scenarios against Permit in a scratch environment, with the container PDP pinned by digest. See [Against Permit](#against-permit). |
+| `e2e-latest` | When `e2e` runs: the same scenarios with the newest release of the container PDP, by tag, and its spec compared with the snapshot of the pinned image. Advisory: it never fails CI. See [Against Permit](#against-permit). |
+| `e2e-cloudpdp` | When `e2e` runs: the scenarios of the cloud PDP's leg, against the cloud PDP. Advisory: it never fails CI. See [Against Permit](#against-permit). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
 | `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: posts one line to Slack. `CI` does not need it. |
 
@@ -603,7 +605,7 @@ Which jobs a run selects depends on its mode:
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
   `test`, `crossbuild`, `consumer`, `docs`, `zipcheck`, `api-coverage`, `vuln` and `secrets`. A
   pull request runs `mutation`, `dependency-review` and `api-surface` too, and a push to `master`
-  runs `bench` and `e2e`.
+  runs `bench`, `e2e`, `e2e-latest` and `e2e-cloudpdp`.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
   weekly jobs, `security` the security scan, and `e2e` the end-to-end jobs. The release workflow
   *(added in a later commit on this branch)* calls CI with the mode `release`, which runs the
@@ -658,14 +660,15 @@ When you add or remove a git hook, change `EXPECTED_HOOKS`.
 cicheck checks these rules and the workflows' hardening: every action pinned to a commit SHA with
 a version comment, `persist-credentials: false`, `cache: false` and an exact Go version on every
 `setup-go`, a pinned runner and a timeout on every job, no `${{` in a `run:`, the secrets of the
-end-to-end jobs read only in the `integration` environment, an end-to-end job that checks
-`tools/e2e/required.txt`, deletes its environment under `if: always()` and, when required,
-starts a PDP pinned by digest, `e2e-pr.yml` as the one workflow outside CI that runs on pull
-requests, only for those from a branch of this repository and in the mode `e2e`, a call of a
-workflow that grants every permission the called jobs ask for, and the rest that
-`go -C tools doc ./cmd/cicheck` lists. Tool output must not be able to issue workflow commands,
-so a `run:` that does more than call scripts in `.github/scripts` starts with these three lines,
-after any blank and comment lines, with one variable name in all three:
+end-to-end jobs read only in the `integration` environment, an end-to-end job that sets its leg
+as `LEG`, runs the tests of that leg, checks the list of required tests of that leg, deletes its
+environment under `if: always()` and, when required, starts a PDP pinned by digest (the rules of
+each leg are in [The advisory legs](#the-advisory-legs)), `e2e-pr.yml` as the one workflow
+outside CI that runs on pull requests, only for those from a branch of this repository and in the
+mode `e2e`, a call of a workflow that grants every permission the called jobs ask for, and the
+rest that `go -C tools doc ./cmd/cicheck` lists. Tool output must not be able to issue workflow
+commands, so a `run:` that does more than call scripts in `.github/scripts` starts with these
+three lines, after any blank and comment lines, with one variable name in all three:
 
 ```sh
 token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
@@ -1461,8 +1464,9 @@ not set. It runs in the scratch environment that
 and its API key, and deletes it afterwards (see [Against Permit](#against-permit)); the SDK's
 clients reach the PDP at `PERMIT_PDP_URL`. `-e2e.record` keeps its request record for
 apicoverage. `tools/e2e/required.txt` lists the tests that every run of the scenarios against
-the PDP container must run and pass, as [the PDP scenarios](#the-pdp-scenarios) say, and the
-`e2e` job checks them with checkgotest.
+the PDP container must run and pass, and `tools/e2e/required-cloudpdp.txt` those of a run of the
+leg `cloudpdp`, against the cloud PDP, as [the PDP scenarios](#the-pdp-scenarios) say; each job
+of a leg checks its list with checkgotest.
 
 ### The PDP scenarios
 
@@ -1485,19 +1489,21 @@ its other checks once: a check that the seed denies would pass before the seed a
 dry run, the fake PDP reads the seed at once, and the wait is at most 2 seconds. A seed that
 cannot be created fails the scenario at its setup, with `setup:`, before it asserts anything.
 
-A leg runs the scenarios of every PDP and those of the PDP that its clients call: the cloud PDP
-on the leg `cloudpdp` *(added in a later commit on this branch)*, the PDP container on every
-other leg, such as `pinned`. A scenario that a leg does not select does not run, so it never
-skips. The dry run runs the scenarios as the legs do, with the same plan: first those of the
-leg `cloudpdp`, against the fake of the cloud PDP, which answers each route that only the PDP
-container serves with 404 and an empty body, then the scenarios of the PDP container against
-its fake. So a scenario of every PDP that sends a route that only the PDP container serves fails
-the dry run, and `TestContainerOnlyScenarios` checks that the leg `cloudpdp` runs no scenario
-that covers a method of such a route, other than the cloud PDP's own. `.github/required-tests.txt`
-names the subtest of every scenario, as the offline test job checks the dry run, and
-`tools/e2e/required.txt`, which the `e2e` job checks its live run against, names those that a
-run against the PDP container selects and no other; `TestRequiredScenarios` checks both. The
-completeness gate counts a method as cloud from the dry run, which runs every scenario.
+A leg runs the scenarios of every PDP and those of the PDP that its clients call: the cloud PDP on
+the leg `cloudpdp`, the PDP container on every other leg, such as `pinned` and `latest`. A
+scenario that a leg does not select does not run, so it never skips. The dry run runs the
+scenarios as the legs do, with the same plan: first those of the leg `cloudpdp`, against the fake
+of the cloud PDP, which answers each route that only the PDP container serves with 404 and an
+empty body, then the scenarios of the PDP container against its fake. So a scenario of every PDP
+that sends a route that only the PDP container serves fails the dry run, and
+`TestContainerOnlyScenarios` checks that the leg `cloudpdp` runs no scenario that covers a method
+of such a route, other than the cloud PDP's own. `.github/required-tests.txt` names the subtest of
+every scenario, as the offline test job checks the dry run; `tools/e2e/required.txt`, which the
+jobs `e2e` and `e2e-latest` check their live runs against, names those that a run against the PDP
+container selects and no other; and `tools/e2e/required-cloudpdp.txt`, which the job
+`e2e-cloudpdp` checks its live run against, names those that a run against the cloud PDP selects
+and no other. `TestRequiredScenarios` checks all three. The completeness gate counts a method as
+cloud from the dry run, which runs every scenario.
 
 Offline, nothing checks these, so the first live run confirms them: the form in which the Permit
 API lists role assignments, with `resource_instance` as `<resource>:<key>`, and relationship
@@ -1533,9 +1539,9 @@ true` once the lane has the key.
 
 The `e2e` job of `ci.yml` runs the scenarios against Permit's production API, with the container
 PDP pinned by digest (`PDP_IMAGE_PINNED_TAG` and `PDP_IMAGE_PINNED_DIGEST` in the workflow's
-`env`); a push to `master`, a release and a manual run with the mode `e2e` require it. Advisory
-legs against the newest release of the container PDP and against the cloud PDP *(added in a
-later commit on this branch)* do not fail CI. `.github/workflows/e2e-pr.yml` runs the same job
+`env`); a push to `master`, a release and a manual run with the mode `e2e` require it. Two
+advisory legs, the jobs `e2e-latest` and `e2e-cloudpdp` described [below](#the-advisory-legs),
+run with it and never fail CI. `.github/workflows/e2e-pr.yml` runs the same jobs
 on a pull request from a branch of this repository, in a run that Dependabot did not trigger, by
 calling `ci.yml` with the mode `e2e`; a newer push to the pull request cancels its older run.
 That lane is outside the check the ruleset requires, but required through the deployment rule:
@@ -1609,6 +1615,48 @@ go -C tools test -count=1 -tags e2e ./e2e -args -e2e.leg local
 .github/scripts/e2e-env.sh delete local
 ```
 
+### The advisory legs
+
+Two more jobs run whenever `e2e` runs, with the same scripts, the same rule for a missing secret
+and the same allowed skips, each in a scratch environment of its own,
+`gosdk-ci-<run>-<attempt>-<leg>`. They sweep nothing: the `e2e` job of the same run sweeps the old
+environments of every leg.
+
+- `e2e-latest`, the leg `latest`, starts the newest release of the container PDP by its tag,
+  `PDP_IMAGE_LATEST` in the workflow's `env`, and `pdp-up.sh` prints the digest that the tag
+  resolved to in the run. It runs the scenarios of the PDP container, checks them against
+  `tools/e2e/required.txt`, and uploads its request record as the artifact `e2e-record-latest`.
+  Then `specsnap -check-pdp http://127.0.0.1:7766`, without `-image`, compares the spec that this
+  PDP serves with `tools/specs/pdp-container.json`, the snapshot of the pinned image. It proves
+  that the SDK works with a release of the PDP before the pin moves to it, and a difference in
+  the spec shows what moving the pin must change.
+- `e2e-cloudpdp`, the leg `cloudpdp`, starts no container: the SDK's clients call the cloud PDP,
+  `https://cloudpdp.api.permit.io`, the origin of the URL of the `pdp-cloud` entry of
+  `tools/specs/lock.json`. It runs the scenarios of every PDP and
+  `container_only_routes_on_cloud_pdp`, and checks them against `tools/e2e/required-cloudpdp.txt`.
+  It proves that the decisions work against the cloud PDP, and that each route that only the PDP
+  container serves fails there with `ErrContainerPDPOnly`. Its request record stays on the runner,
+  and is never an input of apicoverage: its one request to `POST /allowed_url`, of `CheckURL`,
+  gets a 404 from a PDP that does not serve that route, which is no end-to-end check of the route.
+
+Both are in `ADVISORY_JOBS`, so a new release of the PDP or a change of the cloud PDP that fails
+them makes `CI` warn and never fails it, on `master`, in a release or on a pull request. Each uses
+the `integration` environment with `deployment: false`: it gets the secret, under the
+environment's branch policies, but makes no deployment, so that a failure of it cannot stand in
+the way of the successful deployment to `integration` that a pull request into `master` needs,
+which the `e2e` job makes.
+
+cicheck checks the rules of the legs. Each end-to-end job sets its own leg in its `env` as `LEG`,
+one of `pinned`, `latest` and `cloudpdp`, and `e2e` sets `pinned`, as `e2e-env.sh` names the
+scratch environment by the leg. It runs `go test` on `./e2e` with `-e2e.leg "$LEG"` and a
+`PERMIT_PDP_URL` of its leg's PDP: `http://127.0.0.1:7766`, the container that `pdp-up.sh` starts,
+or on the leg `cloudpdp` the origin of the URL of the `pdp-cloud` entry of
+`tools/specs/lock.json`. It checks the list of required tests of its leg, deletes its environment
+under `if: always()`, reads the secret only in `integration`, and checks the spec of the PDP
+container that it starts. The legs `latest` and `cloudpdp` are in `ADVISORY_JOBS`, and an advisory
+leg sets `deployment: false`; the leg `latest` starts an image with a tag and no digest; and the
+leg `cloudpdp` starts no container and uploads no artifact.
+
 ### Test tiers
 
 | Tier | When | What | Required | Alert |
@@ -1616,6 +1664,7 @@ go -C tools test -count=1 -tags e2e ./e2e -args -e2e.leg local
 | Offline | Every pull request and push to `master` | The tests of both modules and the end-to-end dry run, with no network | Yes: `CI` | The pull request's `CI` check |
 | Local full stack | Before a release | A maintainer-run local full-stack suite | For a release *(the release workflow is added in a later commit on this branch)* | The release's harness evidence *(added in a later commit on this branch)* |
 | Production scratch | A push to `master`, a manual run with the mode `e2e`, a release, and a pull request from a branch of this repository | The `e2e` job above, in a scratch environment of Permit's production API | Yes on `master`, in a release and in a manual run; on a pull request into `master`, through the deployment rule | `notify-gate-failure` on `master` and in a release; on a pull request, the lane's `CI` check and its `integration` deployment |
+| Production scratch, advisory | Whenever the `e2e` job runs | The [advisory legs](#the-advisory-legs): the scenarios with the newest release of the container PDP, `e2e-latest`, and against the cloud PDP, `e2e-cloudpdp`, each in a scratch environment of its own | No: they never fail `CI`, and make no deployment | A warning of `CI`, and the failed job in the run |
 | Post-release smoke | After a release *(added in a later commit on this branch)* | The scenarios against the released module | No | *(Added in a later commit on this branch.)* |
 
 The tiers are owned by `@permitio/r-d`.

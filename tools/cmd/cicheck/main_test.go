@@ -43,6 +43,13 @@ version = 1.2.3
 url = https://example.com/fake-tool-{version}.tar.gz
 `
 
+// specLock is the lock of the spec snapshots, and validSpecLock one whose pdp-cloud entry has the
+// URL of the cloud PDP's spec.
+const (
+	specLock      = "tools/specs/lock.json"
+	validSpecLock = `{"pdp-cloud": {"url": "https://cloudpdp.api.permit.io/openapi.json"}}` + "\n"
+)
+
 // thirdParty is a workflow that calls a reusable workflow of another repository, and uses a
 // local action, an action in a subdirectory of its repository and two actions out of order, one
 // without a version comment.
@@ -62,6 +69,7 @@ func validFiles() map[string]string {
 		".github/scripts/no-version":  "echo 127.0.0.1\n",
 		".github/zizmor.yml":          "rules: {}\n",
 		"tools/binaries.lock":         validLock,
+		specLock:                      validSpecLock,
 		".github/workflows/README.md": "not a workflow\n",
 		"go.mod":                      "module example.com/sdk\n",
 		"tools/go.mod":                "module example.com/sdk/tools\n",

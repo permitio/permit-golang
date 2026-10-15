@@ -1048,3 +1048,6 @@ github.com/permitio/permit-golang/v2/tools/e2e TestPlan
 github.com/permitio/permit-golang/v2/tools/e2e TestContainerOnlyScenarios
 github.com/permitio/permit-golang/v2/tools/e2e TestRequiredScenarios
 github.com/permitio/permit-golang/v2/tools/e2e TestAwaitValue
+
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckE2ELegs
+github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregateAdvisoryE2ELegs

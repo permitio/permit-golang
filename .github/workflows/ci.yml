@@ -64,6 +64,8 @@ env:
   # The container PDP of the e2e job, pinned by digest. Dependabot does not update it.
   PDP_IMAGE_PINNED_TAG: permitio/pdp-v2:0.9.16
   PDP_IMAGE_PINNED_DIGEST: sha256:e3cf30794ec2d256636b4714641df46e51ee58a3f1f0d24c606e214e0bf8669a
+  # The container PDP of the advisory e2e-latest job: the newest release, by tag.
+  PDP_IMAGE_LATEST: permitio/pdp-v2:latest
 
 jobs:
   # Checks the workflows with cicheck, runs every hook in .pre-commit-config.yaml on every file,
@@ -1268,6 +1270,169 @@ jobs:
           PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
         run: .github/scripts/e2e-env.sh delete "$LEG"
 
+  # Advisory, in the runs that run e2e: the scenarios against Permit with the newest release of
+  # the container PDP, PDP_IMAGE_LATEST, by tag, so that a release that breaks the SDK shows
+  # before the pin moves to it; pdp-up.sh prints the digest that the tag resolved to in the run.
+  # The job runs as e2e does, with the same scripts, the same rule for a missing secret and
+  # tools/e2e/required.txt, in a scratch environment of its own, gosdk-ci-<run>-<attempt>-latest.
+  # It sweeps nothing: the e2e job of the same run sweeps the old environments of every leg.
+  # specsnap -check-pdp, without -image, compares the spec that this PDP serves with
+  # tools/specs/pdp-container.json, the snapshot of the pinned image: a difference fails this job
+  # only, and shows what moving the pin must change. The request record is uploaded as the
+  # artifact e2e-record-latest. The job is in ADVISORY_JOBS, so CI only warns when it fails, and
+  # its environment sets deployment: false, so that it makes no deployment: a pull request into
+  # master needs a successful deployment to integration, which the e2e job makes.
+  e2e-latest:
+    name: e2e (latest PDP)
+    if: >-
+      (!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e'
+      || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: integration
+      deployment: false
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+      LEG: latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Create the scratch environment
+        id: env
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          MODE: ${{ inputs.mode }}
+        run: .github/scripts/e2e-env.sh create "$LEG"
+      - name: Start the PDP
+        id: pdp
+        if: steps.env.outputs.created == 'true'
+        env:
+          PDP_IMAGE: ${{ env.PDP_IMAGE_LATEST }}
+        run: .github/scripts/pdp-up.sh up
+      - name: Run the end-to-end tests
+        id: tests
+        if: steps.env.outputs.created == 'true'
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          PERMIT_PDP_URL: http://127.0.0.1:7766
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          code=0
+          go -C tools test -count=1 -timeout 20m -json -tags e2e ./e2e -args -e2e.leg "$LEG" \
+            -e2e.record "$RUNNER_TEMP/e2e-record.jsonl" >"$RUNNER_TEMP/e2e.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require-file tools/e2e/required.txt \
+            -allow-skips tools/e2e/allowed-skips.txt "$RUNNER_TEMP/e2e.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      - name: Check the PDP's spec against the snapshot of the pinned image
+        if: always() && steps.pdp.outcome == 'success'
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/specsnap" ./cmd/specsnap
+          "$RUNNER_TEMP/specsnap" -check-pdp http://127.0.0.1:7766
+      - name: Upload the request record
+        if: always() && steps.tests.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: e2e-record-latest
+          path: ${{ runner.temp }}/e2e-record.jsonl
+          if-no-files-found: error
+          overwrite: true
+      - name: Print the PDP's log
+        if: failure() && steps.pdp.outcome != 'skipped'
+        run: .github/scripts/pdp-up.sh logs
+      - name: Remove the PDP
+        if: always() && steps.pdp.outcome != 'skipped'
+        run: .github/scripts/pdp-up.sh down
+      - name: Delete the scratch environment
+        if: always()
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+        run: .github/scripts/e2e-env.sh delete "$LEG"
+
+  # Advisory, in the runs that run e2e: the scenarios against Permit with the cloud PDP, at the
+  # origin of the url of the pdp-cloud entry of tools/specs/lock.json, and no container: those of
+  # every PDP, and the cloud PDP's own, which checks that each route that only the container PDP
+  # serves fails there with ErrContainerPDPOnly. It runs as e2e-latest does, in
+  # gosdk-ci-<run>-<attempt>-cloudpdp, and checkgotest checks its run against
+  # tools/e2e/required-cloudpdp.txt. Its request record stays on the runner, out of the API
+  # coverage: its one request to POST /allowed_url, of CheckURL, gets a 404 from a PDP that does
+  # not serve that route, which is no end-to-end check of it.
+  e2e-cloudpdp:
+    name: e2e (cloud PDP)
+    if: >-
+      (!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e'
+      || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: integration
+      deployment: false
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+      LEG: cloudpdp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Create the scratch environment
+        id: env
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          MODE: ${{ inputs.mode }}
+        run: .github/scripts/e2e-env.sh create "$LEG"
+      - name: Run the end-to-end tests
+        if: steps.env.outputs.created == 'true'
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          PERMIT_PDP_URL: https://cloudpdp.api.permit.io
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          code=0
+          go -C tools test -count=1 -timeout 20m -json -tags e2e ./e2e -args -e2e.leg "$LEG" \
+            >"$RUNNER_TEMP/e2e.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require-file tools/e2e/required-cloudpdp.txt \
+            -allow-skips tools/e2e/allowed-skips.txt "$RUNNER_TEMP/e2e.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      - name: Delete the scratch environment
+        if: always()
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+        run: .github/scripts/e2e-env.sh delete "$LEG"
+
   # The one check to require. It runs whatever happened to the jobs it needs, since GitHub counts
   # a skipped required check as passing. ci-aggregate.sh says how it decides; in short, each job
   # must succeed in the runs that select it: the pull request checks on pull_request, push and
@@ -1302,6 +1467,8 @@ jobs:
       - spec-drift
       - bench
       - e2e
+      - e2e-latest
+      - e2e-cloudpdp
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -1316,13 +1483,13 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 19
+          EXPECTED_JOBS: 21
           PULL_REQUEST_JOBS: mutation dependency-review api-surface
           SCHEDULED_JOBS: >-
             prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly
             spec-drift:weekly bench:weekly
-          E2E_JOBS: e2e
-          ADVISORY_JOBS: bench
+          E2E_JOBS: e2e e2e-latest e2e-cloudpdp
+          ADVISORY_JOBS: bench e2e-latest e2e-cloudpdp
         run: .github/scripts/ci-aggregate.sh
 
   # After CI, when CI failed on a push to master or in a release: posts one line to the ops

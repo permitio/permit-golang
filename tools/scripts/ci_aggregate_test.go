@@ -595,3 +595,145 @@ func TestCIAggregateE2EJobs(t *testing.T) {
 		})
 	}
 }
+
+// TestCIAggregateAdvisoryE2ELegs checks which runs select the advisory legs of the end-to-end
+// jobs, e2e-latest and e2e-cloudpdp, beside e2e, the job of the pinned PDP, with the lists of
+// ci.yml: on every trigger, the legs run when e2e runs, and a leg that fails or is cancelled
+// makes CI warn, where a failure of e2e fails it. prek stands for the pull request checks and
+// prek-upstream for the weekly jobs; prek-upstream succeeds in every run, as a success never
+// fails CI, whatever the mode.
+func TestCIAggregateAdvisoryE2ELegs(t *testing.T) {
+	needs := func(gate, pinned, latest, cloud string) string {
+		return `{"prek": {"result": "` + gate + `"}, "e2e": {"result": "` + pinned +
+			`"}, "e2e-latest": {"result": "` + latest + `"}, "e2e-cloudpdp": {"result": "` +
+			cloud + `"}, "prek-upstream": {"result": "success"}}`
+	}
+	const (
+		latestWarning = "::warning title=CI::e2e-latest failure; it is advisory, so CI does not " +
+			"fail\n"
+		cloudWarning = "::warning title=CI::e2e-cloudpdp cancelled; it is advisory, so CI does " +
+			"not fail\n"
+	)
+	tests := []struct {
+		name, event, mode, schedule string
+		needs                       string
+		wantExit                    int
+		want                        []string
+	}{
+		{
+			name: "a pull request", event: "pull_request",
+			needs: needs("success", "skipped", "skipped", "skipped"), wantExit: 0,
+			want: []string{
+				"::notice title=CI::e2e-latest was not selected in mode pull_request\n",
+				"::notice title=CI::e2e-cloudpdp was not selected in mode pull_request\n",
+			},
+		},
+		{
+			name: "a push on which every leg passes", event: "push",
+			needs: needs("success", "success", "success", "success"), wantExit: 0,
+			want: []string{"every job that mode push selects succeeded"},
+		},
+		{
+			name: "a push on which the advisory legs fail", event: "push",
+			needs: needs("success", "success", "failure", "cancelled"), wantExit: 0,
+			want: []string{latestWarning, cloudWarning},
+		},
+		{
+			name: "a push on which the pinned job fails", event: "push",
+			needs: needs("success", "failure", "success", "success"), wantExit: 1,
+			want: []string{"Jobs that did not succeed in mode push: e2e failure"},
+		},
+		{
+			name: "a push that skipped an advisory leg", event: "push",
+			needs: needs("success", "success", "success", "skipped"), wantExit: 1,
+			want: []string{"e2e-cloudpdp skipped, although mode push selects it"},
+		},
+		{
+			name: "the mode pr", event: "workflow_dispatch", mode: "pr",
+			needs: needs("success", "skipped", "skipped", "skipped"), wantExit: 0,
+			want: []string{"e2e-cloudpdp was not selected in mode pr"},
+		},
+		{
+			name: "the mode e2e on which the advisory legs fail", event: "workflow_dispatch",
+			mode: "e2e", needs: needs("skipped", "success", "failure", "cancelled"), wantExit: 0,
+			want: []string{latestWarning, cloudWarning},
+		},
+		{
+			name: "the mode e2e that skipped the latest leg", event: "workflow_dispatch",
+			mode: "e2e", needs: needs("skipped", "success", "skipped", "success"), wantExit: 1,
+			want: []string{"e2e-latest skipped, although mode e2e selects it"},
+		},
+		{
+			name: "the pull request lane on which the advisory legs fail", event: "pull_request",
+			mode: "e2e", needs: needs("skipped", "success", "failure", "cancelled"), wantExit: 0,
+			want: []string{latestWarning, cloudWarning},
+		},
+		{
+			name: "the pull request lane on which the pinned job fails", event: "pull_request",
+			mode: "e2e", needs: needs("skipped", "failure", "success", "success"), wantExit: 1,
+			want: []string{"Jobs that did not succeed in mode e2e: e2e failure"},
+		},
+		{
+			name: "a release on which the advisory legs fail", event: "workflow_dispatch",
+			mode: "release", needs: needs("success", "success", "failure", "cancelled"),
+			wantExit: 0, want: []string{latestWarning, cloudWarning},
+		},
+		{
+			name: "a release that skipped the cloud leg", event: "workflow_dispatch",
+			mode: "release", needs: needs("success", "success", "success", "skipped"),
+			wantExit: 1,
+			want:     []string{"e2e-cloudpdp skipped, although mode release selects it"},
+		},
+		{
+			name: "a release on which the pinned job fails", event: "workflow_dispatch",
+			mode: "release", needs: needs("success", "failure", "success", "success"),
+			wantExit: 1, want: []string{"Jobs that did not succeed in mode release: e2e failure"},
+		},
+		{
+			name: "the weekly cron", event: "schedule", schedule: "41 6 * * 1",
+			needs: needs("skipped", "skipped", "skipped", "skipped"), wantExit: 0,
+			want: []string{"e2e-latest was not selected in mode weekly"},
+		},
+		{
+			name: "the mode weekly", event: "workflow_dispatch", mode: "weekly",
+			needs: needs("skipped", "skipped", "skipped", "skipped"), wantExit: 0,
+			want: []string{"e2e-cloudpdp was not selected in mode weekly"},
+		},
+		{
+			name: "the security cron", event: "schedule", schedule: "23 4 * * 1,4",
+			needs: needs("skipped", "skipped", "skipped", "skipped"), wantExit: 0,
+			want: []string{"e2e-latest was not selected in mode security"},
+		},
+		{
+			name: "the mode security", event: "workflow_dispatch", mode: "security",
+			needs: needs("skipped", "skipped", "skipped", "skipped"), wantExit: 0,
+			want: []string{"e2e-cloudpdp was not selected in mode security"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			copyScripts(t, root, "ci-aggregate.sh")
+			env := []string{
+				"EVENT=" + tt.event, "INPUT_MODE=" + tt.mode, "SCHEDULE=" + tt.schedule,
+				"NEEDS=" + tt.needs, "EXPECTED_JOBS=5", "PULL_REQUEST_JOBS=",
+				"E2E_JOBS=e2e e2e-latest e2e-cloudpdp", "ADVISORY_JOBS=e2e-latest e2e-cloudpdp",
+				"SCHEDULED_JOBS=prek-upstream:weekly", "SECURITY_CRON=23 4 * * 1,4",
+				"WEEKLY_CRON=41 6 * * 1",
+			}
+
+			result := runScript(t, root, env,
+				filepath.Join(root, ".github", "scripts", "ci-aggregate.sh"))
+
+			if result.exit != tt.wantExit {
+				t.Errorf("exit = %d, want %d; stdout:\n%s\nstderr:\n%s", result.exit,
+					tt.wantExit, result.stdout, result.stderr)
+			}
+			for _, want := range tt.want {
+				if !strings.Contains(result.stdout, want) {
+					t.Errorf("stdout does not contain %q:\n%s", want, result.stdout)
+				}
+			}
+		})
+	}
+}

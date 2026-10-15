@@ -25,16 +25,31 @@
 //   - A job in E2E_JOBS, an end-to-end job, has the if: (!inputs.mode && github.event_name ==
 //     'push') || inputs.mode == 'e2e' || inputs.mode == 'release', which no pull request of the
 //     CI workflow matches, and every job of that workflow that runs in the integration
-//     environment is in E2E_JOBS. A command line of a step of it starts with checkgotest and
-//     passes -require-file tools/e2e/required.txt. When a step runs .github/scripts/e2e-env.sh
-//     create, a step runs e2e-env.sh delete, and each step that runs it has the if: always().
-//     ADVISORY_JOBS does not name e2e, the job with the pinned PDP; in a job that it does not
-//     name, each step that runs .github/scripts/pdp-up.sh up has a PDP_IMAGE, its own, its
-//     job's or its workflow's, that is <image>@sha256:<64 hex digits> once each ${{ env.NAME }}
-//     in it is replaced with the job's or the workflow's value. When e2e runs pdp-up.sh up, a
-//     step after the first such step runs specsnap -check-pdp with the if: always() &&
-//     steps.<id>.outcome == 'success', where <id> is the id: of the step that starts the PDP,
-//     so the PDP's spec is checked whatever the tests did.
+//     environment is in E2E_JOBS. Its env: sets LEG to its leg, one of pinned, latest and
+//     cloudpdp, and no other end-to-end job sets the same leg, as e2e-env.sh names the job's
+//     scratch environment by it; e2e, the job with the pinned PDP, sets pinned. A command line of
+//     a step of it runs go test on ./e2e and passes, in its last -e2e.leg, "$LEG", ${LEG} or the
+//     leg itself, and that step's PERMIT_PDP_URL, its own, its job's or its workflow's, is the
+//     URL of the leg's PDP: on the leg cloudpdp, the cloud PDP's, the origin of the url of the
+//     pdp-cloud entry of tools/specs/lock.json, and on any other leg http://127.0.0.1:7766, the
+//     PDP container's. A command line of a step of it starts with checkgotest and passes
+//     -require-file with the list of required tests of its leg: tools/e2e/required-cloudpdp.txt
+//     for the leg cloudpdp and tools/e2e/required.txt for any other. When a step runs
+//     .github/scripts/e2e-env.sh create, a step runs e2e-env.sh delete, and each step that runs
+//     it has the if: always(). ADVISORY_JOBS does not name e2e, and names each job of the legs
+//     latest and cloudpdp, whose PDP this repository does not pin; in a job that it does not
+//     name, each step that runs .github/scripts/pdp-up.sh up has a PDP_IMAGE, its own, its job's
+//     or its workflow's, that is <image>@sha256:<64 hex digits> once each ${{ env.NAME }} in it
+//     is replaced with the job's or the workflow's value. In a job of the leg latest, the
+//     PDP_IMAGE of such a step is <image>:<tag> with no digest: the newest release of the PDP. A
+//     job of the leg cloudpdp runs no pdp-up.sh up, and uploads no artifact, so that its request
+//     record stays out of the API coverage: its one request to POST /allowed_url gets a 404 from
+//     a PDP that does not serve that route. A job that ADVISORY_JOBS names uses its environment
+//     with deployment: false, so that it makes no deployment: a pull request into master needs a
+//     successful deployment to the integration environment, which a job that may fail must not
+//     decide. When a job runs pdp-up.sh up, a step after the first such step runs specsnap
+//     -check-pdp with the if: always() && steps.<id>.outcome == 'success', where <id> is the id:
+//     of the step that starts the PDP, so the PDP's spec is checked whatever the tests did.
 //   - Only a job in the integration environment reads a secret whose name starts with
 //     PERMIT_E2E_, and such a job reads no other secret: the environment holds the v1 lane's
 //     secrets too. No job reads PERMIT_API_KEY or PERMIT_ENV, the v1 lane's settings, as a secret
@@ -126,9 +141,10 @@
 //	0  every rule holds, or the -print output was written
 //	1  a rule does not hold
 //	2  cicheck did not run: the command line is wrong, the workflows directory holds no
-//	   workflow or no job, a file cannot be read or parsed, such as .github/dependabot.yml or
-//	   .pre-commit-config.yaml, git cannot read a ref or list the committed files, or git
-//	   tracks no go.mod at the repository root
+//	   workflow or no job, a file cannot be read or parsed, such as .github/dependabot.yml,
+//	   .pre-commit-config.yaml or tools/specs/lock.json, the pdp-cloud entry of that lock has no
+//	   absolute url, git cannot read a ref or list the committed files, or git tracks no go.mod
+//	   at the repository root
 //
 // The last line cicheck prints when it checks is its verdict: PASS, FAIL or DID NOT RUN. Build it
 // before use, because go run reports every non-zero exit as 1:
@@ -147,6 +163,7 @@ import (
 	"io"
 	"io/fs"
 	"maps"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -200,8 +217,22 @@ const (
 	// pinnedE2EJob is the end-to-end job with the pinned PDP, which a push to master and a
 	// release require.
 	pinnedE2EJob = "e2e"
-	// requiredTestsFile lists the tests that every run of the end-to-end scenarios must pass.
-	requiredTestsFile = "tools/e2e/required.txt"
+	// containerRequiredTests lists the tests that every run of the end-to-end scenarios against
+	// the PDP container must pass, and cloudRequiredTests those of a run of the leg cloudPDPLeg.
+	containerRequiredTests = "tools/e2e/required.txt"
+	cloudRequiredTests     = "tools/e2e/required-cloudpdp.txt"
+	// pinnedLeg is the leg of pinnedE2EJob, cloudPDPLeg the leg of the end-to-end jobs whose
+	// clients call the cloud PDP, and latestLeg the one that starts the newest release of the PDP
+	// container.
+	pinnedLeg   = "pinned"
+	cloudPDPLeg = "cloudpdp"
+	latestLeg   = "latest"
+	// containerPDPURL is the URL of the PDP container that .github/scripts/pdp-up.sh starts,
+	// which the clients of every leg but cloudPDPLeg call.
+	containerPDPURL = "http://127.0.0.1:7766"
+	// specLockFile is the lock of the spec snapshots, whose pdp-cloud entry has the url of the
+	// cloud PDP's spec.
+	specLockFile = "tools/specs/lock.json"
 	// stopLines lists, for messages, the three lines that start a run: that stops workflow
 	// commands.
 	stopLines = `token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n'), ` +
@@ -256,10 +287,19 @@ var (
 	// captures the context and the name.
 	settingRef = regexp.MustCompile(`\b(secrets|vars)\s*(?:\.\s*([A-Za-z_][A-Za-z0-9_]*)|` +
 		`\[\s*'([^']*)'\s*\])`)
-	// requiredTestsCall matches a command line that runs checkgotest with the list of the tests
-	// that every run of the end-to-end scenarios must pass.
+	// requiredTestsCall matches a command line that runs checkgotest with a list of the tests
+	// that a run must pass, and captures the list's path.
 	requiredTestsCall = regexp.MustCompile(`^"?[^\s"]*checkgotest"?\s(?:[^&|;]*\s)?` +
-		`-require-file[\s=]` + regexp.QuoteMeta(requiredTestsFile) + `(?:\s|$)`)
+		`-require-file[\s=]"?([^\s"]+)"?(?:\s|$)`)
+	// e2eTestCall matches a command line that runs go test on the end-to-end scenarios,
+	// tools/e2e.
+	e2eTestCall = regexp.MustCompile(`^"?(?:[^\s"]*/)?go"?\s(?:[^&|;]*\s)?test\s` +
+		`(?:[^&|;]*\s)?\S*/e2e(?:\s|$)`)
+	// legFlag matches an -e2e.leg flag and its value, and captures the value in double quotes
+	// or, without them, up to the next space.
+	legFlag = regexp.MustCompile(`(?:^|\s)--?e2e\.leg(?:=|\s+)(?:"([^"]*)"|(\S*))`)
+	// taggedImage matches an image reference with a tag and no digest, as pdp-up.sh takes it.
+	taggedImage = regexp.MustCompile(`^[a-z0-9][a-z0-9._/-]*:[A-Za-z0-9._-]+$`)
 	// pdpSpecCall matches a command line that runs specsnap -check-pdp, which checks that a
 	// running PDP serves the spec of its snapshot.
 	pdpSpecCall = regexp.MustCompile(`^"?[^\s"]*specsnap"?\s(?:[^&|;]*\s)?-check-pdp[\s=]`)
@@ -279,6 +319,9 @@ var pullRequestLanes = map[string]string{
 
 // v1Settings are the settings of the integration environment that only the v1 lane reads.
 var v1Settings = []string{"PERMIT_API_KEY", "PERMIT_ENV"}
+
+// e2eLegs are the legs of the end-to-end jobs, one job each.
+var e2eLegs = []string{pinnedLeg, latestLeg, cloudPDPLeg}
 
 func main() {
 	os.Exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
@@ -332,8 +375,36 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return abort(stdout, err)
 	}
-	return check(stdout, workflows, scripts, files,
-		repository{trivyFiles: findTrivyFiles(committed), modules: modules})
+	cloudPDP, err := readCloudPDP(root)
+	if err != nil {
+		return abort(stdout, err)
+	}
+	return check(stdout, workflows, scripts, files, repository{
+		trivyFiles: findTrivyFiles(committed), modules: modules, cloudPDP: cloudPDP,
+	})
+}
+
+// readCloudPDP returns the URL of the cloud PDP: the origin of the url of the pdp-cloud entry of
+// specLockFile, under root.
+func readCloudPDP(root string) (string, error) {
+	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(specLockFile)))
+	if err != nil {
+		return "", err
+	}
+	var lock map[string]struct {
+		URL string `json:"url"`
+	}
+	if err = json.Unmarshal(data, &lock); err != nil {
+		return "", fmt.Errorf("%s: %w", specLockFile, err)
+	}
+	cloud := lock["pdp-cloud"].URL
+	spec, err := url.Parse(cloud)
+	if err != nil || spec.Scheme == "" || spec.Host == "" {
+		return "", fmt.Errorf("%s: the url of pdp-cloud, %q, is not an absolute URL such as "+
+			"https://cloudpdp.api.permit.io/openapi.json; cicheck checks the PERMIT_PDP_URL of "+
+			"the leg %s against its origin", specLockFile, cloud, cloudPDPLeg)
+	}
+	return spec.Scheme + "://" + spec.Host, nil
 }
 
 func parseArgs(args []string, stderr io.Writer) (options, error) {
@@ -639,6 +710,8 @@ type checker struct {
 	jobs, steps int
 	// prefixes holds the literal prefix of every concurrency group, by workflow.
 	prefixes []groupPrefix
+	// cloudPDP is the URL of the cloud PDP, which the clients of the leg cloudpdp call.
+	cloudPDP string
 }
 
 // groupPrefix is the literal start of a concurrency group.
@@ -660,13 +733,16 @@ type repository struct {
 	trivyFiles []string
 	// modules are the Go modules and the configurations that update and tidy them.
 	modules moduleSetup
+	// cloudPDP is the URL of the cloud PDP, the origin of the url of the pdp-cloud entry of
+	// specLockFile.
+	cloudPDP string
 }
 
 // check checks every rule and prints the findings, the counts and the verdict.
 func check(output io.Writer, workflows []workflow, scripts, files map[string]string,
 	repo repository,
 ) int {
-	c := &checker{}
+	c := &checker{cloudPDP: repo.cloudPDP}
 	var ciWorkflows []string
 	for _, w := range workflows {
 		if c.checkWorkflow(w, scripts) {
@@ -1333,6 +1409,8 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 			}, env)
 		}
 	}
+	// legJobs holds the end-to-end job of each leg.
+	legJobs := map[string]string{}
 	for _, job := range jobs {
 		switch {
 		case job.key == ciJob || scheduled[job.key]:
@@ -1346,7 +1424,16 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 				c.add(w.path, job.line, "job %s is in E2E_JOBS, so its if: must be %s", job.key,
 					e2eIf)
 			}
-			c.checkE2EJob(w.path, job, env, advisory[job.key])
+			leg := c.checkE2EJob(w.path, job, env, advisory[job.key])
+			switch other := legJobs[leg]; {
+			case leg == "":
+			case other != "":
+				c.add(w.path, job.line, "job %s sets LEG to %s, which job %s sets too; each leg "+
+					"needs a scratch environment of its own, as e2e-env.sh names it by the leg",
+					job.key, leg, other)
+			default:
+				legJobs[leg] = job.key
+			}
 		case environment(job.value) == e2eEnvironment:
 			c.add(w.path, job.line, "job %s runs in the %s environment, so list it in E2E_JOBS, "+
 				"whose if: keeps it off this workflow's pull requests, which may come from forks",
@@ -1357,19 +1444,50 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 	}
 }
 
-// checkE2EJob checks the steps of a job in E2E_JOBS: one runs checkgotest with -require-file
-// tools/e2e/required.txt; when one creates a scratch environment with e2e-env.sh create, one
-// deletes it with e2e-env.sh delete, and each such delete runs under if: always(); and when the
-// job is required, each step that starts the PDP with pdp-up.sh up gives it an image pinned by
-// digest.
-func (c *checker) checkE2EJob(path string, job pair, env map[string]envVar, advisory bool) {
-	requiresTests, creates, deletes := false, false, false
+// checkE2EJob checks a job in E2E_JOBS and returns its leg. Its env sets LEG to its leg, one of
+// e2eLegs, and pinned in pinnedE2EJob; a step of it runs go test on ./e2e with -e2e.leg and that
+// leg, and the PERMIT_PDP_URL of the leg's PDP; one runs checkgotest with -require-file and the
+// list of required tests of that leg; when one creates a scratch environment with e2e-env.sh
+// create, one deletes it with e2e-env.sh delete, and each such delete runs under if: always();
+// each step that starts the PDP with pdp-up.sh up gives it an image pinned by digest when the job
+// is required, and one with a tag and no digest when the leg is latest, and a later step checks
+// the PDP's spec; the job of the leg cloudpdp starts no PDP and uploads no artifact; the jobs of
+// the legs latest and cloudpdp are advisory; and an advisory job makes no deployment.
+func (c *checker) checkE2EJob(path string, job pair, env map[string]envVar, advisory bool) string {
+	leg, _ := scalar(field(field(job.value, "env"), "LEG"))
+	knownLeg := slices.Contains(e2eLegs, leg)
+	switch {
+	case !knownLeg:
+		c.add(path, job.line, "job %s is in E2E_JOBS, so its env: sets LEG to its leg, one of %s, "+
+			"%s and %s: e2e-env.sh names the job's scratch environment by it, and it picks the "+
+			"PDP that the tests call and the list of required tests that the job checks", job.key,
+			pinnedLeg, latestLeg, cloudPDPLeg)
+	case job.key == pinnedE2EJob && leg != pinnedLeg:
+		c.add(path, job.line, "job %s is the end-to-end job with the pinned PDP, which a push to "+
+			"master and a release require, so its env: sets LEG to %s, not %s", job.key,
+			pinnedLeg, leg)
+	}
+	required := legRequiredTests(leg)
+	requiresTests, runsTests, creates, deletes := false, false, false, false
 	for _, step := range items(field(job.value, "steps")) {
+		uses, _ := scalar(field(step, "uses"))
+		if leg == cloudPDPLeg && strings.HasPrefix(uses, "actions/upload-artifact@") {
+			c.add(path, step.Line, "job %s runs the leg %s, so it uploads no artifact: its "+
+				"request record must stay out of the API coverage, as its one request to POST "+
+				"/allowed_url gets a 404 from a PDP that does not serve that route", job.key, leg)
+		}
 		script, _ := scalar(field(step, "run"))
 		for _, command := range commandLines(script) {
+			call := requiredTestsCall.FindStringSubmatch(command)
 			switch {
-			case requiredTestsCall.MatchString(command):
-				requiresTests = true
+			case call != nil:
+				requiresTests = requiresTests || call[1] == required
+			case e2eTestCall.MatchString(command):
+				runsTests = true
+				if knownLeg {
+					c.checkTestCall(path, job, step, command, leg)
+					c.checkPDPURL(path, job, step, env, leg)
+				}
 			case runsScript(command, "e2e-env.sh", "create"):
 				creates = true
 			case runsScript(command, "e2e-env.sh", "delete"):
@@ -1379,22 +1497,108 @@ func (c *checker) checkE2EJob(path string, job pair, env map[string]envVar, advi
 						"whose if: is not always(), so a failed or cancelled step before it "+
 						"would leave the environment behind", job.key)
 				}
-			case runsScript(command, "pdp-up.sh", "up") && !advisory:
-				c.checkPDPImage(path, job, step, env)
+			case runsScript(command, "pdp-up.sh", "up"):
+				if !advisory {
+					c.checkPinnedPDP(path, job, step, env)
+				}
+				switch leg {
+				case latestLeg:
+					c.checkLatestPDP(path, job, step, env)
+				case cloudPDPLeg:
+					c.add(path, step.Line, "job %s runs the leg %s, whose clients call the cloud "+
+						"PDP, so it starts no PDP container with pdp-up.sh up", job.key, leg)
+				}
 			}
 		}
 	}
-	if !requiresTests {
-		c.add(path, job.line, "job %s is in E2E_JOBS, so a step of it runs checkgotest with "+
-			"-require-file %s, which fails a run that did not run and pass each test of that "+
-			"file", job.key, requiredTestsFile)
+	if knownLeg && !runsTests {
+		c.add(path, job.line, "job %s is in E2E_JOBS with the leg %s, so a step of it runs the "+
+			"end-to-end tests, go test on ./e2e, with -e2e.leg \"$LEG\"", job.key, leg)
+	}
+	if knownLeg && !requiresTests {
+		c.add(path, job.line, "job %s is in E2E_JOBS with the leg %s, so a step of it runs "+
+			"checkgotest with -require-file %s, which fails a run that did not run and pass "+
+			"each test of that file", job.key, leg, required)
 	}
 	if creates && !deletes {
 		c.add(path, job.line, "job %s creates a scratch environment with e2e-env.sh create, so a "+
 			"step of it under if: always() deletes it with e2e-env.sh delete", job.key)
 	}
-	if job.key == pinnedE2EJob {
-		c.checkPDPSpec(path, job)
+	if (leg == latestLeg || leg == cloudPDPLeg) && !advisory {
+		c.add(path, job.line, "job %s runs the leg %s, against a PDP that this repository does "+
+			"not pin, so ADVISORY_JOBS names it: a new release of the PDP, or a change of the "+
+			"cloud PDP, must not fail CI", job.key, leg)
+	}
+	if advisory {
+		c.checkNoDeployment(path, job)
+	}
+	c.checkPDPSpec(path, job)
+	return leg
+}
+
+// checkTestCall checks that a command line of a step of an end-to-end job that runs go test on
+// ./e2e passes the job's leg, "$LEG" or its value, in its last -e2e.leg, which the flag package
+// takes: the leg picks the scenarios of the leg's PDP and the prefix of what the run creates.
+func (c *checker) checkTestCall(path string, job pair, step *yaml.Node, command, leg string) {
+	flags := legFlag.FindAllStringSubmatch(command, -1)
+	if len(flags) == 0 {
+		c.add(path, step.Line, "job %s runs the end-to-end tests without -e2e.leg, so with the "+
+			"leg %s; pass -e2e.leg \"$LEG\", the job's leg, which picks the scenarios of the "+
+			"leg's PDP and the prefix of what the run creates", job.key, pinnedLeg)
+		return
+	}
+	last := flags[len(flags)-1]
+	value := last[1] + last[2]
+	if value != "$LEG" && value != "${LEG}" && value != leg {
+		c.add(path, step.Line, "job %s runs the end-to-end tests with %s; pass "+
+			"-e2e.leg \"$LEG\", the job's leg, which picks the scenarios of the leg's PDP and the "+
+			"prefix of what the run creates", job.key, strings.TrimSpace(last[0]))
+	}
+}
+
+// checkPDPURL checks the PERMIT_PDP_URL of a step of an end-to-end job of leg that runs the
+// tests: the cloud PDP's URL on the leg cloudpdp, and containerPDPURL on any other leg.
+func (c *checker) checkPDPURL(path string, job pair, step *yaml.Node, env map[string]envVar,
+	leg string,
+) {
+	pdp := "the PDP container that pdp-up.sh starts, at " + containerPDPURL
+	want := containerPDPURL
+	if leg == cloudPDPLeg {
+		pdp = "the cloud PDP, at " + c.cloudPDP + ", the origin of the url of pdp-cloud in " +
+			specLockFile
+		want = c.cloudPDP
+	}
+	value, line, ok := stepEnv(job, step, env, "PERMIT_PDP_URL")
+	switch {
+	case !ok:
+		c.add(path, step.Line, "job %s runs the end-to-end tests without a PERMIT_PDP_URL, so "+
+			"the SDK's clients would call its default, http://localhost:7766, but the clients of "+
+			"the leg %s call %s", job.key, leg, pdp)
+	case value != want:
+		c.add(path, line, "job %s runs the end-to-end tests with the PERMIT_PDP_URL %s, but the "+
+			"clients of the leg %s call %s", job.key, value, leg, pdp)
+	}
+}
+
+// legRequiredTests returns the list of the tests that a run of the end-to-end scenarios of leg
+// must pass: those of the cloud PDP for the leg cloudpdp, and those of the PDP container for any
+// other.
+func legRequiredTests(leg string) string {
+	if leg == cloudPDPLeg {
+		return cloudRequiredTests
+	}
+	return containerRequiredTests
+}
+
+// checkNoDeployment checks that an advisory job in E2E_JOBS uses its environment with
+// deployment: false: a pull request into master needs a successful deployment to the integration
+// environment, which a job that may fail must not decide.
+func (c *checker) checkNoDeployment(path string, job pair) {
+	if value, _ := scalar(field(field(job.value, "environment"), "deployment")); value != "false" {
+		c.add(path, job.line, "job %s is in ADVISORY_JOBS, so it uses the %s environment with "+
+			"deployment: false and makes no deployment: a pull request into master needs a "+
+			"successful deployment to that environment, which a job that may fail must not "+
+			"decide", job.key, e2eEnvironment)
 	}
 }
 
@@ -1404,11 +1608,11 @@ func stepRuns(step *yaml.Node, match func(command string) bool) bool {
 	return slices.ContainsFunc(commandLines(script), match)
 }
 
-// checkPDPSpec checks that job, the end-to-end job with the pinned PDP, checks that the PDP
-// serves the spec of its snapshot when it starts the PDP: a step after the first one that runs
-// pdp-up.sh up runs specsnap -check-pdp with the if: always() && steps.<id>.outcome ==
-// 'success', where <id> is the id: of the step that starts the PDP, so the check runs once the
-// PDP started, whatever the tests did.
+// checkPDPSpec checks that an end-to-end job that starts the PDP container checks that the PDP
+// serves the spec of its snapshot: a step after the first one that runs pdp-up.sh up runs
+// specsnap -check-pdp with the if: always() && steps.<id>.outcome == 'success', where <id> is the
+// id: of the step that starts the PDP, so the check runs once the PDP started, whatever the tests
+// did.
 func (c *checker) checkPDPSpec(path string, job pair) {
 	var up *yaml.Node
 	for _, step := range items(field(job.value, "steps")) {
@@ -1430,8 +1634,8 @@ func (c *checker) checkPDPSpec(path string, job pair) {
 		}
 	}
 	if up != nil {
-		c.add(path, job.line, "job %s starts the pinned PDP, so a step after the one that starts "+
-			"it runs specsnap -check-pdp with the if: always() && steps.<id>.outcome == "+
+		c.add(path, job.line, "job %s starts the PDP container, so a step after the one that "+
+			"starts it runs specsnap -check-pdp with the if: always() && steps.<id>.outcome == "+
 			"'success', where <id> is that step's id:, which fails when the PDP does not serve "+
 			"the spec of tools/specs/pdp-container.json", job.key)
 	}
@@ -1448,44 +1652,70 @@ func runsScript(command, name, arg string) bool {
 	return len(args) > 0 && strings.Trim(args[0], `"'`) == arg
 }
 
-// checkPDPImage checks that a step of a required end-to-end job that starts the PDP gives it an
-// image pinned by digest in PDP_IMAGE: the step's, the job's or the workflow's, with each
-// ${{ env.NAME }} in it replaced with the job's or the workflow's value of NAME.
-func (c *checker) checkPDPImage(path string, job pair, step *yaml.Node,
+// checkPinnedPDP checks that a step of a required end-to-end job that starts the PDP gives it an
+// image pinned by digest in its PDP_IMAGE.
+func (c *checker) checkPinnedPDP(path string, job pair, step *yaml.Node,
 	env map[string]envVar,
 ) {
-	jobEnv := field(job.value, "env")
-	node := field(field(step, "env"), "PDP_IMAGE")
-	if node == nil {
-		node = field(jobEnv, "PDP_IMAGE")
-	}
-	var image string
-	var line int
-	switch workflowImage, ok := env["PDP_IMAGE"]; {
-	case node != nil:
-		image, _ = scalar(node)
-		line = node.Line
-	case ok:
-		image, line = workflowImage.value, workflowImage.line
-	default:
+	image, line, ok := stepEnv(job, step, env, "PDP_IMAGE")
+	switch {
+	case !ok:
 		c.add(path, step.Line, "job %s starts the PDP without a PDP_IMAGE; a required "+
 			"end-to-end job runs <image>@sha256:<64 hex digits>", job.key)
-		return
+	case !digestImage.MatchString(image):
+		c.add(path, line, "job %s starts the PDP image %s, which is not pinned by digest; a "+
+			"required end-to-end job runs <image>@sha256:<64 hex digits>", job.key, image)
 	}
-	resolved := envExpression.ReplaceAllStringFunc(image, func(ref string) string {
-		name := envExpression.FindStringSubmatch(ref)[1]
-		if value, ok := scalar(field(jobEnv, name)); ok {
-			return value
+}
+
+// checkLatestPDP checks that a step of an end-to-end job of the leg latest that starts the PDP
+// gives it the newest release, an image with a tag and no digest, in its PDP_IMAGE.
+func (c *checker) checkLatestPDP(path string, job pair, step *yaml.Node,
+	env map[string]envVar,
+) {
+	image, line, ok := stepEnv(job, step, env, "PDP_IMAGE")
+	switch {
+	case !ok:
+		c.add(path, step.Line, "job %s starts the PDP without a PDP_IMAGE; the leg %s runs "+
+			"<image>:<tag>, the newest release, with no digest", job.key, latestLeg)
+	case !taggedImage.MatchString(image):
+		c.add(path, line, "job %s is the leg %s, so it starts the newest release of the PDP by "+
+			"its tag: its PDP_IMAGE is <image>:<tag>, with no digest, and not %s", job.key,
+			latestLeg, image)
+	}
+}
+
+// stepEnv returns the value of the variable name that a step of a job sees: the step's, the job's
+// or the workflow's, with each ${{ env.NAME }} in it replaced with the job's or the workflow's
+// value of NAME, and the line that sets it. ok is false when none of them sets name.
+func stepEnv(job pair, step *yaml.Node, env map[string]envVar, name string) (string, int, bool) {
+	jobEnv := field(job.value, "env")
+	node := field(field(step, "env"), name)
+	if node == nil {
+		node = field(jobEnv, name)
+	}
+	var value string
+	var line int
+	switch workflowValue, ok := env[name]; {
+	case node != nil:
+		value, _ = scalar(node)
+		line = node.Line
+	case ok:
+		value, line = workflowValue.value, workflowValue.line
+	default:
+		return "", 0, false
+	}
+	resolved := envExpression.ReplaceAllStringFunc(value, func(ref string) string {
+		refName := envExpression.FindStringSubmatch(ref)[1]
+		if refValue, ok := scalar(field(jobEnv, refName)); ok {
+			return refValue
 		}
-		if value, ok := env[name]; ok {
-			return value.value
+		if refValue, ok := env[refName]; ok {
+			return refValue.value
 		}
 		return ref
 	})
-	if !digestImage.MatchString(resolved) {
-		c.add(path, line, "job %s starts the PDP image %s, which is not pinned by digest; a "+
-			"required end-to-end job runs <image>@sha256:<64 hex digits>", job.key, resolved)
-	}
+	return resolved, line, true
 }
 
 // listedJobs returns the jobs that a list in the CI step's env names, and reports each job that

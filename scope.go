@@ -117,3 +117,16 @@ func (c *Client) scopeFor(ctx context.Context, id string) (project, environment 
 	}
 	return s.Project, s.Environment, nil
 }
+
+// inScope returns r, a call of an operation whose route's placeholders start with {proj_id} and
+// {env_id}, such as one of the schema of an environment, with the project and the environment of
+// the client's scope before its params, which fill the placeholders after them. It gets the scope
+// as scopeFor does, and returns its errors, so that the call sends no request for the operation.
+func (c *Client) inScope(ctx context.Context, r request) (request, error) {
+	project, environment, err := c.scopeFor(ctx, r.op)
+	if err != nil {
+		return request{}, err
+	}
+	r.params = append([]string{project, environment}, r.params...)
+	return r, nil
+}

@@ -68,6 +68,43 @@ models:
       organization_id: {required: true, null_policy: n/a}
       project_id: {required: false, null_policy: n/a}
       environment_id: {required: false, null_policy: n/a}
+  # The blocks of a resource: those that a create, a replace and an update of a resource send in
+  # its actions, attributes and roles, and those that the API returns in its actions,
+  # attributes, relations and roles. A block that a request holds reads null for an optional
+  # field as the field left out, as a create does, and rejects null for a required one and for a
+  # field with a default. These null policies are not measured yet: the phase api.resources of
+  # the local harness confirms them.
+  ActionBlockEditable:
+    schema: ActionBlockEditable
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: false, null_policy: ignores}
+      description: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+  ActionBlockRead:
+    schema: ActionBlockRead
+    fields:
+      name: {required: false, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      v1compat_path: {required: false, null_policy: n/a}
+      v1compat_name: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      key: {required: false, null_policy: n/a}
+  AttributeBlockEditable:
+    schema: AttributeBlockEditable
+    fields:
+      type: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+  AttributeBlockRead:
+    schema: AttributeBlockRead
+    fields:
+      type: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      key: {required: false, null_policy: n/a}
   AttributeType:
     schema: AttributeType
   # The decision types of the root package map to the schemas of the PDP container, and to those
@@ -137,6 +174,43 @@ models:
       url: {required: true, null_policy: rejects}
       tenant: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
+  # How a user gets a role of a resource through a role on a related resource, in the
+  # granted_to of the role, as a create, a replace and an update of the resource send it and as
+  # the API returns it. Each field of a block that a request holds is required or has a
+  # default, and the API rejects null for it, as for the other blocks of a resource. These null
+  # policies are not measured yet: the phase api.resources of the local harness confirms them.
+  DerivationSettings:
+    schema: permit_backend__schemas__schema_derived_role_rule__DerivationSettings
+    fields:
+      no_direct_roles_on_object: {required: false, null_policy: rejects}
+  DerivedRoleBlockEdit:
+    schema: DerivedRoleBlockEdit
+    fields:
+      users_with_role: {required: false, null_policy: rejects}
+      when: {required: false, null_policy: rejects}
+  DerivedRoleBlockRead:
+    schema: DerivedRoleBlockRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      users_with_role: {required: false, null_policy: n/a}
+      when: {required: false, null_policy: n/a}
+  DerivedRoleRuleCreate:
+    schema: DerivedRoleRuleCreate
+    fields:
+      role: {required: true, null_policy: rejects}
+      on_resource: {required: true, null_policy: rejects}
+      linked_by_relation: {required: true, null_policy: rejects}
+      when: {required: false, null_policy: rejects}
+  DerivedRoleRuleRead:
+    schema: DerivedRoleRuleRead
+    fields:
+      role_id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      relation_id: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+      on_resource: {required: true, null_policy: n/a}
+      linked_by_relation: {required: true, null_policy: n/a}
+      when: {required: false, null_policy: n/a}
   # A copy of an environment into another, with EnvironmentsService.Copy and CopyAsync. The API
   # rejects null for the target and for each field with a default: the conflict strategy, the
   # scope, each filter of the scope and each list of a filter; and reads null for the existing or
@@ -363,6 +437,13 @@ models:
       description: {required: false, null_policy: accepts}
       settings: {required: false, null_policy: rejects}
       active_policy_repo_id: {required: false, null_policy: rejects}
+  RelationBlockRead:
+    schema: RelationBlockRead
+    fields:
+      description: {required: false, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      relation_name: {required: false, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
   Resource:
     spec: pdp-container
     schema: Resource
@@ -383,6 +464,111 @@ models:
       type: {required: true, null_policy: n/a}
       key: {required: true, null_policy: n/a}
       attributes: {required: false, null_policy: n/a}
+  # A resource of an environment, as a create, a replace and an update send it and as the API
+  # returns it. A create and a replace read null for a field that the schema does not require
+  # as the field left out, as every create does, and reject null for a required one. An update
+  # rejects null for each map, actions, type_attributes, attributes, roles and relations, and
+  # the SDK sends a map that it is given as a whole, {} for an empty one; it stores null for the
+  # description, which clears it, and rejects null for the other fields. These null policies
+  # are not measured yet: the phase api.resources of the local harness confirms them.
+  ResourceCreate:
+    schema: ResourceCreate
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_type: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      urn: {required: false, null_policy: ignores}
+      description: {required: false, null_policy: ignores}
+      actions: {required: true, null_policy: rejects}
+      type_attributes: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      roles: {required: false, null_policy: ignores}
+      relations: {required: false, null_policy: ignores}
+  ResourceRead:
+    schema: ResourceRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      urn: {required: false, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      actions: {required: false, null_policy: n/a}
+      type_attributes: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      roles: {required: false, null_policy: n/a}
+      relations: {required: false, null_policy: n/a}
+      v1compat_path: {required: false, null_policy: n/a}
+      v1compat_type: {required: false, null_policy: n/a}
+      v1compat_name: {required: false, null_policy: n/a}
+      action_groups: {required: false, null_policy: n/a}
+  ResourceReplace:
+    schema: ResourceReplace
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_type: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: true, null_policy: rejects}
+      urn: {required: false, null_policy: ignores}
+      description: {required: false, null_policy: ignores}
+      actions: {required: true, null_policy: rejects}
+      type_attributes: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      roles: {required: false, null_policy: ignores}
+      relations: {required: false, null_policy: ignores}
+  ResourceRoleRead:
+    schema: ResourceRoleRead
+    fields:
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      permissions: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      extends: {required: false, null_policy: n/a}
+      granted_to: {required: false, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ResourceUpdate:
+    schema: ResourceUpdate
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_type: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: false, null_policy: rejects}
+      urn: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      actions: {required: false, null_policy: rejects}
+      type_attributes: {required: false, null_policy: rejects}
+      attributes: {required: false, null_policy: rejects}
+      roles: {required: false, null_policy: rejects}
+      relations: {required: false, null_policy: rejects}
+  RoleBlockEditable:
+    schema: RoleBlockEditable
+    left_out:
+      v1compat_settings: the API's documentation hides it and v1 never sent it
+      v1compat_attributes: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      permissions: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      extends: {required: false, null_policy: ignores}
+      granted_to: {required: false, null_policy: ignores}
   # The task of a copy of an environment that runs in the background, as the copy and the result
   # of its task return it.
   TaskResultEnvironmentRead:

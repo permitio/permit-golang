@@ -1245,6 +1245,136 @@ already, such as when a retry follows a delete that succeeded; v1 returned an er
 ID returns nil too, so check the ID before a delete that must remove something. Any other error
 status is a `*permit.Error` with the status and the body.
 
+<a id="M-resources-1"></a>
+### M-resources-1: Resources becomes Client.Resources, which acts on the environment of the scope
+
+- v1: `api.Resources`
+- v1: `api.NewResourcesApi`
+- v2: `permit.ResourcesService`
+
+Call the methods of the resources on the `Resources` field of the client, `client.Resources`, in
+place of `client.Api.Resources`; `permit.New` builds it, so nothing takes the place of
+`api.NewResourcesApi`. Each method takes a `context.Context` first, and acts on the environment
+of the client's scope, as v1's methods acted on the environment of the client's context:
+`permit.WithScope`, or else the scope of the API key, which the client looks up once, as
+[M-scope-2](#M-scope-2) says. A scope without an environment, such as that of a project-level API
+key without `permit.WithScope`, is an error that matches `permit.ErrInvalidConfig`, with no
+request for the call.
+
+The resource models keep their names and change their fields: `models.ResourceRead` has `ID`,
+`OrganizationID`, `ProjectID`, `EnvironmentID` and `URN` in place of `Id`, `OrganizationId`,
+`ProjectId`, `EnvironmentId` and `Urn`; its optional fields are plain values, empty or nil when
+the reply has none, in place of pointers; `CreatedAt` and `UpdatedAt` are `models.Time`, which
+embeds `time.Time`; and it has the fields of the reply that v1 dropped: `TypeAttributes`, a
+`models.Attributes` whose numbers are `json.Number`, as [M-models-1](#M-models-1) says, `Roles`,
+`Relations` and `ActionGroups`. Build `models.ResourceCreate`, `models.ResourceReplace` and
+`models.ResourceUpdate` as struct literals, in place of their constructors and setters: an
+optional field that is its zero value is left out of the request, in place of a nil pointer, and
+`TypeAttributes`, `Roles` and `Relations`, which v1 could not send, are new.
+
+<a id="M-resources-2"></a>
+### M-resources-2: GetById and GetByKey become Get
+
+- v1: `api.Resources.Get`
+- v1: `api.Resources.GetById`
+- v1: `api.Resources.GetByKey`
+- v2: `permit.ResourcesService.Get`
+
+`ResourcesService.Get(ctx, resourceKey)` takes the key or the ID of the resource, as all three v1
+methods sent the same request: pass `id.String()` for a `uuid.UUID`. A key that holds a `/` or a
+`%` is sent escaped, as one segment of the path, and an empty key, `.` or `..` is an error that
+matches `permit.ErrInvalidConfig`, with no request for the resource. A resource that the
+environment does not have is a `*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-resources-3"></a>
+### M-resources-3: Resources.List returns a page, and All reads every page
+
+- v1: `api.Resources.List`
+- v2: `permit.ResourcesService.List`
+
+`ResourcesService.List(ctx, opts)` takes a `*permit.ResourcesListOptions`, nil for the first page
+with the API's default of 30 resources, in place of the page and the number of resources as two
+ints, and returns a `*permit.Page[models.ResourceRead]`, as [M-lists-1](#M-lists-1) says. The
+options embed `permit.ListOptions`. v1 failed for more than 100 resources on a page before any
+request; v2 sends the number as given, and the API answers above 100 with an error.
+`ResourcesService.All(ctx, opts)` returns an `iter.Seq2[models.ResourceRead, error]` that reads
+every page, 100 resources at a time:
+
+```go
+for resource, err := range client.Resources.All(ctx, nil) {
+	if err != nil {
+		return err
+	}
+	fmt.Println(resource.Key)
+}
+```
+
+<a id="M-resources-4"></a>
+### M-resources-4: Resources.Search becomes the Search option of List
+
+- v1: `api.Resources.Search`
+- v2: `permit.ResourcesListOptions`
+
+v2 has no `Search` method: give the text to `Search` of `permit.ResourcesListOptions`, which
+`ResourcesService.List` and `ResourcesService.All` send in the query parameter `search`, as v1's
+`Search` did, such as
+`client.Resources.List(ctx, &permit.ResourcesListOptions{Search: "document"})` in place of
+`client.Api.Resources.Search(ctx, 1, 30, "document")`. An empty `Search` lists every resource.
+
+<a id="M-resources-5"></a>
+### M-resources-5: Resources.Create takes models.ResourceCreate with roles and relations
+
+- v1: `api.Resources.Create`
+- v2: `permit.ResourcesService.Create`
+
+`ResourcesService.Create(ctx, resource)` sends the `models.ResourceCreate` as
+[M-resources-1](#M-resources-1) says: its key, its name and its actions always, an empty map of
+actions as `{}`, and each other field that is set, the roles, the relations and the type
+attributes of the resource among them. A key that another resource of the environment has is a
+`*permit.Error` that matches `permit.ErrConflict`. Create is sent again only after a 429, as
+[M-wire-5](#M-wire-5) says, as the API may have created the resource when a request got no
+complete reply.
+
+<a id="M-resources-6"></a>
+### M-resources-6: ReplaceResource becomes Resources.Replace
+
+- v1: `openapi.ResourcesApiService.ReplaceResource`
+- v2: `permit.ResourcesService.Replace`
+
+`ResourcesService.Replace(ctx, resourceKey, resource)` sends the whole definition of the
+resource, a `models.ResourceReplace`, with PUT, in place of the generated `ReplaceResource` of
+`pkg/openapi` and its request builder. The API's documentation says that the call replaces the
+definition of the resource, or creates the resource when the environment has none with the key,
+and that the actions that the definition leaves out or renames lose their role and permission
+assignments. A replace is sent again after a 500, 502, 503 or 504 reply or a failed connection,
+as sending the same definition twice leaves the resource with it.
+
+<a id="M-resources-7"></a>
+### M-resources-7: Resources.Update takes models.ResourceUpdate, which can send a null description
+
+- v1: `api.Resources.Update`
+- v2: `permit.ResourcesService.Update`
+
+Build the change as a struct literal of `models.ResourceUpdate`, in place of
+`models.NewResourceUpdate` and its setters. The request holds only the fields that are set.
+`Description` is a `models.Optional[string]`: unset leaves it out, `models.Null[string]()` sends
+null, which v1 could not send, and `models.Some("...")` sends the value. Each map, such as
+`Actions`, is sent as it is given, as a whole: nil leaves it out, an empty map that is not nil
+sends `{}`, and a map with some entries sends those entries only; the SDK never sends null for a
+map. An update is sent again after a 500, 502, 503 or 504 reply or a failed connection, as
+sending it twice sets the same fields.
+
+<a id="M-resources-8"></a>
+### M-resources-8: Resources.Delete of a resource that is gone returns nil
+
+- v1: `api.Resources.Delete`
+- v2: `permit.ResourcesService.Delete`
+
+`ResourcesService.Delete(ctx, resourceKey)` returns nil when the API answers 404, as the resource
+is gone already, such as when a retry follows a delete that succeeded; v1 returned an error with
+the code `NotFound`. A mistyped key returns nil too, so check the key before a delete that must
+remove something. Any other error status is a `*permit.Error` with the status and the body.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -1410,8 +1540,16 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.APIKeyOwnerType` | `models.APIKeyOwnerType` |
 | `models.APIKeyRead` | `models.APIKeyRead` |
 | `models.APIKeyScopeRead` | `models.APIKeyScopeRead` |
+| `models.ActionBlockEditable` | `models.ActionBlockEditable` |
+| `models.ActionBlockRead` | `models.ActionBlockRead` |
+| `models.AttributeBlockEditable` | `models.AttributeBlockEditable` |
+| `models.AttributeBlockRead` | `models.AttributeBlockRead` |
 | `models.AttributeType` | `models.AttributeType` |
 | `models.Attributes` | `models.Attributes` |
+| `models.DerivedRoleBlockEdit` | `models.DerivedRoleBlockEdit` |
+| `models.DerivedRoleBlockRead` | `models.DerivedRoleBlockRead` |
+| `models.DerivedRoleRuleCreate` | `models.DerivedRoleRuleCreate` |
+| `models.DerivedRoleRuleRead` | `models.DerivedRoleRuleRead` |
 | `models.EnvironmentCopy` | `models.EnvironmentCopy` |
 | `models.EnvironmentCopyScope` | `models.EnvironmentCopyScope` |
 | `models.EnvironmentCopyScopeFilters` | `models.EnvironmentCopyScopeFilters` |
@@ -1426,7 +1564,13 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ProjectCreate` | `models.ProjectCreate` |
 | `models.ProjectRead` | `models.ProjectRead` |
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
+| `models.RelationBlockRead` | `models.RelationBlockRead` |
+| `models.ResourceCreate` | `models.ResourceCreate` |
+| `models.ResourceRead` | `models.ResourceRead` |
+| `models.ResourceReplace` | `models.ResourceReplace` |
+| `models.ResourceRoleRead` | `models.ResourceRoleRead` |
+| `models.ResourceUpdate` | `models.ResourceUpdate` |
 
-Not mapped yet: 364 of the 384 types of v1's pkg/models.
+Not mapped yet: 350 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

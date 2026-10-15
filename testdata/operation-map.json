@@ -101,6 +101,27 @@
     ],
     "ProjectsService.Update": [
       "update_project"
+    ],
+    "ResourcesService.All": [
+      "list_resources"
+    ],
+    "ResourcesService.Create": [
+      "create_resource"
+    ],
+    "ResourcesService.Delete": [
+      "delete_resource"
+    ],
+    "ResourcesService.Get": [
+      "get_resource"
+    ],
+    "ResourcesService.List": [
+      "list_resources"
+    ],
+    "ResourcesService.Replace": [
+      "replace_resource"
+    ],
+    "ResourcesService.Update": [
+      "update_resource"
     ]
   }
 }

@@ -48,6 +48,10 @@ type Client struct {
 	// project, and reads their statistics.
 	Environments *EnvironmentsService `json:"-"`
 
+	// Resources lists, reads, creates, replaces, changes and deletes the resources of the
+	// environment of the client's scope.
+	Resources *ResourcesService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -136,6 +140,7 @@ func New(opts ...Option) (*Client, error) {
 	c.APIKeys = &APIKeysService{client: c}
 	c.Projects = &ProjectsService{client: c}
 	c.Environments = &EnvironmentsService{client: c}
+	c.Resources = &ResourcesService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

@@ -51,9 +51,6 @@ api.NewResourceRelationsApi resource-relations
 api.ResourceRoles resource-roles
 api.ResourceRoles.* resource-roles
 api.NewResourceRolesApi resource-roles
-api.Resources resources
-api.Resources.* resources
-api.NewResourcesApi resources
 api.RoleAssignments role-assignments
 api.RoleAssignments.* role-assignments
 api.NewRoleAssignmentsApi role-assignments
@@ -111,7 +108,6 @@ openapi.OrganizationsApiService.UpdateOrganization organizations
 openapi.PolicyDecisionPointsApiService.* pdp-configs
 openapi.PolicyGitRepositoriesApiService.* policy-repos
 openapi.ResourceRolesApiService.* resource-roles
-openapi.ResourcesApiService.* resources
 openapi.RoleAssignmentsApiService.* role-assignments
 openapi.RolesApiService.* roles
 openapi.TenantsApiService.* tenants

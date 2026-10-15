@@ -138,3 +138,25 @@ func all[T any](ctx context.Context, c *Client, r request, shape listShape,
 		}
 	}
 }
+
+// allInScope returns the iterator of all over the list that r requests, for an operation whose
+// route's placeholders start with {proj_id} and {env_id}, which inScope fills. Each loop gets
+// the scope, as inScope does, before its first page, not when allInScope is called; when inScope
+// fails, the iterator yields its error once, with the zero T, and stops.
+func allInScope[T any](ctx context.Context, c *Client, r request, shape listShape,
+	opts ListOptions,
+) iter.Seq2[T, error] {
+	return func(yield func(T, error) bool) {
+		scoped, err := c.inScope(ctx, r)
+		if err != nil {
+			var zero T
+			yield(zero, err)
+			return
+		}
+		for item, err := range all[T](ctx, c, scoped, shape, opts) {
+			if !yield(item, err) {
+				return
+			}
+		}
+	}
+}

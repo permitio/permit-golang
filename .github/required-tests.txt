@@ -1007,6 +1007,23 @@ github.com/permitio/permit-golang/v2 TestAPIKeysAfterClose
 github.com/permitio/permit-golang/v2 ExampleAPIKeysService
 github.com/permitio/permit-golang/v2 ExampleAPIKeysService_RotateSecret
 
+github.com/permitio/permit-golang/v2 TestResourcesAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestResourcesAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestResourcesAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestResourcesListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidResourceListOptions
+github.com/permitio/permit-golang/v2 TestResourcesUseTheScope
+github.com/permitio/permit-golang/v2 TestResourceKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteResourceThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherResourceCalls
+github.com/permitio/permit-golang/v2 TestResourceBodies
+github.com/permitio/permit-golang/v2 TestResourceBodiesThatCannotBeJSON
+github.com/permitio/permit-golang/v2 TestResourceRetries
+github.com/permitio/permit-golang/v2 TestMalformedResourceReplies
+github.com/permitio/permit-golang/v2 TestResourcesAfterClose
+github.com/permitio/permit-golang/v2 ExampleResourcesService
+github.com/permitio/permit-golang/v2 ExampleResourcesService_Replace
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1069,6 +1086,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_project
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_stats_and_copy
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_environment_key
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

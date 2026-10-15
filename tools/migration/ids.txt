@@ -92,3 +92,11 @@ M-apikeys-2
 M-apikeys-3
 M-apikeys-4
 M-apikeys-5
+M-resources-1
+M-resources-2
+M-resources-3
+M-resources-4
+M-resources-5
+M-resources-6
+M-resources-7
+M-resources-8

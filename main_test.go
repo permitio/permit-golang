@@ -78,5 +78,12 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("get_environment_api_key.200.json")})
 	servers.API.Handle("POST /v2/api-key/{api_key_id}/rotate-secret",
 		mockpermit.Reply{Body: replyFixture("rotate_api_key.200.json")})
+	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/resources", mockpermit.Reply{
+		Body: replyFixture("list_resources.200.json"),
+	}, mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}",
+		mockpermit.Reply{Body: replyFixture("get_resource.200.json")})
+	servers.API.Handle("PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}",
+		mockpermit.Reply{Body: replyFixture("replace_resource.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

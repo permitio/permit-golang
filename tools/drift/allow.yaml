@@ -91,3 +91,68 @@ allow:
       the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
       request of the SDK carries, so the SDK leaves out the optional sdk field of a check of a URL
     trigger: when the PDP reads the SDK of a check of a URL from its sdk field only
+  - key: model ResourceCreate field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of a create of a resource, which v1 never
+      sent, so ResourceCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_path of a create of a resource
+  - key: model ResourceCreate field v1compat_type
+    reason: >-
+      the API's documentation hides the v1compat_type of a create of a resource, which v1 never
+      sent, so ResourceCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_type of a create of a resource
+  - key: model ResourceCreate field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of a create of a resource, which v1 never
+      sent, so ResourceCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_name of a create of a resource
+  - key: model ResourceReplace field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of a replace of a resource, which v1 never
+      sent, so ResourceReplace leaves it out
+    trigger: when the API's documentation describes the v1compat_path of a replace of a resource
+  - key: model ResourceReplace field v1compat_type
+    reason: >-
+      the API's documentation hides the v1compat_type of a replace of a resource, which v1 never
+      sent, so ResourceReplace leaves it out
+    trigger: when the API's documentation describes the v1compat_type of a replace of a resource
+  - key: model ResourceReplace field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of a replace of a resource, which v1 never
+      sent, so ResourceReplace leaves it out
+    trigger: when the API's documentation describes the v1compat_name of a replace of a resource
+  - key: model ResourceUpdate field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of an update of a resource, which v1 never
+      sent, so ResourceUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_path of an update of a resource
+  - key: model ResourceUpdate field v1compat_type
+    reason: >-
+      the API's documentation hides the v1compat_type of an update of a resource, which v1 never
+      sent, so ResourceUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_type of an update of a resource
+  - key: model ResourceUpdate field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of an update of a resource, which v1 never
+      sent, so ResourceUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_name of an update of a resource
+  - key: model ActionBlockEditable field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of an action of a resource, which v1 never
+      sent, so ActionBlockEditable leaves it out
+    trigger: when the API's documentation describes the v1compat_path of an action of a resource
+  - key: model ActionBlockEditable field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of an action of a resource, which v1 never
+      sent, so ActionBlockEditable leaves it out
+    trigger: when the API's documentation describes the v1compat_name of an action of a resource
+  - key: model RoleBlockEditable field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of a role of a resource, which v1 never
+      sent, so RoleBlockEditable leaves it out
+    trigger: when the API's documentation describes the v1compat_settings of a role of a resource
+  - key: model RoleBlockEditable field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of a role of a resource, which v1 never
+      sent, so RoleBlockEditable leaves it out
+    trigger: when the API's documentation describes the v1compat_attributes of a role of a resource

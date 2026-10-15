@@ -111,6 +111,7 @@ var wireCaseLists = []func() []wireCase{
 	scopeCases, decisionCases, permissionCases, containerCases, localCases, projectCases,
 	environmentCases,
 	apiKeyCases,
+	resourceCases,
 }
 
 // routeMethods are the request methods a route can have.

@@ -139,6 +139,42 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: ProjectLevel, ResponseModel: "TaskResultEnvironmentRead",
 	},
 
+	// The resources of an environment, each at the environment level, as v1 sends them too.
+	// These key levels are not measured yet: the phase api.resources of the local harness
+	// confirms them. The list is a JSON array or a paginated object of at most 100 resources. A
+	// PUT sends the whole resource, and a PATCH sets the fields that it names to the values that
+	// it gives, so each does the same when sent twice; a create does not.
+	{
+		ID: "list_resources", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ResourceRead",
+	},
+	{
+		ID: "create_resource", Method: http.MethodPost,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources", KeyLevel: EnvironmentLevel,
+		RequestModel: "ResourceCreate", ResponseModel: "ResourceRead",
+	},
+	{
+		ID: "get_resource", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}", Idempotent: true,
+		KeyLevel: EnvironmentLevel, ResponseModel: "ResourceRead",
+	},
+	{
+		ID: "replace_resource", Method: http.MethodPut,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "ResourceReplace", ResponseModel: "ResourceRead",
+	},
+	{
+		ID: "update_resource", Method: http.MethodPatch,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "ResourceUpdate", ResponseModel: "ResourceRead",
+	},
+	{
+		ID: "delete_resource", Method: http.MethodDelete,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}", Idempotent: true,
+		KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

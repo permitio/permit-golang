@@ -65,6 +65,14 @@ var cloudScenarios = []scenario{
 		run: getEnvironmentKey,
 	},
 	{
+		name: "resource_lifecycle", methods: []string{
+			"ResourcesService.Create", "ResourcesService.Get", "ResourcesService.List",
+			"ResourcesService.All", "ResourcesService.Replace", "ResourcesService.Update",
+			"ResourcesService.Delete",
+		},
+		run: resourceLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

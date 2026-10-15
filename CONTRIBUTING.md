@@ -1888,7 +1888,10 @@ There is no code generator to run: the models in `models/` are written by hand, 
 [drift tests](#model-drift) check them against the snapshots of the Permit API's specs. The
 projects of the organization follow each step below, so their files show how: `projects.go`,
 `models/projects.go`, `projects_wire_test.go`, `projects_test.go`, `example_projects_test.go`
-and `tools/e2e/projects_test.go`.
+and `tools/e2e/projects_test.go`. The resources of an environment show a service whose calls act
+on the environment of the client's scope, and a list whose options filter it: `resources.go`,
+`models/resources.go`, `resources_wire_test.go`, `resources_test.go`,
+`example_resources_test.go` and `tools/e2e/resources_test.go`.
 
 1. Find the operation in the spec snapshots, `tools/specs/*.json`, and its row in
    `tools/specs/coverage.yaml`.
@@ -1943,7 +1946,11 @@ and `tools/e2e/projects_test.go`.
    project and an environment, one with `{proj_id}` alone a project, and one with neither no
    scope and no lookup. When the scope lacks what the route needs, `scopeFor` returns an error
    that matches `ErrInvalidConfig`, and the call sends no request for the operation; without
-   `WithScope`, the lookup of the scope may come first. A method of the facts API instead gets
+   `WithScope`, the lookup of the scope may come first. A method whose route's placeholders
+   start with `{proj_id}` and `{env_id}`, as those of each route of the schema of an environment
+   do, puts them before its parameters with `c.inScope(ctx, r)` (`scope.go`), and its All method
+   returns the iterator of `allInScope` (`page.go`), which gets the scope in each loop, before
+   the first page, as `resources.go` does. A method of the facts API instead gets
    its request from `facts.prepare` (`facts.go`), with the parameters that follow `{env_id}`:
    with `WithFactsViaPDP` the call goes to the PDP container under `/facts` and needs no scope,
    and without it to the API with the scope. A call through a copy that waits for sync carries

@@ -308,12 +308,12 @@ control-plane:
   - {op: assign_permissions_to_resource_role, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions", stage: GA, status: planned}
   - {op: remove_permissions_from_resource_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions", stage: GA, status: planned}
   # Resources
-  - {op: list_resources, route: "GET /v2/schema/{proj_id}/{env_id}/resources", stage: GA, status: planned}
-  - {op: create_resource, route: "POST /v2/schema/{proj_id}/{env_id}/resources", stage: GA, status: planned}
-  - {op: get_resource, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: planned}
-  - {op: replace_resource, route: "PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: planned}
-  - {op: update_resource, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: planned}
-  - {op: delete_resource, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: planned}
+  - {op: list_resources, route: "GET /v2/schema/{proj_id}/{env_id}/resources", stage: GA, status: covered}
+  - {op: create_resource, route: "POST /v2/schema/{proj_id}/{env_id}/resources", stage: GA, status: covered}
+  - {op: get_resource, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
+  - {op: replace_resource, route: "PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
+  - {op: update_resource, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
+  - {op: delete_resource, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
   # Role Assignments
   - {op: list_role_assignments, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: planned}
   - {op: assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: planned}

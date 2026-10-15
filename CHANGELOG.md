@@ -257,6 +257,42 @@ change from v1 and what to use instead.
   the key, a `*models.EnvironmentRead`; `models.APIKeyRead` leaves out the member who created the
   key.
 
+### Resources
+
+- The `Resources` field of the client, a `*permit.ResourcesService`, lists, reads, creates,
+  replaces, changes and deletes the resources of the environment of the client's scope: `List`
+  returns a page as a `*permit.Page[models.ResourceRead]` and `All` reads every page, 100
+  resources at a time; `Get` reads one resource by its key or its ID, in place of v1's `Get`,
+  `GetById` and `GetByKey`; `Create` takes a `models.ResourceCreate`, `Replace` a
+  `models.ResourceReplace` and `Update` a `models.ResourceUpdate`, and each returns the resource
+  as a `*models.ResourceRead`; `Delete` deletes a resource with its data.
+- `Replace` is new: it sends the whole definition of a resource with PUT, whose actions are the
+  whole set of actions of the resource. The API's documentation says that it creates the
+  resource when the environment has none with the key, and that the actions that the definition
+  leaves out or renames lose their role and permission assignments.
+- v1's `Search` is the `Search` of `permit.ResourcesListOptions`, which `List` and `All` send in
+  the query parameter `search`.
+- The calls act on the environment of the client's scope, from `WithScope` or from the scope of
+  the API key, which the client looks up once; a scope without an environment is an error that
+  matches `ErrInvalidConfig`, and no request for the call is sent. Each call is sent with an
+  environment-level API key, or with a key of a wider level and `WithScope`.
+- `models.ResourceRead` has the fields of the reply that v1 dropped: `TypeAttributes`, `Roles`,
+  each a `models.ResourceRoleRead`, `Relations`, each a `models.RelationBlockRead`, and
+  `ActionGroups`. A create, a replace and an update can send `TypeAttributes`, `Roles`, each a
+  `models.RoleBlockEditable`, and `Relations`, which v1 could not send. The blocks of a resource,
+  such as `models.ActionBlockRead` and `models.ActionBlockEditable`, and the derived roles of a
+  role, `models.DerivedRoleBlockRead`, `models.DerivedRoleBlockEdit`, their rules and
+  `models.DerivationSettings`, are new types.
+- In `models.ResourceUpdate`, `Description` is a `models.Optional[string]`, so an update can send
+  null for it; each map, such as `Actions`, is sent as it is given, as a whole: nil leaves it
+  out, an empty map that is not nil sends `{}`, and the SDK never sends null for a map. A create
+  and a replace always send their actions, `{}` for an empty map and null for a nil one.
+- A key of a resource is sent as one segment of the path, escaped; an empty key, `.` or `..` is
+  an error that matches `ErrInvalidConfig`, and no request for the call is sent. `Delete`
+  returns nil when the API answers 404, as the resource is gone already. `Create` is sent again
+  after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply or a
+  failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

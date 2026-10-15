@@ -24,6 +24,16 @@ type ListOptions struct {
 	PerPage int
 }
 
+// listOptions returns a copy of the options that opts points to, or the zero ListOptions for a
+// nil opts, for a List or an All method that takes a *ListOptions: a later change to opts
+// changes no request.
+func listOptions(opts *ListOptions) ListOptions {
+	if opts == nil {
+		return ListOptions{}
+	}
+	return *opts
+}
+
 // Page is one page of a list, as a List method returns it: its items, the page and the number of
 // items that the call asked for, and the counts of the whole list that the reply reports.
 type Page[T any] struct {

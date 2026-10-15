@@ -889,6 +889,105 @@ returns the permissions of a user in each tenant, under the key `__tenant:<tenan
 SDK reads the decision of each tenant of the PDP's reply itself, and returns an error when one is
 not `true` or `false`.
 
+<a id="M-projects-1"></a>
+### M-projects-1: Projects becomes Client.Projects
+
+- v1: `api.Projects`
+- v1: `api.NewProjectsApi`
+- v2: `permit.ProjectsService`
+
+Call the methods of the projects on the `Projects` field of the client, `client.Projects`, in
+place of `client.Api.Projects`; `permit.New` builds it, so nothing takes the place of
+`api.NewProjectsApi`. Each method takes a `context.Context` first, and needs no scope: it sends
+no request for the scope of the API key and reads none of `permit.WithScope`, so a client with an
+organization-level API key, whose scope has no project and no environment, calls them without
+`WithScope`.
+
+The project models keep their names and change their fields: `models.ProjectRead` has `ID`,
+`OrganizationID`, `URNNamespace` and `ActivePolicyRepoID` in place of `Id`, `OrganizationId`,
+`UrnNamespace` and `ActivePolicyRepoId`; its optional fields are plain strings, empty when the
+reply has none, in place of pointers; `CreatedAt` and `UpdatedAt` are `models.Time`, which embeds
+`time.Time`; and `Settings` is `models.Attributes`, whose numbers are `json.Number`, as
+[M-models-1](#M-models-1) says.
+
+<a id="M-projects-2"></a>
+### M-projects-2: GetById and GetByKey become Get
+
+- v1: `api.Projects.Get`
+- v1: `api.Projects.GetById`
+- v1: `api.Projects.GetByKey`
+- v2: `permit.ProjectsService.Get`
+
+`ProjectsService.Get(ctx, projectKey)` takes the key or the ID of the project, as all three v1
+methods sent the same request: pass `id.String()` for a `uuid.UUID`. A key that holds a `/` or a
+`%` is sent escaped, as one segment of the path, and an empty key, `.` or `..` is an error that
+matches `permit.ErrInvalidConfig`, with no request. A project that the organization does not have
+is a `*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-projects-3"></a>
+### M-projects-3: Projects.List returns a page, and All reads every page
+
+- v1: `api.Projects.List`
+- v2: `permit.ProjectsService.List`
+
+`ProjectsService.List(ctx, opts)` takes a `*permit.ListOptions`, nil for the first page with the
+API's default of 30 projects, in place of the page and the number of projects as two ints, and
+returns a `*permit.Page[models.ProjectRead]`, as [M-lists-1](#M-lists-1) says. v1 failed for
+more than 100 projects on a page before any request; v2 sends the number as given, and the API
+answers above 100 with an error. `ProjectsService.All(ctx, opts)` returns an
+`iter.Seq2[models.ProjectRead, error]` that reads every page, 100 projects at a time:
+
+```go
+for project, err := range client.Projects.All(ctx, nil) {
+	if err != nil {
+		return err
+	}
+	fmt.Println(project.Key)
+}
+```
+
+<a id="M-projects-4"></a>
+### M-projects-4: Projects.Create takes models.ProjectCreate with its initial environments
+
+- v1: `api.Projects.Create`
+- v2: `permit.ProjectsService.Create`
+
+Build the project as a struct literal, such as
+`models.ProjectCreate{Key: "my-project", Name: "My project"}`, in place of
+`models.NewProjectCreate`; an optional field that is empty is left out of the request, in place
+of a nil pointer. `InitialEnvironments` is new: nil lets the API create its two default
+environments, Development and Production, as v1 always did, and an empty slice that is not nil
+sends an empty list, for a project whose environments you create yourself. Each initial
+environment is a `models.EnvironmentCreate`, whose `Description` and `CustomBranchName` are plain
+strings, left out when empty, in place of v1's pointers; `JWKS` and `Settings` are new. A key
+that another project of the organization has is a `*permit.Error` that matches
+`permit.ErrConflict`. Create is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as
+the API may have created the project when a request got no complete reply.
+
+<a id="M-projects-5"></a>
+### M-projects-5: Projects.Update takes models.ProjectUpdate, which can send a null description
+
+- v1: `api.Projects.Update`
+- v2: `permit.ProjectsService.Update`
+
+Build the change as a struct literal of `models.ProjectUpdate`, in place of
+`models.NewProjectUpdate` and its setters. The request holds only the fields that are set, and
+the project keeps the others. `Description` is a `models.Optional[string]`: unset leaves it out,
+and the project keeps its description; `models.Null[string]()` sends null, which v1 could not
+send; and `models.Some("...")` sends the value. `Name` and `ActivePolicyRepoID` are plain
+strings, left out when empty, and `Settings` is sent when it is not nil, an empty map as `{}`.
+
+<a id="M-projects-6"></a>
+### M-projects-6: Projects.Delete of a project that is gone returns nil
+
+- v1: `api.Projects.Delete`
+- v2: `permit.ProjectsService.Delete`
+
+`ProjectsService.Delete(ctx, projectKey)` returns nil when the API answers 404, as the project
+is gone already, such as when a retry follows a delete that succeeded; v1 returned an error with
+the code `NotFound`. A mistyped key returns nil too, so check the key before a delete that must
+remove something. Any other error status is a `*permit.Error` with the status and the body.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -1053,7 +1152,11 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.APIKeyScopeRead` | `models.APIKeyScopeRead` |
 | `models.AttributeType` | `models.AttributeType` |
 | `models.Attributes` | `models.Attributes` |
+| `models.EnvironmentCreate` | `models.EnvironmentCreate` |
+| `models.ProjectCreate` | `models.ProjectCreate` |
+| `models.ProjectRead` | `models.ProjectRead` |
+| `models.ProjectUpdate` | `models.ProjectUpdate` |
 
-Not mapped yet: 381 of the 384 types of v1's pkg/models.
+Not mapped yet: 377 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

@@ -249,11 +249,11 @@ control-plane:
   - {op: create_policy_guard_rule, route: "POST /v2/policy_guards/scopes/{policy_guard_scope_id}/rules", stage: EAP, status: excluded, reason: eap}
   - {op: delete_policy_guard_rule, route: "DELETE /v2/policy_guards/scopes/{policy_guard_scope_id}/rules", stage: EAP, status: excluded, reason: eap}
   # Projects
-  - {op: list_projects, route: "GET /v2/projects", stage: GA, status: planned}
-  - {op: create_project, route: "POST /v2/projects", stage: GA, status: planned}
-  - {op: get_project, route: "GET /v2/projects/{proj_id}", stage: GA, status: planned}
-  - {op: update_project, route: "PATCH /v2/projects/{proj_id}", stage: GA, status: planned}
-  - {op: delete_project, route: "DELETE /v2/projects/{proj_id}", stage: GA, status: planned}
+  - {op: list_projects, route: "GET /v2/projects", stage: GA, status: covered}
+  - {op: create_project, route: "POST /v2/projects", stage: GA, status: covered}
+  - {op: get_project, route: "GET /v2/projects/{proj_id}", stage: GA, status: covered}
+  - {op: update_project, route: "PATCH /v2/projects/{proj_id}", stage: GA, status: covered}
+  - {op: delete_project, route: "DELETE /v2/projects/{proj_id}", stage: GA, status: covered}
   # Proxy Config
   - {op: list_proxy_configs, route: "GET /v2/facts/{proj_id}/{env_id}/proxy_configs", stage: GA, status: planned}
   - {op: create_proxy_config, route: "POST /v2/facts/{proj_id}/{env_id}/proxy_configs", stage: GA, status: planned}

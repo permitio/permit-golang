@@ -27,7 +27,46 @@ models: type APIKeyScopeRead struct, OrganizationID string
 models: type APIKeyScopeRead struct, ProjectID string
 models: type AttributeType string
 models: type Attributes map[string]any
+models: type EnvironmentCreate struct
+models: type EnvironmentCreate struct, CustomBranchName string
+models: type EnvironmentCreate struct, Description string
+models: type EnvironmentCreate struct, JWKS *JwksConfig
+models: type EnvironmentCreate struct, Key string
+models: type EnvironmentCreate struct, Name string
+models: type EnvironmentCreate struct, Settings Attributes
+models: type JwksConfig struct
+models: type JwksConfig struct, Audience any
+models: type JwksConfig struct, Issuer any
+models: type JwksConfig struct, JWKS *JwksObj
+models: type JwksConfig struct, TTL int
+models: type JwksConfig struct, URL string
+models: type JwksObj struct
+models: type JwksObj struct, Keys []Attributes
 models: type Optional[T any] struct
+models: type ProjectCreate struct
+models: type ProjectCreate struct, ActivePolicyRepoID string
+models: type ProjectCreate struct, Description string
+models: type ProjectCreate struct, InitialEnvironments []EnvironmentCreate
+models: type ProjectCreate struct, Key string
+models: type ProjectCreate struct, Name string
+models: type ProjectCreate struct, Settings Attributes
+models: type ProjectCreate struct, URNNamespace string
+models: type ProjectRead struct
+models: type ProjectRead struct, ActivePolicyRepoID string
+models: type ProjectRead struct, CreatedAt Time
+models: type ProjectRead struct, Description string
+models: type ProjectRead struct, ID string
+models: type ProjectRead struct, Key string
+models: type ProjectRead struct, Name string
+models: type ProjectRead struct, OrganizationID string
+models: type ProjectRead struct, Settings Attributes
+models: type ProjectRead struct, URNNamespace string
+models: type ProjectRead struct, UpdatedAt Time
+models: type ProjectUpdate struct
+models: type ProjectUpdate struct, ActivePolicyRepoID string
+models: type ProjectUpdate struct, Description Optional[string]
+models: type ProjectUpdate struct, Name string
+models: type ProjectUpdate struct, Settings Attributes
 models: type Time struct
 models: type Time struct, embedded time.Time
 permit: const Version = "2.0.0"
@@ -64,6 +103,12 @@ permit: method (*Client) UserTenants(ctx context.Context, user User, opts ...Che
 permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
 permit: method (*Error) Unwrap() error
+permit: method (*ProjectsService) All(ctx context.Context, opts *ListOptions) iter.Seq2[models.ProjectRead, error]
+permit: method (*ProjectsService) Create(ctx context.Context, project models.ProjectCreate) (*models.ProjectRead, error)
+permit: method (*ProjectsService) Delete(ctx context.Context, projectKey string) error
+permit: method (*ProjectsService) Get(ctx context.Context, projectKey string) (*models.ProjectRead, error)
+permit: method (*ProjectsService) List(ctx context.Context, opts *ListOptions) (*Page[models.ProjectRead], error)
+permit: method (*ProjectsService) Update(ctx context.Context, projectKey string, update models.ProjectUpdate) (*models.ProjectRead, error)
 permit: method (Option) Format(f fmt.State, verb rune)
 permit: method (Option) GoString() string
 permit: method (Option) LogValue() slog.Value
@@ -94,6 +139,7 @@ permit: type CheckURLRequest struct, Tenant string
 permit: type CheckURLRequest struct, URL string
 permit: type CheckURLRequest struct, User User
 permit: type Client struct
+permit: type Client struct, Projects *ProjectsService
 permit: type Error struct
 permit: type Error struct, Body []byte
 permit: type Error struct, Code string
@@ -133,6 +179,7 @@ permit: type Page[T any] struct, PageCount *int
 permit: type Page[T any] struct, PerPage int
 permit: type Page[T any] struct, TotalCount *int
 permit: type PermissionsOption interface
+permit: type ProjectsService struct
 permit: type Resource struct
 permit: type Resource struct, Attributes map[string]any
 permit: type Resource struct, Context map[string]any

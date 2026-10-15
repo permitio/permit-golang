@@ -52,5 +52,12 @@ func TestMain(m *testing.M) {
 	servers.PDP.Handle("GET /local/role_assignments", mockpermit.Reply{
 		Body: replyFixture("list_role_assignments_local_role_assignments_get.200.json"),
 	}, mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("GET /v2/projects", mockpermit.Reply{
+		Body: replyFixture("list_projects.200.json"),
+	}, mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("GET /v2/projects/{proj_id}",
+		mockpermit.Reply{Body: replyFixture("get_project.200.json")})
+	servers.API.Handle("POST /v2/projects",
+		mockpermit.Reply{Body: replyFixture("create_project.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

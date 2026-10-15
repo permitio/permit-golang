@@ -31,7 +31,15 @@ const maxIdleConnsPerHost = 64
 // A Client prints its settings with a marker in place of its API key: [Client.String],
 // [Client.GoString], [Client.Format] with every verb and [Client.LogValue] all give the same
 // text.
+//
+// The calls of the Permit API are grouped by what they act on, in the services that the fields
+// of a Client hold, such as [Client.Projects]; the decisions of the PDP are methods of the
+// Client itself, such as [Client.Check]. A Client encodes as the empty JSON object: it holds
+// no data.
 type Client struct {
+	// Projects lists, reads, creates, changes and deletes the projects of the organization.
+	Projects *ProjectsService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -117,6 +125,7 @@ func New(opts ...Option) (*Client, error) {
 		httpClient: s.httpClient,
 		registry:   rest.Default(),
 	}
+	c.Projects = &ProjectsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

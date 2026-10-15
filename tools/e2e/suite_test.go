@@ -45,6 +45,7 @@ type scenario struct {
 var cloudScenarios = []scenario{
 	{name: "scope_single_flight", methods: []string{"Client.Scope"}, run: scopeSingleFlight},
 	{name: "unauthorized_key", methods: []string{"Client.Scope"}, run: unauthorizedKey},
+	{name: "get_project", methods: []string{"ProjectsService.Get"}, run: getProject},
 	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,

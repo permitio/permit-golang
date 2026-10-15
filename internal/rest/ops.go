@@ -16,6 +16,33 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "APIKeyScopeRead",
 	},
 
+	// The projects of the organization. Listing and creating them needs an organization-level
+	// key; reading, changing and deleting one needs a key of the project, or of its
+	// organization. The list is a JSON array of at most 100 projects. A PATCH sets the fields
+	// that it names to the values that it gives, so it does the same when sent twice; a create
+	// does not.
+	{
+		ID: "list_projects", Method: http.MethodGet, Route: "/v2/projects", Idempotent: true,
+		KeyLevel: OrganizationLevel, MaxPerPage: 100, ResponseModel: "ProjectRead",
+	},
+	{
+		ID: "create_project", Method: http.MethodPost, Route: "/v2/projects",
+		KeyLevel: OrganizationLevel, RequestModel: "ProjectCreate", ResponseModel: "ProjectRead",
+	},
+	{
+		ID: "get_project", Method: http.MethodGet, Route: "/v2/projects/{proj_id}",
+		Idempotent: true, KeyLevel: ProjectLevel, ResponseModel: "ProjectRead",
+	},
+	{
+		ID: "update_project", Method: http.MethodPatch, Route: "/v2/projects/{proj_id}",
+		Idempotent: true, KeyLevel: ProjectLevel, RequestModel: "ProjectUpdate",
+		ResponseModel: "ProjectRead",
+	},
+	{
+		ID: "delete_project", Method: http.MethodDelete, Route: "/v2/projects/{proj_id}",
+		Idempotent: true, KeyLevel: ProjectLevel, DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

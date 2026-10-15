@@ -1,9 +1,7 @@
 package permit
 
 import (
-	"encoding/json"
 	"errors"
-	"iter"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -38,43 +36,6 @@ func assignments(from, to int) []LocalRoleAssignment {
 		})
 	}
 	return items
-}
-
-// assignmentsReply returns a reply whose body is the JSON array of items.
-func assignmentsReply(t *testing.T, items []LocalRoleAssignment) mockpermit.Reply {
-	t.Helper()
-	body, err := json.Marshal(items)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return mockpermit.Reply{Body: string(body)}
-}
-
-// collectAssignments ranges over seq to its end, and returns the role assignments and the errors
-// it yields. It fails the test when seq yields a role assignment with an error, or anything after
-// an error.
-func collectAssignments(t *testing.T, seq iter.Seq2[LocalRoleAssignment, error],
-) ([]LocalRoleAssignment, []error) {
-	t.Helper()
-	var (
-		items []LocalRoleAssignment
-		errs  []error
-	)
-	for item, err := range seq {
-		if len(errs) > 0 {
-			t.Errorf("the iterator yielded %+v and %v after the error %v", item, err, errs[0])
-		}
-		if err != nil {
-			if item != (LocalRoleAssignment{}) {
-				t.Errorf("the iterator yielded the role assignment %+v with the error %v", item,
-					err)
-			}
-			errs = append(errs, err)
-			continue
-		}
-		items = append(items, item)
-	}
-	return items, errs
 }
 
 // TestLocalRoleAssignmentsQueries checks the exact query of each kind of options: each filter
@@ -153,7 +114,7 @@ func TestLocalRoleAssignmentsQueries(t *testing.T) {
 			if _, err := c.LocalRoleAssignments(t.Context(), tc.opts); err != nil {
 				t.Fatalf("LocalRoleAssignments returned %v", err)
 			}
-			if _, errs := collectAssignments(t, c.LocalRoleAssignmentsAll(t.Context(),
+			if _, errs := collect(t, c.LocalRoleAssignmentsAll(t.Context(),
 				tc.opts)); errs != nil {
 				t.Fatalf("LocalRoleAssignmentsAll yielded %v", errs)
 			}
@@ -208,11 +169,11 @@ func TestLocalRoleAssignmentsAllReadsEveryPage(t *testing.T) {
 			api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
 			var replies []mockpermit.Reply
 			for _, items := range tc.replies {
-				replies = append(replies, assignmentsReply(t, items))
+				replies = append(replies, arrayOf(t, items))
 			}
 			pdp.Handle(localRoute, replies...)
 			opts := &LocalRoleAssignmentsOptions{ListOptions: tc.opts, User: "alice"}
-			items, errs := collectAssignments(t,
+			items, errs := collect(t,
 				decisionClient(t, api, pdp).LocalRoleAssignmentsAll(t.Context(), opts))
 			if diff := cmp.Diff(tc.want, items); diff != "" || errs != nil {
 				t.Errorf("LocalRoleAssignmentsAll yielded the errors %v and role assignments "+
@@ -231,14 +192,14 @@ func TestLocalRoleAssignmentsAllReadsEveryPage(t *testing.T) {
 // the role assignments again from the first page of the options.
 func TestLocalRoleAssignmentsAllReadsTheOptionsOnce(t *testing.T) {
 	api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
-	one := assignmentsReply(t, assignments(0, 1))
+	one := arrayOf(t, assignments(0, 1))
 	empty := mockpermit.Reply{Body: `[]`}
 	pdp.Handle(localRoute, one, empty, one, empty)
 	opts := &LocalRoleAssignmentsOptions{ListOptions: ListOptions{PerPage: 1}, User: "alice"}
 	seq := decisionClient(t, api, pdp).LocalRoleAssignmentsAll(t.Context(), opts)
 	opts.User, opts.Page, opts.PerPage = "bob", 5, 50
 	for loop := 1; loop <= 2; loop++ {
-		if items, errs := collectAssignments(t, seq); len(items) != 1 || errs != nil {
+		if items, errs := collect(t, seq); len(items) != 1 || errs != nil {
 			t.Errorf("loop %d yielded %+v and the errors %v, want one role assignment", loop,
 				items, errs)
 		}
@@ -277,7 +238,7 @@ func TestLocalRoleAssignmentsReturnsAPage(t *testing.T) {
 		{
 			name:  "the last page",
 			opts:  &LocalRoleAssignmentsOptions{ListOptions: ListOptions{Page: 2, PerPage: 30}},
-			reply: assignmentsReply(t, assignments(30, 31)).Body,
+			reply: arrayOf(t, assignments(30, 31)).Body,
 			want:  &Page[LocalRoleAssignment]{Data: assignments(30, 31), Page: 2, PerPage: 30},
 		},
 		{
@@ -337,7 +298,7 @@ func TestLocalRoleAssignmentsDecode(t *testing.T) {
 		t.Errorf("LocalRoleAssignments returned role assignments that differ (-want +got):\n%s",
 			diff)
 	}
-	items, errs := collectAssignments(t, c.LocalRoleAssignmentsAll(t.Context(), nil))
+	items, errs := collect(t, c.LocalRoleAssignmentsAll(t.Context(), nil))
 	if diff := cmp.Diff(want, items); diff != "" || errs != nil {
 		t.Errorf("LocalRoleAssignmentsAll yielded the errors %v and role assignments that "+
 			"differ (-want +got):\n%s", errs, diff)
@@ -380,7 +341,7 @@ func TestMalformedLocalRoleAssignments(t *testing.T) {
 				t.Errorf("LocalRoleAssignments returned %+v and\n%v\nwant no page and\n%s", page,
 					err, want)
 			}
-			items, errs := collectAssignments(t, c.LocalRoleAssignmentsAll(t.Context(), nil))
+			items, errs := collect(t, c.LocalRoleAssignmentsAll(t.Context(), nil))
 			if len(items) != 0 || len(errs) != 1 || errs[0].Error() != want {
 				t.Errorf("LocalRoleAssignmentsAll yielded %+v and the errors %v, want the "+
 					"error\n%s", items, errs, want)
@@ -422,7 +383,7 @@ func TestLocalRoleAssignmentsOfTheCloudPDP(t *testing.T) {
 	})
 	t.Run("LocalRoleAssignmentsAll", func(t *testing.T) {
 		api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t, mockpermit.Cloud)
-		items, errs := collectAssignments(t,
+		items, errs := collect(t,
 			decisionClient(t, api, pdp).LocalRoleAssignmentsAll(t.Context(), nil))
 		if len(items) != 0 || len(errs) != 1 {
 			t.Fatalf("LocalRoleAssignmentsAll yielded %+v and the errors %v, want one error",
@@ -522,7 +483,7 @@ func TestLocalRoleAssignmentsAreRetried(t *testing.T) {
 	pdp.Handle(localRoute, mockpermit.Reply{
 		Status: http.StatusServiceUnavailable, Body: `{"detail":"busy"}`,
 		Header: http.Header{"Retry-After": {"0"}},
-	}, assignmentsReply(t, assignments(0, 2)))
+	}, arrayOf(t, assignments(0, 2)))
 	page, err := decisionClient(t, api, pdp).LocalRoleAssignments(t.Context(), nil)
 	if err != nil || page == nil || len(page.Data) != 2 {
 		t.Errorf("LocalRoleAssignments returned %+v, %v; want the 2 role assignments of the "+
@@ -544,7 +505,7 @@ func TestLocalRoleAssignmentsWithoutAReply(t *testing.T) {
 		WithRetry(RetryPolicy{}))
 	t.Cleanup(func() { _ = c.Close() })
 	_, err := c.LocalRoleAssignments(t.Context(), nil)
-	_, errs := collectAssignments(t, c.LocalRoleAssignmentsAll(t.Context(), nil))
+	_, errs := collect(t, c.LocalRoleAssignmentsAll(t.Context(), nil))
 	for _, err := range append([]error{err}, errs...) {
 		e := mustError(t, err)
 		if _, isURLError := errors.AsType[*url.Error](err); !isURLError || e.StatusCode != 0 ||
@@ -598,7 +559,7 @@ func TestInvalidLocalRoleAssignmentsOptions(t *testing.T) {
 		c := decisionClient(t, api, pdp)
 		opts := &LocalRoleAssignmentsOptions{ListOptions: tc.opts, User: "alice"}
 		_, err := c.LocalRoleAssignments(t.Context(), opts)
-		_, errs := collectAssignments(t, c.LocalRoleAssignmentsAll(t.Context(), opts))
+		_, errs := collect(t, c.LocalRoleAssignmentsAll(t.Context(), opts))
 		prefix := ErrInvalidConfig.Error() + ": " + opLocalRoleAssignments + ": ListOptions: " +
 			tc.want
 		for _, err := range append([]error{err}, errs...) {
@@ -626,7 +587,7 @@ func TestLocalRoleAssignmentsAfterClose(t *testing.T) {
 	if _, err := c.LocalRoleAssignments(t.Context(), nil); !errors.Is(err, ErrClosed) {
 		t.Errorf("LocalRoleAssignments after Close returned %v, want ErrClosed", err)
 	}
-	_, errs := collectAssignments(t, c.LocalRoleAssignmentsAll(t.Context(), nil))
+	_, errs := collect(t, c.LocalRoleAssignmentsAll(t.Context(), nil))
 	if len(errs) != 1 || !errors.Is(errs[0], ErrClosed) {
 		t.Errorf("LocalRoleAssignmentsAll after Close yielded %v, want ErrClosed once", errs)
 	}

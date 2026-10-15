@@ -45,3 +45,9 @@ type UsersService struct{}
 func (s *UsersService) Get(ctx context.Context, key string) (models.User, error) {
 	return models.User{Key: key}, ctx.Err()
 }
+
+// Create creates the user with the key. It needs an environment-level API key, and is sent
+// again only after a 429.
+func (s *UsersService) Create(ctx context.Context, key string) (models.User, error) {
+	return models.User{Key: key}, ctx.Err()
+}

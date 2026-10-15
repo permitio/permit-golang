@@ -15,3 +15,9 @@
 #                        logs to be ingested
 #
 # Blank lines and lines that start with # are ignored.
+
+ProjectsService.All org-key api.projects
+ProjectsService.Create org-key api.projects
+ProjectsService.Delete account-level-write api.projects
+ProjectsService.List org-key api.projects
+ProjectsService.Update account-level-write api.projects

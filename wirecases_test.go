@@ -106,7 +106,7 @@ type wireNoResult struct{}
 // wireCaseLists holds the <area>Cases function of each *_wire_test.go file, which returns the
 // wire cases of the methods of its area. Add the function of a new file here.
 var wireCaseLists = []func() []wireCase{
-	scopeCases, decisionCases, permissionCases, containerCases, localCases,
+	scopeCases, decisionCases, permissionCases, containerCases, localCases, projectCases,
 }
 
 // routeMethods are the request methods a route can have.
@@ -781,13 +781,18 @@ type coverage struct {
 // exemption, that each case and exemption names a public method, and that no method has both.
 // Its count sentinel checks that methods = covered + exempt. A service type that promotes
 // methods internal/surface cannot list, such as those of a type of another package that it
-// embeds, is a problem too: those methods would go without a case unseen.
+// embeds, is a problem too: those methods would go without a case unseen. So is a service type
+// that is an interface, whose methods internal/surface lists as members, not as methods.
 func checkCoverage(items []surface.Item, cases []wireCase, exemptions []exemption) coverage {
 	methods := publicMethods(items)
 	cov := coverage{methods: len(methods)}
 	for _, item := range items {
 		if item.Kind != surface.Type || !isServiceType(item.Name) {
 			continue
+		}
+		if strings.HasSuffix(item.Line, " interface") {
+			cov.problems = append(cov.problems, fmt.Sprintf("%s is an interface, whose methods "+
+				"would need no wire case; declare it as a struct with the methods", item.Name))
 		}
 		for _, unlisted := range item.Unlisted {
 			cov.problems = append(cov.problems, fmt.Sprintf("%s embeds %s, whose methods "+
@@ -1157,6 +1162,26 @@ func TestCheckCoverageEmbedded(t *testing.T) {
 		"UsersService.List has no wire case; add one to the <area>Cases function of its " +
 			"*_wire_test.go file, or list it in testdata/no-wire.txt with the reason it needs none",
 		"count sentinel: 6 public methods, but 4 have a wire case and 1 are exempt",
+	}}
+	if diff := cmp.Diff(want, got, cmp.AllowUnexported(coverage{})); diff != "" {
+		t.Errorf("checkCoverage differs (-want +got):\n%s", diff)
+	}
+}
+
+// TestCheckCoverageServiceInterface checks that a service type that is an interface, plain or
+// generic, is a problem, as its methods are members of the interface and need no wire case, and
+// that an interface whose name is not a service's is not.
+func TestCheckCoverageServiceInterface(t *testing.T) {
+	src := strings.Replace(syntheticSDK, "type Page struct{}", "type Page struct{}\n\n"+
+		"type GroupsService interface {\n\tList(ctx context.Context) ([]string, error)\n}\n\n"+
+		"type TagsService[T any] interface {\n\tGet(ctx context.Context) (T, error)\n}\n\n"+
+		"type Lister interface {\n\tList(ctx context.Context) ([]string, error)\n}", 1)
+	got := checkCoverage(readSynthetic(t, src), syntheticCases(), syntheticExemptions)
+	want := coverage{methods: 5, covered: 4, exempt: 1, problems: []string{
+		"GroupsService is an interface, whose methods would need no wire case; declare it as a " +
+			"struct with the methods",
+		"TagsService is an interface, whose methods would need no wire case; declare it as a " +
+			"struct with the methods",
 	}}
 	if diff := cmp.Diff(want, got, cmp.AllowUnexported(coverage{})); diff != "" {
 		t.Errorf("checkCoverage differs (-want +got):\n%s", diff)

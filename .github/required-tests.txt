@@ -928,6 +928,24 @@ github.com/permitio/permit-golang/v2 TestInvalidLocalRoleAssignmentsOptions
 github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsAfterClose
 github.com/permitio/permit-golang/v2 ExampleClient_LocalRoleAssignmentsAll
 
+github.com/permitio/permit-golang/v2 TestProjectsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestProjectsAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestProjectsAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestProjectsListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidProjectListOptions
+github.com/permitio/permit-golang/v2 TestProjectsNeedNoScope
+github.com/permitio/permit-golang/v2 TestProjectKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteProjectThatIsGone
+github.com/permitio/permit-golang/v2 TestProjectBodies
+github.com/permitio/permit-golang/v2 TestProjectRetries
+github.com/permitio/permit-golang/v2 TestMalformedProjectReplies
+github.com/permitio/permit-golang/v2 TestClientEncodesNoService
+github.com/permitio/permit-golang/v2 TestProjectsAfterClose
+github.com/permitio/permit-golang/v2 TestCheckCoverageServiceInterface
+github.com/permitio/permit-golang/v2 TestDocRulesOfTheRetries
+github.com/permitio/permit-golang/v2 ExampleProjectsService
+github.com/permitio/permit-golang/v2 ExampleProjectsService_Create
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -984,6 +1002,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPRoutes
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_project
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

@@ -98,6 +98,32 @@ models:
       url: {required: true, null_policy: rejects}
       tenant: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
+  # An environment to create, as a new project holds it in initial_environments, with the
+  # configuration of its JSON Web Key Sets. As in every create, the API reads null for a field
+  # that the schema does not require as the field left out, and rejects null for a required one.
+  # These null policies, like those of the projects below, are not measured yet: the phase
+  # api.projects of the local harness confirms them.
+  EnvironmentCreate:
+    schema: EnvironmentCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      custom_branch_name: {required: false, null_policy: ignores}
+      jwks: {required: false, null_policy: ignores}
+      settings: {required: false, null_policy: ignores}
+  JwksConfig:
+    schema: JwksConfig
+    fields:
+      audience: {required: false, null_policy: ignores}
+      issuer: {required: false, null_policy: ignores}
+      jwks: {required: false, null_policy: ignores}
+      ttl: {required: false, null_policy: ignores}
+      url: {required: false, null_policy: ignores}
+  JwksObj:
+    schema: JwksObj
+    fields:
+      keys: {required: true, null_policy: rejects}
   # A role assignment that the PDP container holds, an item of the reply of its list, which only
   # the container serves, so the row has no also.
   LocalRoleAssignment:
@@ -118,6 +144,42 @@ models:
       resource: {required: false, null_policy: n/a}
       permissions: {required: true, null_policy: n/a}
       roles: {required: false, null_policy: n/a}
+  # A project, as a create sends it, as an update sends it and as the API returns it. A create
+  # reads null for a field that the schema does not require as the field left out, as every
+  # create does, but for initial_environments, a list with a default, whose null it rejects. An
+  # update stores null for the description, which clears it, and rejects null for the name, the
+  # settings and the policy repository, which only a value changes. These null policies are not
+  # measured yet: the phase api.projects of the local harness confirms them.
+  ProjectCreate:
+    schema: ProjectCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      urn_namespace: {required: false, null_policy: ignores}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      settings: {required: false, null_policy: ignores}
+      active_policy_repo_id: {required: false, null_policy: ignores}
+      initial_environments: {required: false, null_policy: rejects}
+  ProjectRead:
+    schema: ProjectRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      urn_namespace: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      settings: {required: false, null_policy: n/a}
+      active_policy_repo_id: {required: false, null_policy: n/a}
+  ProjectUpdate:
+    schema: ProjectUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      settings: {required: false, null_policy: rejects}
+      active_policy_repo_id: {required: false, null_policy: rejects}
   Resource:
     spec: pdp-container
     schema: Resource

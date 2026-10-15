@@ -153,6 +153,33 @@ change from v1 and what to use instead.
   that leaves a field out decodes with it empty. The list changes nothing, so it is sent again
   after a 500, 502, 503 or 504 reply or a failed connection, as a check is.
 
+### Projects
+
+- The `Projects` field of the client, a `*permit.ProjectsService`, lists, reads, creates,
+  changes and deletes the projects of the organization of the API key: `List` returns a page
+  as a `*permit.Page[models.ProjectRead]` and `All` reads every page, 100 projects at a time;
+  `Get` reads one project by its key or its ID, in place of v1's `Get`, `GetById` and `GetByKey`;
+  `Create` takes a `models.ProjectCreate`, `Update` a `models.ProjectUpdate`, and both return the
+  project as a `*models.ProjectRead`; `Delete` deletes a project with its environments.
+- The calls need no scope: they send no request for the scope of the API key, and read none of
+  `WithScope`, so they work with an organization-level API key, whose scope has no project and no
+  environment. `List`, `All` and `Create` need an organization-level key; `Get`, `Update` and
+  `Delete` need a project-level key of the project, or higher.
+- `models.ProjectCreate.InitialEnvironments` is new: nil lets the API create its default
+  environments, Development and Production, and an empty slice that is not nil sends an empty
+  list.
+  Each environment is a `models.EnvironmentCreate`, with its settings and the configuration of
+  its JSON Web Key Sets, `models.JwksConfig`.
+- `models.ProjectUpdate.Description` is a `models.Optional[string]`, so an update can send null
+  for the description with `models.Null[string]()`; the other fields of an update are left out
+  when they are their zero value, such as an empty name or nil settings, and the project keeps
+  them.
+- A key of a project is sent as one segment of the path, escaped, so a key that holds a `/` or a
+  `%` names that project; an empty key, `.` or `..` is an error that matches `ErrInvalidConfig`,
+  and no request is sent. `Delete` returns nil when the API answers 404, as the project is gone
+  already. `Create` is sent again after a 429 only; the other calls are sent again after a 500,
+  502, 503 or 504 reply or a failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

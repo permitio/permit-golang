@@ -30,9 +30,6 @@ api.WaitForSyncOptions facts
 api.ImplicitGrants implicit-grants
 api.ImplicitGrants.* implicit-grants
 api.NewImplicitGrantsApi implicit-grants
-api.Projects projects
-api.Projects.* projects
-api.NewProjectsApi projects
 api.ProxyConfigs proxy-configs
 api.ProxyConfigs.* proxy-configs
 api.NewProxyConfigsApi proxy-configs

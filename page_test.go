@@ -6,6 +6,7 @@ import (
 	"errors"
 	"iter"
 	"net/http"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -45,8 +46,9 @@ func objects(from, to int) []testObject {
 	return items
 }
 
-// arrayOf returns a reply whose body is the JSON array of items.
-func arrayOf(t *testing.T, items []testObject) mockpermit.Reply {
+// arrayOf returns a reply whose body is the JSON array of items, of any type of item, for the
+// tests of every list.
+func arrayOf[T any](t *testing.T, items []T) mockpermit.Reply {
 	t.Helper()
 	body, err := json.Marshal(items)
 	if err != nil {
@@ -62,12 +64,13 @@ func pageOf(t *testing.T, items []testObject, counts string) mockpermit.Reply {
 	return mockpermit.Reply{Body: `{"data":` + arrayOf(t, items).Body + counts + `}`}
 }
 
-// collect ranges over seq to its end, and returns the items and the errors it yields. It fails
-// the test when seq yields an item with an error, or anything after an error.
-func collect(t *testing.T, seq iter.Seq2[testObject, error]) ([]testObject, []error) {
+// collect ranges over seq, the iterator of an All method or of all, to its end, and returns the
+// items and the errors it yields, for the tests of every iterator. It fails the test when seq
+// yields an item that is not the zero T with an error, or anything after an error.
+func collect[T any](t *testing.T, seq iter.Seq2[T, error]) ([]T, []error) {
 	t.Helper()
 	var (
-		items []testObject
+		items []T
 		errs  []error
 	)
 	for item, err := range seq {
@@ -75,7 +78,7 @@ func collect(t *testing.T, seq iter.Seq2[testObject, error]) ([]testObject, []er
 			t.Errorf("the iterator yielded %+v and %v after the error %v", item, err, errs[0])
 		}
 		if err != nil {
-			if item != (testObject{}) {
+			if !reflect.ValueOf(&item).Elem().IsZero() {
 				t.Errorf("the iterator yielded the item %+v with the error %v", item, err)
 			}
 			errs = append(errs, err)

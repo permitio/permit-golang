@@ -203,8 +203,10 @@ phrases of `docRules`, and a count sentinel:
   wire cases send, and the doc comment of the method holds each rule's phrase, ignoring case and
   line breaks: `environment-level API key`, `project-level API key` or
   `organization-level API key`, the widest `KeyLevel` of its operations; `container PDP only`
-  when one of them is `ContainerOnly`; and `waits for sync` when one of them is `WaitsForSync`.
-  A method that does not wait must not say `waits for sync`.
+  when one of them is `ContainerOnly`; `waits for sync` when one of them is `WaitsForSync`; and
+  `sent again only after a 429` when one of them is neither `Idempotent` nor `NoRetry`, such as
+  a create. A method that does not wait must not say `waits for sync`, and one whose operations
+  are each `Idempotent` or `NoRetry` must not say `sent again only after a 429`.
 
 The fixture modules in `testdata/doccheck` prove the rules: `pass` passes them all, and `links`,
 `undocumented`, `examples` and `notstruct` break them. `TestDocRulesFromTheRegistry` and
@@ -291,7 +293,9 @@ case lists `facts-via-pdp`. The tests below check the cases too:
 - `TestEveryPublicMethodHasAWireCase` fails when a public method has no case, a case names no
   public method, `Client` or a type whose name ends in `Service` embeds a type of another package
   or `error`, whose methods `internal/surface` cannot list (declare the methods on the type
-  instead), or the counts do not add up: public methods = methods with a case + exempt methods;
+  instead), such a type is an interface, whose methods `internal/surface` lists as members of
+  the interface (declare a struct with the methods instead), or the counts do not add up: public
+  methods = methods with a case + exempt methods;
 - `TestRouteParamOrder` fails unless the placeholders of each case's route name the method's
   parameters in the route's order. A placeholder names the parameter with the same stem:
   `{resource_id}` names `resourceKey` or `resourceID`. `{proj_id}` and `{env_id}` name
@@ -1761,7 +1765,7 @@ its own:
 
 | Field | Meaning |
 | --- | --- |
-| `Idempotent` | A retry may send it again after a 500, 502, 503 or 504 reply or a request without a complete reply: the GET, PUT and DELETE operations, and the PDP's decisions. |
+| `Idempotent` | A retry may send it again after a 500, 502, 503 or 504 reply or a request without a complete reply: the GET, PUT and DELETE operations, a PATCH that sets the fields it names to the values it gives, and the PDP's decisions. |
 | `Facts` | A route of the facts API that the PDP container also serves under `/facts`: its route starts with `/v2/facts/{proj_id}/{env_id}/`, and with `WithFactsViaPDP` the call goes to the container, along the route that `Op.ViaPDP` gives. Not set rules, user invites or proxy configs, which only the API serves. |
 | `WaitsForSync` | The PDP container can hold its answer until the change reaches its policy. Only a `Facts` operation can wait. |
 | `ContainerOnly` | Only the PDP container serves it; the cloud PDP answers 404 with an empty body. |
@@ -1819,9 +1823,10 @@ query and a path read back as what was put in; `go test` runs their seeds, in
 ## Adding or changing an API method
 
 There is no code generator to run: the models in `models/` are written by hand, and the
-[drift tests](#model-drift) check them against the snapshots of the Permit API's specs. The steps
-below are a skeleton that later commits on this branch fill in; whatever is marked *(added in a
-later commit on this branch)* does not exist yet.
+[drift tests](#model-drift) check them against the snapshots of the Permit API's specs. The
+projects of the organization follow each step below, so their files show how: `projects.go`,
+`models/projects.go`, `projects_wire_test.go`, `projects_test.go`, `example_projects_test.go`
+and `tools/e2e/projects_test.go`.
 
 1. Find the operation in the spec snapshots, `tools/specs/*.json`, and its row in
    `tools/specs/coverage.yaml`.
@@ -1849,10 +1854,20 @@ later commit on this branch)* does not exist yet.
    `FuzzOptional` and `FuzzAttributes` check that a body decodes and encodes back by value, and
    `go test` runs their seeds, in `models/testdata/fuzz`.
 3. Add the method, and its `rest.Op` to `defaultOps` in `internal/rest/ops.go`, with the fields
-   that the [operation registry](#operation-registry) lists. The method makes its call with one
+   that the [operation registry](#operation-registry) lists. A method of the Permit API belongs
+   to the service of what it acts on, a struct `<Area>Service` in `<area>.go` that holds the
+   client, such as `ProjectsService`, which a field of `Client` holds, set in `New` and tagged
+   `json:"-"`, as a `Client` holds no data. A method takes a `context.Context` first, then the
+   keys of its route's placeholders in the route's order, then a request body as a value of its
+   model, such as `models.ProjectCreate`. The method makes its call with one
    of the functions of `transport.go`: `do` for a reply that holds an object and `doNoValue` for
-   one whose body it does not read. A List method calls `listPage` of `page.go`, with the list's
-   shape, and returns its `*Page[T]`; its All method returns the iterator of `all`.
+   one whose body it does not read. A List method takes a `*ListOptions`, or a pointer to an
+   options struct that embeds `ListOptions` when the route has filters, calls `listPage` of
+   `page.go`, with the list's shape and a copy of the options, and returns its `*Page[T]`; its
+   All method takes the same options and returns the iterator of `all`. A method that takes a
+   `*ListOptions` copies it with `listOptions`; a method whose options struct has filters copies
+   the whole struct itself, with a nil opts as the zero struct, as `localRoleAssignmentsRequest`
+   does, and passes its `ListOptions`.
    Two of the fields decide when a call sends the request again: `Idempotent` for an operation
    that does the same when it is sent twice, which a call sends again after a 429, a 500, 502,
    503 or 504, or a request without a complete reply; `NoRetry` for one that a call never sends
@@ -1871,18 +1886,37 @@ later commit on this branch)* does not exist yet.
    the wait's headers, and fails with an error that matches `ErrInvalidConfig`, sending nothing,
    without `WithFactsViaPDP`, for an operation that is not `WaitsForSync` and for a timeout less
    than zero.
-4. Document it, with the phrases that `docRules` asks of it. Give a new service type, and a new
-   decision method, an Example with an output comment in `package permit_test`, and list a
-   decision method in `decisionMethods`; see [API reference](#api-reference).
-5. Add a wire test case for the method and a fixture with the API's reply, in `testdata/replies`
-   as `<operationId>.<status>[.<variant>].json`, which the drift tests check against the spec,
-   and rewrite the surface snapshot; see [Wire tests](#wire-tests),
-   [Model drift](#model-drift) and [Public surface and wire cases](#public-surface-and-wire-cases).
+4. Document it, with the phrases that `docRules` asks of it, the errors it returns and how its
+   request is sent again. Give a new service type, and a new decision method, an Example with an
+   output comment in `package permit_test`, whose routes `TestMain` (`main_test.go`) registers,
+   and list a decision method in `decisionMethods`; see [API reference](#api-reference).
+5. Add a wire test case for the method, in the `<area>Cases` function of `<area>_wire_test.go`
+   that `wireCaseLists` lists, and a fixture with the API's reply, in `testdata/replies` as
+   `<operationId>.<status>[.<variant>].json`, which the drift tests check against the spec, and
+   rewrite the surface snapshot; see [Wire tests](#wire-tests), [Model drift](#model-drift) and
+   [Public surface and wire cases](#public-surface-and-wire-cases). The cases of an area send keys
+   that the path escapes, such as `a/b` and `50%é`, and a key with a leading dot, `.hidden`,
+   which it sends as it is, and give each method an error reply of the API with the error it
+   returns: a 404 that matches `ErrNotFound` for a Get, a 409 that matches `ErrConflict` for a
+   Create, and a 422 whose `Detail` names the field. The tests of `<area>_test.go`, in
+   `package permit`, check what one case cannot: that All reads 31 items at a `PerPage` of 30,
+   up to the empty page, with the `collect` and `arrayOf` of
+   `page_test.go`, which take items of any type; the keys of the path that the path escapes, and
+   an empty key, `.` and `..`, which fail before any request; that a `DeleteSelf` delete returns
+   nil for a 404; the bodies of creates and updates byte for byte with `ExpectBytes` and golden
+   files in `testdata/golden`, with each state of an `Optional` field; the retries of each kind of
+   operation; replies in 200-299 that are not the model; and `ErrClosed` after `Close`. Add each
+   new test to `.github/required-tests.txt`.
 6. Rewrite `testdata/operation-map.json`, mark the operation's row of
    `tools/specs/coverage.yaml` covered, and run the API coverage report; see
    [API coverage](#api-coverage).
 7. Cover the method in a cloud scenario, or list it in `tools/e2e/pending.txt`, or in
-   `tools/e2e/local-only.txt` with a reason; see [End-to-end tests](#end-to-end-tests).
+   `tools/e2e/local-only.txt` with a reason and the phase of the local harness that proves it,
+   such as `ProjectsService.List org-key api.projects` for a method that needs an
+   organization-level API key, and `ProjectsService.Delete account-level-write api.projects` for
+   one that would change what the cloud lane runs in; see [End-to-end tests](#end-to-end-tests).
+   Name the subtest of a new scenario in `.github/required-tests.txt`, and in
+   `tools/e2e/required.txt` when a run against the PDP container selects it.
 8. Add its entries to `CHANGELOG.md` and `MIGRATION.md`, and remove what the `MIGRATION.md` entries
    cover from `tools/migration/pending.txt`; see
    [Public surface and migration](#public-surface-and-migration).

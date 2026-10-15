@@ -32,6 +32,24 @@
     ],
     "Client.UserTenants": [
       "Get_User_Tenants_user_tenants_post"
+    ],
+    "ProjectsService.All": [
+      "list_projects"
+    ],
+    "ProjectsService.Create": [
+      "create_project"
+    ],
+    "ProjectsService.Delete": [
+      "delete_project"
+    ],
+    "ProjectsService.Get": [
+      "get_project"
+    ],
+    "ProjectsService.List": [
+      "list_projects"
+    ],
+    "ProjectsService.Update": [
+      "update_project"
     ]
   }
 }

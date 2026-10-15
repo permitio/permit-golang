@@ -1925,6 +1925,101 @@ succeeded; v1 returned the error of the generated client. A mistyped key of the 
 the resource returns nil too, so check the keys before a delete that must remove something. Any
 other error status is a `*permit.Error` with the status and the body.
 
+<a id="M-resource-relations-1"></a>
+### M-resource-relations-1: ResourceRelations becomes Client.ResourceRelations, which acts on the environment of the scope
+
+- v1: `api.ResourceRelations`
+- v1: `api.NewResourceRelationsApi`
+- v2: `permit.ResourceRelationsService`
+
+Call the methods of the relations of a resource on the `ResourceRelations` field of the client,
+`client.ResourceRelations`, in place of `client.Api.ResourceRelations`; `permit.New` builds it,
+so nothing takes the place of `api.NewResourceRelationsApi`. Each method takes a
+`context.Context` first, then the key or the ID of the resource that has the relation, the
+object, and acts on the environment of the client's scope, as v1's methods acted on the
+environment of the client's context: `permit.WithScope`, or else the scope of the API key, which
+the client looks up once, as [M-scope-2](#M-scope-2) says. A scope without an environment, such
+as that of a project-level API key without `permit.WithScope`, is an error that matches
+`permit.ErrInvalidConfig`, with no request for the call.
+
+v1's methods returned an `errors.PermitError` for an error status of the API, and the error of
+the generated client of `pkg/openapi` as it was for a request without a reply. Every v2 method
+returns a `*permit.Error`, or an error that wraps one, as [M-errors-1](#M-errors-1) says, so
+`errors.Is(err, permit.ErrNotFound)` and the other sentinels work for each of them.
+
+The relation models keep their names and change their fields: `models.RelationRead` has `ID`,
+`OrganizationID`, `ProjectID`, `EnvironmentID`, `ObjectResourceID` and `SubjectResourceID` in
+place of `Id`, `OrganizationId`, `ProjectId`, `EnvironmentId`, `ObjectResourceId` and
+`SubjectResourceId`; its description is a plain string, empty when the reply has none, in place
+of a pointer; and `CreatedAt` and `UpdatedAt` are `models.Time`, which embeds `time.Time`. Build
+`models.RelationCreate` as a struct literal, in place of `models.NewRelationCreate` and its
+setters.
+
+<a id="M-resource-relations-2"></a>
+### M-resource-relations-2: ResourceRelations.List takes the resource first, and returns a page with its counts
+
+- v1: `api.ResourceRelations.List`
+- v2: `permit.ResourceRelationsService.List`
+
+v1's `List(ctx, page, perPage, resourceId)` took the page and the number of relations before the
+resource, and returned a `*[]models.RelationRead`, the items alone, without the `total_count` and
+the `page_count` of the API's reply. `ResourceRelationsService.List(ctx, resourceKey, opts)`
+takes the resource first and a `*permit.ListOptions` next, nil for the first page with the API's
+default of 30 relations, and returns a `*permit.Page[models.RelationRead]` with the counts of the
+reply in `TotalCount` and `PageCount`, as [M-lists-1](#M-lists-1) says. v2 reads 0 as the first
+page or the API's default number, returns an error that matches `permit.ErrInvalidConfig` for a
+number below 0, with no request for the list, and sends any number above 0 as given; the API
+answers above 100 with an error. `ResourceRelationsService.All(ctx, resourceKey, opts)` returns
+an `iter.Seq2[models.RelationRead, error]` that reads every page, 100 relations at a time, up to
+the last page that the replies count:
+
+```go
+for relation, err := range client.ResourceRelations.All(ctx, "document", nil) {
+	if err != nil {
+		return err
+	}
+	fmt.Println(relation.Key, relation.SubjectResource)
+}
+```
+
+<a id="M-resource-relations-3"></a>
+### M-resource-relations-3: ResourceRelations.Get reads a relation by its key or its ID
+
+- v1: `api.ResourceRelations.Get`
+- v2: `permit.ResourceRelationsService.Get`
+
+`ResourceRelationsService.Get(ctx, resourceKey, relationKey)` takes the key or the ID of the
+resource and of the relation, as v1's `Get` did: pass `id.String()` for a `uuid.UUID`. A key that
+holds a `/` or a `%` is sent escaped, as one segment of the path, and an empty key, `.` or `..`
+is an error that matches `permit.ErrInvalidConfig`, with no request for the relation. A relation
+that the resource does not have is a `*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-resource-relations-4"></a>
+### M-resource-relations-4: ResourceRelations.Create takes models.RelationCreate as a struct literal
+
+- v1: `api.ResourceRelations.Create`
+- v2: `permit.ResourceRelationsService.Create`
+
+`ResourceRelationsService.Create(ctx, resourceKey, relation)` sends the `models.RelationCreate`
+as [M-resource-relations-1](#M-resource-relations-1) says: its key, its name and its
+`SubjectResource`, the key or the ID of the related resource, always, and its description, a
+plain string in place of a `*string`, when it is not empty. A key that another relation of the
+resource has is a `*permit.Error` that matches `permit.ErrConflict`. Create is sent again only
+after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created the relation when a
+request got no complete reply.
+
+<a id="M-resource-relations-5"></a>
+### M-resource-relations-5: ResourceRelations.Delete of a relation that is gone returns nil
+
+- v1: `api.ResourceRelations.Delete`
+- v2: `permit.ResourceRelationsService.Delete`
+
+`ResourceRelationsService.Delete(ctx, resourceKey, relationKey)` returns nil when the API answers
+404, as the relation is gone already, such as when a retry follows a delete that succeeded; v1
+returned an error with the code `NotFound`. A mistyped key of the relation or of the resource
+returns nil too, so check the keys before a delete that must remove something. Any other error
+status is a `*permit.Error` with the status and the body.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -2118,6 +2213,8 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ProjectRead` | `models.ProjectRead` |
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
 | `models.RelationBlockRead` | `models.RelationBlockRead` |
+| `models.RelationCreate` | `models.RelationCreate` |
+| `models.RelationRead` | `models.RelationRead` |
 | `models.ResourceActionCreate` | `models.ResourceActionCreate` |
 | `models.ResourceActionGroupCreate` | `models.ResourceActionGroupCreate` |
 | `models.ResourceActionGroupRead` | `models.ResourceActionGroupRead` |
@@ -2135,6 +2232,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 339 of the 384 types of v1's pkg/models.
+Not mapped yet: 337 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

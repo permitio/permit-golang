@@ -9,9 +9,6 @@ import (
 	"github.com/permitio/permit-golang/v2/internal/rest"
 )
 
-// envelopeCounts are the properties that a paginated envelope holds beside data.
-var envelopeCounts = []string{"total_count", "page_count"}
-
 // operation returns the findings of op: its RequestModel against the request body of its
 // operation in the specs, and its ResponseModel against each of its replies in 200-299 that has
 // a JSON body, both in the spec that lists its ID and in each other spec that lists its method
@@ -260,21 +257,4 @@ func (s *spec) heldModels(schema any, at string) ([]heldBody, error) {
 		held = append(held, h)
 	}
 	return held, nil
-}
-
-// envelopeItems returns the schema of the items of node when it is a paginated envelope: an
-// object whose data property is an array, and whose other properties are envelopeCounts. It
-// returns nil otherwise.
-func envelopeItems(node map[string]any) any {
-	properties, _ := node["properties"].(map[string]any)
-	data, _ := properties["data"].(map[string]any)
-	if typeOf(data) != "array" {
-		return nil
-	}
-	for name := range properties {
-		if name != "data" && !slices.Contains(envelopeCounts, name) {
-			return nil
-		}
-	}
-	return data["items"]
 }

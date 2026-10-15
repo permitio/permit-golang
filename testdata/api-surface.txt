@@ -270,6 +270,25 @@ models: type RelationBlockRead struct, Description string
 models: type RelationBlockRead struct, RelationName string
 models: type RelationBlockRead struct, Resource string
 models: type RelationBlockRead struct, ResourceID string
+models: type RelationCreate struct
+models: type RelationCreate struct, Description string
+models: type RelationCreate struct, Key string
+models: type RelationCreate struct, Name string
+models: type RelationCreate struct, SubjectResource string
+models: type RelationRead struct
+models: type RelationRead struct, CreatedAt Time
+models: type RelationRead struct, Description string
+models: type RelationRead struct, EnvironmentID string
+models: type RelationRead struct, ID string
+models: type RelationRead struct, Key string
+models: type RelationRead struct, Name string
+models: type RelationRead struct, ObjectResource string
+models: type RelationRead struct, ObjectResourceID string
+models: type RelationRead struct, OrganizationID string
+models: type RelationRead struct, ProjectID string
+models: type RelationRead struct, SubjectResource string
+models: type RelationRead struct, SubjectResourceID string
+models: type RelationRead struct, UpdatedAt Time
 models: type ResourceActionCreate struct
 models: type ResourceActionCreate struct, Attributes Attributes
 models: type ResourceActionCreate struct, Description string
@@ -520,6 +539,11 @@ permit: method (*ResourceAttributesService) Delete(ctx context.Context, resource
 permit: method (*ResourceAttributesService) Get(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error)
 permit: method (*ResourceAttributesService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
 permit: method (*ResourceAttributesService) Update(ctx context.Context, resourceKey string, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
+permit: method (*ResourceRelationsService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.RelationRead, error]
+permit: method (*ResourceRelationsService) Create(ctx context.Context, resourceKey string, relation models.RelationCreate) (*models.RelationRead, error)
+permit: method (*ResourceRelationsService) Delete(ctx context.Context, resourceKey string, relationKey string) error
+permit: method (*ResourceRelationsService) Get(ctx context.Context, resourceKey string, relationKey string) (*models.RelationRead, error)
+permit: method (*ResourceRelationsService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.RelationRead], error)
 permit: method (*ResourcesService) All(ctx context.Context, opts *ResourcesListOptions) iter.Seq2[models.ResourceRead, error]
 permit: method (*ResourcesService) Create(ctx context.Context, resource models.ResourceCreate) (*models.ResourceRead, error)
 permit: method (*ResourcesService) Delete(ctx context.Context, resourceKey string) error
@@ -576,6 +600,7 @@ permit: type Client struct, Projects *ProjectsService
 permit: type Client struct, ResourceActionGroups *ResourceActionGroupsService
 permit: type Client struct, ResourceActions *ResourceActionsService
 permit: type Client struct, ResourceAttributes *ResourceAttributesService
+permit: type Client struct, ResourceRelations *ResourceRelationsService
 permit: type Client struct, Resources *ResourcesService
 permit: type Client struct, Tenants *TenantsService
 permit: type CopyResultOptions struct
@@ -637,6 +662,7 @@ permit: type ResourceDetails struct
 permit: type ResourceDetails struct, Attributes map[string]any
 permit: type ResourceDetails struct, Key string
 permit: type ResourceDetails struct, Type string
+permit: type ResourceRelationsService struct
 permit: type ResourcesListOptions struct
 permit: type ResourcesListOptions struct, Search string
 permit: type ResourcesListOptions struct, embedded ListOptions

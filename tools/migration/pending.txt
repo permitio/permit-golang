@@ -30,9 +30,6 @@ api.NewRelationshipTuplesApi relationship-tuples
 api.ResourceInstances resource-instances
 api.ResourceInstances.* resource-instances
 api.NewResourceInstancesApi resource-instances
-api.ResourceRelations resource-relations
-api.ResourceRelations.* resource-relations
-api.NewResourceRelationsApi resource-relations
 api.ResourceRoles resource-roles
 api.ResourceRoles.* resource-roles
 api.NewResourceRolesApi resource-roles

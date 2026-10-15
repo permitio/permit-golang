@@ -112,6 +112,68 @@ func TestSpecsCheckRequestBody(t *testing.T) {
 	}
 }
 
+// TestSpecsPaged checks which operations answer a paginated envelope and nothing else: a reply
+// 200 that is a $ref to an object whose data is an array and whose other properties are counts.
+// An anyOf of the envelope and an array, an array, a $ref beside another keyword, an object with
+// a property other than the counts, an envelope without items in data, a reply of another status
+// than 200, a $ref that points at nothing and an operation that no spec lists are not.
+func TestSpecsPaged(t *testing.T) {
+	const page = `{"$ref": "#/components/schemas/Page"}`
+	reply := func(status, schema string) string {
+		return `, "responses": {"` + status + `": {"content": {"application/json": {"schema": ` +
+			schema + `}}}}`
+	}
+	operations := []struct{ id, members string }{
+		{"paged", reply("200", page)},
+		{"either", reply("200", `{"anyOf": [`+page+`, {"type": "array"}]}`)},
+		{"array", reply("200", `{"type": "array", "items": {"type": "string"}}`)},
+		{"beside", reply("200", `{"$ref": "#/components/schemas/Page", "title": "x"}`)},
+		{"more", reply("200", `{"$ref": "#/components/schemas/More"}`)},
+		{"no_items", reply("200", `{"$ref": "#/components/schemas/NoItems"}`)},
+		{"created", reply("201", page)},
+		{"broken", reply("200", `{"$ref": "#/components/schemas/None"}`)},
+		{"empty_200", `, "responses": {"200": {}}`},
+		{"no_responses", ``},
+	}
+	var doc strings.Builder
+	doc.WriteString(`{"paths": {`)
+	for i, o := range operations {
+		if i > 0 {
+			doc.WriteString(", ")
+		}
+		doc.WriteString(`"/` + o.id + `": {"get": {"operationId": "` + o.id + `"` + o.members +
+			`}}`)
+	}
+	data := `"data": {"type": "array", "items": {"type": "string"}}`
+	doc.WriteString(`}, "components": {"schemas": {` +
+		`"Page": {"type": "object", "properties": {` + data + `, "total_count": ` +
+		`{"type": "integer"}, "page_count": {"type": "integer"}}}, ` +
+		`"More": {"type": "object", "properties": {` + data + `, "next": {"type": "string"}}}, ` +
+		`"NoItems": {"type": "object", "properties": {"data": {"type": "array"}}}}}}`)
+	s := specsOf(t, doc.String())
+	for _, o := range append(operations, struct{ id, members string }{id: "missing"}) {
+		if got, want := s.Paged(o.id), o.id == "paged"; got != want {
+			t.Errorf("Paged(%s) = %v, want %v", o.id, got, want)
+		}
+	}
+}
+
+// TestRepositoryPaged checks Paged on the committed snapshots: the relations of a resource list
+// a paginated envelope alone, and the tenants, which may be an array too, and a get do not.
+func TestRepositoryPaged(t *testing.T) {
+	s, err := ReadSpecs(committedSpecs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for id, want := range map[string]bool{
+		"list_resource_relations": true, "list_tenants": false, "get_resource_relation": false,
+	} {
+		if got := s.Paged(id); got != want {
+			t.Errorf("Paged(%s) = %v, want %v", id, got, want)
+		}
+	}
+}
+
 func TestReadSpecsErrors(t *testing.T) {
 	if _, err := ReadSpecs(filepath.Join(t.TempDir(), "none")); err == nil {
 		t.Error("ReadSpecs of a directory that does not exist returned no error")

@@ -1436,8 +1436,10 @@ live runs included, and the fake checks each body against the spec.
 
 The dry run runs every scenario offline against the fake of the Permit API in `tools/e2e/fake`,
 which keeps the objects of each collection of the control plane's spec in memory, lists those whose
-attributes match the `attr_<name>` filters of a query, and checks each request body with the walker
-of `tools/drift`, which also accepts null for a top-level field of the request whose null policy in
+attributes match the `attr_<name>` filters of a query, as a JSON array, or as one page of the
+paginated object with `total_count` and `page_count` where the spec gives the reply as that object
+alone, such as the relations of a resource, and checks each request body with the walker of
+`tools/drift`, which also accepts null for a top-level field of the request whose null policy in
 `tools/drift/model-map.yaml` is `accepts`, as the API does, though the spec does not say so. The
 SDK's clients of a dry run call a fake PDP beside it, `Fake.StartPDP`, which answers the decisions
 and the lists of the PDP that the scenarios send from the same store: the role assignments of the

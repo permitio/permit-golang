@@ -56,6 +56,49 @@ func (s *Specs) Operations(name string) []Operation {
 	return ops
 }
 
+// Paged reports whether the reply 200 of the operation id is a paginated envelope and nothing
+// else: its JSON body is a $ref to a schema whose data is an array and whose other properties are
+// counts, as envelopeItems says, such as the reply of list_resource_relations. The reply of a
+// list that may also be an array, such as that of list_tenants, an anyOf of both, is not; nor is
+// that of an operation that no spec lists.
+func (s *Specs) Paged(id string) bool {
+	o, ok := findOperation(s.specs, id)
+	if !ok {
+		return false
+	}
+	responses, _ := o.node["responses"].(map[string]any)
+	reply, _ := responses["200"].(map[string]any)
+	schema, _, _ := jsonBody(reply, "")
+	node, _ := schema.(map[string]any)
+	ref, ok := node["$ref"].(string)
+	if !ok || len(node) != 1 {
+		return false
+	}
+	target, _, err := o.spec.resolve(ref)
+	envelope, _ := target.(map[string]any)
+	return err == nil && envelopeItems(envelope) != nil
+}
+
+// envelopeCounts are the properties that a paginated envelope holds beside data.
+var envelopeCounts = []string{"total_count", "page_count"}
+
+// envelopeItems returns the schema of the items of node when it is a paginated envelope: an
+// object whose data property is an array, and whose other properties are envelopeCounts. It
+// returns nil otherwise.
+func envelopeItems(node map[string]any) any {
+	properties, _ := node["properties"].(map[string]any)
+	data, _ := properties["data"].(map[string]any)
+	if typeOf(data) != "array" {
+		return nil
+	}
+	for name := range properties {
+		if name != "data" && !slices.Contains(envelopeCounts, name) {
+			return nil
+		}
+	}
+	return data["items"]
+}
+
 // CheckRequestBody returns the places where body, the body of a request of the operation id,
 // does not fit the schema of the operation's JSON request body, each as its JSON pointer, such as
 // #/key, a space and what does not fit. It returns an error when no spec has the operation, the

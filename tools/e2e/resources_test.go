@@ -376,3 +376,108 @@ func checkGroupActions(t *testing.T, call string, got *models.ResourceActionGrou
 			keys, want)
 	}
 }
+
+// resourceRelationLifecycle checks the calls of the relations with the environment-level API key
+// of the scratch environment, on two resources of its own, whose keys start with the run's
+// prefix: a document, the object, and a folder, the subject. It registers each resource, and the
+// relation parent of the document, with the ledger before it creates it. It creates the relation
+// from the document to the folder, gets it by the keys and by the IDs, finds it in the page that
+// List returns, whose total count is the number of relations on the page, and with All, which
+// reads to the end. It deletes the relation, waits until a get of its ID matches ErrNotFound, and
+// deletes it again, which returns nil.
+func resourceRelationLifecycle(s *suite) func(t *testing.T) {
+	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
+		const relation = "parent"
+		c := s.client(t, s.env.APIKey())
+		ctx := s.ctx(t)
+		resources := "/v2/schema/" + url.PathEscape(s.env.ProjectID) + "/" +
+			url.PathEscape(s.env.ID) + "/resources/"
+		created := map[string]*models.ResourceRead{}
+		for _, name := range []string{"sdk-relations-doc", "sdk-relations-folder"} {
+			key := s.cfg.prefix.Key(name)
+			self := resources + url.PathEscape(key)
+			s.ledger.Register("resource "+key, s.api.Remover(self),
+				s.api.Absence(self, framework.AbsenceTimeout))
+			resource, err := c.Resources.Create(ctx, models.ResourceCreate{
+				Key: key, Name: key, Actions: map[string]models.ActionBlockEditable{"read": {}},
+			})
+			if err != nil {
+				t.Fatalf("setup: Create of the resource %s: %v", key, err)
+			}
+			created[name] = resource
+		}
+		object, subject := created["sdk-relations-doc"], created["sdk-relations-folder"]
+		self := resources + url.PathEscape(object.Key) + "/relations/" + relation
+		s.ledger.Register("relation "+relation+" of "+object.Key, s.api.Remover(self),
+			s.api.Absence(self, framework.AbsenceTimeout))
+		parent, err := c.ResourceRelations.Create(ctx, object.Key, models.RelationCreate{
+			Key: relation, Name: "Parent", Description: "A relation of the Go SDK's tests",
+			SubjectResource: subject.Key,
+		})
+		if err != nil {
+			t.Fatalf("Create of the relation %s of %s: %v", relation, object.Key, err)
+		}
+		if parent.Key != relation || parent.ID == "" || parent.EnvironmentID != s.env.ID ||
+			(parent.SubjectResource != subject.Key && parent.SubjectResource != subject.ID) {
+			t.Fatalf("Create returned the relation %q (ID %q) of the environment %q to %q, want "+
+				"%s in %s to %s", parent.Key, parent.ID, parent.EnvironmentID,
+				parent.SubjectResource, relation, s.env.ID, subject.Key)
+		}
+		for _, ref := range [][2]string{{object.Key, relation}, {object.ID, parent.ID}} {
+			got, getErr := c.ResourceRelations.Get(ctx, ref[0], ref[1])
+			if getErr != nil {
+				t.Fatalf("Get of the relation %s of %s: %v", ref[1], ref[0], getErr)
+			}
+			if got.ID != parent.ID || got.Key != relation {
+				t.Errorf("Get of %s of %s returned the relation %s (ID %s), want %s (ID %s)",
+					ref[1], ref[0], got.Key, got.ID, relation, parent.ID)
+			}
+		}
+		checkListedRelation(ctx, t, c, object.Key, parent.ID)
+		if err := c.ResourceRelations.Delete(ctx, object.Key, relation); err != nil {
+			t.Fatalf("Delete of the relation %s of %s: %v", relation, object.Key, err)
+		}
+		gone := framework.Poll(ctx, framework.AbsenceTimeout, s.cfg.syncInterval,
+			func(ctx context.Context) (bool, error) {
+				_, getErr := c.ResourceRelations.Get(ctx, object.Key, parent.ID)
+				if errors.Is(getErr, permit.ErrNotFound) {
+					return true, nil
+				}
+				return false, getErr
+			})
+		if gone != nil {
+			t.Fatalf("Get of the deleted relation %s of %s: %v", parent.ID, object.Key, gone)
+		}
+		if err := c.ResourceRelations.Delete(ctx, object.Key, relation); err != nil {
+			t.Errorf("Delete of the relation %s of %s that is gone returned %v, want nil",
+				relation, object.Key, err)
+		}
+	}
+}
+
+// checkListedRelation checks that List and All of the relations of the resource whose key is
+// resourceKey hold the relation whose ID is id: List on its first page, with the total count of
+// the reply, which is the number of relations on the page, as the resource has fewer relations
+// than a page holds; All up to the end of its iterator.
+func checkListedRelation(ctx context.Context, t *testing.T, c *permit.Client, resourceKey,
+	id string,
+) {
+	t.Helper()
+	isCreated := func(r models.RelationRead) bool { return r.ID == id }
+	page, err := c.ResourceRelations.List(ctx, resourceKey, nil)
+	if err != nil || !slices.ContainsFunc(page.Data, isCreated) || page.TotalCount == nil ||
+		*page.TotalCount != len(page.Data) {
+		t.Errorf("List of the relations of %s returned %+v, %v; want a page with %s and its "+
+			"total count", resourceKey, page, err, id)
+	}
+	var all []string
+	for r, allErr := range c.ResourceRelations.All(ctx, resourceKey, nil) {
+		if allErr != nil {
+			t.Fatalf("All of the relations of %s: %v", resourceKey, allErr)
+		}
+		all = append(all, r.ID)
+	}
+	if !slices.Contains(all, id) {
+		t.Errorf("All of the relations of %s yielded %q, want %s among them", resourceKey, all, id)
+	}
+}

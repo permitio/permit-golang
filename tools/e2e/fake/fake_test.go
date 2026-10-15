@@ -62,6 +62,14 @@ var routes = []Route{
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "list_tenant_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "assign_role_to_user"},
+	{
+		"POST", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations",
+		"create_resource_relation",
+	},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations",
+		"list_resource_relations",
+	},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/groups", "create_group"},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", "list_group_roles"},
 	{"POST", "/v2/same/{first}", "same_first"},
@@ -110,7 +118,8 @@ type harness struct {
 }
 
 // newHarness starts a fake of routes, whose check rejects a body that holds "bad" and cannot
-// check one that holds "unknown".
+// check one that holds "unknown", and which lists the relations of a resource as the paginated
+// object of the Permit API.
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	tb := &recordingTB{T: t}
@@ -127,7 +136,10 @@ func newHarness(t *testing.T) *harness {
 		}
 		return nil, nil
 	}
-	f := New(tb, Config{Routes: routes, Check: check, Project: "proj", ProjectAPIKey: projectKey})
+	f := New(tb, Config{
+		Routes: routes, Check: check, Project: "proj", ProjectAPIKey: projectKey,
+		Paged: func(op string) bool { return op == "list_resource_relations" },
+	})
 	t.Cleanup(func() {
 		if errs := tb.take(); errs != nil {
 			t.Errorf("the fake reported errors that the test did not take: %q", errs)
@@ -356,6 +368,71 @@ func TestPages(t *testing.T) {
 		if !slices.Equal(keys, want) {
 			t.Errorf("GET /v2/projects/proj/envs%s listed %v, want %v", query, keys, want)
 		}
+	}
+}
+
+// TestPagedLists checks that a GET of the relations of a resource, whose operation Config.Paged
+// names, answers the paginated object of the Permit API: the page of page and per_page of the
+// relations in data, the first page of 30 also without either, an empty data, not null, after
+// the last page and for a resource without relations, the number of the relations in
+// total_count, and the number of pages of per_page of them in page_count. A list that Paged does
+// not name, that of the roles, answers a JSON array, as every list of a fake without Paged does.
+func TestPagedLists(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	h.expect(200, "POST", "/v2/schema/proj/dev/resources", `{"key": "document"}`, projectKey)
+	relations := "/v2/schema/proj/dev/resources/document/relations"
+	var keys []any
+	for i := range 31 {
+		key := fmt.Sprintf("r%d", i+1)
+		h.expect(200, "POST", relations, `{"key": "`+key+`", "subject_resource": "folder"}`,
+			projectKey)
+		keys = append(keys, key)
+	}
+	for _, tc := range []struct {
+		query        string
+		want         []any
+		pages, total float64
+	}{
+		{"", keys[:30], 2, 31},
+		{"?page=2", keys[30:], 2, 31},
+		{"?page=2&per_page=30", keys[30:], 2, 31},
+		{"?page=3&per_page=30", []any{}, 2, 31},
+		{"?per_page=100", keys, 1, 31},
+		{"?page=16&per_page=2", keys[30:], 16, 31},
+	} {
+		page := h.expect(200, "GET", relations+tc.query, "", projectKey)
+		data, ok := page["data"].([]any)
+		got := []any{}
+		for _, r := range data {
+			o, _ := r.(map[string]any)
+			got = append(got, o["key"])
+		}
+		if !ok || !slices.Equal(got, tc.want) || page["total_count"] != tc.total ||
+			page["page_count"] != tc.pages || len(page) != 3 {
+			t.Errorf("GET %s%s answered %v, want the relations %v, the total count %v and "+
+				"the page count %v", relations, tc.query, page, tc.want, tc.total, tc.pages)
+		}
+	}
+	h.expect(200, "POST", "/v2/schema/proj/dev/resources", `{"key": "folder"}`, projectKey)
+	empty := h.expect(200, "GET", "/v2/schema/proj/dev/resources/folder/relations", "",
+		projectKey)
+	if data, ok := empty["data"].([]any); !ok || len(data) != 0 ||
+		empty["total_count"] != 0.0 || empty["page_count"] != 0.0 {
+		t.Errorf("the relations of a resource without relations are %v", empty)
+	}
+	if list := h.list("/v2/schema/proj/dev/resources/document/roles", projectKey); len(list) != 0 {
+		t.Errorf("the roles of the resource are %v, want an empty JSON array", list)
+	}
+	accept := func(string, []byte) ([]string, error) { return nil, nil }
+	plain := &harness{t: t, tb: &recordingTB{T: t}, fake: New(t, Config{
+		Routes: routes, Check: accept, Project: "proj", ProjectAPIKey: projectKey,
+	})}
+	plain.createEnv("dev")
+	plain.expect(200, "POST", "/v2/schema/proj/dev/resources", `{"key": "document"}`, projectKey)
+	plain.expect(200, "POST", relations, `{"key": "r1", "subject_resource": "folder"}`, projectKey)
+	if list := plain.list(relations, projectKey); len(list) != 1 {
+		t.Errorf("the relations of a fake without Paged are %v, want a JSON array of one", list)
 	}
 }
 

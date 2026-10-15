@@ -418,6 +418,28 @@ change from v1 and what to use instead.
   gone already. `Create` is sent again after a 429 only; the other calls are sent again after a
   500, 502, 503 or 504 reply or a failed connection too.
 
+### Resource relations
+
+- The `ResourceRelations` field of the client, a `*permit.ResourceRelationsService`, lists,
+  reads, creates and deletes the relations of a resource of the environment of the client's
+  scope; each method takes the key or the ID of the resource that has the relation first. `List`
+  returns a page as a `*permit.Page[models.RelationRead]`, with the `TotalCount` and the
+  `PageCount` of the API's reply, which v1's `List` dropped, and `All` reads every page, 100
+  relations at a time; `Get` reads one relation by its key or its ID; `Create` takes a
+  `models.RelationCreate` and returns the relation as a `*models.RelationRead`; `Delete` deletes a
+  relation. The API has no update of a relation.
+- `List` takes the resource first and a `*permit.ListOptions` next, where v1's `List` took the
+  page and the number of relations before the resource.
+- The calls act on the environment of the client's scope, from `WithScope` or from the scope of
+  the API key, which the client looks up once; a scope without an environment is an error that
+  matches `ErrInvalidConfig`, and no request for the call is sent. Each call is sent with an
+  environment-level API key, or with a key of a wider level and `WithScope`.
+- A key of a resource or of a relation is sent as one segment of the path, escaped; an empty
+  key, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request for the call is
+  sent. `Delete` returns nil when the API answers 404, as the relation is gone already. `Create`
+  is sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or 504
+  reply or a failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

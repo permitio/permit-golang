@@ -108,6 +108,14 @@ var cloudScenarios = []scenario{
 		run: resourceAttributeLifecycle,
 	},
 	{
+		name: "resource_relation_lifecycle", methods: []string{
+			"ResourceRelationsService.Create", "ResourceRelationsService.Get",
+			"ResourceRelationsService.List", "ResourceRelationsService.All",
+			"ResourceRelationsService.Delete",
+		},
+		run: resourceRelationLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},
@@ -313,7 +321,8 @@ const modelMap = "../drift/model-map.yaml"
 
 // startFake starts a fake of the routes of the control plane's spec, which checks each request
 // body with the structural walker of tools/drift, that of a fake PDP too, and accepts null where
-// the API does, as acceptingNull says.
+// the API does, as acceptingNull says. A list whose reply the spec gives as a paginated envelope
+// alone, such as that of the relations of a resource, answers one, as drift.Specs.Paged says.
 func startFake(t *testing.T) *fake.Fake {
 	t.Helper()
 	s, err := specs()
@@ -332,7 +341,7 @@ func startFake(t *testing.T) *fake.Fake {
 	}
 	return fake.New(t, fake.Config{
 		Routes: routes, Check: acceptingNull(s.CheckRequestBody, nullable),
-		Project: dryRunProject, ProjectAPIKey: dryRunProjectKey,
+		Project: dryRunProject, ProjectAPIKey: dryRunProjectKey, Paged: s.Paged,
 	})
 }
 

@@ -55,6 +55,8 @@ var modelTypes = []any{
 	models.ProjectRead{},
 	models.ProjectUpdate{},
 	models.RelationBlockRead{},
+	models.RelationCreate{},
+	models.RelationRead{},
 	permit.Resource{},
 	models.ResourceActionCreate{},
 	models.ResourceActionRead{},

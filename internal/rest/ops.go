@@ -316,6 +316,32 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The relations of a resource of an environment, each at the environment level, as v1 sends
+	// them too. These key levels are not measured yet: the phase api.resource_relations of the
+	// local harness confirms them. The list is the paginated object of at most 100 relations. The
+	// API has no update of a relation; a create does not do the same when sent twice.
+	{
+		ID: "list_resource_relations", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "RelationRead",
+	},
+	{
+		ID: "create_resource_relation", Method: http.MethodPost,
+		Route:    "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations",
+		KeyLevel: EnvironmentLevel, RequestModel: "RelationCreate", ResponseModel: "RelationRead",
+	},
+	{
+		ID: "get_resource_relation", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "RelationRead",
+	},
+	{
+		ID: "delete_resource_relation", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

@@ -72,12 +72,15 @@ func (f *Fake) issue(s scope) object {
 }
 
 // collection answers a request to a route whose path ends with a literal segment: a POST
-// creates an object, a GET lists the collection, as listed says, and a DELETE with a body removes
-// the objects that hold each of its fields. The caller holds f.mu.
+// creates an object, a GET lists the collection, as listed says, or as envelope says for an
+// operation that f.paged names, and a DELETE with a body removes the objects that hold each of
+// its fields. The caller holds f.mu.
 func (f *Fake) collection(rt route, segments []string, fields object, query url.Values,
 ) (int, any) {
 	path := collectionOf(segments)
 	switch {
+	case rt.Method == http.MethodGet && f.paged != nil && f.paged(rt.Op):
+		return http.StatusOK, envelope(f.store[path], query)
 	case rt.Method == http.MethodGet:
 		return http.StatusOK, listed(f.store[path], query)
 	case rt.Method == http.MethodPost && fields != nil:
@@ -109,6 +112,25 @@ func listed(objects []object, query url.Values) []object {
 	page, perPage := positive(query, "page", 1), positive(query, "per_page", defaultPerPage)
 	start := min((page-1)*perPage, len(objects))
 	return objects[start:min(start+perPage, len(objects))]
+}
+
+// envelope returns the paginated object that the Permit API answers a GET of a collection with
+// query, on a route that answers no JSON array: in data, the objects that match each attribute
+// filter of query, as matches says, in the order in which they were created, on the page of page
+// and per_page, the first page of 30 by default, also when query holds neither; in total_count,
+// the number of the objects that match; and in page_count, the number of pages of per_page of
+// them.
+func envelope(objects []object, query url.Values) object {
+	matching := slices.DeleteFunc(append([]object{}, objects...), func(o object) bool {
+		return !matches(o, query)
+	})
+	page, perPage := positive(query, "page", 1), positive(query, "per_page", defaultPerPage)
+	start := min((page-1)*perPage, len(matching))
+	return object{
+		"data":        matching[start:min(start+perPage, len(matching))],
+		"total_count": len(matching),
+		"page_count":  (len(matching) + perPage - 1) / perPage,
+	}
 }
 
 // matches reports whether the attributes of o match each attribute filter of query, a parameter

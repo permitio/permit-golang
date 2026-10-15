@@ -444,6 +444,34 @@ models:
       resource_id: {required: true, null_policy: n/a}
       relation_name: {required: false, null_policy: n/a}
       resource: {required: true, null_policy: n/a}
+  # A relation of a resource to another resource, as a create sends it and as the API returns
+  # it. A create reads null for the description, which has no default, as the field left out, as
+  # every create does, and rejects null for its required fields. The API has no update of a
+  # relation. These null policies are not measured yet: the phase api.resource_relations of the
+  # local harness confirms them.
+  RelationCreate:
+    schema: RelationCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      subject_resource: {required: true, null_policy: rejects}
+  RelationRead:
+    schema: RelationRead
+    fields:
+      description: {required: false, null_policy: n/a}
+      subject_resource: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      object_resource_id: {required: true, null_policy: n/a}
+      object_resource: {required: true, null_policy: n/a}
+      subject_resource_id: {required: true, null_policy: n/a}
   Resource:
     spec: pdp-container
     schema: Resource

@@ -130,3 +130,8 @@ M-resource-attributes-3
 M-resource-attributes-4
 M-resource-attributes-5
 M-resource-attributes-6
+M-resource-relations-1
+M-resource-relations-2
+M-resource-relations-3
+M-resource-relations-4
+M-resource-relations-5

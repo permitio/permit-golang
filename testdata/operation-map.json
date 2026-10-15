@@ -156,6 +156,21 @@
     "ResourceAttributesService.Update": [
       "update_resource_attribute"
     ],
+    "ResourceRelationsService.All": [
+      "list_resource_relations"
+    ],
+    "ResourceRelationsService.Create": [
+      "create_resource_relation"
+    ],
+    "ResourceRelationsService.Delete": [
+      "delete_resource_relation"
+    ],
+    "ResourceRelationsService.Get": [
+      "get_resource_relation"
+    ],
+    "ResourceRelationsService.List": [
+      "list_resource_relations"
+    ],
     "ResourcesService.All": [
       "list_resources"
     ],

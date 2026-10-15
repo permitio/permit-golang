@@ -1092,12 +1092,29 @@ github.com/permitio/permit-golang/v2 TestResourceAttributeRetries
 github.com/permitio/permit-golang/v2 TestMalformedResourceAttributeReplies
 github.com/permitio/permit-golang/v2 TestResourceAttributesAfterClose
 github.com/permitio/permit-golang/v2 ExampleResourceAttributesService
+github.com/permitio/permit-golang/v2 TestResourceRelationsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestResourceRelationsAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestResourceRelationsAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestResourceRelationsAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestResourceRelationsListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidResourceRelationListOptions
+github.com/permitio/permit-golang/v2 TestResourceRelationsUseTheScope
+github.com/permitio/permit-golang/v2 TestResourceRelationKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteResourceRelationThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherResourceRelationCalls
+github.com/permitio/permit-golang/v2 TestResourceRelationBodies
+github.com/permitio/permit-golang/v2 TestResourceRelationRetries
+github.com/permitio/permit-golang/v2 TestMalformedResourceRelationReplies
+github.com/permitio/permit-golang/v2 TestResourceRelationsAfterClose
+github.com/permitio/permit-golang/v2 ExampleResourceRelationsService
 
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
 github.com/permitio/permit-golang/v2/tools/drift TestSpecsOperations
 github.com/permitio/permit-golang/v2/tools/drift TestSpecsCheckRequestBody
+github.com/permitio/permit-golang/v2/tools/drift TestSpecsPaged
+github.com/permitio/permit-golang/v2/tools/drift TestRepositoryPaged
 github.com/permitio/permit-golang/v2/tools/drift TestReadSpecsErrors
 github.com/permitio/permit-golang/v2/tools/drift TestRepositoryReadSpecs
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestNewPrefix
@@ -1135,6 +1152,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestEnvironmentLifecycle
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestAccess
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBodies
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPages
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPagedLists
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestStatsAndCopies
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoutes
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestParents
@@ -1161,6 +1179,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenant_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_attribute_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_relation_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

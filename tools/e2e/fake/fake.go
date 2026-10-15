@@ -5,10 +5,11 @@
 // The fake serves the routes that it is given, those of a spec snapshot, and keeps the objects of
 // each collection in memory, a collection being the path of a route without its last parameter:
 // a POST to a collection creates an object with an ID, a GET, a PATCH, a PUT or a DELETE of an
-// item reads, changes or deletes it, a GET of a collection lists it, one page of it when the
-// query holds page or per_page, and only the objects whose attributes match each attr_<name>
-// of the query, and a DELETE of a collection with a body removes the objects that hold each
-// field of the body. A parameter matches an object by its ID or its identifier: its key, or
+// item reads, changes or deletes it, a GET of a collection lists the objects whose attributes match
+// each attr_<name> of the query, as a JSON array, one page of it when the query holds page or
+// per_page, or, for a route that [Config.Paged] names, as the paginated object, always one page,
+// the first 30 by default; and a DELETE of a collection with a body removes the objects that hold
+// each field of the body. A parameter matches an object by its ID or its identifier: its key, or
 // for a resource instance, an object with a resource, <resource>:<key>, as the Permit API names it.
 // A parameter that is not the last segment of its route and follows resources, roles, tenants or
 // users, such as {resource_id} in .../resources/{resource_id}/roles, must match an object, or the
@@ -72,6 +73,11 @@ type Config struct {
 
 	// ProjectAPIKey is the project's API key, a project-level key.
 	ProjectAPIKey string
+
+	// Paged reports whether the GET of a collection whose route's operation is op answers the
+	// paginated object of the Permit API, as the spec of the route says, such as
+	// list_resource_relations. A nil Paged answers every list with a JSON array.
+	Paged func(op string) bool
 }
 
 // Fake is a fake of the Permit API that an httptest server serves. It is safe for concurrent
@@ -79,6 +85,7 @@ type Config struct {
 type Fake struct {
 	tb     testing.TB
 	check  Check
+	paged  func(op string) bool
 	routes []route
 	server *httptest.Server
 
@@ -134,7 +141,10 @@ func New(tb testing.TB, cfg Config) *Fake {
 	case cfg.Project == "" || cfg.ProjectAPIKey == "":
 		tb.Fatal("fake: New needs the key of the project and the project's API key")
 	}
-	f := &Fake{tb: tb, check: cfg.Check, keys: map[string]scope{}, store: map[string][]object{}}
+	f := &Fake{
+		tb: tb, check: cfg.Check, paged: cfg.Paged, keys: map[string]scope{},
+		store: map[string][]object{},
+	}
 	for _, r := range cfg.Routes {
 		f.routes = append(f.routes, route{Route: r, segments: strings.Split(r.Template, "/")})
 	}

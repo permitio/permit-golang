@@ -824,6 +824,7 @@ github.com/permitio/permit-golang/v2 TestWireCases
 github.com/permitio/permit-golang/v2 TestWireRunnerRunsFactsInBothModes
 github.com/permitio/permit-golang/v2 TestWireRunnerFailsAWrongServer
 github.com/permitio/permit-golang/v2 TestWireRunnerFailsAWaitHeader
+github.com/permitio/permit-golang/v2 TestWireRunnerChecksTheHeaders
 github.com/permitio/permit-golang/v2 TestWireRunnerNeedsAFactsRoute
 github.com/permitio/permit-golang/v2 TestFactsViaPDP
 github.com/permitio/permit-golang/v2 TestOnRoute

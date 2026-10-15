@@ -24,22 +24,24 @@ import (
 	"github.com/permitio/permit-golang/v2/internal/testhook"
 )
 
-// The headers that Send sets, in the canonical form that net/http sends them in.
+// The headers that Send sets on requests or reads from replies, in the canonical form that
+// net/http uses. The exported ones and their values are what tests outside the package check
+// requests against.
 const (
-	headerAccept        = "Accept"
+	HeaderAccept        = "Accept"
 	headerAuthorization = "Authorization"
-	headerContentType   = "Content-Type"
+	HeaderContentType   = "Content-Type"
 	headerRetryAfter    = "Retry-After"
-	headerSDKLanguage   = "X-Permit-Sdk-Language"
-	headerSDKVersion    = "X-Permit-Sdk-Version"
-	headerUserAgent     = "User-Agent"
+	HeaderSDKLanguage   = "X-Permit-Sdk-Language"
+	HeaderSDKVersion    = "X-Permit-Sdk-Version"
+	HeaderUserAgent     = "User-Agent"
 )
 
-// jsonType is the media type of the bodies that the SDK sends and reads.
-const jsonType = "application/json"
+// JSONType is the media type of the bodies that the SDK sends and reads.
+const JSONType = "application/json"
 
-// language is the value of X-Permit-Sdk-Language, which the PDP counts the SDK's requests by.
-const language = "go"
+// Language is the value of X-Permit-Sdk-Language, which the PDP counts the SDK's requests by.
+const Language = "go"
 
 // MaxDrain is the most bytes of what is left of a reply's body, after what the caller needs of
 // it, that Send reads and discards, so that the connection can carry the next request. A body
@@ -187,12 +189,12 @@ func (s *Sender) send(ctx context.Context, r Request) (Reply, error) {
 // setHeaders sets the headers of a request in h; hasBody says that the request has a body.
 func (s *Sender) setHeaders(h http.Header, hasBody bool) {
 	h.Set(headerAuthorization, "Bearer "+s.apiKey.Value())
-	h.Set(headerUserAgent, s.userAgent)
-	h.Set(headerSDKLanguage, language)
-	h.Set(headerSDKVersion, s.version)
-	h.Set(headerAccept, jsonType)
+	h.Set(HeaderUserAgent, s.userAgent)
+	h.Set(HeaderSDKLanguage, Language)
+	h.Set(HeaderSDKVersion, s.version)
+	h.Set(HeaderAccept, JSONType)
 	if hasBody {
-		h.Set(headerContentType, jsonType)
+		h.Set(HeaderContentType, JSONType)
 	}
 }
 

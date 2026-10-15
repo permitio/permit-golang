@@ -281,10 +281,14 @@ the request to the API, `pdp` to the PDP, and `facts-via-pdp` to the PDP contain
 `WithFactsViaPDP`, where the runner expects the route, the path and the route of the error under
 `/facts`, without `/v2/facts/{proj_id}/{env_id}`. The method must send the case's request to the
 server of the mode and nothing to the other server, return the result and the error of the case,
-and send no `X-Wait-Timeout` or `X-Timeout-Policy`. When the route fills `{proj_id}` or `{env_id}`,
-the client has `WithScope("p", "e")`, so a path such as `/v2/facts/p/e/users` needs no lookup of
-the scope. The case of an operation with `Facts` lists `api` and `facts-via-pdp`, and no other
-case lists `facts-via-pdp`. The tests below check the cases too:
+and send no `X-Wait-Timeout` or `X-Timeout-Policy`. Each request of the case, including the one
+for the error reply, must carry `User-Agent`, `X-Permit-Sdk-Language`, `X-Permit-Sdk-Version` and
+`Accept`, each with the one value that `internal/transport` gives it, and
+`Content-Type: application/json` exactly when it has a body; `mockpermit` checks
+`Authorization`. When the route fills `{proj_id}` or `{env_id}`, the client has
+`WithScope("p", "e")`, so a path such as `/v2/facts/p/e/users` needs no lookup of the scope. The
+case of an operation with `Facts` lists `api` and `facts-via-pdp`, and no other case lists
+`facts-via-pdp`. The tests below check the cases too:
 
 - the registry rejects a case whose method is not `<Type>.<Method>` with exported names, or that
   has no operationId, a malformed route or one with an empty segment, no mode, an unknown or

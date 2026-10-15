@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -20,6 +21,7 @@ import (
 	"github.com/permitio/permit-golang/v2/internal/surface"
 	"github.com/permitio/permit-golang/v2/internal/testkit/faketb"
 	"github.com/permitio/permit-golang/v2/internal/testkit/mockpermit"
+	"github.com/permitio/permit-golang/v2/internal/transport"
 )
 
 // wireCase is the wire test of a public method: the request the method must send, the reply it
@@ -230,6 +232,8 @@ func onRoute(err error, route string) error {
 // factsViaPDPMode along the route and the path under /facts. It must return c.WantResult for
 // c.Reply, and c.WantErr for c.ErrorReply, with the route under /facts in factsViaPDPMode. Its
 // request must carry no wait header, and the other server must get no request and no connection.
+// Each request of both calls must carry the headers that the transport sets, as checkWireHeaders
+// and mockpermit check them.
 func runWireCase(tb testing.TB, c wireCase, mode wireMode, newClient wireClientFunc) {
 	tb.Helper()
 	target, wantErr := wireTarget{route: c.Route, rawPath: c.Request.RawPath}, c.WantErr
@@ -255,7 +259,11 @@ func runWireCase(tb testing.TB, c wireCase, mode wireMode, newClient wireClientF
 		to.Handle(target.route, reply)
 		got, err := c.Call(tb.Context(), newClient(tb, api, pdp, opts...))
 		other.AssertUntouched()
-		return got, to.Requests(), err
+		requests := to.Requests()
+		for _, sent := range requests {
+			checkWireHeaders(tb, c, mode, sent)
+		}
+		return got, requests, err
 	}
 
 	got, requests, err := call(c.Reply)
@@ -306,6 +314,33 @@ func checkWireRequest(tb testing.TB, c wireCase, mode wireMode, target wireTarge
 		if values := sent.Header.Values(name); values != nil {
 			tb.Errorf("%s in the mode %s sent %s: %q, which only a call that waits for sync "+
 				"sends", c.Method, mode, name, values)
+		}
+	}
+}
+
+// checkWireHeaders checks the headers of sent, a request of the call of c in mode, that the
+// transport sets on every request: User-Agent, X-Permit-Sdk-Language, X-Permit-Sdk-Version and
+// Accept, each with the one value that the transport gives it, and Content-Type, which a request
+// with a body carries as application/json and one without a body does not carry. The values
+// come from the transport and permit.Version. mockpermit checks Authorization.
+func checkWireHeaders(tb testing.TB, c wireCase, mode wireMode, sent mockpermit.Request) {
+	tb.Helper()
+	want := http.Header{
+		transport.HeaderUserAgent:   {transport.UserAgent(permit.Version)},
+		transport.HeaderSDKLanguage: {transport.Language},
+		transport.HeaderSDKVersion:  {permit.Version},
+		transport.HeaderAccept:      {transport.JSONType},
+	}
+	if len(sent.Body) != 0 {
+		want[transport.HeaderContentType] = []string{transport.JSONType}
+	} else if values := sent.Header.Values(transport.HeaderContentType); values != nil {
+		tb.Errorf("%s in the mode %s sent %s: %q without a body, want none", c.Method, mode,
+			transport.HeaderContentType, values)
+	}
+	for _, name := range slices.Sorted(maps.Keys(want)) {
+		if got := sent.Header.Values(name); !slices.Equal(got, want[name]) {
+			tb.Errorf("%s in the mode %s sent %s: %q, want %q", c.Method, mode, name, got,
+				want[name])
 		}
 	}
 }
@@ -468,30 +503,173 @@ func TestWireRunnerFailsAWrongServer(t *testing.T) {
 	}
 }
 
-// leakingTransport sends each request through http.DefaultTransport with X-Wait-Timeout, as a
-// client whose wait reached a call that did not ask for it would.
-type leakingTransport struct{}
+// headerTransport sends each request through http.DefaultTransport after it changes the headers
+// of the request, as a transport that set them wrong would.
+type headerTransport func(http.Header)
 
-func (leakingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+func (change headerTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	r = r.Clone(r.Context())
-	r.Header.Set("X-Wait-Timeout", "1")
+	change(r.Header)
 	return http.DefaultTransport.RoundTrip(r)
+}
+
+// changingHeaders returns the wireClientFunc whose clients are those of newClient that send each
+// request through headerTransport(change).
+func changingHeaders(newClient wireClientFunc, change func(http.Header)) wireClientFunc {
+	return func(tb testing.TB, api, pdp *mockpermit.Server,
+		opts ...permit.Option,
+	) *permit.Client {
+		tb.Helper()
+		hc := &http.Client{Transport: headerTransport(change)}
+		return newClient(tb, api, pdp, append(opts, permit.WithHTTPClient(hc))...)
+	}
 }
 
 // TestWireRunnerFailsAWaitHeader checks that the runner fails a request that carries a wait for
 // sync that its call did not ask for.
 func TestWireRunnerFailsAWaitHeader(t *testing.T) {
-	leaking := func(tb testing.TB, api, pdp *mockpermit.Server,
-		opts ...permit.Option,
-	) *permit.Client {
-		tb.Helper()
-		hc := &http.Client{Transport: leakingTransport{}}
-		return wireFactsClient(tb, api, pdp, append(opts, permit.WithHTTPClient(hc))...)
-	}
+	leaking := changingHeaders(wireFactsClient, func(h http.Header) {
+		h.Set("X-Wait-Timeout", "1")
+	})
 	got := runFake(t, wireFactsCase(), factsViaPDPMode, leaking)
 	want := `sent X-Wait-Timeout: ["1"], which only a call that waits for sync sends`
 	if !strings.Contains(got, want) {
 		t.Errorf("the runner reported\n%s\nwant a line that contains %q", got, want)
+	}
+}
+
+// TestWireRunnerChecksTheHeaders checks that the runner fails a request whose transport dropped a
+// header that the SDK sets on every request, gave it another value or a second one, or set
+// Content-Type on a request without a body: a request of Client.Scope, to the API without a
+// body, and one of Client.Check, to the PDP with a body. It fails the request of the error reply
+// too, and mockpermit fails one without the exact Authorization of its API key.
+func TestWireRunnerChecksTheHeaders(t *testing.T) {
+	scope, check := scopeCases()[0], decisionCases()[0]
+	if scope.Method != "Client.Scope" || scope.Request.Body != "" ||
+		check.Method != "Client.Check" || check.Request.Body == "" {
+		t.Fatalf("want the cases of Client.Scope without a body and of Client.Check with one, "+
+			"got %s with the body %q and %s with %q", scope.Method, scope.Request.Body,
+			check.Method, check.Request.Body)
+	}
+	const (
+		scopeSent = "Client.Scope in the mode api sent "
+		checkSent = "Client.Check in the mode pdp sent "
+	)
+	userAgent, bearer := transport.UserAgent(permit.Version), "Bearer "+mockpermit.APIKey
+	// onRequest applies change to the nth request of a case only: 1 is the request of the call
+	// that gets the success reply, 2 that of the call that gets the error reply.
+	onRequest := func(n int32, change func(http.Header)) func(http.Header) {
+		var sent atomic.Int32
+		return func(h http.Header) {
+			if sent.Add(1) == n {
+				change(h)
+			}
+		}
+	}
+	for _, tc := range []struct {
+		name   string
+		c      wireCase
+		change func(http.Header)
+		want   string
+	}{
+		{
+			name: "User-Agent dropped", c: scope,
+			change: func(h http.Header) { h.Del("User-Agent") },
+			// net/http sends its own default User-Agent then; only the expected value is pinned.
+			want: fmt.Sprintf(`], want [%q]`, userAgent),
+		},
+		{
+			name: "User-Agent wrong", c: scope,
+			change: func(h http.Header) { h.Set("User-Agent", "permit-golang/1.0.0") },
+			want: fmt.Sprintf(`%sUser-Agent: ["permit-golang/1.0.0"], want [%q]`, scopeSent,
+				userAgent),
+		},
+		{
+			name: "X-Permit-Sdk-Language dropped", c: scope,
+			change: func(h http.Header) { h.Del("X-Permit-Sdk-Language") },
+			want:   scopeSent + `X-Permit-Sdk-Language: [], want ["go"]`,
+		},
+		{
+			name: "X-Permit-Sdk-Language wrong", c: scope,
+			change: func(h http.Header) { h.Set("X-Permit-Sdk-Language", "golang") },
+			want:   scopeSent + `X-Permit-Sdk-Language: ["golang"], want ["go"]`,
+		},
+		{
+			name: "X-Permit-Sdk-Version dropped", c: scope,
+			change: func(h http.Header) { h.Del("X-Permit-Sdk-Version") },
+			want:   fmt.Sprintf(`%sX-Permit-Sdk-Version: [], want [%q]`, scopeSent, permit.Version),
+		},
+		{
+			name: "X-Permit-Sdk-Version wrong", c: scope,
+			change: func(h http.Header) { h.Set("X-Permit-Sdk-Version", "1.0.0") },
+			want: fmt.Sprintf(`%sX-Permit-Sdk-Version: ["1.0.0"], want [%q]`, scopeSent,
+				permit.Version),
+		},
+		{
+			name: "Accept dropped", c: scope,
+			change: func(h http.Header) { h.Del("Accept") },
+			want:   scopeSent + `Accept: [], want ["application/json"]`,
+		},
+		{
+			name: "Accept wrong", c: scope,
+			change: func(h http.Header) { h.Set("Accept", "*/*") },
+			want:   scopeSent + `Accept: ["*/*"], want ["application/json"]`,
+		},
+		{
+			name: "a second Accept", c: scope,
+			change: func(h http.Header) { h.Add("Accept", "text/html") },
+			want: scopeSent + `Accept: ["application/json" "text/html"], ` +
+				`want ["application/json"]`,
+		},
+		{
+			name: "Content-Type without a body", c: scope,
+			change: func(h http.Header) { h.Set("Content-Type", "application/json") },
+			want:   scopeSent + `Content-Type: ["application/json"] without a body, want none`,
+		},
+		{
+			name: "Accept dropped from the request of the success reply", c: scope,
+			change: onRequest(1, func(h http.Header) { h.Del("Accept") }),
+			want:   scopeSent + `Accept: [], want ["application/json"]`,
+		},
+		{
+			name: "Accept dropped from the request of the error reply", c: scope,
+			change: onRequest(2, func(h http.Header) { h.Del("Accept") }),
+			want:   scopeSent + `Accept: [], want ["application/json"]`,
+		},
+		{
+			name: "Authorization dropped", c: scope,
+			change: func(h http.Header) { h.Del("Authorization") },
+			want: fmt.Sprintf("mockpermit API: GET /v2/api-key/scope: the Authorization header "+
+				"is [], want exactly [%q]", bearer),
+		},
+		{
+			name: "Authorization wrong", c: scope,
+			change: func(h http.Header) { h.Set("Authorization", "bearer "+mockpermit.APIKey) },
+			want: fmt.Sprintf("mockpermit API: GET /v2/api-key/scope: the Authorization header "+
+				"is [%q], want exactly [%q]", "bearer "+mockpermit.APIKey, bearer),
+		},
+		{
+			name: "X-Permit-Sdk-Language dropped from a decision", c: check,
+			change: func(h http.Header) { h.Del("X-Permit-Sdk-Language") },
+			want:   checkSent + `X-Permit-Sdk-Language: [], want ["go"]`,
+		},
+		{
+			name: "Content-Type dropped", c: check,
+			change: func(h http.Header) { h.Del("Content-Type") },
+			want:   checkSent + `Content-Type: [], want ["application/json"]`,
+		},
+		{
+			name: "Content-Type wrong", c: check,
+			change: func(h http.Header) { h.Set("Content-Type", "text/plain") },
+			want:   checkSent + `Content-Type: ["text/plain"], want ["application/json"]`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := runFake(t, tc.c, tc.c.Modes[0], changingHeaders(wireTestClient, tc.change))
+			if !strings.Contains(got, tc.want) {
+				t.Errorf("the runner reported\n%s\nwant a line that contains %q", got, tc.want)
+			}
+		})
 	}
 }
 

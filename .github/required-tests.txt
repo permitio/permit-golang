@@ -898,3 +898,20 @@ github.com/permitio/permit-golang/v2 FuzzContainerDecisionReplies
 github.com/permitio/permit-golang/v2 ExampleClient_AllTenantsCheck
 github.com/permitio/permit-golang/v2 ExampleClient_UserTenants
 github.com/permitio/permit-golang/v2 ExampleClient_CheckURL
+
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsQueries
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsReturnsAPage
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsDecode
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsOfEmptyItems
+github.com/permitio/permit-golang/v2 TestMalformedLocalRoleAssignments
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsOfTheCloudPDP
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsNotFound
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsErrorReplies
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsAreRetried
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsWithoutAReply
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentRepliesAddNoCredential
+github.com/permitio/permit-golang/v2 TestInvalidLocalRoleAssignmentsOptions
+github.com/permitio/permit-golang/v2 TestLocalRoleAssignmentsAfterClose
+github.com/permitio/permit-golang/v2 ExampleClient_LocalRoleAssignmentsAll

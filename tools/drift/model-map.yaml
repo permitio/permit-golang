@@ -98,6 +98,16 @@ models:
       url: {required: true, null_policy: rejects}
       tenant: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
+  # A role assignment that the PDP container holds, an item of the reply of its list, which only
+  # the container serves, so the row has no also.
+  LocalRoleAssignment:
+    spec: pdp-container
+    schema: RoleAssignment
+    fields:
+      user: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource_instance: {required: false, null_policy: n/a}
   ObjectPermissions:
     spec: pdp-container
     schema: _UserPermissionsResult

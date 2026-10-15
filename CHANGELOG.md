@@ -140,6 +140,18 @@ change from v1 and what to use instead.
   decision of a URL without `allow`, is an error that matches `ErrMalformedDecision`. The three
   calls change nothing, so they are sent again after a 500, 502, 503 or 504 reply or a failed
   connection, as a check is.
+- `Client.LocalRoleAssignments(ctx, opts)` is new: it returns one page of the role assignments
+  that the PDP container holds, as a `*permit.Page[permit.LocalRoleAssignment]`, with one
+  `GET /local/role_assignments` request, and `Client.LocalRoleAssignmentsAll(ctx, opts)` reads
+  every page. `permit.LocalRoleAssignmentsOptions` embeds `ListOptions` and filters by `User`,
+  `Role`, `Tenant`, `Resource` (a resource type) and `ResourceInstance`; an empty filter is not
+  sent. The PDP gives 30 role assignments on a page unless `PerPage` is set, and at most 100,
+  which `LocalRoleAssignmentsAll` asks for. A role in a tenant has a nil `ResourceInstance`. Only
+  the PDP container serves the route: the cloud PDP's 404 with an empty body is an error that
+  matches `ErrContainerPDPOnly` and names the route. A reply in 200-299 that is not a JSON array,
+  or that holds an item with a field of another type, is an error, never an empty page; an item
+  that leaves a field out decodes with it empty. The list changes nothing, so it is sent again
+  after a 500, 502, 503 or 504 reply or a failed connection, as a check is.
 
 ### Errors
 
@@ -188,8 +200,8 @@ change from v1 and what to use instead.
   what it did not read, so that the next request goes over the same connection instead of a new
   one.
 - A reply in 200-299 whose body is empty, or is not what the call expects (a JSON object, or a
-  list as a JSON array or as the paginated object), is an error that names the model, never an
-  empty result without an error.
+  list as a JSON array or as the paginated object), is an error that names the model, or the kind
+  of list for a list of the PDP, never an empty result without an error.
 - Deleting an object by a path that names it, such as a user by its key, returns nil when the API
   answers 404, as the object is gone already. A removal whose body names what it removes, such as
   a role assignment, returns an error that matches `ErrNotFound` for a 404, which can mean a

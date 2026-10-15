@@ -70,4 +70,17 @@ var defaultOps = []Op{
 		Idempotent: true, ContainerOnly: true, KeyLevel: EnvironmentLevel,
 		NoReplyCredentials: true, RequestModel: "CheckURLRequest",
 	},
+
+	// The role assignments that the PDP container holds, a list that only the container serves:
+	// the cloud PDP answers it with 404 and an empty body, and its spec does not list the route.
+	// The list changes nothing, and its reply holds the application's keys, not credentials. Its
+	// reply is a JSON array of at most 100 role assignments. They decode into a type of the root
+	// package, LocalRoleAssignment, so the reply names no model of package models; the drift
+	// tests check the type against the schema of its row, and the reply fixture of the wire tests
+	// against the container's spec.
+	{
+		ID: "list_role_assignments_local_role_assignments_get", Method: http.MethodGet,
+		Route: "/local/role_assignments", Idempotent: true, ContainerOnly: true,
+		KeyLevel: EnvironmentLevel, NoReplyCredentials: true, MaxPerPage: 100,
+	},
 }

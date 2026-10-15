@@ -18,6 +18,12 @@
     "Client.FilterObjects": [
       "is_allowed_bulk_allowed_bulk_post"
     ],
+    "Client.LocalRoleAssignments": [
+      "list_role_assignments_local_role_assignments_get"
+    ],
+    "Client.LocalRoleAssignmentsAll": [
+      "list_role_assignments_local_role_assignments_get"
+    ],
     "Client.Scope": [
       "get_api_key_scope"
     ],

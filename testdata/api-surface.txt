@@ -54,6 +54,8 @@ permit: method (*Client) Close() error
 permit: method (*Client) FilterObjects(ctx context.Context, user User, action string, resources []Resource, opts ...CheckOption) ([]Resource, error)
 permit: method (*Client) Format(f fmt.State, verb rune)
 permit: method (*Client) GoString() string
+permit: method (*Client) LocalRoleAssignments(ctx context.Context, opts *LocalRoleAssignmentsOptions) (*Page[LocalRoleAssignment], error)
+permit: method (*Client) LocalRoleAssignmentsAll(ctx context.Context, opts *LocalRoleAssignmentsOptions) iter.Seq2[LocalRoleAssignment, error]
 permit: method (*Client) LogValue() slog.Value
 permit: method (*Client) Scope(ctx context.Context) (Scope, error)
 permit: method (*Client) String() string
@@ -106,6 +108,18 @@ permit: type Error struct, Title string
 permit: type ListOptions struct
 permit: type ListOptions struct, Page int
 permit: type ListOptions struct, PerPage int
+permit: type LocalRoleAssignment struct
+permit: type LocalRoleAssignment struct, ResourceInstance *string
+permit: type LocalRoleAssignment struct, Role string
+permit: type LocalRoleAssignment struct, Tenant string
+permit: type LocalRoleAssignment struct, User string
+permit: type LocalRoleAssignmentsOptions struct
+permit: type LocalRoleAssignmentsOptions struct, Resource string
+permit: type LocalRoleAssignmentsOptions struct, ResourceInstance string
+permit: type LocalRoleAssignmentsOptions struct, Role string
+permit: type LocalRoleAssignmentsOptions struct, Tenant string
+permit: type LocalRoleAssignmentsOptions struct, User string
+permit: type LocalRoleAssignmentsOptions struct, embedded ListOptions
 permit: type ObjectPermissions struct
 permit: type ObjectPermissions struct, Permissions []string
 permit: type ObjectPermissions struct, Resource *ResourceDetails

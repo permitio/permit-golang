@@ -19,6 +19,7 @@ var modelTypes = []any{
 	permit.AuthorizedUsersResult{},
 	permit.CheckRequest{},
 	permit.CheckURLRequest{},
+	permit.LocalRoleAssignment{},
 	permit.ObjectPermissions{},
 	permit.Resource{},
 	permit.ResourceDetails{},

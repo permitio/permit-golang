@@ -1,0 +1,1 @@
+[{"user":"alice","role":"admin","tenant":"tenant-a"},{"user":"alice","role":"editor","tenant":"tenant-a","resource_instance":"document:2026-report"}]

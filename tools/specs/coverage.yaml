@@ -470,7 +470,7 @@ pdp:
     status: planned
     sdk_only: "With facts sent through the PDP container, every facts route but the 11 that its spec lists goes to this catch-all, which forwards it to the API without waiting for the PDP to sync. The PDP's spec does not list it."
   # Local Queries
-  - {op: list_role_assignments_local_role_assignments_get, route: "GET /local/role_assignments", stage: GA, status: planned}
+  - {op: list_role_assignments_local_role_assignments_get, route: "GET /local/role_assignments", stage: GA, status: covered}
   # OPAL Server Connectivity
   - {op: get_connectivity_status_opal_server_connectivity_get, route: "GET /opal-server/connectivity", stage: GA, status: excluded, reason: operator}
   - {op: disable_connectivity_opal_server_connectivity_disable_post, route: "POST /opal-server/connectivity/disable", stage: GA, status: excluded, reason: operator}

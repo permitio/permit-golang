@@ -57,6 +57,14 @@ var routes = []Route{
 	},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors", "get_role_ancestors"},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/roles", "create_role"},
+	{
+		"POST", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions",
+		"assign_permissions_to_role",
+	},
+	{
+		"DELETE", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions",
+		"remove_permissions_from_role",
+	},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/tenants", "create_tenant"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants", "list_tenants"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},
@@ -664,4 +672,27 @@ func TestNewChecksConfig(t *testing.T) {
 	if errs := tb.take(); !slices.Equal(errs, want) {
 		t.Errorf("New reported %q, want %q", errs, want)
 	}
+}
+
+// TestRolePermissions checks the grants and removals of the permissions of a role, which keep the
+// permissions that the role has, skip one that it has already or does not have, and answer 404
+// for a role that does not exist.
+func TestRolePermissions(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	roles := "/v2/schema/proj/dev/roles"
+	viewer := h.expect(200, "POST", roles, `{"key": "viewer", "name": "Viewer"}`, projectKey)
+	for _, tc := range []struct{ method, body, want string }{
+		{"POST", `{"permissions": ["doc:read", "doc:write"]}`, "[doc:read doc:write]"},
+		{"POST", `{"permissions": ["doc:read", "doc:share"]}`, "[doc:read doc:write doc:share]"},
+		{"DELETE", `{"permissions": ["doc:write", "doc:none"]}`, "[doc:read doc:share]"},
+		{"DELETE", `{"permissions": ["doc:read", "doc:share"]}`, "[]"},
+	} {
+		role := h.expect(200, tc.method, roles+"/viewer/permissions", tc.body, projectKey)
+		if got := fmt.Sprint(role["permissions"]); got != tc.want || role["id"] != viewer["id"] {
+			t.Errorf("%s %s answered the role %v, want the permissions %s", tc.method, tc.body,
+				role, tc.want)
+		}
+	}
+	h.expect(404, "POST", roles+"/none/permissions", `{"permissions": ["doc:read"]}`, projectKey)
 }

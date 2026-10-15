@@ -440,6 +440,35 @@ change from v1 and what to use instead.
   is sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or 504
   reply or a failed connection too.
 
+### Roles
+
+- The `Roles` field of the client, a `*permit.RolesService`, lists, reads, creates, changes and
+  deletes the roles of the environment of the client's scope: `List` returns a page as a
+  `*permit.Page[models.RoleRead]` and `All` reads every page, 100 roles at a time; `Get` reads one
+  role by its key or its ID, in place of v1's `Get`, `GetById` and `GetByKey`; `Create` takes a
+  `models.RoleCreate` and `Update` a `models.RoleUpdate`, and each returns the role as a
+  `*models.RoleRead`; `Delete` deletes a role.
+- The attributes of a role are a `models.Attributes`, whose values may be of any JSON type, in
+  place of v1's `map[string]string`: v1 failed on a reply with a role whose attribute was a
+  number, a boolean or an object.
+- v1's `ListByAttributes` is the `Attributes` of `permit.RolesListOptions`, which `List` and `All`
+  send in the query parameters `attr_<name>`, each a `permit.AttributeFilter`, as for the tenants.
+- `AssignPermissions` and `RemovePermissions` return the role after the change, where v1 returned
+  only an error; a nil slice of permissions sends `[]`.
+- In `models.RoleUpdate`, `Permissions` and `Extends` are plain slices, each sent as a whole: nil
+  leaves the list out, and the role keeps it; an empty slice sends `[]`, which clears it; and a
+  list replaces it. `Description`, `Attributes` and `GrantedTo` are `models.Optional` fields, so
+  an update can send null for them, which clears them; v1 could not send null for a description
+  or attributes.
+- v1's `AddParentRole` and `RemoveParentRole` are removed: they sent a route that the API's
+  documentation does not list. A role's parents are the roles that it extends: set them with the
+  `Extends` of `Update`.
+- A key of a role is sent as one segment of the path, escaped; an empty key, `.` or `..` is an
+  error that matches `ErrInvalidConfig`, and no request for the call is sent. `Delete` returns
+  nil when the API answers 404, as the role is gone already; a 404 to `RemovePermissions` is an
+  error that matches `ErrNotFound`. `Create` is sent again after a 429 only; the other calls are
+  sent again after a 500, 502, 503 or 504 reply or a failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

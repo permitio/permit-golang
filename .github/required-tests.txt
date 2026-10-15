@@ -1108,6 +1108,25 @@ github.com/permitio/permit-golang/v2 TestMalformedResourceRelationReplies
 github.com/permitio/permit-golang/v2 TestResourceRelationsAfterClose
 github.com/permitio/permit-golang/v2 ExampleResourceRelationsService
 
+github.com/permitio/permit-golang/v2 TestRoleAttributesOfAnyType
+github.com/permitio/permit-golang/v2 TestRolesAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestRolesAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestRolesAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestRolesListReturnsAPage
+github.com/permitio/permit-golang/v2 TestRoleAttributeFilters
+github.com/permitio/permit-golang/v2 TestInvalidRoleListOptions
+github.com/permitio/permit-golang/v2 TestRolesUseTheScope
+github.com/permitio/permit-golang/v2 TestRoleKeysInThePath
+github.com/permitio/permit-golang/v2 TestRolesSendNoParentRoute
+github.com/permitio/permit-golang/v2 TestDeleteRoleThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherRoleCalls
+github.com/permitio/permit-golang/v2 TestRoleBodies
+github.com/permitio/permit-golang/v2 TestRoleBodiesThatCannotBeJSON
+github.com/permitio/permit-golang/v2 TestRoleRetries
+github.com/permitio/permit-golang/v2 TestMalformedRoleReplies
+github.com/permitio/permit-golang/v2 TestRolesAfterClose
+github.com/permitio/permit-golang/v2 ExampleRolesService
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1158,6 +1177,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoutes
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestParents
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceInstances
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestAttributeFilters
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestRolePermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1180,6 +1200,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_lifecyc
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_relation_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

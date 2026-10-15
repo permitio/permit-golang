@@ -18,6 +18,9 @@ const (
 	opCopy           = "copy_environment"
 	opCopyAsync      = "copy_environment_async"
 	opCopyResult     = "get_copy_environment_async_result"
+
+	opAssignRolePermissions = "assign_permissions_to_role"
+	opRemoveRolePermissions = "remove_permissions_from_role"
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -44,6 +47,11 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 		return f.unsupported(rt)
 	case opCopyResult:
 		return f.copyResult(segments)
+	case opAssignRolePermissions, opRemoveRolePermissions:
+		if fields != nil {
+			return f.rolePermissions(rt.Op, segments, fields)
+		}
+		return f.unsupported(rt)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
@@ -315,6 +323,29 @@ func (f *Fake) copyResult(segments []string) (int, any) {
 		}
 	}
 	return http.StatusNotFound, errorBody("NOT_FOUND", "no task "+segments[len(segments)-2])
+}
+
+// rolePermissions answers a grant, op assign_permissions_to_role, or a removal, op
+// remove_permissions_from_role, of the permissions of fields to or from the role of the path,
+// which has segments, with IDs in place of keys, as resolve found it: the role with the
+// permissions that it did not have added, or with those of fields left out, as the Permit API
+// skips a permission that the role has already, or does not have. The caller holds f.mu.
+func (f *Fake) rolePermissions(op string, segments []string, fields object) (int, any) {
+	role, _ := find(f.store[collectionOf(segments[:6])], segments[6])
+	have, _ := role["permissions"].([]any)
+	given, _ := fields["permissions"].([]any)
+	kept := slices.DeleteFunc(append([]any{}, have...), func(p any) bool {
+		return op == opRemoveRolePermissions && slices.Contains(given, p)
+	})
+	if op == opAssignRolePermissions {
+		for _, p := range given {
+			if !slices.Contains(kept, p) {
+				kept = append(kept, p)
+			}
+		}
+	}
+	role["permissions"] = kept
+	return http.StatusOK, role
 }
 
 // unsupported fails the test for a request that the fake does not implement, such as a POST

@@ -70,6 +70,10 @@ type Client struct {
 	// environment of the client's scope.
 	ResourceRelations *ResourceRelationsService `json:"-"`
 
+	// Roles lists, reads, creates, changes and deletes the roles of the environment of the
+	// client's scope, and changes their permissions.
+	Roles *RolesService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -164,6 +168,7 @@ func New(opts ...Option) (*Client, error) {
 	c.ResourceActionGroups = &ResourceActionGroupsService{client: c}
 	c.ResourceAttributes = &ResourceAttributesService{client: c}
 	c.ResourceRelations = &ResourceRelationsService{client: c}
+	c.Roles = &RolesService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

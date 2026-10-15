@@ -116,6 +116,14 @@ var cloudScenarios = []scenario{
 		run: resourceRelationLifecycle,
 	},
 	{
+		name: "role_lifecycle", methods: []string{
+			"RolesService.Create", "RolesService.Get", "RolesService.List", "RolesService.All",
+			"RolesService.Update", "RolesService.AssignPermissions",
+			"RolesService.RemovePermissions", "RolesService.Delete",
+		},
+		run: roleLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

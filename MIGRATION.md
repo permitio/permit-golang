@@ -2020,6 +2020,176 @@ returned an error with the code `NotFound`. A mistyped key of the relation or of
 returns nil too, so check the keys before a delete that must remove something. Any other error
 status is a `*permit.Error` with the status and the body.
 
+<a id="M-roles-1"></a>
+### M-roles-1: Roles becomes Client.Roles, which acts on the environment of the scope
+
+- v1: `api.Roles`
+- v1: `api.NewRolesApi`
+- v2: `permit.RolesService`
+
+Call the methods of the roles on the `Roles` field of the client, `client.Roles`, in place of
+`client.Api.Roles`; `permit.New` builds it, so nothing takes the place of `api.NewRolesApi`. Each
+method takes a `context.Context` first, and acts on the environment of the client's scope, as
+v1's methods acted on the environment of the client's context: `permit.WithScope`, or else the
+scope of the API key, which the client looks up once, as [M-scope-2](#M-scope-2) says. A scope
+without an environment, such as that of a project-level API key without `permit.WithScope`, is an
+error that matches `permit.ErrInvalidConfig`, with no request for the call. Every method returns a
+`*permit.Error`, or an error that wraps one, as [M-errors-1](#M-errors-1) says. v1's
+`BulkAssignRole` and `BulkUnAssignRole` assign roles to users; they move with the role
+assignments.
+
+The role models keep their names and change their fields: `models.RoleRead` has `ID`,
+`OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`, `OrganizationId`, `ProjectId`
+and `EnvironmentId`; its description is a plain string, empty when the reply has none, in place
+of a pointer; `CreatedAt` and `UpdatedAt` are `models.Time`, which embeds `time.Time`; and it has
+`GrantedTo` and the v1compat fields of the reply, which v1 dropped. `Attributes` is a
+`models.Attributes`, a map of any JSON value whose numbers are `json.Number`, as
+[M-models-1](#M-models-1) says, in place of a `map[string]string`: v1 failed to read a reply
+with a role whose attribute was a number, a boolean or an object, also after the API had created
+or changed the role. Build `models.RoleCreate` and `models.RoleUpdate` as struct literals, in
+place of their constructors and setters.
+
+<a id="M-roles-2"></a>
+### M-roles-2: RoleRead of package api becomes models.RoleRead
+
+- v1: `api.RoleRead`
+- v2: `models.RoleRead`
+
+v1's `api.RoleRead` embedded `models.RoleRead`, and no method returned it. Use `models.RoleRead`,
+which every method of `permit.RolesService` that returns a role returns, as
+[M-roles-1](#M-roles-1) says.
+
+<a id="M-roles-3"></a>
+### M-roles-3: GetById and GetByKey become Get
+
+- v1: `api.Roles.Get`
+- v1: `api.Roles.GetById`
+- v1: `api.Roles.GetByKey`
+- v2: `permit.RolesService.Get`
+
+`RolesService.Get(ctx, roleKey)` takes the key or the ID of the role, as all three v1 methods
+sent the same request: pass `id.String()` for a `uuid.UUID`. A key that holds a `/` or a `%` is
+sent escaped, as one segment of the path, and an empty key, `.` or `..` is an error that matches
+`permit.ErrInvalidConfig`, with no request for the role. A role that the environment does not
+have is a `*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-roles-4"></a>
+### M-roles-4: List and ListByAttributes become List with RolesListOptions
+
+- v1: `api.Roles.List`
+- v1: `api.Roles.ListByAttributes`
+- v2: `permit.RolesService.List`
+
+`RolesService.List(ctx, opts)` takes a `*permit.RolesListOptions`, nil for the first page of
+every role with the API's default of 30 roles, in place of the page and the number of roles as
+two ints, and returns a `*permit.Page[models.RoleRead]`, as [M-lists-1](#M-lists-1) says. v1
+failed for more than 100 roles on a page before any request; v2 sends the number as given, and
+the API answers above 100 with an error. `RolesService.All(ctx, opts)` returns an
+`iter.Seq2[models.RoleRead, error]` that reads every page, 100 roles at a time.
+
+The `Attributes` of the options take the place of `ListByAttributes`: each
+`permit.AttributeFilter`, which `permit.AttributeEquals(name, value)` builds, keeps the roles
+whose attribute `name` equals the value, and is sent as the query parameter `attr_<name>`, as v1
+sent each entry of its map, with the rules of [M-tenants-3](#M-tenants-3), such as
+`client.Roles.List(ctx, &permit.RolesListOptions{Attributes: []permit.AttributeFilter{permit.AttributeEquals("tier", "gold")}})`
+in place of
+`client.Api.Roles.ListByAttributes(ctx, 1, 30, map[string]interface{}{"tier": "gold"})`.
+
+<a id="M-roles-5"></a>
+### M-roles-5: Roles.Create takes models.RoleCreate as a struct literal
+
+- v1: `api.Roles.Create`
+- v2: `permit.RolesService.Create`
+
+`RolesService.Create(ctx, role)` sends the `models.RoleCreate`: its key and its name always, and
+its other fields when they are set, an empty slice of permissions or of the roles that it
+extends as `[]` and an empty map of attributes as `{}`. Its attributes take values of any JSON
+type, as [M-roles-1](#M-roles-1) says, and `GrantedTo`, which v1 did not have, says how users get
+the role through their roles on related resources. A key that another role of the environment has
+is a `*permit.Error` that matches `permit.ErrConflict`. Create is sent again only after a 429, as
+[M-wire-5](#M-wire-5) says, as the API may have created the role when a request got no complete
+reply.
+
+<a id="M-roles-6"></a>
+### M-roles-6: Roles.Update takes models.RoleUpdate, which can send null
+
+- v1: `api.Roles.Update`
+- v2: `permit.RolesService.Update`
+
+Build the change as a struct literal of `models.RoleUpdate`, in place of `models.NewRoleUpdate`
+and its setters. The request holds only the fields that are set. `Permissions` and `Extends` are
+plain slices, each sent as a whole in place of the role's list: nil leaves the list out, and the
+role keeps it; an empty slice that is not nil sends `[]`, which clears it; and a list replaces
+it. `Description` is a `models.Optional[string]`, `Attributes` a
+`models.Optional[models.Attributes]` and `GrantedTo` a
+`models.Optional[models.DerivedRoleBlockEdit]`: unset leaves the field out, `models.Null` sends
+null, which clears it, and `models.Some` sends the value. v1 could not send null for the
+description or the attributes, and had no `GrantedTo`. An update is sent again after a 500, 502,
+503 or 504 reply or a failed connection, as sending it twice sets the same fields.
+
+<a id="M-roles-7"></a>
+### M-roles-7: Roles.Delete of a role that is gone returns nil
+
+- v1: `api.Roles.Delete`
+- v2: `permit.RolesService.Delete`
+
+`RolesService.Delete(ctx, roleKey)` returns nil when the API answers 404, as the role is gone
+already, such as when a retry follows a delete that succeeded; v1 returned an error. A mistyped
+key returns nil too, so check the key before a delete that must remove something. Any other error
+status is a `*permit.Error` with the status and the body.
+
+<a id="M-roles-8"></a>
+### M-roles-8: AssignPermissions returns the role
+
+- v1: `api.Roles.AssignPermissions`
+- v2: `permit.RolesService.AssignPermissions`
+
+`RolesService.AssignPermissions(ctx, roleKey, permissions)` takes the same arguments as v1's, and
+returns the role as the API stores it after the grant, a `*models.RoleRead`, with the error, in
+place of the error alone. A nil slice sends `[]`, as an empty one does. A 404 is a
+`*permit.Error` that matches `permit.ErrNotFound`, such as when the environment has no such role.
+It is sent again after a 500, 502, 503 or 504 reply or a failed connection, as v1's documentation
+says that the API skips a permission that the role has already.
+
+<a id="M-roles-9"></a>
+### M-roles-9: RemovePermissions returns the role
+
+- v1: `api.Roles.RemovePermissions`
+- v2: `permit.RolesService.RemovePermissions`
+
+`RolesService.RemovePermissions(ctx, roleKey, permissions)` takes the same arguments as v1's, and
+returns the role as the API stores it after the removal, a `*models.RoleRead`, with the error, in
+place of the error alone. A nil slice sends `[]`, as an empty one does. A 404 is a
+`*permit.Error` that matches `permit.ErrNotFound`, such as when the environment has no such role,
+and not a removal that happened already, as the body names what to remove. It is sent again after
+a 500, 502, 503 or 504 reply or a failed connection, as v1's documentation says that the API skips
+a permission that the role does not have.
+
+<a id="M-roles-10"></a>
+### M-roles-10: AddParentRole and RemoveParentRole become Update with Extends
+
+- v1: `api.Roles.AddParentRole`
+- v1: `api.Roles.RemoveParentRole`
+- v1: `openapi.RolesApiService.AddParentRole`
+- v1: `openapi.RolesApiService.RemoveParentRole`
+- v2: replaced by `permit.RolesService.Update`
+- Bug fix: could never work before
+
+v1's parent methods sent `PUT` and `DELETE` to `/v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id}`,
+a route that the API's documentation does not list. A role's parents are the roles that it
+extends: read the role with `RolesService.Get`, and send its `Extends` with the parent added or
+removed in `models.RoleUpdate.Extends` with `RolesService.Update`, as the update replaces the
+whole list:
+
+```go
+role, err := client.Roles.Get(ctx, "editor")
+if err != nil {
+	return err
+}
+extends := append(slices.Clone(role.Extends), "viewer")
+_, err = client.Roles.Update(ctx, "editor", models.RoleUpdate{Extends: extends})
+```
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -2190,6 +2360,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.APIKeyScopeRead` | `models.APIKeyScopeRead` |
 | `models.ActionBlockEditable` | `models.ActionBlockEditable` |
 | `models.ActionBlockRead` | `models.ActionBlockRead` |
+| `models.AddRolePermissions` | `models.AddRolePermissions` |
 | `models.AttributeBlockEditable` | `models.AttributeBlockEditable` |
 | `models.AttributeBlockRead` | `models.AttributeBlockRead` |
 | `models.AttributeType` | `models.AttributeType` |
@@ -2215,6 +2386,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.RelationBlockRead` | `models.RelationBlockRead` |
 | `models.RelationCreate` | `models.RelationCreate` |
 | `models.RelationRead` | `models.RelationRead` |
+| `models.RemoveRolePermissions` | `models.RemoveRolePermissions` |
 | `models.ResourceActionCreate` | `models.ResourceActionCreate` |
 | `models.ResourceActionGroupCreate` | `models.ResourceActionGroupCreate` |
 | `models.ResourceActionGroupRead` | `models.ResourceActionGroupRead` |
@@ -2228,10 +2400,13 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceReplace` | `models.ResourceReplace` |
 | `models.ResourceRoleRead` | `models.ResourceRoleRead` |
 | `models.ResourceUpdate` | `models.ResourceUpdate` |
+| `models.RoleCreate` | `models.RoleCreate` |
+| `models.RoleRead` | `models.RoleRead` |
+| `models.RoleUpdate` | `models.RoleUpdate` |
 | `models.TenantCreate` | `models.TenantCreate` |
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 337 of the 384 types of v1's pkg/models.
+Not mapped yet: 332 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

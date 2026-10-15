@@ -220,3 +220,28 @@ allow:
       sent null for its description, which clears it, and the published spec types the
       description as a string only
     trigger: when the published spec allows null for the description of ResourceAttributeRead
+  - key: model RoleCreate field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of a create of a role, which v1 never
+      sent, so RoleCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_settings of a create of a role
+  - key: model RoleCreate field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of a create of a role, which v1 never
+      sent, so RoleCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_attributes of a create of a role
+  - key: model RoleCreate field v1compat_is_built_in
+    reason: >-
+      the API's documentation hides the v1compat_is_built_in of a create of a role, which v1 never
+      sent, so RoleCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_is_built_in of a create of a role
+  - key: model RoleUpdate field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of an update of a role, which v1 never
+      sent, so RoleUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_settings of an update of a role
+  - key: model RoleUpdate field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of an update of a role, which v1 never
+      sent, so RoleUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_attributes of an update of a role

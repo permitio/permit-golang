@@ -88,7 +88,9 @@ type Op struct {
 
 	// DeleteSelf says that the operation is a DELETE whose path names the object it deletes, so
 	// that a 404 means that the object is gone already. A removal whose body names what it
-	// removes, such as a role assignment, is not one: there, a 404 can mean a mistyped key.
+	// removes, such as a role assignment, is not one: there, a 404 can mean a mistyped key. Only
+	// a call that reads no reply returns nil for the 404, so an operation with a ResponseModel
+	// cannot have it.
 	DeleteSelf bool
 
 	// NoRetry says that the request is never sent twice, not even after a 429, as a second
@@ -154,6 +156,10 @@ func (op Op) check() error {
 	}
 	if op.DeleteSelf && op.Method != http.MethodDelete {
 		return fmt.Errorf("DeleteSelf is set on a %s; only a DELETE deletes its object", op.Method)
+	}
+	if op.DeleteSelf && op.ResponseModel != "" {
+		return fmt.Errorf("DeleteSelf is set with the ResponseModel %s; only a call that reads no "+
+			"reply returns nil for a 404", op.ResponseModel)
 	}
 	if op.WaitsForSync && !op.Facts {
 		return errors.New("WaitsForSync is set without Facts; only a facts operation waits")

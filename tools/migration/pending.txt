@@ -36,10 +36,8 @@ api.NewResourceRolesApi resource-roles
 api.RoleAssignments role-assignments
 api.RoleAssignments.* role-assignments
 api.NewRoleAssignmentsApi role-assignments
-api.RoleRead roles
-api.Roles roles
-api.Roles.* roles
-api.NewRolesApi roles
+api.Roles.BulkAssignRole role-assignments
+api.Roles.BulkUnAssignRole role-assignments
 api.Tenants.ListTenantUsers tenants
 api.Users users
 api.Users.* users
@@ -80,7 +78,6 @@ openapi.PolicyDecisionPointsApiService.* pdp-configs
 openapi.PolicyGitRepositoriesApiService.* policy-repos
 openapi.ResourceRolesApiService.* resource-roles
 openapi.RoleAssignmentsApiService.* role-assignments
-openapi.RolesApiService.* roles
 openapi.TenantsApiService.* tenants
 openapi.UserAttributesApiService.* user-attributes
 openapi.UsersApiService.* users

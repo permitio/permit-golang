@@ -120,6 +120,8 @@ models: type ActionBlockRead struct, Key string
 models: type ActionBlockRead struct, Name string
 models: type ActionBlockRead struct, V1CompatName string
 models: type ActionBlockRead struct, V1CompatPath string
+models: type AddRolePermissions struct
+models: type AddRolePermissions struct, Permissions []string
 models: type AttributeBlockEditable struct
 models: type AttributeBlockEditable struct, Description string
 models: type AttributeBlockEditable struct, Type AttributeType
@@ -289,6 +291,8 @@ models: type RelationRead struct, ProjectID string
 models: type RelationRead struct, SubjectResource string
 models: type RelationRead struct, SubjectResourceID string
 models: type RelationRead struct, UpdatedAt Time
+models: type RemoveRolePermissions struct
+models: type RemoveRolePermissions struct, Permissions []string
 models: type ResourceActionCreate struct
 models: type ResourceActionCreate struct, Attributes Attributes
 models: type ResourceActionCreate struct, Description string
@@ -429,6 +433,37 @@ models: type RoleBlockEditable struct, Extends []string
 models: type RoleBlockEditable struct, GrantedTo *DerivedRoleBlockEdit
 models: type RoleBlockEditable struct, Name string
 models: type RoleBlockEditable struct, Permissions []string
+models: type RoleCreate struct
+models: type RoleCreate struct, Attributes Attributes
+models: type RoleCreate struct, Description string
+models: type RoleCreate struct, Extends []string
+models: type RoleCreate struct, GrantedTo *DerivedRoleBlockEdit
+models: type RoleCreate struct, Key string
+models: type RoleCreate struct, Name string
+models: type RoleCreate struct, Permissions []string
+models: type RoleRead struct
+models: type RoleRead struct, Attributes Attributes
+models: type RoleRead struct, CreatedAt Time
+models: type RoleRead struct, Description string
+models: type RoleRead struct, EnvironmentID string
+models: type RoleRead struct, Extends []string
+models: type RoleRead struct, GrantedTo *DerivedRoleBlockRead
+models: type RoleRead struct, ID string
+models: type RoleRead struct, Key string
+models: type RoleRead struct, Name string
+models: type RoleRead struct, OrganizationID string
+models: type RoleRead struct, Permissions []string
+models: type RoleRead struct, ProjectID string
+models: type RoleRead struct, UpdatedAt Time
+models: type RoleRead struct, V1CompatAttributes Attributes
+models: type RoleRead struct, V1CompatSettings Attributes
+models: type RoleUpdate struct
+models: type RoleUpdate struct, Attributes Optional[Attributes]
+models: type RoleUpdate struct, Description Optional[string]
+models: type RoleUpdate struct, Extends []string
+models: type RoleUpdate struct, GrantedTo Optional[DerivedRoleBlockEdit]
+models: type RoleUpdate struct, Name string
+models: type RoleUpdate struct, Permissions []string
 models: type Secret struct
 models: type StringOrList struct
 models: type TaskResultEnvironmentRead struct
@@ -551,6 +586,14 @@ permit: method (*ResourcesService) Get(ctx context.Context, resourceKey string) 
 permit: method (*ResourcesService) List(ctx context.Context, opts *ResourcesListOptions) (*Page[models.ResourceRead], error)
 permit: method (*ResourcesService) Replace(ctx context.Context, resourceKey string, resource models.ResourceReplace) (*models.ResourceRead, error)
 permit: method (*ResourcesService) Update(ctx context.Context, resourceKey string, update models.ResourceUpdate) (*models.ResourceRead, error)
+permit: method (*RolesService) All(ctx context.Context, opts *RolesListOptions) iter.Seq2[models.RoleRead, error]
+permit: method (*RolesService) AssignPermissions(ctx context.Context, roleKey string, permissions []string) (*models.RoleRead, error)
+permit: method (*RolesService) Create(ctx context.Context, role models.RoleCreate) (*models.RoleRead, error)
+permit: method (*RolesService) Delete(ctx context.Context, roleKey string) error
+permit: method (*RolesService) Get(ctx context.Context, roleKey string) (*models.RoleRead, error)
+permit: method (*RolesService) List(ctx context.Context, opts *RolesListOptions) (*Page[models.RoleRead], error)
+permit: method (*RolesService) RemovePermissions(ctx context.Context, roleKey string, permissions []string) (*models.RoleRead, error)
+permit: method (*RolesService) Update(ctx context.Context, roleKey string, update models.RoleUpdate) (*models.RoleRead, error)
 permit: method (*TenantsService) All(ctx context.Context, opts *TenantsListOptions) iter.Seq2[models.TenantRead, error]
 permit: method (*TenantsService) Create(ctx context.Context, tenant models.TenantCreate) (*models.TenantRead, error)
 permit: method (*TenantsService) Delete(ctx context.Context, tenantKey string) error
@@ -602,6 +645,7 @@ permit: type Client struct, ResourceActions *ResourceActionsService
 permit: type Client struct, ResourceAttributes *ResourceAttributesService
 permit: type Client struct, ResourceRelations *ResourceRelationsService
 permit: type Client struct, Resources *ResourcesService
+permit: type Client struct, Roles *RolesService
 permit: type Client struct, Tenants *TenantsService
 permit: type CopyResultOptions struct
 permit: type CopyResultOptions struct, Wait time.Duration
@@ -670,6 +714,10 @@ permit: type ResourcesService struct
 permit: type RetryPolicy struct
 permit: type RetryPolicy struct, MaxBackoff time.Duration
 permit: type RetryPolicy struct, MaxRetries int
+permit: type RolesListOptions struct
+permit: type RolesListOptions struct, Attributes []AttributeFilter
+permit: type RolesListOptions struct, embedded ListOptions
+permit: type RolesService struct
 permit: type Scope struct
 permit: type Scope struct, Environment string
 permit: type Scope struct, Project string

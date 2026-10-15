@@ -1,0 +1,1 @@
+{"permissions":["document:read","document:write"],"extends":["viewer","commenter"]}

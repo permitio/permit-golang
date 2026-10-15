@@ -342,6 +342,48 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The roles of an environment, each at the environment level, as v1 sends them too. These key
+	// levels are not measured yet: the phase api.roles of the local harness confirms them. The
+	// list is a JSON array or a paginated object of at most 100 roles. A PATCH sets the fields
+	// that it names to the values that it gives, so it does the same when sent twice; so does a
+	// grant or a removal of permissions, which v1's documentation says skips a permission that
+	// the role has already, or does not have. A create does not. A removal of permissions names
+	// them in its body, so a 404 to it is an error.
+	{
+		ID: "list_roles", Method: http.MethodGet, Route: "/v2/schema/{proj_id}/{env_id}/roles",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "RoleRead",
+	},
+	{
+		ID: "create_role", Method: http.MethodPost, Route: "/v2/schema/{proj_id}/{env_id}/roles",
+		KeyLevel: EnvironmentLevel, RequestModel: "RoleCreate", ResponseModel: "RoleRead",
+	},
+	{
+		ID: "get_role", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/roles/{role_id}", Idempotent: true,
+		KeyLevel: EnvironmentLevel, ResponseModel: "RoleRead",
+	},
+	{
+		ID: "update_role", Method: http.MethodPatch,
+		Route: "/v2/schema/{proj_id}/{env_id}/roles/{role_id}", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "RoleUpdate", ResponseModel: "RoleRead",
+	},
+	{
+		ID: "delete_role", Method: http.MethodDelete,
+		Route: "/v2/schema/{proj_id}/{env_id}/roles/{role_id}", Idempotent: true,
+		KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+	{
+		ID: "assign_permissions_to_role", Method: http.MethodPost,
+		Route: "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "AddRolePermissions", ResponseModel: "RoleRead",
+	},
+	{
+		ID: "remove_permissions_from_role", Method: http.MethodDelete,
+		Route: "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "RemoveRolePermissions",
+		ResponseModel: "RoleRead",
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

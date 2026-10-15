@@ -192,6 +192,30 @@
     "ResourcesService.Update": [
       "update_resource"
     ],
+    "RolesService.All": [
+      "list_roles"
+    ],
+    "RolesService.AssignPermissions": [
+      "assign_permissions_to_role"
+    ],
+    "RolesService.Create": [
+      "create_role"
+    ],
+    "RolesService.Delete": [
+      "delete_role"
+    ],
+    "RolesService.Get": [
+      "get_role"
+    ],
+    "RolesService.List": [
+      "list_roles"
+    ],
+    "RolesService.RemovePermissions": [
+      "remove_permissions_from_role"
+    ],
+    "RolesService.Update": [
+      "update_role"
+    ],
     "TenantsService.All": [
       "list_tenants"
     ],

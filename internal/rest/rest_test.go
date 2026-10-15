@@ -124,6 +124,14 @@ func TestCheckRejectsInvalidOps(t *testing.T) {
 			"DeleteSelf is set on a GET; only a DELETE deletes its object",
 		},
 		{
+			"DeleteSelf with a reply model",
+			func(op *Op) {
+				op.Method, op.DeleteSelf, op.ResponseModel = http.MethodDelete, true, "RoleRead"
+			},
+			"DeleteSelf is set with the ResponseModel RoleRead; only a call that reads no reply " +
+				"returns nil for a 404",
+		},
+		{
 			"WaitsForSync without Facts", func(op *Op) { op.WaitsForSync, op.Facts = true, false },
 			"WaitsForSync is set without Facts; only a facts operation waits",
 		},

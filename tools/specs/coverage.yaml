@@ -322,15 +322,15 @@ control-plane:
   - {op: bulk_unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: planned}
   - {op: list_role_assignments_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed", stage: GA, status: planned}
   # Roles
-  - {op: list_roles, route: "GET /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: planned}
-  - {op: create_role, route: "POST /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: planned}
-  - {op: get_role, route: "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: planned}
-  - {op: update_role, route: "PATCH /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: planned}
-  - {op: delete_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: planned}
+  - {op: list_roles, route: "GET /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: covered}
+  - {op: create_role, route: "POST /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: covered}
+  - {op: get_role, route: "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: update_role, route: "PATCH /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: delete_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: covered}
   - {op: get_role_ancestors, route: "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors", stage: GA, status: planned}
   - {op: get_role_descendants, route: "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}/descendants", stage: GA, status: planned}
-  - {op: assign_permissions_to_role, route: "POST /v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", stage: GA, status: planned}
-  - {op: remove_permissions_from_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", stage: GA, status: planned}
+  - {op: assign_permissions_to_role, route: "POST /v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", stage: GA, status: covered}
+  - {op: remove_permissions_from_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", stage: GA, status: covered}
   # Scope Configurations
   - {op: get_scope_config, route: "GET /v2/projects/{proj_id}/{env_id}/opal_scope", stage: GA, status: excluded, reason: project-setup}
   - {op: set_scope_config, route: "PUT /v2/projects/{proj_id}/{env_id}/opal_scope", stage: GA, status: excluded, reason: project-setup}
@@ -490,7 +490,7 @@ sdk_only_params:
     reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; a check against the local stack showed that the API applies a string attribute filter to the actions of a resource."
   - op: list_roles
     param: "attr_*"
-    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; the SDK keeps them until a check against the API shows whether it applies them."
+    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; a check against the local stack showed that the API applies a string attribute filter to the roles of an environment."
   - op: list_tenants
     param: "attr_*"
     reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; a check against the local stack showed that the API applies them, so the SDK keeps them."

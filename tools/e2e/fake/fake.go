@@ -17,8 +17,9 @@
 // none. Deleting an environment revokes its API keys. Each request body goes through the check that
 // the fake is given, such as the structural walker of tools/drift, and a body that the check
 // rejects gets 422. The fake also serves the scope of an API key and the API key of an environment,
-// which it makes up, and the statistics and the copies of an environment, as stats and
-// copyEnvironment say.
+// which it makes up, the statistics and the copies of an environment, as stats and
+// copyEnvironment say, and the grants and removals of the permissions of a role, as
+// rolePermissions says.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An

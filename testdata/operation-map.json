@@ -233,6 +233,24 @@
     ],
     "TenantsService.Update": [
       "update_tenant"
+    ],
+    "UserAttributesService.All": [
+      "list_user_attributes"
+    ],
+    "UserAttributesService.Create": [
+      "create_user_attribute"
+    ],
+    "UserAttributesService.Delete": [
+      "delete_user_attribute"
+    ],
+    "UserAttributesService.Get": [
+      "get_user_attribute"
+    ],
+    "UserAttributesService.List": [
+      "list_user_attributes"
+    ],
+    "UserAttributesService.Update": [
+      "update_user_attribute"
     ]
   }
 }

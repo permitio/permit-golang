@@ -533,7 +533,10 @@ models:
   # update: null clears the description, and the API rejects null for the type. A create reads
   # null for a field that the schema does not require as the field left out, as every create
   # does, and rejects null for a required one; these null policies are not measured yet: the
-  # phase api.resource_attributes of the local harness confirms them.
+  # phase api.resource_attributes of the local harness confirms them. The routes of the
+  # attributes of the users take and return the same models; no null policy of these routes is
+  # measured yet, and the API answers 500 to an update of a user attribute: the phase
+  # api.user_attributes of the local harness measures them.
   ResourceAttributeCreate:
     schema: ResourceAttributeCreate
     fields:

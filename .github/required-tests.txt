@@ -1127,6 +1127,23 @@ github.com/permitio/permit-golang/v2 TestMalformedRoleReplies
 github.com/permitio/permit-golang/v2 TestRolesAfterClose
 github.com/permitio/permit-golang/v2 ExampleRolesService
 
+github.com/permitio/permit-golang/v2 TestUserAttributeTypes
+github.com/permitio/permit-golang/v2 TestUserAttributesAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestUserAttributesAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestUserAttributesAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestUserAttributesListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidUserAttributeListOptions
+github.com/permitio/permit-golang/v2 TestUserAttributesUseTheScope
+github.com/permitio/permit-golang/v2 TestUserAttributeKeysInThePath
+github.com/permitio/permit-golang/v2 TestUserAttributesSendNoResourceID
+github.com/permitio/permit-golang/v2 TestDeleteUserAttributeThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherUserAttributeCalls
+github.com/permitio/permit-golang/v2 TestUserAttributeBodies
+github.com/permitio/permit-golang/v2 TestUserAttributeRetries
+github.com/permitio/permit-golang/v2 TestMalformedUserAttributeReplies
+github.com/permitio/permit-golang/v2 TestUserAttributesAfterClose
+github.com/permitio/permit-golang/v2 ExampleUserAttributesService
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1201,6 +1218,8 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_group_l
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_relation_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle/update
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check
@@ -1247,6 +1266,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestContainerOnlyScenarios
 github.com/permitio/permit-golang/v2/tools/e2e TestRequiredScenarios
 github.com/permitio/permit-golang/v2/tools/e2e TestAwaitValue
 github.com/permitio/permit-golang/v2/tools/e2e TestAcceptingNull
+github.com/permitio/permit-golang/v2/tools/e2e TestSkipsUserAttributeUpdate
 
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckE2ELegs
 github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregateAdvisoryE2ELegs

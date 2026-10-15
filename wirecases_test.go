@@ -118,6 +118,7 @@ var wireCaseLists = []func() []wireCase{
 	resourceAttributeCases,
 	relationCases,
 	roleCases,
+	userAttributeCases,
 }
 
 // routeMethods are the request methods a route can have.

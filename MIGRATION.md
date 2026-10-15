@@ -2190,6 +2190,99 @@ extends := append(slices.Clone(role.Extends), "viewer")
 _, err = client.Roles.Update(ctx, "editor", models.RoleUpdate{Extends: extends})
 ```
 
+<a id="M-user-attributes-1"></a>
+### M-user-attributes-1: ListUserAttributes of the generated client becomes Client.UserAttributes.List
+
+- v1: `openapi.UserAttributesApiService.ListUserAttributes`
+- v2: `permit.UserAttributesService.List`
+
+v1 had no method of its own for the attributes of the users, the schema of what a user may hold:
+it sent their routes only through the generated `UserAttributesApiService` of `pkg/openapi`. Call
+the methods of the attributes of the users on the `UserAttributes` field of the client,
+`client.UserAttributes`, in place of that service and its request builders: each method takes a
+`context.Context` first, then its parameters, and sends its request without `Execute`. Each acts
+on the environment of the client's scope, in place of the project and the environment that each
+generated call took: `permit.WithScope`, or else the scope of the API key, which the client looks
+up once, as [M-scope-2](#M-scope-2) says. A scope without an environment, such as that of a
+project-level API key without `permit.WithScope`, is an error that matches
+`permit.ErrInvalidConfig`, with no request for the call.
+
+The `ResourceId` setters of the request builders are not carried over: no v2 method sends
+`resource_id`, so each acts on the attributes of the users alone. Call
+`permit.ResourceAttributesService` for the attributes of another resource. The methods take and
+return the models of the generated calls, `models.ResourceAttributeCreate`,
+`models.ResourceAttributeUpdate` and `models.ResourceAttributeRead`, with the fields that
+[M-resource-attributes-1](#M-resource-attributes-1) describes. Every method returns a
+`*permit.Error`, or an error that wraps one, as [M-errors-1](#M-errors-1) says, in place of the
+generated client's error and its `*http.Response`.
+
+`UserAttributesService.List(ctx, opts)` takes a `*permit.ListOptions`, nil for the first page
+with the API's default of 30 attributes, in place of the `Page` and `PerPage` setters, and
+returns a `*permit.Page[models.ResourceAttributeRead]` in place of a
+`[]models.ResourceAttributeRead`, as [M-lists-1](#M-lists-1) says.
+`UserAttributesService.All(ctx, opts)` returns an `iter.Seq2[models.ResourceAttributeRead, error]`
+that reads every page, 100 attributes at a time. v1's `ListUserAttributes` failed for the whole
+page when one attribute had the type `object` or `object_array`, as
+[M-resource-attributes-2](#M-resource-attributes-2) says of the attributes of a resource; v2
+reads every attribute of the page, of any type, also one that the API adds later.
+
+<a id="M-user-attributes-2"></a>
+### M-user-attributes-2: GetUserAttribute becomes UserAttributes.Get, which reads every attribute type
+
+- v1: `openapi.UserAttributesApiService.GetUserAttribute`
+- v2: `permit.UserAttributesService.Get`
+
+`UserAttributesService.Get(ctx, attributeKey)` takes the key or the ID of the attribute, in place
+of the project, the environment and the attribute of `GetUserAttribute`: pass `id.String()` for a
+`uuid.UUID`. A key that holds a `/` or a `%` is sent escaped, as one segment of the path, and an
+empty key, `.` or `..` is an error that matches `permit.ErrInvalidConfig`, with no request for
+the attribute. An attribute that the users do not have is a `*permit.Error` that matches
+`permit.ErrNotFound`. v2 reads an attribute of every type, where v1 failed for the type `object`
+or `object_array`.
+
+<a id="M-user-attributes-3"></a>
+### M-user-attributes-3: CreateUserAttribute becomes UserAttributes.Create, which takes the attribute as a value
+
+- v1: `openapi.UserAttributesApiService.CreateUserAttribute`
+- v2: `permit.UserAttributesService.Create`
+
+`UserAttributesService.Create(ctx, attribute)` takes the `models.ResourceAttributeCreate` as a
+struct literal, in place of the `ResourceAttributeCreate` setter of the request builder, and
+sends its key and its type always, and its description when it is not empty. A key that another
+attribute of the users has is a `*permit.Error` that matches `permit.ErrConflict`. Create is sent
+again only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created the attribute
+when a request got no complete reply. v1's `CreateUserAttribute` returned an error for an
+attribute of the type `object` or `object_array` although the API had created it, as it could not
+read the reply; v2 reads the reply, and returns the attribute of any type.
+
+<a id="M-user-attributes-4"></a>
+### M-user-attributes-4: UpdateUserAttribute becomes UserAttributes.Update, which can send null
+
+- v1: `openapi.UserAttributesApiService.UpdateUserAttribute`
+- v2: `permit.UserAttributesService.Update`
+
+`UserAttributesService.Update(ctx, attributeKey, update)` takes the key or the ID of the attribute
+and a `models.ResourceAttributeUpdate` as a struct literal, in place of the
+`ResourceAttributeUpdate` setter of the request builder. The request holds only the fields that
+are set, as [M-resource-attributes-5](#M-resource-attributes-5) says: `models.Null` sends null
+for the description, which v1 could not send. An update is sent again after a 500, 502, 503 or
+504 reply or a failed connection, as sending it twice sets the same fields. v2 reads the reply
+for an attribute of any type, where v1 failed for the type `object` or `object_array`.
+
+<a id="M-user-attributes-5"></a>
+### M-user-attributes-5: DeleteUserAttribute of an attribute that is gone returns nil
+
+- v1: `openapi.UserAttributesApiService.DeleteUserAttribute`
+- v2: `permit.UserAttributesService.Delete`
+
+`UserAttributesService.Delete(ctx, attributeKey)` sends no query: the `Page` and `PerPage`
+setters of v1's request builder, which the API's documentation lists for the route, are not
+carried over, as the request names one attribute in its path, and neither is `ResourceId`. It
+returns nil when the API answers 404, as the attribute is gone already, such as when a retry
+follows a delete that succeeded; v1 returned the error of the generated client. A mistyped key
+returns nil too, so check the key before a delete that must remove something. Any other error
+status is a `*permit.Error` with the status and the body.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>

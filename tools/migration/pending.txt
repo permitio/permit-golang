@@ -79,7 +79,6 @@ openapi.PolicyGitRepositoriesApiService.* policy-repos
 openapi.ResourceRolesApiService.* resource-roles
 openapi.RoleAssignmentsApiService.* role-assignments
 openapi.TenantsApiService.* tenants
-openapi.UserAttributesApiService.* user-attributes
 openapi.UsersApiService.* users
 
 # Block c: pkg/models

@@ -119,5 +119,11 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("list_roles.200.json")}, mockpermit.Reply{Body: `[]`})
 	servers.API.Handle("PATCH /v2/schema/{proj_id}/{env_id}/roles/{role_id}",
 		mockpermit.Reply{Body: replyFixture("update_role.200.json")})
+	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/users/attributes",
+		mockpermit.Reply{Body: replyFixture("list_user_attributes.200.json")},
+		mockpermit.Reply{Body: replyFixture("list_user_attributes.200.unknown-type.json")},
+		mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("POST /v2/schema/{proj_id}/{env_id}/users/attributes",
+		mockpermit.Reply{Body: replyFixture("create_user_attribute.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

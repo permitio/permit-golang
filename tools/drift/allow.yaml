@@ -245,3 +245,13 @@ allow:
       the API's documentation hides the v1compat_attributes of an update of a role, which v1 never
       sent, so RoleUpdate leaves it out
     trigger: when the API's documentation describes the v1compat_attributes of an update of a role
+  - key: reply list_user_attributes.200.unknown-type.json#/0/type
+    reason: >-
+      the fixture holds an attribute of the users of the type geo_point, which the published spec
+      does not list, as the API may add a type later, to check that List and All read it as it is
+    trigger: when the published spec lists geo_point as an attribute type
+  - key: reply get_user_attribute.200.unknown-type.json#/type
+    reason: >-
+      the fixture holds an attribute of the users of the type geo_point, which the published spec
+      does not list, as the API may add a type later, to check that Get reads it as it is
+    trigger: when the published spec lists geo_point as an attribute type

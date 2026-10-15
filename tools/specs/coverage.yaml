@@ -345,11 +345,11 @@ control-plane:
   - {op: add_user_to_tenant, route: "POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: planned}
   - {op: delete_tenant_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}", stage: GA, status: planned}
   # User Attributes
-  - {op: list_user_attributes, route: "GET /v2/schema/{proj_id}/{env_id}/users/attributes", stage: GA, status: planned}
-  - {op: create_user_attribute, route: "POST /v2/schema/{proj_id}/{env_id}/users/attributes", stage: GA, status: planned}
-  - {op: get_user_attribute, route: "GET /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: planned}
-  - {op: update_user_attribute, route: "PATCH /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: planned}
-  - {op: delete_user_attribute, route: "DELETE /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: planned}
+  - {op: list_user_attributes, route: "GET /v2/schema/{proj_id}/{env_id}/users/attributes", stage: GA, status: covered}
+  - {op: create_user_attribute, route: "POST /v2/schema/{proj_id}/{env_id}/users/attributes", stage: GA, status: covered}
+  - {op: get_user_attribute, route: "GET /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: covered}
+  - {op: update_user_attribute, route: "PATCH /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: covered}
+  - {op: delete_user_attribute, route: "DELETE /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: covered}
   # User Invites
   - {op: list_user_invites, route: "GET /v2/facts/{proj_id}/{env_id}/user_invites", stage: GA, status: planned}
   - {op: create_user_invite, route: "POST /v2/facts/{proj_id}/{env_id}/user_invites", stage: GA, status: planned}

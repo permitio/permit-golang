@@ -384,6 +384,42 @@ var defaultOps = []Op{
 		ResponseModel: "RoleRead",
 	},
 
+	// The attributes of the users of an environment, each at the environment level, as the
+	// routes of the schema of an environment are, such as those of the attributes of a resource:
+	// v1 sent these routes only through its generated client. These key levels are not measured
+	// yet: the phase api.user_attributes of the local harness confirms them, and records whether
+	// the API still answers 500 to an update. The list is a JSON array of at most 100 attributes.
+	// A PATCH sets the fields that it names to the values that it gives, so it does the same when
+	// sent twice; a create does not. The spec lists resource_id on each route, __user by default,
+	// and page and per_page on the delete, which names one attribute in its path; the SDK sends
+	// none of them, so the calls act on the attributes of the users alone.
+	{
+		ID: "list_user_attributes", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/users/attributes", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ResourceAttributeRead",
+	},
+	{
+		ID: "create_user_attribute", Method: http.MethodPost,
+		Route: "/v2/schema/{proj_id}/{env_id}/users/attributes", KeyLevel: EnvironmentLevel,
+		RequestModel: "ResourceAttributeCreate", ResponseModel: "ResourceAttributeRead",
+	},
+	{
+		ID: "get_user_attribute", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ResourceAttributeRead",
+	},
+	{
+		ID: "update_user_attribute", Method: http.MethodPatch,
+		Route:      "/v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "ResourceAttributeUpdate",
+		ResponseModel: "ResourceAttributeRead",
+	},
+	{
+		ID: "delete_user_attribute", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

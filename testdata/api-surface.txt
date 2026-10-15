@@ -601,6 +601,12 @@ permit: method (*TenantsService) Get(ctx context.Context, tenantKey string) (*mo
 permit: method (*TenantsService) List(ctx context.Context, opts *TenantsListOptions) (*Page[models.TenantRead], error)
 permit: method (*TenantsService) Update(ctx context.Context, tenantKey string, update models.TenantUpdate) (*models.TenantRead, error)
 permit: method (*TenantsService) WaitForSync(timeout time.Duration, opts ...SyncOption) *TenantsService
+permit: method (*UserAttributesService) All(ctx context.Context, opts *ListOptions) iter.Seq2[models.ResourceAttributeRead, error]
+permit: method (*UserAttributesService) Create(ctx context.Context, attribute models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error)
+permit: method (*UserAttributesService) Delete(ctx context.Context, attributeKey string) error
+permit: method (*UserAttributesService) Get(ctx context.Context, attributeKey string) (*models.ResourceAttributeRead, error)
+permit: method (*UserAttributesService) List(ctx context.Context, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
+permit: method (*UserAttributesService) Update(ctx context.Context, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
 permit: method (Option) Format(f fmt.State, verb rune)
 permit: method (Option) GoString() string
 permit: method (Option) LogValue() slog.Value
@@ -647,6 +653,7 @@ permit: type Client struct, ResourceRelations *ResourceRelationsService
 permit: type Client struct, Resources *ResourcesService
 permit: type Client struct, Roles *RolesService
 permit: type Client struct, Tenants *TenantsService
+permit: type Client struct, UserAttributes *UserAttributesService
 permit: type CopyResultOptions struct
 permit: type CopyResultOptions struct, Wait time.Duration
 permit: type EnvironmentsService struct
@@ -736,6 +743,7 @@ permit: type User struct, Email string
 permit: type User struct, FirstName string
 permit: type User struct, Key string
 permit: type User struct, LastName string
+permit: type UserAttributesService struct
 permit: type UserPermissionsRequest struct
 permit: type UserPermissionsRequest struct, Context map[string]any
 permit: type UserPermissionsRequest struct, ResourceTypes []string

@@ -469,6 +469,31 @@ change from v1 and what to use instead.
   error that matches `ErrNotFound`. `Create` is sent again after a 429 only; the other calls are
   sent again after a 500, 502, 503 or 504 reply or a failed connection too.
 
+### User attributes
+
+- The `UserAttributes` field of the client, a `*permit.UserAttributesService`, lists, reads,
+  creates, changes and deletes the attributes of the users of the environment of the client's
+  scope: the schema of what a user may hold, not the values of a user. v1 sent these routes only
+  through its generated client. `List` returns a page as a
+  `*permit.Page[models.ResourceAttributeRead]` and `All` reads every page, 100 attributes at a
+  time; `Get` reads one attribute by its key or its ID; `Create` takes a
+  `models.ResourceAttributeCreate` and `Update` a `models.ResourceAttributeUpdate`, and each
+  returns the attribute as a `*models.ResourceAttributeRead`, the models of the attributes of a
+  resource, as the API takes and returns them; `Delete` deletes an attribute.
+- No call sends `resource_id`, which the API's documentation lists on each route, so the calls
+  act on the attributes of the users alone; `ResourceAttributes` acts on those of another
+  resource. `List`, `All`, `Get`, `Create` and `Update` read an attribute of every type, `object`
+  and `object_array` included, and keep a type that the API adds later as it is.
+- The calls act on the environment of the client's scope, from `WithScope` or from the scope of
+  the API key, which the client looks up once; a scope without an environment is an error that
+  matches `ErrInvalidConfig`, and no request for the call is sent. Each call is sent with an
+  environment-level API key, or with a key of a wider level and `WithScope`.
+- The key of an attribute is sent as one segment of the path, escaped; an empty key, `.` or `..`
+  is an error that matches `ErrInvalidConfig`, and no request for the call is sent. `Delete`
+  sends no query, and returns nil when the API answers 404, as the attribute is gone already.
+  `Create` is sent again after a 429 only; the other calls are sent again after a 500, 502, 503
+  or 504 reply or a failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

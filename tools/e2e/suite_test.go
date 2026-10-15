@@ -124,6 +124,14 @@ var cloudScenarios = []scenario{
 		run: roleLifecycle,
 	},
 	{
+		name: "user_attribute_lifecycle", methods: []string{
+			"UserAttributesService.Create", "UserAttributesService.Get",
+			"UserAttributesService.List", "UserAttributesService.All",
+			"UserAttributesService.Update", "UserAttributesService.Delete",
+		},
+		run: userAttributeLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

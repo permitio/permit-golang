@@ -25,9 +25,9 @@ const (
 // default tenant of an environment, which the other SDKs of Permit send too.
 const defaultTenant = "default"
 
-// User is the user that a check, or [Client.UserPermissions], asks about, as the PDP gets it.
-// Build it as a struct literal, such as permit.User{Key: "alice"}. The PDP decides for the user
-// by its key, and passes the rest to the policy.
+// User is the user that a check, [Client.UserPermissions] or [Client.UserTenants] asks about, as
+// the PDP gets it. Build it as a struct literal, such as permit.User{Key: "alice"}. The PDP
+// decides for the user by its key, and passes the rest to the policy.
 type User struct {
 	// Key is the key of the user, as Permit knows the user. It must not be empty: a call for a
 	// user without a key returns an error that matches [ErrInvalidConfig] and sends no request.
@@ -129,10 +129,10 @@ func nonEmpty(m map[string]any) map[string]any {
 }
 
 // CheckOption changes a call that asks the PDP for decisions: [Client.Check],
-// [Client.FilterObjects] and [Client.AuthorizedUsers], and, as a [PermissionsOption],
-// [Client.UserPermissions]. Build one with [WithDecisionContext]. The zero CheckOption is not
-// valid: a call that gets one returns an error that matches [ErrInvalidConfig] and sends no
-// request.
+// [Client.FilterObjects], [Client.AllTenantsCheck], [Client.CheckURL], [Client.AuthorizedUsers]
+// and [Client.UserTenants], and, as a [PermissionsOption], [Client.UserPermissions]. Build one
+// with [WithDecisionContext]. The zero CheckOption is not valid: a call that gets one returns an
+// error that matches [ErrInvalidConfig] and sends no request.
 type CheckOption struct {
 	// apply sets what the option changes in s.
 	apply func(s *checkSettings)
@@ -147,9 +147,9 @@ type checkSettings struct {
 // WithDecisionContext gives the checks of a call the context decisionContext, which the PDP
 // passes to the policy beside the user, the action and the resource, such as the time of the
 // request: a map of any JSON values, such as numbers, booleans, null and nested objects and
-// arrays, which reach the PDP as they are. It gives [Client.AuthorizedUsers] and
-// [Client.UserPermissions] their context too. Nil or an empty map sends none. When a call gets
-// the option more than once, the last one wins.
+// arrays, which reach the PDP as they are. It gives [Client.AuthorizedUsers],
+// [Client.UserPermissions] and [Client.UserTenants] their context too. Nil or an empty map sends
+// none. When a call gets the option more than once, the last one wins.
 func WithDecisionContext(decisionContext map[string]any) CheckOption {
 	return CheckOption{apply: func(s *checkSettings) { s.context = decisionContext }}
 }

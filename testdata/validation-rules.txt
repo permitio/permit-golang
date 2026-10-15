@@ -24,6 +24,7 @@ decision.filter.empty the filter has no keys; give at least one, or leave the op
 decision.option.nil the PermissionsOption is nil; build options with the With functions, such as WithTenants
 decision.option.zero the CheckOption is the zero value; build options with the With functions, such as WithDecisionContext
 decision.resource-type.empty the resource type is empty; give the key of the resource type, such as document, as the PDP rejects a request without one
+decision.url.empty the URL is empty; give the URL of the request to check, as the PDP rejects a request without one
 decision.user-key.empty the user key is empty; give the key of the user, as the PDP rejects a request without one
 list.page.negative Page is less than zero; give 0 or 1 for the first page, or the number of a later page
 list.per-page.negative PerPage is less than zero; give 0 to leave the number of items on a page to the method, or a number from 1

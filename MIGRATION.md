@@ -840,6 +840,55 @@ tenant, rather than a struct, and its `Permissions` are never nil.
 builds from its user and its options; no method takes it. Call `Client.UserPermissions` with
 options instead of building a request.
 
+<a id="M-checks-23"></a>
+### M-checks-23: AllTenantsCheck takes a context.Context and options
+
+- v1: `permit.Client.AllTenantsCheck`
+- v1: `enforcement.PermitEnforcer.AllTenantsCheck`
+- v2: `permit.Client.AllTenantsCheck`
+
+`Client.AllTenantsCheck` takes a `context.Context` first, then a `permit.User`, the action as a
+string, a `permit.Resource` and options, as `Client.Check` does, and returns the tenants in which
+the PDP allows the check as a `[]permit.TenantDetails`. `permit.WithDecisionContext` gives the
+check its context, a `map[string]any`; v1's `permit.Client.AllTenantsCheck` took no context, and
+the enforcer's took a `map[string]string`:
+
+```go
+tenants, err := client.AllTenantsCheck(ctx,
+	permit.User{Key: "alice"},
+	"read",
+	permit.Resource{Type: "document"},
+	permit.WithDecisionContext(map[string]any{"business_hours": true}),
+)
+```
+
+It returns an error for every failure, and never tenants with it:
+
+- a user without a key or a resource without a type: an error that matches
+  `permit.ErrInvalidConfig`, and no request;
+- a 404 with an empty body, which is how the cloud PDP answers the route, as only the PDP
+  container serves it: an error that matches `permit.ErrContainerPDPOnly`, not
+  `permit.ErrNotFound`, after one request. Give `permit.WithPDPURL` the URL of a PDP container;
+- a reply with another error status, such as 422, or 429 after the retries: a `*permit.Error` with
+  the status and the body;
+- a reply in 200-299 that is not a JSON object with a list `allowed_tenants` of decisions, each
+  with an `allow` that is `true` or `false` and a `tenant` with a `key`: a `*permit.Error` that
+  matches `permit.ErrMalformedDecision`. v1 read a decision without `allow`, or with `allow`
+  null, as a denial, and a reply without `allowed_tenants` as no tenants.
+
+A later version of the PDP may drop the route. `Client.UserPermissions`, which every PDP serves,
+returns the permissions of a user in each tenant, under the key `__tenant:<tenant>`.
+
+<a id="M-checks-24"></a>
+### M-checks-24: AllTenantsCheckResponse has no counterpart
+
+- v1: `enforcement.AllTenantsCheckResponse`
+- v2: not exposed in v2
+
+`Client.AllTenantsCheck` returns the tenants that the PDP allows as a `[]permit.TenantDetails`: the
+SDK reads the decision of each tenant of the PDP's reply itself, and returns an error when one is
+not `true` or `false`.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -972,6 +1021,18 @@ filter without keys changes. v2 sends the context of `permit.WithDecisionContext
 type, and the keys of `permit.WithTenants`, `permit.WithResources` and `permit.WithResourceTypes`,
 in `context`, `tenants`, `resources` and `resource_types`. It sends no request for a filter
 without keys, which v1 left out of the body, as [M-checks-16](#M-checks-16) says.
+
+<a id="M-checks-25"></a>
+### M-checks-25: AllTenantsCheck sends the context it is given
+
+- v1: a `POST /allowed/all-tenants` request without a context from `permit.Client.AllTenantsCheck`, and with a context of strings from `enforcement.PermitEnforcer.AllTenantsCheck`
+- v2: a `POST /allowed/all-tenants` request with the context of `permit.WithDecisionContext`, with values of any JSON type
+
+v1's `permit.Client.AllTenantsCheck` sent no context, so a policy that reads the context saw none.
+v2 sends the context of `permit.WithDecisionContext` in `context`, with values of any JSON type,
+such as numbers, booleans and nested objects, and leaves out a nil or empty one, as a check does.
+The rest of the body is that of `Client.Check`: a resource without a tenant is sent with the tenant
+`default`.
 
 ## Kept on purpose
 

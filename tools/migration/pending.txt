@@ -84,9 +84,6 @@ config.FactsSyncTimeoutPolicyFail facts
 config.FactsSyncTimeoutPolicyIgnore facts
 
 # Block a: pkg/enforcement and pkg/permit
-enforcement.AllTenantsCheckResponse checks
-enforcement.PermitEnforcer.AllTenantsCheck checks
-permit.Client.AllTenantsCheck checks
 permit.Client.SyncUser users
 
 # Block b: operations of pkg/openapi

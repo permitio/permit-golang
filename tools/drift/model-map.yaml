@@ -82,6 +82,22 @@ models:
       action: {required: true, null_policy: rejects}
       resource: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
+  # The requests of the routes that only the PDP container serves map to the schemas of the PDP
+  # container alone: the spec of the cloud PDP does not list the routes, as the cloud PDP does not
+  # serve them, so these rows have no also.
+  CheckURLRequest:
+    spec: pdp-container
+    schema: UrlAuthorizationQuery
+    left_out:
+      sdk: >-
+        the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+        request of the SDK carries
+    fields:
+      user: {required: true, null_policy: rejects}
+      http_method: {required: true, null_policy: rejects}
+      url: {required: true, null_policy: rejects}
+      tenant: {required: true, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
   ObjectPermissions:
     spec: pdp-container
     schema: _UserPermissionsResult
@@ -146,6 +162,12 @@ models:
       tenants: {required: false, null_policy: ignores}
       resources: {required: false, null_policy: ignores}
       resource_types: {required: false, null_policy: ignores}
+      context: {required: false, null_policy: rejects}
+  UserTenantsRequest:
+    spec: pdp-container
+    schema: UserTenantsQuery
+    fields:
+      user: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property

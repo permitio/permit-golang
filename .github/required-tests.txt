@@ -874,3 +874,27 @@ github.com/permitio/permit-golang/v2 TestPermissionsAfterClose
 github.com/permitio/permit-golang/v2 FuzzPermissionsReplies
 github.com/permitio/permit-golang/v2 ExampleClient_UserPermissions
 github.com/permitio/permit-golang/v2 ExampleClient_AuthorizedUsers
+
+github.com/permitio/permit-golang/v2 TestAllTenantsCheckBodies
+github.com/permitio/permit-golang/v2 TestUserTenantsBodies
+github.com/permitio/permit-golang/v2 TestCheckURLBodies
+github.com/permitio/permit-golang/v2 TestAllTenantsCheckReturnsTheAllowedTenants
+github.com/permitio/permit-golang/v2 TestUserTenantsReturnsTheTenants
+github.com/permitio/permit-golang/v2 TestCheckURLReturnsTheDecision
+github.com/permitio/permit-golang/v2 TestContainerOnlyDecisionsOfTheCloudPDP
+github.com/permitio/permit-golang/v2 TestContainerOnlyDecisionsNotFound
+github.com/permitio/permit-golang/v2 TestContainerDecisionErrorReplies
+github.com/permitio/permit-golang/v2 TestContainerDecisionsAreRetried
+github.com/permitio/permit-golang/v2 TestContainerDecisionsWithoutAReply
+github.com/permitio/permit-golang/v2 TestContainerDecisionRepliesAddNoCredential
+github.com/permitio/permit-golang/v2 TestMalformedAllTenantsChecks
+github.com/permitio/permit-golang/v2 TestMalformedUserTenants
+github.com/permitio/permit-golang/v2 TestMalformedURLDecisions
+github.com/permitio/permit-golang/v2 TestMalformedContainerDecisionTexts
+github.com/permitio/permit-golang/v2 TestInvalidContainerDecisions
+github.com/permitio/permit-golang/v2 TestContainerDecisionBodyThatIsNotJSON
+github.com/permitio/permit-golang/v2 TestContainerDecisionsAfterClose
+github.com/permitio/permit-golang/v2 FuzzContainerDecisionReplies
+github.com/permitio/permit-golang/v2 ExampleClient_AllTenantsCheck
+github.com/permitio/permit-golang/v2 ExampleClient_UserTenants
+github.com/permitio/permit-golang/v2 ExampleClient_CheckURL

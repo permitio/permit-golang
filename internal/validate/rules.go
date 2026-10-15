@@ -161,6 +161,13 @@ var (
 			"document, as the PDP rejects a request without one",
 	}
 
+	// DecisionURLEmpty rejects a check of an empty URL, which the PDP rejects.
+	DecisionURLEmpty = Rule{
+		ID: "decision.url.empty",
+		Message: "the URL is empty; give the URL of the request to check, as the PDP rejects a " +
+			"request without one",
+	}
+
 	// DecisionUserKeyEmpty rejects a user without a key, which no PDP decides on.
 	DecisionUserKeyEmpty = Rule{
 		ID: "decision.user-key.empty",
@@ -272,6 +279,7 @@ var rules = []Rule{
 	DecisionOptionNil,
 	DecisionOptionZero,
 	DecisionResourceTypeEmpty,
+	DecisionURLEmpty,
 	DecisionUserKeyEmpty,
 	ListPageNegative,
 	ListPerPageNegative,

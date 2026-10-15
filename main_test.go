@@ -42,5 +42,12 @@ func TestMain(m *testing.M) {
 	})
 	servers.PDP.Handle("POST /authorized_users",
 		mockpermit.Reply{Body: replyFixture("authorized_users_authorized_users_post.200.json")})
+	servers.PDP.Handle("POST /allowed/all-tenants", mockpermit.Reply{
+		Body: replyFixture("is_allowed_all_tenants_allowed_all_tenants_post.200.json"),
+	})
+	servers.PDP.Handle("POST /user-tenants",
+		mockpermit.Reply{Body: replyFixture("Get_User_Tenants_user_tenants_post.200.json")})
+	servers.PDP.Handle("POST /allowed_url",
+		mockpermit.Reply{Body: replyFixture("is_allowed_url_allowed_url_post.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

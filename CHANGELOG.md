@@ -117,6 +117,29 @@ change from v1 and what to use instead.
   of authorized users without `users`, is an error that matches `ErrMalformedDecision`, never an
   empty result; v1 returned a nil map and no error for `null`. Both calls change nothing, so they
   are sent again after a 500, 502, 503 or 504 reply or a failed connection, as a check is.
+- `Client.AllTenantsCheck(ctx, user, action, resource, opts...)` takes the place of v1's
+  `AllTenantsCheck`, with one `POST /allowed/all-tenants` request: it returns the tenants in which
+  the PDP allows the check, as a `[]permit.TenantDetails`, and takes its context from
+  `WithDecisionContext`; v1's `permit.Client.AllTenantsCheck` sent no context. It sends the check
+  as `Check` does. A later version of the PDP may drop the route: `UserPermissions` returns the
+  permissions of a user in each tenant.
+- `Client.UserTenants(ctx, user, opts...)` is new: it returns the tenants of a user as a
+  `[]permit.TenantDetails`, with one `POST /user-tenants` request, and takes its context from
+  `WithDecisionContext`. The PDP lists the tenants in which the user has a role, so a user who is a
+  member of a tenant without a role in it is not listed.
+- `Client.CheckURL(ctx, user, method, url, tenant, opts...)` is new: it asks the PDP, with one
+  `POST /allowed_url` request, whether a user may send a request with an HTTP method to a URL in a
+  tenant, by the mapping rules that map URLs to resources and actions, and returns the decision
+  as a `bool`. It takes its context from `WithDecisionContext`. An empty tenant is sent as
+  `default`, and an empty URL is an error that matches `ErrInvalidConfig`, with no request.
+- Only the PDP container serves these three routes. The cloud PDP answers each with 404 and an
+  empty body, which the call returns, after that one request, as an error that matches
+  `ErrContainerPDPOnly`, not `ErrNotFound`, and names the route; a 404 with a body stays an error
+  that matches `ErrNotFound`. A reply in 200-299 that is not of the expected shape, such as a
+  decision of a tenant whose `allow` is not a boolean, a list of tenants that is `null`, or a
+  decision of a URL without `allow`, is an error that matches `ErrMalformedDecision`. The three
+  calls change nothing, so they are sent again after a 500, 502, 503 or 504 reply or a failed
+  connection, as a check is.
 
 ### Errors
 

@@ -74,3 +74,8 @@ allow:
       list when the user has none, which its spec lists as optional; the spec of the cloud PDP
       requires it, and the SDK reads an entry without it as malformed
     trigger: when the spec of the PDP container requires permissions
+  - key: model CheckURLRequest field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of a check of a URL
+    trigger: when the PDP reads the SDK of a check of a URL from its sdk field only

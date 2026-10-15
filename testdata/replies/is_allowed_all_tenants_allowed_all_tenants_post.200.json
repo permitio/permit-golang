@@ -1,0 +1,1 @@
+{"allowed_tenants":[{"tenant":{"key":"tenant-a","attributes":{"plan":"pro"}},"allow":true,"result":true,"query":{},"debug":{}},{"tenant":{"key":"tenant-b","attributes":{}},"allow":false,"result":false,"query":{},"debug":{}}]}

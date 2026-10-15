@@ -45,9 +45,11 @@ permit: func WithRetry(policy RetryPolicy) Option
 permit: func WithScope(project string, environment string) Option
 permit: func WithTenants(tenants ...string) PermissionsOption
 permit: func WithTimeout(timeout time.Duration) Option
+permit: method (*Client) AllTenantsCheck(ctx context.Context, user User, action string, resource Resource, opts ...CheckOption) ([]TenantDetails, error)
 permit: method (*Client) AuthorizedUsers(ctx context.Context, action string, resource Resource, opts ...CheckOption) (AuthorizedUsersResult, error)
 permit: method (*Client) BulkCheck(ctx context.Context, checks []CheckRequest) ([]bool, error)
 permit: method (*Client) Check(ctx context.Context, user User, action string, resource Resource, opts ...CheckOption) (bool, error)
+permit: method (*Client) CheckURL(ctx context.Context, user User, method string, url string, tenant string, opts ...CheckOption) (bool, error)
 permit: method (*Client) Close() error
 permit: method (*Client) FilterObjects(ctx context.Context, user User, action string, resources []Resource, opts ...CheckOption) ([]Resource, error)
 permit: method (*Client) Format(f fmt.State, verb rune)
@@ -56,6 +58,7 @@ permit: method (*Client) LogValue() slog.Value
 permit: method (*Client) Scope(ctx context.Context) (Scope, error)
 permit: method (*Client) String() string
 permit: method (*Client) UserPermissions(ctx context.Context, user User, opts ...PermissionsOption) (map[string]ObjectPermissions, error)
+permit: method (*Client) UserTenants(ctx context.Context, user User, opts ...CheckOption) ([]TenantDetails, error)
 permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
 permit: method (*Error) Unwrap() error
@@ -82,6 +85,12 @@ permit: type CheckRequest struct, Action string
 permit: type CheckRequest struct, Context map[string]any
 permit: type CheckRequest struct, Resource Resource
 permit: type CheckRequest struct, User User
+permit: type CheckURLRequest struct
+permit: type CheckURLRequest struct, Context map[string]any
+permit: type CheckURLRequest struct, HTTPMethod string
+permit: type CheckURLRequest struct, Tenant string
+permit: type CheckURLRequest struct, URL string
+permit: type CheckURLRequest struct, User User
 permit: type Client struct
 permit: type Error struct
 permit: type Error struct, Body []byte
@@ -141,6 +150,9 @@ permit: type UserPermissionsRequest struct, ResourceTypes []string
 permit: type UserPermissionsRequest struct, Resources []string
 permit: type UserPermissionsRequest struct, Tenants []string
 permit: type UserPermissionsRequest struct, User User
+permit: type UserTenantsRequest struct
+permit: type UserTenantsRequest struct, Context map[string]any
+permit: type UserTenantsRequest struct, User User
 permit: var ErrClosed = errors.New("permit: the client is closed")
 permit: var ErrConflict = errors.New("permit: conflict")
 permit: var ErrContainerPDPOnly = errors.New("permit: only the PDP container serves this route")

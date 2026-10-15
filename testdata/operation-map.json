@@ -1,5 +1,8 @@
 {
   "methods": {
+    "Client.AllTenantsCheck": [
+      "is_allowed_all_tenants_allowed_all_tenants_post"
+    ],
     "Client.AuthorizedUsers": [
       "authorized_users_authorized_users_post"
     ],
@@ -9,6 +12,9 @@
     "Client.Check": [
       "is_allowed_allowed_post"
     ],
+    "Client.CheckURL": [
+      "is_allowed_url_allowed_url_post"
+    ],
     "Client.FilterObjects": [
       "is_allowed_bulk_allowed_bulk_post"
     ],
@@ -17,6 +23,9 @@
     ],
     "Client.UserPermissions": [
       "Get_User_Permissions_user_permissions_post"
+    ],
+    "Client.UserTenants": [
+      "Get_User_Tenants_user_tenants_post"
     ]
   }
 }

@@ -43,8 +43,8 @@ var sdkModule = docModule{
 // as Client.Check. Each needs an Example with an output comment, like each service type. The
 // commits that add the methods add them here.
 var decisionMethods = []string{
-	"Client.AuthorizedUsers", "Client.BulkCheck", "Client.Check", "Client.FilterObjects",
-	"Client.UserPermissions",
+	"Client.AllTenantsCheck", "Client.AuthorizedUsers", "Client.BulkCheck", "Client.Check",
+	"Client.CheckURL", "Client.FilterObjects", "Client.UserPermissions", "Client.UserTenants",
 }
 
 // docRule requires a phrase in the doc comment of a method, or forbids it.

@@ -48,4 +48,26 @@ var defaultOps = []Op{
 		Route: "/authorized_users", Idempotent: true, KeyLevel: EnvironmentLevel,
 		NoReplyCredentials: true, RequestModel: "AuthorizedUsersRequest",
 	},
+
+	// The decisions of the PDP that only the PDP container serves: the tenants in which a check
+	// is allowed, the tenants of a user, and the check of a URL. The cloud PDP answers each with
+	// 404 and an empty body, and its spec does not list them, so the drift tests check them
+	// against the container's spec only. Like a decision, each changes nothing, and its reply
+	// holds the application's values, not credentials; the SDK reads each reply itself, so the
+	// replies name no model.
+	{
+		ID: "is_allowed_all_tenants_allowed_all_tenants_post", Method: http.MethodPost,
+		Route: "/allowed/all-tenants", Idempotent: true, ContainerOnly: true,
+		KeyLevel: EnvironmentLevel, NoReplyCredentials: true, RequestModel: "CheckRequest",
+	},
+	{
+		ID: "Get_User_Tenants_user_tenants_post", Method: http.MethodPost, Route: "/user-tenants",
+		Idempotent: true, ContainerOnly: true, KeyLevel: EnvironmentLevel,
+		NoReplyCredentials: true, RequestModel: "UserTenantsRequest",
+	},
+	{
+		ID: "is_allowed_url_allowed_url_post", Method: http.MethodPost, Route: "/allowed_url",
+		Idempotent: true, ContainerOnly: true, KeyLevel: EnvironmentLevel,
+		NoReplyCredentials: true, RequestModel: "CheckURLRequest",
+	},
 }

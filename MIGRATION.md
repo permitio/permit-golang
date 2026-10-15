@@ -2370,6 +2370,80 @@ reply in 200-299 with an empty body is an error, where v1.3.0 returned an empty 
 `*permit.Error` that matches `permit.ErrNotFound`. It is sent again after a 500, 502, 503 or 504
 reply or a failed connection, as it changes nothing.
 
+<a id="M-implicit-grants-1"></a>
+### M-implicit-grants-1: ImplicitGrants becomes Client.ImplicitGrants, which acts on the environment of the scope
+
+- v1: `api.ImplicitGrants`
+- v1: `api.NewImplicitGrantsApi`
+- v2: `permit.ImplicitGrantsService`
+
+Call the methods of the implicit grants of a role of a resource, its role derivations, on the
+`ImplicitGrants` field of the client, `client.ImplicitGrants`, in place of
+`client.Api.ImplicitGrants`; `permit.New` builds it, so nothing takes the place of
+`api.NewImplicitGrantsApi`. Each method takes a `context.Context` first, then the key or the ID of
+the resource, then that of the role that the grant gives, in the order in which the route names
+them, and acts on the environment of the client's scope, as v1's methods acted on the
+environment of the client's context: `permit.WithScope`, or else the scope of the API key, which
+the client looks up once, as [M-scope-2](#M-scope-2) says. A scope without an environment, such
+as that of a project-level API key without `permit.WithScope`, is an error that matches
+`permit.ErrInvalidConfig`, with no request for the call. A key that holds a `/` or a `%` is sent
+escaped, as one segment of the path, and an empty key, `.` or `..` is an error that matches
+`permit.ErrInvalidConfig`, with no request. Every method returns a `*permit.Error`, or an error
+that wraps one, as [M-errors-1](#M-errors-1) says.
+
+`models.DerivedRoleRuleCreate`, `models.DerivedRoleRuleDelete` and `models.DerivedRoleRuleRead`
+keep their names: build the first two as struct literals, in place of their constructors and
+setters. `models.DerivedRoleRuleRead` has `RoleID`, `ResourceID` and `RelationID` in place of
+`RoleId`, `ResourceId` and `RelationId`. `models.DerivationSettings` takes the place of
+`models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings`, in the `When` of each rule
+too, and its `NoDirectRolesOnObject` is a `bool` in place of a `*bool`. v1's constructors of the
+rules set `When` to settings whose `no_direct_roles_on_object` is false; v2's zero `When` is nil,
+which leaves `when` out of the request, and the API's documentation gives the same default.
+
+<a id="M-implicit-grants-2"></a>
+### M-implicit-grants-2: ImplicitGrants.Create takes the rule as a struct literal
+
+- v1: `api.ImplicitGrants.Create`
+- v2: `permit.ImplicitGrantsService.Create`
+
+`ImplicitGrantsService.Create(ctx, resourceKey, roleKey, rule)` takes the resource and the role
+in the order of v1's `Create(ctx, resourceId, roleId, ...)`, and a `models.DerivedRoleRuleCreate`
+by value, and returns the rule as a `*models.DerivedRoleRuleRead`. Create is sent again only
+after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created the grant when a request
+got no complete reply.
+
+<a id="M-implicit-grants-3"></a>
+### M-implicit-grants-3: ImplicitGrants.Delete takes the resource first, as Create does
+
+- v1: `api.ImplicitGrants.Delete`
+- v2: `permit.ImplicitGrantsService.Delete`
+
+v1's `Delete(ctx, roleId, resourceId, rule)` named its parameters the other way round from its
+route: it sent its first argument as the resource of the route and its second as the role. A
+call that passed the resource first, as `Create` takes it, worked; a call that passed the role
+first, as the names said, sent the keys swapped and got a 404.
+`ImplicitGrantsService.Delete(ctx, resourceKey, roleKey, rule)` takes the resource first, as its
+route and `Create` do: keep the arguments of a call that passed the resource first, and swap
+those of a call that passed the role first. It takes a `models.DerivedRoleRuleDelete` by value.
+A 404 is a `*permit.Error` that matches `permit.ErrNotFound`, and not a delete that happened
+already, as the body names the rule to delete. It is sent again after a 500, 502, 503 or 504
+reply or a failed connection, as deleting a rule twice leaves it deleted.
+
+<a id="M-implicit-grants-4"></a>
+### M-implicit-grants-4: ImplicitGrants.UpdateConditions takes models.DerivationSettings
+
+- v1: `api.ImplicitGrants.UpdateConditions`
+- v2: `permit.ImplicitGrantsService.UpdateConditions`
+
+`ImplicitGrantsService.UpdateConditions(ctx, resourceKey, roleKey, settings)` takes the resource
+and the role in the order of v1's `UpdateConditions`, and a `models.DerivationSettings` by value
+in place of a `models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings`, and returns
+the conditions as a `*models.DerivationSettings`. It always sends `no_direct_roles_on_object`:
+`{"no_direct_roles_on_object":true}` for a `NoDirectRolesOnObject` that is true, and
+`{"no_direct_roles_on_object":false}` for false, as v1's constructor of the settings did, since
+the PUT replaces the conditions. It is sent again after a 500, 502, 503 or 504 reply or a failed
+connection, as sending the same conditions twice sets the same conditions.
+
 <a id="M-user-attributes-1"></a>
 ### M-user-attributes-1: ListUserAttributes of the generated client becomes Client.UserAttributes.List
 
@@ -2860,6 +2934,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.DerivedRoleBlockEdit` | `models.DerivedRoleBlockEdit` |
 | `models.DerivedRoleBlockRead` | `models.DerivedRoleBlockRead` |
 | `models.DerivedRoleRuleCreate` | `models.DerivedRoleRuleCreate` |
+| `models.DerivedRoleRuleDelete` | `models.DerivedRoleRuleDelete` |
 | `models.DerivedRoleRuleRead` | `models.DerivedRoleRuleRead` |
 | `models.EnvironmentCopy` | `models.EnvironmentCopy` |
 | `models.EnvironmentCopyScope` | `models.EnvironmentCopyScope` |
@@ -2902,6 +2977,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 322 of the 384 types of v1's pkg/models.
+Not mapped yet: 321 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

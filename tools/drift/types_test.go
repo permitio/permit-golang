@@ -38,6 +38,7 @@ var modelTypes = []any{
 	models.DerivedRoleBlockEdit{},
 	models.DerivedRoleBlockRead{},
 	models.DerivedRoleRuleCreate{},
+	models.DerivedRoleRuleDelete{},
 	models.DerivedRoleRuleRead{},
 	models.EnvironmentCopy{},
 	models.EnvironmentCopyConflictStrategy(""),

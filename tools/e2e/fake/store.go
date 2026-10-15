@@ -30,6 +30,10 @@ const (
 	opResourceRoleAncestors         = "get_resource_role_ancestors"
 	opResourceRoleDescendants       = "get_resource_role_descendants"
 
+	opCreateImplicitGrant           = "create_implicit_grant"
+	opDeleteImplicitGrant           = "delete_implicit_grant"
+	opUpdateImplicitGrantConditions = "update_implicit_grants_conditions"
+
 	opConditionSetAncestors   = "get_condition_set_ancestors"
 	opConditionSetDescendants = "get_condition_set_descendants"
 
@@ -69,6 +73,11 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 		return f.unsupported(rt)
 	case opRoleAncestors, opRoleDescendants, opResourceRoleAncestors, opResourceRoleDescendants:
 		return f.roleRelatives(rt.Op, segments)
+	case opCreateImplicitGrant, opDeleteImplicitGrant, opUpdateImplicitGrantConditions:
+		if fields != nil {
+			return f.implicitGrant(rt.Op, segments, fields)
+		}
+		return f.unsupported(rt)
 	case opBulkReplaceRoles:
 		if fields != nil {
 			return f.bulkRoles(segments, fields)
@@ -419,6 +428,65 @@ func (f *Fake) roleRelatives(op string, segments []string) (int, any) {
 		}
 	}
 	return http.StatusOK, object{"roles": found}
+}
+
+// implicitGrant answers a create, op create_implicit_grant, or a delete, op
+// delete_implicit_grant, of the implicit grant of the rule of fields of the role of the path,
+// which has segments, with IDs in place of keys, as resolve found it, or a change of the
+// conditions of its implicit grants, op update_implicit_grants_conditions, to fields. The fake
+// keeps the rules in the users_with_role of the granted_to of the role, and the conditions in its
+// when, as the Permit API describes a role of a resource. A create finds the resource, its role
+// and the relation of the resource of the path that the rule names, by their keys or IDs, or gets
+// 404, adds the rule with their IDs, and answers it. A delete removes each rule that names the
+// role, the resource and the relation of fields as they are given, and answers 204, or 404 when
+// there is none. A change of the conditions sets them to fields, and answers them. The caller
+// holds f.mu.
+func (f *Fake) implicitGrant(op string, segments []string, fields object) (int, any) {
+	role, _ := find(f.store[collectionOf(segments[:8])], segments[8])
+	grantedTo, ok := role["granted_to"].(object)
+	if !ok {
+		grantedTo = object{}
+		role["granted_to"] = grantedTo
+	}
+	rules, _ := grantedTo["users_with_role"].([]any)
+	switch op {
+	case opUpdateImplicitGrantConditions:
+		grantedTo["when"] = fields
+		return http.StatusOK, fields
+	case opDeleteImplicitGrant:
+		kept := slices.DeleteFunc(slices.Clone(rules), func(r any) bool {
+			rule, _ := r.(object)
+			return rule["role"] == fields["role"] && rule["on_resource"] == fields["on_resource"] &&
+				rule["linked_by_relation"] == fields["linked_by_relation"]
+		})
+		if len(kept) == len(rules) {
+			return http.StatusNotFound, errorBody("NOT_FOUND", "the role has no such rule")
+		}
+		grantedTo["users_with_role"] = kept
+		return http.StatusNoContent, nil
+	}
+	resources := segments[:6]
+	related, ok := find(f.store[collectionOf(resources)], text(fields, "on_resource"))
+	if !ok {
+		return http.StatusNotFound, errorBody("NOT_FOUND", "no resource "+
+			text(fields, "on_resource"))
+	}
+	relatedRoles := collectionOf(append(slices.Clone(resources), text(related, "id"), "roles"))
+	relatedRole, ok := find(f.store[relatedRoles], text(fields, "role"))
+	if !ok {
+		return http.StatusNotFound, errorBody("NOT_FOUND", "no role "+text(fields, "role"))
+	}
+	relations := collectionOf(append(slices.Clone(segments[:7]), "relations"))
+	relation, ok := find(f.store[relations], text(fields, "linked_by_relation"))
+	if !ok {
+		return http.StatusNotFound, errorBody("NOT_FOUND", "no relation "+
+			text(fields, "linked_by_relation"))
+	}
+	rule := maps.Clone(fields)
+	rule["role_id"], rule["resource_id"] = relatedRole["id"], related["id"]
+	rule["relation_id"] = relation["id"]
+	grantedTo["users_with_role"] = append(rules, rule)
+	return http.StatusOK, rule
 }
 
 // extends reports whether role extends the role other: whether the extends of role hold the key

@@ -20,10 +20,11 @@
 // key of an environment, which it makes up, the statistics and the copies of an environment, as
 // stats and copyEnvironment say, the grants and removals of the permissions of a role or of a role
 // of a resource, its ancestors and its descendants, and the bulk replace of roles, as
-// rolePermissions, roleRelatives and bulkRoles say, the ancestors and the descendants of a
-// condition set, as conditionSetRelatives says, and the list of the condition set rules, with its
-// filters, and their creates, which answer a JSON array, as setRules and assignSetRule say. A
-// delete of a rule that the fake does not hold gets 404, as a DELETE of a collection with a body
+// rolePermissions, roleRelatives and bulkRoles say, the implicit grants of a role of a resource
+// and their conditions, as implicitGrant says, the ancestors and the descendants of a condition
+// set, as conditionSetRelatives says, and the list of the condition set rules, with its filters,
+// and their creates, which answer a JSON array, as setRules and assignSetRule say. A delete of a
+// condition set rule that the fake does not hold gets 404, as a DELETE of a collection with a body
 // does; the API's documentation says that it skips such a delete, and what the API answers is not
 // confirmed yet.
 //

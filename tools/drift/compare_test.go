@@ -276,9 +276,9 @@ func (c *comparer) structModel(name string, t reflect.Type, tg target, s *spec) 
 
 // fieldRules returns the findings of the field f of the struct name against its row r: a field
 // that the API accepts null for is a models.Optional, and no other; an Optional is tagged
-// omitzero, a required field that is not one has no omitzero, an optional field has omitzero,
-// and none has omitempty; and a field of a type that an operation sends has the null policy
-// accepts, rejects or ignores.
+// omitzero, a required field that is not one has no omitzero, nor has a field whose row has
+// always_sent, another optional field has omitzero, and none has omitempty; and a field of a
+// type that an operation sends has the null policy accepts, rejects or ignores.
 func (c *comparer) fieldRules(name string, f goField, r fieldRow) []finding {
 	var found []finding
 	add := func(format string, args ...any) {
@@ -301,7 +301,9 @@ func (c *comparer) fieldRules(name string, f goField, r fieldRow) []finding {
 		add("it is a models.Optional, so it is tagged omitzero, which leaves it out when unset")
 	case !optional && required && f.omitzero:
 		add("it is required, so it is not tagged omitzero: the body always holds it")
-	case !optional && !required && !f.omitzero:
+	case !optional && r.AlwaysSent != "" && f.omitzero:
+		add("its row has always_sent, so it is not tagged omitzero: the body always holds it")
+	case !optional && !required && r.AlwaysSent == "" && !f.omitzero:
 		add("it is not required, so it is tagged omitzero: the body leaves it out when unset")
 	}
 	if op := c.sent[name]; op != "" && r.Null == "n/a" {

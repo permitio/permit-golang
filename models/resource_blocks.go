@@ -190,7 +190,8 @@ type DerivedRoleBlockEdit struct {
 }
 
 // DerivedRoleRuleRead is a rule that grants a role to the users that have a role on a related
-// resource, as the API returns it in a [DerivedRoleBlockRead].
+// resource, as the API returns it in a [DerivedRoleBlockRead], and as
+// ImplicitGrantsService.Create of the root package returns it.
 type DerivedRoleRuleRead struct {
 	// RoleID is the ID of the role that a user has on the related resource.
 	RoleID string `json:"role_id"`
@@ -215,8 +216,9 @@ type DerivedRoleRuleRead struct {
 }
 
 // DerivedRoleRuleCreate is a rule that grants a role to the users that have a role on a related
-// resource, as a [DerivedRoleBlockEdit] sends it. Role, OnResource and LinkedByRelation are
-// required, and the request always holds them.
+// resource, as a [DerivedRoleBlockEdit] sends it, and as ImplicitGrantsService.Create of the root
+// package sends it. Role, OnResource and LinkedByRelation are required, and the request always
+// holds them.
 type DerivedRoleRuleCreate struct {
 	// Role is the key of the role that a user has on the related resource.
 	Role string `json:"role"`
@@ -232,9 +234,10 @@ type DerivedRoleRuleCreate struct {
 }
 
 // DerivationSettings are the settings of how users get a role through the roles that they have on
-// related resources, or of one rule of it.
+// related resources, or of one rule of it, and the conditions of the implicit grants of a role,
+// which ImplicitGrantsService.UpdateConditions of the root package sends and returns.
 type DerivationSettings struct {
 	// NoDirectRolesOnObject, when true, says that the derivation, or the rule, does not apply to
-	// an instance that has a role assigned on it directly. False leaves it out of the request.
-	NoDirectRolesOnObject bool `json:"no_direct_roles_on_object,omitzero"`
+	// an instance that has a role assigned on it directly. A request always holds it, false too.
+	NoDirectRolesOnObject bool `json:"no_direct_roles_on_object"`
 }

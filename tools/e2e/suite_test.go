@@ -135,6 +135,13 @@ var cloudScenarios = []scenario{
 		run: resourceRoleLifecycle,
 	},
 	{
+		name: "implicit_grant_lifecycle", methods: []string{
+			"ImplicitGrantsService.Create", "ImplicitGrantsService.UpdateConditions",
+			"ImplicitGrantsService.Delete",
+		},
+		run: implicitGrantLifecycle,
+	},
+	{
 		name: "user_attribute_lifecycle", methods: []string{
 			"UserAttributesService.Create", "UserAttributesService.Get",
 			"UserAttributesService.List", "UserAttributesService.All",

@@ -119,6 +119,7 @@ var wireCaseLists = []func() []wireCase{
 	relationCases,
 	roleCases,
 	resourceRoleCases,
+	implicitGrantCases,
 	userAttributeCases,
 	conditionSetCases,
 	conditionSetRuleCases,

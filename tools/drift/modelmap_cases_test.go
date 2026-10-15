@@ -26,7 +26,7 @@ func TestParseModelMap(t *testing.T) {
 		"    fields:\n" +
 		"      key: {required: true, null_policy: rejects}\n" +
 		"      email: {required: false, null_policy: accepts}\n" +
-		"      name: {required: false, null_policy: ignores}\n" +
+		"      name: {required: false, null_policy: ignores, always_sent: the API replaces it}\n" +
 		"  Kind: {schema: Kind}\n" +
 		"blocks:\n" +
 		"  Time: a timestamp\n"))
@@ -45,7 +45,7 @@ func TestParseModelMap(t *testing.T) {
 				Fields: map[string]fieldRow{
 					"key":   {Required: &yes, Null: "rejects"},
 					"email": {Required: &no, Null: "accepts"},
-					"name":  {Required: &no, Null: "ignores"},
+					"name":  {Required: &no, Null: "ignores", AlwaysSent: "the API replaces it"},
 				},
 			},
 			"Kind": {Schema: "Kind"},
@@ -99,6 +99,22 @@ func TestParseModelMap(t *testing.T) {
 		{
 			"no null policy", "models: {A: {schema: A, fields: {a: {required: true}}}}\n",
 			`models.A.fields.a: the null policy "" is not one of accepts, rejects, ignores, n/a`,
+		},
+		{
+			"always_sent on a required field", "models: {A: {schema: A, fields: {a: {required: " +
+				"true, null_policy: rejects, always_sent: r}}}}\n",
+			"models.A.fields.a has always_sent, which is for a field that is not required and " +
+				"whose null policy is not accepts",
+		},
+		{
+			"always_sent on an Optional", "models: {A: {schema: A, fields: {a: {required: false, " +
+				"null_policy: accepts, always_sent: r}}}}\n",
+			"models.A.fields.a has always_sent, which is for a field that is not required",
+		},
+		{
+			"always_sent without a required flag", "models: {A: {schema: A, fields: {a: {" +
+				"null_policy: rejects, always_sent: r}}}}\n",
+			"models.A.fields.a has always_sent",
 		},
 		{
 			"also of an unknown spec", "models: {A: {schema: A, also: [{spec: pdp, schema: B}]}}\n",

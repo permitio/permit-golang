@@ -1152,6 +1152,16 @@ github.com/permitio/permit-golang/v2 TestResourceRoleRelativesReadBothForms
 github.com/permitio/permit-golang/v2 TestResourceRolesAfterClose
 github.com/permitio/permit-golang/v2 ExampleResourceRolesService
 
+github.com/permitio/permit-golang/v2 TestImplicitGrantKeysInThePath
+github.com/permitio/permit-golang/v2 TestImplicitGrantsUseTheScope
+github.com/permitio/permit-golang/v2 TestImplicitGrantErrors
+github.com/permitio/permit-golang/v2 TestImplicitGrantBodies
+github.com/permitio/permit-golang/v2 TestImplicitGrantResults
+github.com/permitio/permit-golang/v2 TestImplicitGrantRetries
+github.com/permitio/permit-golang/v2 TestMalformedImplicitGrantReplies
+github.com/permitio/permit-golang/v2 TestImplicitGrantsAfterClose
+github.com/permitio/permit-golang/v2 ExampleImplicitGrantsService
+
 github.com/permitio/permit-golang/v2 TestUserAttributeTypes
 github.com/permitio/permit-golang/v2 TestUserAttributesAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestUserAttributesAllYieldsAnErrorOnce
@@ -1256,6 +1266,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceRolePermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestConditionSetRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceRoleRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestSetRules
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestImplicitGrants
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1280,6 +1291,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_attribute_life
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_relation_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_role_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/implicit_grant_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle/update
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle

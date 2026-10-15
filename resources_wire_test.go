@@ -312,7 +312,8 @@ const newResourceBody = `{"key":"report","name":"Report",` +
 	`"roles":{"reader":{"name":"Reader","description":"Reads reports","permissions":["read"],` +
 	`"attributes":{"level":1},"extends":[],"granted_to":{"users_with_role":[{"role":"admin",` +
 	`"on_resource":"folder","linked_by_relation":"parent",` +
-	`"when":{"no_direct_roles_on_object":true}}],"when":{}}}},` +
+	`"when":{"no_direct_roles_on_object":true}}],` +
+	`"when":{"no_direct_roles_on_object":false}}}},` +
 	`"relations":{"parent":"folder"}}`
 
 // createdResource is the resource of the reply fixture create_resource.200.json.

@@ -22,6 +22,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_attribute_life
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_relation_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_role_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/implicit_grant_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance

@@ -205,6 +205,11 @@ models: type DerivedRoleRuleCreate struct, LinkedByRelation string
 models: type DerivedRoleRuleCreate struct, OnResource string
 models: type DerivedRoleRuleCreate struct, Role string
 models: type DerivedRoleRuleCreate struct, When *DerivationSettings
+models: type DerivedRoleRuleDelete struct
+models: type DerivedRoleRuleDelete struct, LinkedByRelation string
+models: type DerivedRoleRuleDelete struct, OnResource string
+models: type DerivedRoleRuleDelete struct, Role string
+models: type DerivedRoleRuleDelete struct, When *DerivationSettings
 models: type DerivedRoleRuleRead struct
 models: type DerivedRoleRuleRead struct, LinkedByRelation string
 models: type DerivedRoleRuleRead struct, OnResource string
@@ -656,6 +661,9 @@ permit: method (*EnvironmentsService) Update(ctx context.Context, projectKey str
 permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
 permit: method (*Error) Unwrap() error
+permit: method (*ImplicitGrantsService) Create(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleCreate) (*models.DerivedRoleRuleRead, error)
+permit: method (*ImplicitGrantsService) Delete(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleDelete) error
+permit: method (*ImplicitGrantsService) UpdateConditions(ctx context.Context, resourceKey string, roleKey string, settings models.DerivationSettings) (*models.DerivationSettings, error)
 permit: method (*ProjectsService) All(ctx context.Context, opts *ListOptions) iter.Seq2[models.ProjectRead, error]
 permit: method (*ProjectsService) Create(ctx context.Context, project models.ProjectCreate) (*models.ProjectRead, error)
 permit: method (*ProjectsService) Delete(ctx context.Context, projectKey string) error
@@ -766,6 +774,7 @@ permit: type Client struct, APIKeys *APIKeysService
 permit: type Client struct, ConditionSetRules *ConditionSetRulesService
 permit: type Client struct, ConditionSets *ConditionSetsService
 permit: type Client struct, Environments *EnvironmentsService
+permit: type Client struct, ImplicitGrants *ImplicitGrantsService
 permit: type Client struct, Projects *ProjectsService
 permit: type Client struct, ResourceActionGroups *ResourceActionGroupsService
 permit: type Client struct, ResourceActions *ResourceActionsService
@@ -801,6 +810,7 @@ permit: type Error struct, RequestID string
 permit: type Error struct, Route string
 permit: type Error struct, StatusCode int
 permit: type Error struct, Title string
+permit: type ImplicitGrantsService struct
 permit: type ListOptions struct
 permit: type ListOptions struct, Page int
 permit: type ListOptions struct, PerPage int

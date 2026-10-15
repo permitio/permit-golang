@@ -15,9 +15,6 @@
 api.Elements elements
 api.Elements.* elements
 api.NewElementsApi elements
-api.ImplicitGrants implicit-grants
-api.ImplicitGrants.* implicit-grants
-api.NewImplicitGrantsApi implicit-grants
 api.ProxyConfigs proxy-configs
 api.ProxyConfigs.* proxy-configs
 api.NewProxyConfigsApi proxy-configs

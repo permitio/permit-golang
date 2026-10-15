@@ -1266,8 +1266,12 @@ Each field of a struct has a row of its own, by its JSON name, with:
 
 - `required`, as the schema has it. apisurface reads it to find a field that turned required,
   which breaks code that builds the model; see [Breaking changes](#breaking-changes). A required
-  field is tagged without `omitzero`, so that a body always holds it, any other field with
-  `omitzero`, and no field with `omitempty`.
+  field is tagged without `omitzero`, so that a body always holds it, as is a field whose row has
+  `always_sent`; any other field is tagged with `omitzero`, and no field with `omitempty`.
+- `always_sent`, only for a field that is not required and is no `Optional`: the reason why a
+  request holds the field even when it is its zero value, such as the `no_direct_roles_on_object`
+  of `DerivationSettings`, which a PUT of the conditions of the implicit grants replaces, so that
+  false is sent too.
 - `null_policy`, what the API does with null for the field in a request: `accepts`, and the field
   is a `models.Optional` tagged `omitzero`; `rejects`; `ignores`, when the API reads null as the
   field left out, as both PDPs do for an optional string of a check, which the spec of the cloud

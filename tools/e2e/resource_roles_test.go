@@ -111,6 +111,132 @@ func resourceRoleLifecycle(s *suite) func(t *testing.T) {
 	}
 }
 
+// implicitGrantLifecycle checks the calls of the implicit grants with the environment-level API
+// key of the scratch environment, whose scope the client looks up, on two resources of its own,
+// whose keys start with the run's prefix: a document and a folder, its subject by the relation
+// parent of the document, with the role owner of the folder and the role viewer of the document.
+// It registers each resource, the relation and each role with the ledger before it creates it,
+// viewer last, so that the teardown deletes viewer first, and its implicit grants with it. It
+// creates the implicit grant of viewer to the users that have owner on the parent folder, which
+// returns the rule with the IDs of owner, of the folder and of the relation; sets the conditions
+// of the implicit grants of viewer so that they leave out an instance with a role assigned on it
+// directly, and then back, which returns each; and deletes the grant. It gets viewer after each
+// write: the granted_to of viewer holds the rule after the create, and the conditions sent in its
+// when after each update, and it no longer holds the rule after the delete, which it waits for.
+// It then deletes the grant again, which returns an error that matches ErrNotFound.
+func implicitGrantLifecycle(s *suite) func(t *testing.T) {
+	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
+		const relationKey = "parent"
+		resources := "/v2/schema/" + url.PathEscape(s.env.ProjectID) + "/" +
+			url.PathEscape(s.env.ID) + "/resources/"
+		register := func(what, path string) {
+			s.ledger.Register(what, s.api.Remover(resources+path),
+				s.api.Absence(resources+path, framework.AbsenceTimeout))
+		}
+		c := s.client(t, s.env.APIKey())
+		ctx := s.ctx(t)
+		doc, folder := s.cfg.prefix.Key("sdk-grants-doc"), s.cfg.prefix.Key("sdk-grants-folder")
+		ids := map[string]string{}
+		for _, key := range []string{folder, doc} {
+			register("resource "+key, url.PathEscape(key))
+			resource, err := c.Resources.Create(ctx, models.ResourceCreate{
+				Key: key, Name: key, Actions: map[string]models.ActionBlockEditable{"read": {}},
+			})
+			if err != nil {
+				t.Fatalf("setup: Create of the resource %s: %v", key, err)
+			}
+			ids[key] = resource.ID
+		}
+		register("relation "+relationKey+" of "+doc, url.PathEscape(doc)+"/relations/"+relationKey)
+		relation, err := c.ResourceRelations.Create(ctx, doc, models.RelationCreate{
+			Key: relationKey, Name: "Parent", SubjectResource: folder,
+		})
+		if err != nil {
+			t.Fatalf("setup: Create of the relation %s of %s: %v", relationKey, doc, err)
+		}
+		owner, viewer := s.cfg.prefix.Key("sdk-grants-owner"), s.cfg.prefix.Key("sdk-grants-viewer")
+		for _, r := range [][2]string{{folder, owner}, {doc, viewer}} {
+			register("role "+r[1]+" of "+r[0], url.PathEscape(r[0])+"/roles/"+url.PathEscape(r[1]))
+			role, roleErr := c.ResourceRoles.Create(ctx, r[0], models.ResourceRoleCreate{
+				Key: r[1], Name: r[1], Permissions: []string{"read"},
+			})
+			if roleErr != nil {
+				t.Fatalf("setup: Create of the role %s of %s: %v", r[1], r[0], roleErr)
+			}
+			ids[r[1]] = role.ID
+		}
+		rule, err := c.ImplicitGrants.Create(ctx, doc, viewer, models.DerivedRoleRuleCreate{
+			Role: owner, OnResource: folder, LinkedByRelation: relationKey,
+		})
+		if err != nil {
+			t.Fatalf("Create of the implicit grant of %s of %s: %v", viewer, doc, err)
+		}
+		want := models.DerivedRoleRuleRead{
+			RoleID: ids[owner], ResourceID: ids[folder], RelationID: relation.ID, Role: owner,
+			OnResource: folder, LinkedByRelation: relationKey,
+		}
+		got := *rule
+		got.When = nil
+		if got != want {
+			t.Errorf("Create of the implicit grant returned the rule %+v, without its When, want "+
+				"%+v", got, want)
+		}
+		grants := func(ctx context.Context) (*models.DerivedRoleBlockRead, error) {
+			role, getErr := c.ResourceRoles.Get(ctx, doc, viewer)
+			if getErr != nil || role.GrantedTo == nil {
+				return &models.DerivedRoleBlockRead{}, getErr
+			}
+			return role.GrantedTo, nil
+		}
+		isRule := func(r models.DerivedRoleRuleRead) bool {
+			return r.Role == owner && r.OnResource == folder && r.LinkedByRelation == relationKey
+		}
+		block, getErr := grants(ctx)
+		if getErr != nil || !slices.ContainsFunc(block.UsersWithRole, isRule) {
+			t.Errorf("Get of the role %s of %s after the create returned the implicit grants "+
+				"%+v and %v, want the rule of %s of %s", viewer, doc, block, getErr, owner, folder)
+		}
+		for _, set := range []bool{true, false} {
+			settings, updateErr := c.ImplicitGrants.UpdateConditions(ctx, doc, viewer,
+				models.DerivationSettings{NoDirectRolesOnObject: set})
+			if updateErr != nil {
+				t.Fatalf("UpdateConditions of the implicit grants of %s of %s to %t: %v", viewer,
+					doc, set, updateErr)
+			}
+			if settings.NoDirectRolesOnObject != set {
+				t.Errorf("UpdateConditions to %t returned %+v", set, settings)
+			}
+			block, getErr = grants(ctx)
+			if stored := block.When != nil && block.When.NoDirectRolesOnObject; getErr != nil ||
+				stored != set {
+				t.Errorf("Get of the role %s of %s after UpdateConditions to %t returned the "+
+					"conditions %+v and %v", viewer, doc, set, block.When, getErr)
+			}
+		}
+		deleted := models.DerivedRoleRuleDelete{
+			Role: owner, OnResource: folder, LinkedByRelation: relationKey,
+		}
+		err = c.ImplicitGrants.Delete(ctx, doc, viewer, deleted)
+		if err != nil {
+			t.Fatalf("Delete of the implicit grant of %s of %s: %v", viewer, doc, err)
+		}
+		gone := framework.Poll(ctx, framework.AbsenceTimeout, s.cfg.syncInterval,
+			func(ctx context.Context) (bool, error) {
+				read, readErr := grants(ctx)
+				return readErr == nil && !slices.ContainsFunc(read.UsersWithRole, isRule), readErr
+			})
+		if gone != nil {
+			t.Fatalf("Get of the role %s of %s after the delete of its implicit grant: %v", viewer,
+				doc, gone)
+		}
+		err = c.ImplicitGrants.Delete(ctx, doc, viewer, deleted)
+		if !errors.Is(err, permit.ErrNotFound) {
+			t.Errorf("Delete of the implicit grant of %s of %s that is gone returned %v, want an "+
+				"error that matches ErrNotFound", viewer, doc, err)
+		}
+	}
+}
+
 // listResourceRoles checks that List, and All with one role on each page, list the roles base
 // and child of resource, and no other role.
 func listResourceRoles(ctx context.Context, t *testing.T, c *permit.Client,

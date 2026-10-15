@@ -129,6 +129,14 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("get_resource_role_ancestors.200.json")})
 	servers.API.Handle("PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/"+
 		"{role_id}", mockpermit.Reply{Body: replyFixture("update_resource_role.200.json")})
+	servers.API.Handle("POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/"+
+		"{role_id}/implicit_grants",
+		mockpermit.Reply{Body: replyFixture("create_implicit_grant.200.json")})
+	servers.API.Handle("PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/"+
+		"{role_id}/implicit_grants/conditions",
+		mockpermit.Reply{Body: replyFixture("update_implicit_grants_conditions.200.json")})
+	servers.API.Handle("DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/"+
+		"{role_id}/implicit_grants", mockpermit.Reply{Status: http.StatusNoContent})
 	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/users/attributes",
 		mockpermit.Reply{Body: replyFixture("list_user_attributes.200.json")},
 		mockpermit.Reply{Body: replyFixture("list_user_attributes.200.unknown-type.json")},

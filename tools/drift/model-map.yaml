@@ -19,6 +19,9 @@
 #     null_policy: what the API does with null for the field in a request: accepts (the field
 #       is a models.Optional), rejects, ignores (the API reads null as the field left out), or
 #       n/a, for a type that no request holds.
+#     always_sent: optional, for a field that is not required and is no models.Optional: why a
+#       request holds the field even when it is its zero value; the field is then tagged
+#       without omitzero.
 #
 # blocks.<Type>: a type that no schema describes, which models use for their fields, with what it
 # stands for.
@@ -260,10 +263,17 @@ models:
   # the API returns it. Each field of a block that a request holds is required or has a
   # default, and the API rejects null for it, as for the other blocks of a resource. These null
   # policies are not measured yet: the phase api.resources of the local harness confirms them.
+  # DerivationSettings is also the request and the reply of an update of the conditions of the
+  # implicit grants of a role, whose null policy the phase api.implicit_grants confirms.
   DerivationSettings:
     schema: permit_backend__schemas__schema_derived_role_rule__DerivationSettings
     fields:
-      no_direct_roles_on_object: {required: false, null_policy: rejects}
+      no_direct_roles_on_object:
+        required: false
+        null_policy: rejects
+        always_sent: >-
+          a PUT of the conditions of the implicit grants of a role replaces them, so a request
+          sends false too, as v1's constructor of the settings did
   DerivedRoleBlockEdit:
     schema: DerivedRoleBlockEdit
     fields:
@@ -277,6 +287,18 @@ models:
       when: {required: false, null_policy: n/a}
   DerivedRoleRuleCreate:
     schema: DerivedRoleRuleCreate
+    fields:
+      role: {required: true, null_policy: rejects}
+      on_resource: {required: true, null_policy: rejects}
+      linked_by_relation: {required: true, null_policy: rejects}
+      when: {required: false, null_policy: rejects}
+  # A rule of an implicit grant of a role of a resource, as a delete of the grant sends it; a
+  # create of the grant sends DerivedRoleRuleCreate and returns DerivedRoleRuleRead, and an update
+  # of the conditions of the grants sends and returns DerivationSettings. These null policies are
+  # those of DerivedRoleRuleCreate, and are not measured yet: the phase api.implicit_grants of the
+  # local harness confirms them.
+  DerivedRoleRuleDelete:
+    schema: DerivedRoleRuleDelete
     fields:
       role: {required: true, null_policy: rejects}
       on_resource: {required: true, null_policy: rejects}

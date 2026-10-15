@@ -63,6 +63,22 @@ var routes = []Route{
 		"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/descendants",
 		"get_resource_role_descendants",
 	},
+	{
+		"POST",
+		"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants",
+		"create_implicit_grant",
+	},
+	{
+		"DELETE",
+		"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants",
+		"delete_implicit_grant",
+	},
+	{
+		"PUT",
+		"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants/" +
+			"conditions",
+		"update_implicit_grants_conditions",
+	},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/resource_instances", "create_resource_instance"},
 	{
 		"GET", "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
@@ -1051,4 +1067,101 @@ func TestResourceRoleRelatives(t *testing.T) {
 	h.expect(404, "GET", roles+"/none/ancestors", "", projectKey)
 	h.expect(404, "GET", roles+"/none/descendants", "", projectKey)
 	h.expect(404, "GET", schema+"/resources/none/roles/viewer/ancestors", "", projectKey)
+}
+
+// TestImplicitGrants checks the implicit grants of the role viewer of the resource doc: a create
+// of the rule of the role owner of folder, linked by the relation parent of doc, named by their
+// keys or by their IDs, answers the rule with the IDs of the role, the resource and the relation,
+// and adds it to the users_with_role of the granted_to of viewer; a rule whose resource, role or
+// relation does not exist gets 404 with a message that names it, and a role of the path that
+// does not exist 404; a change of the conditions answers them and sets the when of the
+// granted_to, each time as a whole; a delete removes each rule that names the role, the resource
+// and the relation of its body, and answers 204, or 404 when there is none, such as for a body
+// that differs from a rule in one of the three; and a request without a body is not implemented.
+func TestImplicitGrants(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	schema := "/v2/schema/proj/dev"
+	folder := h.expect(200, "POST", schema+"/resources", `{"key": "folder"}`, projectKey)
+	h.expect(200, "POST", schema+"/resources", `{"key": "doc"}`, projectKey)
+	relation := h.expect(200, "POST", schema+"/resources/doc/relations",
+		`{"key": "parent", "subject_resource": "folder"}`, projectKey)
+	owner := h.expect(200, "POST", schema+"/resources/folder/roles", `{"key": "owner"}`,
+		projectKey)
+	h.expect(200, "POST", schema+"/resources/doc/roles", `{"key": "viewer"}`, projectKey)
+	jsonOf := func(v any) string {
+		data, err := json.Marshal(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(data)
+	}
+	grantedTo := func() string {
+		viewer := h.expect(200, "GET", schema+"/resources/doc/roles/viewer", "", projectKey)
+		return jsonOf(viewer["granted_to"])
+	}
+	grants := schema + "/resources/doc/roles/viewer/implicit_grants"
+	byKey := `{"role": "owner", "on_resource": "folder", "linked_by_relation": "parent"}`
+	byID := jsonOf(map[string]any{
+		"role": owner["id"], "on_resource": folder["id"], "linked_by_relation": relation["id"],
+	})
+	ids := `"relation_id":"` + text(relation, "id") + `","resource_id":"` + text(folder, "id") +
+		`","role":"%s","role_id":"` + text(owner, "id") + `"`
+	keyRule := `{"linked_by_relation":"parent","on_resource":"folder",` +
+		fmt.Sprintf(ids, "owner") + `}`
+	idRule := `{"linked_by_relation":"` + text(relation, "id") + `","on_resource":"` +
+		text(folder, "id") + `",` + fmt.Sprintf(ids, text(owner, "id")) + `}`
+	if got := jsonOf(h.expect(200, "POST", grants, byKey, projectKey)); got != keyRule {
+		t.Errorf("a create of the rule by keys answered %s, want %s", got, keyRule)
+	}
+	if got := jsonOf(h.expect(200, "POST", grants, byID, projectKey)); got != idRule {
+		t.Errorf("a create of the rule by IDs answered %s, want %s", got, idRule)
+	}
+	if got, want := grantedTo(), `{"users_with_role":[`+keyRule+`,`+idRule+`]}`; got != want {
+		t.Errorf("viewer has the granted_to %s, want %s", got, want)
+	}
+	for _, tc := range []struct{ role, resource, relation, want string }{
+		{"owner", "none", "parent", "no resource none"},
+		{"viewer", "folder", "parent", "no role viewer"},
+		{"owner", "folder", "none", "no relation none"},
+	} {
+		body := jsonOf(map[string]string{
+			"role": tc.role, "on_resource": tc.resource, "linked_by_relation": tc.relation,
+		})
+		if got := h.expect(404, "POST", grants, body, projectKey); got["message"] != tc.want {
+			t.Errorf("a create of %s answered %v, want 404 with the message %q", body, got,
+				tc.want)
+		}
+	}
+	h.expect(404, "POST", schema+"/resources/doc/roles/none/implicit_grants", byKey, projectKey)
+	for _, when := range []string{`{"no_direct_roles_on_object":true}`, `{}`} {
+		if got := jsonOf(h.expect(200, "PUT", grants+"/conditions", when, projectKey)); got !=
+			when {
+			t.Errorf("a change of the conditions to %s answered %s", when, got)
+		}
+	}
+	for _, other := range []map[string]string{
+		{"role": "viewer", "on_resource": "folder", "linked_by_relation": "parent"},
+		{"role": "owner", "on_resource": "doc", "linked_by_relation": "parent"},
+		{"role": "owner", "on_resource": "folder", "linked_by_relation": "child"},
+	} {
+		h.expect(404, "DELETE", grants, jsonOf(other), projectKey)
+	}
+	h.expect(204, "DELETE", grants, byKey, projectKey)
+	if got, want := grantedTo(), `{"users_with_role":[`+idRule+`],"when":{}}`; got != want {
+		t.Errorf("after the delete of the rule by keys, viewer has the granted_to %s, want %s",
+			got, want)
+	}
+	h.expect(404, "DELETE", grants, byKey, projectKey)
+	h.expect(204, "DELETE", grants, byID, projectKey)
+	for _, tc := range []struct{ method, path string }{
+		{"POST", grants}, {"DELETE", grants}, {"PUT", grants + "/conditions"},
+	} {
+		h.do(tc.method, tc.path, "", projectKey)
+		if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0],
+			"the fake does not implement") {
+			t.Errorf("%s %s without a body reported %q, want that the fake does not implement "+
+				"it", tc.method, tc.path, errs)
+		}
+	}
 }

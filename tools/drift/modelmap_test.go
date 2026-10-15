@@ -139,13 +139,18 @@ type fieldRow struct {
 
 	// Null is the field's null policy, one of nullPolicies.
 	Null string `yaml:"null_policy"` //nolint:tagliatelle // The file's key.
+
+	// AlwaysSent, when set, is the reason why a request holds the field even when it is its zero
+	// value, though the schema does not require it; the field is then tagged without omitzero.
+	AlwaysSent string `yaml:"always_sent"` //nolint:tagliatelle // The file's key.
 }
 
 // parseModelMap parses data, a model map, and checks its shape: it maps at least one type; each
 // row names a schema and a spec of specNames, each schema of its also names a schema and a spec of
 // specNames that none of the row's other schemas has, each property of its left_out has a reason,
-// and each of its fields has a required flag and a null policy; each block says what it stands
-// for; and no type is a row and a block.
+// and each of its fields has a required flag and a null policy, and always_sent only when it is
+// not required and its policy is not accepts; each block says what it stands for; and no type is
+// a row and a block.
 func parseModelMap(data []byte) (modelMap, error) {
 	var m modelMap
 	dec := yaml.NewDecoder(bytes.NewReader(data))
@@ -182,6 +187,11 @@ func parseModelMap(data []byte) (modelMap, error) {
 			if !slices.Contains(nullPolicies, f.Null) {
 				problems = append(problems, fmt.Errorf("models.%s.fields.%s: the null policy %q "+
 					"is not one of %s", name, field, f.Null, strings.Join(nullPolicies, ", ")))
+			}
+			if f.AlwaysSent != "" && (f.Required == nil || *f.Required || f.Null == "accepts") {
+				problems = append(problems, fmt.Errorf("models.%s.fields.%s has always_sent, "+
+					"which is for a field that is not required and whose null policy is not "+
+					"accepts", name, field))
 			}
 		}
 	}

@@ -126,6 +126,15 @@
     "EnvironmentsService.Update": [
       "update_environment"
     ],
+    "ImplicitGrantsService.Create": [
+      "create_implicit_grant"
+    ],
+    "ImplicitGrantsService.Delete": [
+      "delete_implicit_grant"
+    ],
+    "ImplicitGrantsService.UpdateConditions": [
+      "update_implicit_grants_conditions"
+    ],
     "ProjectsService.All": [
       "list_projects"
     ],

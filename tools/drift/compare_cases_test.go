@@ -44,6 +44,19 @@ type ScopeOmitempty struct {
 	ProjectID      string `json:"project_id,omitempty"`
 }
 
+// ScopeAlwaysSent is Scope with ProjectID, which its row says a request always holds, tagged
+// without omitzero.
+type ScopeAlwaysSent struct {
+	OrganizationID string `json:"organization_id"`
+	ProjectID      string `json:"project_id"`
+}
+
+// ScopeAlwaysSentOmitzero is ScopeAlwaysSent with ProjectID tagged omitzero.
+type ScopeAlwaysSentOmitzero struct {
+	OrganizationID string `json:"organization_id"`
+	ProjectID      string `json:"project_id,omitzero"`
+}
+
 // ScopeRequiredOptional is Scope with OrganizationID an Optional that the body requires.
 type ScopeRequiredOptional struct {
 	OrganizationID models.Optional[string] `json:"organization_id,omitzero"`
@@ -91,6 +104,15 @@ func scopeFields() map[string]fieldRow {
 	}
 }
 
+// alwaysSentFields are the rows of the fields of Scope, with project_id always sent.
+func alwaysSentFields() map[string]fieldRow {
+	fields := scopeFields()
+	projectID := fields["project_id"]
+	projectID.AlwaysSent = "the API replaces the scope"
+	fields["project_id"] = projectID
+	return fields
+}
+
 // fixtureRows are the rows of the comparer's tests, by type.
 func fixtureRows() map[string]modelRow {
 	return map[string]modelRow{
@@ -120,6 +142,8 @@ func fixtureRows() map[string]modelRow {
 			"organization_id": field(false, "n/a"),
 			"project_id":      field(false, "n/a"),
 		}},
+		"ScopeAlwaysSent":         {Schema: "Scope", Fields: alwaysSentFields()},
+		"ScopeAlwaysSentOmitzero": {Schema: "Scope", Fields: alwaysSentFields()},
 		"Thing": {Schema: "Thing", Fields: map[string]fieldRow{
 			"attributes": field(false, "n/a"),
 			"audience":   field(false, "n/a"),
@@ -176,6 +200,8 @@ func fixtureComparer(t *testing.T) *comparer {
 			ScopeReadOptional{},
 			ScopeTags{},
 			ScopeOmitempty{},
+			ScopeAlwaysSent{},
+			ScopeAlwaysSentOmitzero{},
 			ScopeEmbedded{},
 			ScopeRequiredOptional{},
 			Thing{},
@@ -260,6 +286,11 @@ func TestCompareModel(t *testing.T) {
 				"organization_id, and model-map.yaml has required: false",
 			"ScopeOmitempty.ProjectID: it is tagged omitempty; tag it omitzero, which leaves " +
 				"out only the zero value",
+		}},
+		{"an optional field that its row always sends", "ScopeAlwaysSent", "", nil},
+		{"an always sent field tagged omitzero", "ScopeAlwaysSentOmitzero", "", []string{
+			"ScopeAlwaysSentOmitzero.ProjectID: its row has always_sent, so it is not tagged " +
+				"omitzero: the body always holds it",
 		}},
 		{"a field from an embedded struct", "ScopeEmbedded", "", nil},
 		{

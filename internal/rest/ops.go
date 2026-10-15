@@ -464,6 +464,32 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ResourceRoleList",
 	},
 
+	// The implicit grants of a role of a resource of an environment, each at the environment
+	// level, as v1 sends them too. These key levels are not measured yet: the phase
+	// api.implicit_grants of the local harness confirms them. A create does not do the same when
+	// sent twice; a delete leaves the rule deleted, and a PUT of the conditions sets the same
+	// conditions. A delete names the rule in its body, so a 404 to it is an error.
+	{
+		ID: "create_implicit_grant", Method: http.MethodPost,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/" +
+			"implicit_grants",
+		KeyLevel: EnvironmentLevel, RequestModel: "DerivedRoleRuleCreate",
+		ResponseModel: "DerivedRoleRuleRead",
+	},
+	{
+		ID: "delete_implicit_grant", Method: http.MethodDelete,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/" +
+			"implicit_grants",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "DerivedRoleRuleDelete",
+	},
+	{
+		ID: "update_implicit_grants_conditions", Method: http.MethodPut,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/" +
+			"implicit_grants/conditions",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "DerivationSettings",
+		ResponseModel: "DerivationSettings",
+	},
+
 	// The attributes of the users of an environment, each at the environment level, as the
 	// routes of the schema of an environment are, such as those of the attributes of a resource:
 	// v1 sent these routes only through its generated client. These key levels are not measured

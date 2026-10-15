@@ -509,6 +509,27 @@ change from v1 and what to use instead.
   only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection
   too.
 
+### Implicit grants
+
+- The `ImplicitGrants` field of the client, a `*permit.ImplicitGrantsService`, creates and
+  deletes the implicit grants of a role of a resource of the environment of the client's scope,
+  its role derivations, and sets their conditions: `Create` takes a `models.DerivedRoleRuleCreate`
+  and returns the rule as a `*models.DerivedRoleRuleRead`; `Delete` takes a
+  `models.DerivedRoleRuleDelete`; `UpdateConditions` takes a `models.DerivationSettings` and
+  returns the conditions as the API stores them. A `models.DerivationSettings`, there and in the
+  `When` of a rule, always sends `no_direct_roles_on_object`, `false` too, as v1's constructor of
+  the settings did: the PUT of the conditions replaces them.
+- Each method takes the key or the ID of the resource first and then that of the role, as the
+  route names them. v1's `Delete(ctx, roleId, resourceId, ...)` named its parameters the other way
+  round and sent its first argument as the resource; `Delete` takes `resourceKey` first, as
+  `Create` does: a v1 call that passed the resource first works unchanged, and one that passed the
+  role first, as v1's names said, must swap its two arguments.
+- A key of a resource or of a role is sent as one segment of the path, escaped; an empty key, `.`
+  or `..` is an error that matches `ErrInvalidConfig`, and no request for the call is sent. A 404
+  to `Delete` is an error that matches `ErrNotFound`, as its body names the rule to delete.
+  `Create` is sent again after a 429 only; `Delete` and `UpdateConditions` are sent again after a
+  500, 502, 503 or 504 reply or a failed connection too.
+
 ### User attributes
 
 - The `UserAttributes` field of the client, a `*permit.UserAttributesService`, lists, reads,

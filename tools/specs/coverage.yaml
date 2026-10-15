@@ -177,9 +177,9 @@ control-plane:
   - {op: assign_user_to_group, route: "PUT /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}", stage: GA, status: planned}
   - {op: remove_user_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}", stage: GA, status: planned}
   # Implicit Grants
-  - {op: create_implicit_grant, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants", stage: GA, status: planned}
-  - {op: delete_implicit_grant, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants", stage: GA, status: planned}
-  - {op: update_implicit_grants_conditions, route: "PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants/conditions", stage: GA, status: planned}
+  - {op: create_implicit_grant, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants", stage: GA, status: covered}
+  - {op: delete_implicit_grant, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants", stage: GA, status: covered}
+  - {op: update_implicit_grants_conditions, route: "PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants/conditions", stage: GA, status: covered}
   # Invites
   - {op: list_organization_invites, route: "GET /v2/orgs/{org_id}/invites", stage: GA, status: excluded, reason: account-admin}
   - {op: invite_members_to_organization, route: "POST /v2/orgs/{org_id}/invites", stage: GA, status: excluded, reason: account-admin}

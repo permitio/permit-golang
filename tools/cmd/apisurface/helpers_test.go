@@ -7,21 +7,38 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
-// gitIn runs git in dir with a fixed author and no user or system configuration, and returns its
-// output.
+// gitIn runs git in dir with a fixed author, no user or system configuration and no automatic
+// maintenance or gc, and returns its output. A process that keeps the output open after git exits
+// fails the test after WaitDelay instead of hanging it.
 func gitIn(t *testing.T, dir string, args ...string) string {
 	t.Helper()
 	cmd := exec.CommandContext(t.Context(), "git", append([]string{"-C", dir}, args...)...)
 	cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
+		"GIT_CONFIG_COUNT=2", "GIT_CONFIG_KEY_0=maintenance.auto", "GIT_CONFIG_VALUE_0=false",
+		"GIT_CONFIG_KEY_1=gc.auto", "GIT_CONFIG_VALUE_1=0",
 		"GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=test@example.com",
 		"GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=test@example.com")
+	cmd.WaitDelay = 30 * time.Second
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %s: %v: %s", strings.Join(args, " "), err, out)
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// A git commit starts git maintenance, which can run git gc, in a background process that outlives
+// the commit; gitIn turns both off.
+func TestGitInTurnsOffMaintenance(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	for key, want := range map[string]string{"maintenance.auto": "false", "gc.auto": "0"} {
+		if got := gitIn(t, dir, "config", "--get", key); got != want {
+			t.Errorf("git config --get %s = %q, want %q", key, got, want)
+		}
+	}
 }
 
 // writeFiles writes files, a map from a slash path to its content, under dir. An empty content

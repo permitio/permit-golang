@@ -959,3 +959,8 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
 github.com/permitio/permit-golang/v2/tools/e2e TestVerdict
+
+github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestGitInTurnsOffMaintenance
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestGitInTurnsOffMaintenance
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestGitInTurnsOffMaintenance
+github.com/permitio/permit-golang/v2/tools/scripts TestGitEnvTurnsOffMaintenance

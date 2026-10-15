@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
@@ -17,12 +18,15 @@ type scriptResult struct {
 	stdout, stderr string
 }
 
-// runScript runs the program at path with args in dir, in the test's environment plus env.
+// runScript runs the program at path with args in dir, in the test's environment plus env. A
+// process that keeps the output open after the program exits is cut off after WaitDelay instead of
+// hanging the test; the call then fails the test when the program exited 0.
 func runScript(t *testing.T, dir string, env []string, path string, args ...string) scriptResult {
 	t.Helper()
 	cmd := exec.CommandContext(t.Context(), path, args...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), env...)
+	cmd.WaitDelay = 30 * time.Second
 	var stdout, stderr strings.Builder
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()
@@ -30,7 +34,7 @@ func runScript(t *testing.T, dir string, env []string, path string, args ...stri
 	if exitErr := (*exec.ExitError)(nil); errors.As(err, &exitErr) {
 		result.exit = exitErr.ExitCode()
 	} else if err != nil {
-		t.Fatal(err)
+		t.Fatalf("%s %s: %v", path, strings.Join(args, " "), err)
 	}
 	return result
 }
@@ -92,11 +96,27 @@ func writeFiles(t *testing.T, root string, files map[string]string) {
 }
 
 // gitEnv returns environment variables that keep git from reading the configuration of the
-// machine that runs the test, and from finding a repository above root.
+// machine that runs the test, from running automatic maintenance or gc, and from finding a
+// repository above root.
 func gitEnv(root string) []string {
 	return []string{
 		"GIT_CONFIG_GLOBAL=" + os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
+		"GIT_CONFIG_COUNT=2", "GIT_CONFIG_KEY_0=maintenance.auto", "GIT_CONFIG_VALUE_0=false",
+		"GIT_CONFIG_KEY_1=gc.auto", "GIT_CONFIG_VALUE_1=0",
 		"GIT_CEILING_DIRECTORIES=" + filepath.Dir(root),
+	}
+}
+
+// A git commit starts git maintenance, which can run git gc, in a background process that outlives
+// the commit; gitEnv turns both off.
+func TestGitEnvTurnsOffMaintenance(t *testing.T) {
+	root := t.TempDir()
+	for key, want := range map[string]string{"maintenance.auto": "false", "gc.auto": "0"} {
+		result := runScript(t, root, gitEnv(root), "git", "config", "--get", key)
+		if got := strings.TrimSpace(result.stdout); result.exit != 0 || got != want {
+			t.Errorf("git config --get %s: exit %d, stdout %q, stderr %q; want exit 0, stdout %q",
+				key, result.exit, got, result.stderr, want)
+		}
 	}
 }
 

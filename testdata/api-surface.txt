@@ -14,6 +14,28 @@ models: const AttributeTypeObject AttributeType = "object"
 models: const AttributeTypeObjectArray AttributeType = "object_array"
 models: const AttributeTypeString AttributeType = "string"
 models: const AttributeTypeTime AttributeType = "time"
+models: const EnvironmentCopyConflictStrategyFail EnvironmentCopyConflictStrategy = "fail"
+models: const EnvironmentCopyConflictStrategyOverwrite EnvironmentCopyConflictStrategy = "overwrite"
+models: const ErrorCodeConcurrentOperationDisallowed ErrorCode = "CONCURRENT_OPERATION_DISALLOWED"
+models: const ErrorCodeDuplicateEntity ErrorCode = "DUPLICATE_ENTITY"
+models: const ErrorCodeEmptyDecisionLogs ErrorCode = "EMPTY_DECISION_LOGS"
+models: const ErrorCodeForbiddenAccess ErrorCode = "FORBIDDEN_ACCESS"
+models: const ErrorCodeInvalidInput ErrorCode = "INVALID_INPUT"
+models: const ErrorCodeInvalidJWKSConfiguration ErrorCode = "INVALID_JWKS_CONFIGURATION"
+models: const ErrorCodeInvalidPermissionFormat ErrorCode = "INVALID_PERMISSION_FORMAT"
+models: const ErrorCodeInvalidPolicyRepoStatus ErrorCode = "INVALID_POLICY_REPO_STATUS"
+models: const ErrorCodeInvalidSMTPConfiguration ErrorCode = "INVALID_SMTP_CONFIGURATION"
+models: const ErrorCodeMismatchAttributesTypes ErrorCode = "MISMATCH_ATTRIBUTES_TYPES"
+models: const ErrorCodeMismatchRelationType ErrorCode = "MISMATCH_RELATION_TYPE"
+models: const ErrorCodeMismatchResourceInstancesTenants ErrorCode = "MISMATCH_RESOURCE_INSTANCES_TENANTS"
+models: const ErrorCodeMissingPermissions ErrorCode = "MISSING_PERMISSIONS"
+models: const ErrorCodeMissingRequestAttribute ErrorCode = "MISSING_REQUEST_ATTRIBUTE"
+models: const ErrorCodeMissingResourceAttribute ErrorCode = "MISSING_RESOURCE_ATTRIBUTE"
+models: const ErrorCodeNotFound ErrorCode = "NOT_FOUND"
+models: const ErrorCodePaginationSizeOverreached ErrorCode = "PAGINATION_SIZE_OVERREACHED"
+models: const ErrorCodeUnauthorized ErrorCode = "UNAUTHORIZED"
+models: const ErrorCodeUnexpectedError ErrorCode = "UNEXPECTED_ERROR"
+models: const ErrorCodeUnsupportedAttributeType ErrorCode = "UNSUPPORTED_ATTRIBUTE_TYPE"
 models: const MemberAccessLevelAdmin MemberAccessLevel = "admin"
 models: const MemberAccessLevelNoAccess MemberAccessLevel = "no_access"
 models: const MemberAccessLevelRead MemberAccessLevel = "read"
@@ -21,6 +43,10 @@ models: const MemberAccessLevelWrite MemberAccessLevel = "write"
 models: const MemberAccessObjEnv MemberAccessObj = "env"
 models: const MemberAccessObjOrg MemberAccessObj = "org"
 models: const MemberAccessObjProject MemberAccessObj = "project"
+models: const TaskStatusCancelled TaskStatus = "cancelled"
+models: const TaskStatusFailure TaskStatus = "failure"
+models: const TaskStatusProcessing TaskStatus = "processing"
+models: const TaskStatusSuccess TaskStatus = "success"
 models: func NewSecret(credential string) Secret
 models: func Null[T any]() Optional[T]
 models: func OneString(s string) StringOrList
@@ -34,6 +60,8 @@ models: method (*Time) UnmarshalJSON(data []byte) error
 models: method (*Time) UnmarshalText(text []byte) error
 models: method (APIKeyOwnerType) Known() bool
 models: method (AttributeType) Known() bool
+models: method (EnvironmentCopyConflictStrategy) Known() bool
+models: method (ErrorCode) Known() bool
 models: method (MemberAccessLevel) Known() bool
 models: method (MemberAccessObj) Known() bool
 models: method (Optional[T]) Get() (T, bool)
@@ -52,6 +80,7 @@ models: method (StringOrList) IsList() bool
 models: method (StringOrList) IsZero() bool
 models: method (StringOrList) MarshalJSON() ([]byte, error)
 models: method (StringOrList) Values() []string
+models: method (TaskStatus) Known() bool
 models: type APIKeyCreate struct
 models: type APIKeyCreate struct, AccessLevel MemberAccessLevel
 models: type APIKeyCreate struct, EnvironmentID string
@@ -81,6 +110,23 @@ models: type APIKeyScopeRead struct, OrganizationID string
 models: type APIKeyScopeRead struct, ProjectID string
 models: type AttributeType string
 models: type Attributes map[string]any
+models: type EnvironmentCopy struct
+models: type EnvironmentCopy struct, ConflictStrategy EnvironmentCopyConflictStrategy
+models: type EnvironmentCopy struct, Scope EnvironmentCopyScope
+models: type EnvironmentCopy struct, TargetEnv EnvironmentCopyTarget
+models: type EnvironmentCopyConflictStrategy string
+models: type EnvironmentCopyScope struct
+models: type EnvironmentCopyScope struct, CustomPolicies EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScope struct, ResourceSets EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScope struct, Resources EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScope struct, Roles EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScope struct, UserSets EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScopeFilters struct
+models: type EnvironmentCopyScopeFilters struct, Exclude []string
+models: type EnvironmentCopyScopeFilters struct, Include []string
+models: type EnvironmentCopyTarget struct
+models: type EnvironmentCopyTarget struct, Existing string
+models: type EnvironmentCopyTarget struct, New *EnvironmentCreate
 models: type EnvironmentCreate struct
 models: type EnvironmentCreate struct, CustomBranchName string
 models: type EnvironmentCreate struct, Description string
@@ -105,12 +151,32 @@ models: type EnvironmentRead struct, UpdatedAt Time
 models: type EnvironmentReadWithEmailConfig struct
 models: type EnvironmentReadWithEmailConfig struct, EmailConfiguration string
 models: type EnvironmentReadWithEmailConfig struct, embedded EnvironmentRead
+models: type EnvironmentStatistics struct
+models: type EnvironmentStatistics struct, HasDecisionLogs bool
+models: type EnvironmentStatistics struct, MAU int
+models: type EnvironmentStatistics struct, Policies int
+models: type EnvironmentStatistics struct, Resources int
+models: type EnvironmentStatistics struct, Roles int
+models: type EnvironmentStatistics struct, Tenants int
+models: type EnvironmentStatistics struct, Users int
+models: type EnvironmentStats struct
+models: type EnvironmentStats struct, PDPConfigs []PDPConfigRead
+models: type EnvironmentStats struct, Stats EnvironmentStatistics
+models: type EnvironmentStats struct, embedded EnvironmentRead
 models: type EnvironmentUpdate struct
 models: type EnvironmentUpdate struct, CustomBranchName Optional[string]
 models: type EnvironmentUpdate struct, Description Optional[string]
 models: type EnvironmentUpdate struct, JWKS Optional[JwksConfig]
 models: type EnvironmentUpdate struct, Name string
 models: type EnvironmentUpdate struct, Settings Optional[Attributes]
+models: type ErrorCode string
+models: type ErrorDetails struct
+models: type ErrorDetails struct, AdditionalInfo any
+models: type ErrorDetails struct, ErrorCode ErrorCode
+models: type ErrorDetails struct, ID string
+models: type ErrorDetails struct, Message string
+models: type ErrorDetails struct, SupportLink string
+models: type ErrorDetails struct, Title string
 models: type JwksConfig struct
 models: type JwksConfig struct, Audience StringOrList
 models: type JwksConfig struct, Issuer StringOrList
@@ -122,6 +188,17 @@ models: type JwksObj struct, Keys []Attributes
 models: type MemberAccessLevel string
 models: type MemberAccessObj string
 models: type Optional[T any] struct
+models: type PDPConfigRead struct
+models: type PDPConfigRead struct, ClientSecret Secret
+models: type PDPConfigRead struct, DebugAuditLogs *bool
+models: type PDPConfigRead struct, EnvironmentID string
+models: type PDPConfigRead struct, ID string
+models: type PDPConfigRead struct, MinPDPVersion string
+models: type PDPConfigRead struct, Name string
+models: type PDPConfigRead struct, NumShards int
+models: type PDPConfigRead struct, OPALServerAccessToken Secret
+models: type PDPConfigRead struct, OrganizationID string
+models: type PDPConfigRead struct, ProjectID string
 models: type ProjectCreate struct
 models: type ProjectCreate struct, ActivePolicyRepoID string
 models: type ProjectCreate struct, Description string
@@ -148,6 +225,12 @@ models: type ProjectUpdate struct, Name string
 models: type ProjectUpdate struct, Settings Attributes
 models: type Secret struct
 models: type StringOrList struct
+models: type TaskResultEnvironmentRead struct
+models: type TaskResultEnvironmentRead struct, Error *ErrorDetails
+models: type TaskResultEnvironmentRead struct, Result *EnvironmentRead
+models: type TaskResultEnvironmentRead struct, Status TaskStatus
+models: type TaskResultEnvironmentRead struct, TaskID string
+models: type TaskStatus string
 models: type Time struct
 models: type Time struct, embedded time.Time
 permit: const Version = "2.0.0"
@@ -189,10 +272,14 @@ permit: method (*Client) String() string
 permit: method (*Client) UserPermissions(ctx context.Context, user User, opts ...PermissionsOption) (map[string]ObjectPermissions, error)
 permit: method (*Client) UserTenants(ctx context.Context, user User, opts ...CheckOption) ([]TenantDetails, error)
 permit: method (*EnvironmentsService) All(ctx context.Context, projectKey string, opts *ListOptions) iter.Seq2[models.EnvironmentReadWithEmailConfig, error]
+permit: method (*EnvironmentsService) Copy(ctx context.Context, projectKey string, environmentKey string, environmentCopy models.EnvironmentCopy) (*models.EnvironmentRead, error)
+permit: method (*EnvironmentsService) CopyAsync(ctx context.Context, projectKey string, environmentKey string, environmentCopy models.EnvironmentCopy) (*models.TaskResultEnvironmentRead, error)
+permit: method (*EnvironmentsService) CopyResult(ctx context.Context, projectKey string, environmentKey string, taskID string, opts *CopyResultOptions) (*models.TaskResultEnvironmentRead, error)
 permit: method (*EnvironmentsService) Create(ctx context.Context, projectKey string, environment models.EnvironmentCreate) (*models.EnvironmentRead, error)
 permit: method (*EnvironmentsService) Delete(ctx context.Context, projectKey string, environmentKey string) error
 permit: method (*EnvironmentsService) Get(ctx context.Context, projectKey string, environmentKey string) (*models.EnvironmentReadWithEmailConfig, error)
 permit: method (*EnvironmentsService) List(ctx context.Context, projectKey string, opts *ListOptions) (*Page[models.EnvironmentReadWithEmailConfig], error)
+permit: method (*EnvironmentsService) Stats(ctx context.Context, projectKey string, environmentKey string) (*models.EnvironmentStats, error)
 permit: method (*EnvironmentsService) Update(ctx context.Context, projectKey string, environmentKey string, update models.EnvironmentUpdate) (*models.EnvironmentRead, error)
 permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
@@ -241,6 +328,8 @@ permit: type Client struct
 permit: type Client struct, APIKeys *APIKeysService
 permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Projects *ProjectsService
+permit: type CopyResultOptions struct
+permit: type CopyResultOptions struct, Wait time.Duration
 permit: type EnvironmentsService struct
 permit: type Error struct
 permit: type Error struct, Body []byte

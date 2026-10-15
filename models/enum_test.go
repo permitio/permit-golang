@@ -78,6 +78,21 @@ func TestOpenEnums(t *testing.T) {
 			models.MemberAccessLevelRead, models.MemberAccessLevelNoAccess),
 		checkOpenEnum(t, models.APIKeyOwnerTypePDPConfig, models.APIKeyOwnerTypeMember,
 			models.APIKeyOwnerTypeElements, models.APIKeyOwnerTypeNATSPDPConfig),
+		checkOpenEnum(t, models.EnvironmentCopyConflictStrategyFail,
+			models.EnvironmentCopyConflictStrategyOverwrite),
+		checkOpenEnum(t, models.TaskStatusProcessing, models.TaskStatusSuccess,
+			models.TaskStatusFailure, models.TaskStatusCancelled),
+		checkOpenEnum(t, models.ErrorCodeInvalidInput, models.ErrorCodeInvalidJWKSConfiguration,
+			models.ErrorCodeUnexpectedError, models.ErrorCodeNotFound,
+			models.ErrorCodeDuplicateEntity, models.ErrorCodeEmptyDecisionLogs,
+			models.ErrorCodeMissingRequestAttribute, models.ErrorCodeForbiddenAccess,
+			models.ErrorCodeInvalidPermissionFormat, models.ErrorCodeMissingPermissions,
+			models.ErrorCodeUnsupportedAttributeType, models.ErrorCodeMissingResourceAttribute,
+			models.ErrorCodeMismatchAttributesTypes, models.ErrorCodeInvalidPolicyRepoStatus,
+			models.ErrorCodeInvalidSMTPConfiguration,
+			models.ErrorCodeMismatchResourceInstancesTenants,
+			models.ErrorCodePaginationSizeOverreached, models.ErrorCodeMismatchRelationType,
+			models.ErrorCodeConcurrentOperationDisallowed, models.ErrorCodeUnauthorized),
 	}
 
 	p, err := surface.Read(".")

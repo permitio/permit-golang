@@ -54,6 +54,13 @@ var cloudScenarios = []scenario{
 		run: environmentLifecycle,
 	},
 	{
+		name: "environment_stats_and_copy", methods: []string{
+			"EnvironmentsService.Stats", "EnvironmentsService.Copy",
+			"EnvironmentsService.CopyAsync", "EnvironmentsService.CopyResult",
+		},
+		run: environmentStatsAndCopy,
+	},
+	{
 		name: "get_environment_key", methods: []string{"APIKeysService.GetEnvironmentKey"},
 		run: getEnvironmentKey,
 	},
@@ -177,7 +184,8 @@ type suite struct {
 	logs   *lockedBuffer
 	logger *slog.Logger
 
-	// secrets are the API keys of the run, which no log may hold.
+	// secrets are what no log of the run may hold: its API keys, and the credentials of the PDPs
+	// that a scenario read.
 	secrets []string
 }
 

@@ -91,7 +91,7 @@ func unauthorizedKey(s *suite) func(t *testing.T) {
 	}
 }
 
-// leak is an API key that logs hold: its index in the keys of the scan, and how often they hold
+// leak is a secret that logs hold: its index in the secrets of the scan, and how often they hold
 // it.
 type leak struct {
 	key, count int
@@ -108,9 +108,14 @@ func leaks(logs []byte, keys []string) []leak {
 	return found
 }
 
+// minScannedKey is the length of the shortest secret that logsHoldNoKey scans for: a shorter one
+// is a mistake of the run, as a scan for it could match by chance.
+const minScannedKey = 20
+
 // logsHoldNoKey checks that what every client of the suite logged at Debug holds no API key of
-// the run, and, as a control, that the same scan finds each key exactly once in what a logger
-// built like the clients' logs when it logs the key at Debug.
+// the run, nor a credential of a PDP that a scenario read, and, as a control, that the same scan
+// finds each of them exactly once in what a logger built like the clients' logs when it logs it
+// at Debug.
 func logsHoldNoKey(s *suite) func(t *testing.T) {
 	return func(t *testing.T) {
 		logs := s.logs.Bytes()
@@ -118,13 +123,13 @@ func logsHoldNoKey(s *suite) func(t *testing.T) {
 			t.Fatal("the clients of the run logged nothing at Debug, so the scan proves nothing")
 		}
 		for i, key := range s.secrets {
-			if len(key) < 20 {
-				t.Errorf("API key %d of the run has %d characters; the scan needs a key", i,
-					len(key))
+			if len(key) < minScannedKey {
+				t.Errorf("secret %d of the run has %d characters; the scan needs %d or more", i,
+					len(key), minScannedKey)
 			}
 		}
 		for _, l := range leaks(logs, s.secrets) {
-			t.Errorf("the Debug logs of the run hold API key %d %d times", l.key, l.count)
+			t.Errorf("the Debug logs of the run hold secret %d %d times", l.key, l.count)
 		}
 		var control bytes.Buffer
 		logger := newLogger(&control)
@@ -134,9 +139,9 @@ func logsHoldNoKey(s *suite) func(t *testing.T) {
 			want[i] = leak{key: i, count: 1}
 		}
 		if got := leaks(control.Bytes(), s.secrets); !slices.Equal(got, want) {
-			t.Errorf("the scan of a control log that holds each API key once found %v, want %v",
+			t.Errorf("the scan of a control log that holds each secret once found %v, want %v",
 				got, want)
 		}
-		t.Logf("scanned %d bytes of Debug logs for %d API keys", len(logs), len(s.secrets))
+		t.Logf("scanned %d bytes of Debug logs for %d secrets", len(logs), len(s.secrets))
 	}
 }

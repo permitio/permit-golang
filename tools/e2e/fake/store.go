@@ -13,6 +13,10 @@ import (
 const (
 	opScope          = "get_api_key_scope"
 	opEnvironmentKey = "get_environment_api_key"
+	opStats          = "stats_environments"
+	opCopy           = "copy_environment"
+	opCopyAsync      = "copy_environment_async"
+	opCopyResult     = "get_copy_environment_async_result"
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -30,6 +34,15 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 		return http.StatusOK, body
 	case opEnvironmentKey:
 		return http.StatusOK, f.issue(scope{project: segments[3], environment: segments[4]})
+	case opStats:
+		return f.stats(segments)
+	case opCopy, opCopyAsync:
+		if rt.Method == http.MethodPost && fields != nil {
+			return f.copyEnvironment(rt.Op, segments, fields)
+		}
+		return f.unsupported(rt)
+	case opCopyResult:
+		return f.copyResult(segments)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
@@ -153,6 +166,96 @@ func (f *Fake) item(rt route, segments []string, fields object) (int, any) {
 		return http.StatusNoContent, nil
 	}
 	return f.unsupported(rt)
+}
+
+// createEnvironment is the route of the create of an environment, as which a copy into a new
+// environment creates it.
+var createEnvironment = route{
+	Route:    Route{Method: http.MethodPost, Template: "/v2/projects/{proj_id}/envs"},
+	segments: []string{"", "v2", "projects", "{proj_id}", "envs"},
+}
+
+// environmentsOf returns the key of the collection of the environments of the project whose ID
+// is project.
+func environmentsOf(project string) string {
+	return collectionOf([]string{"", "v2", "projects", project, "envs"})
+}
+
+// stats answers GET /v2/projects/{proj_id}/envs/{env_id}/stats, whose path has segments, with
+// IDs in place of keys: the environment, with statistics of zero and one PDP configuration,
+// whose client secret is the environment's API key, as a PDP authenticates with it, and whose
+// OPAL token is a fake key of the environment that no other reply holds. The caller holds f.mu.
+func (f *Fake) stats(segments []string) (int, any) {
+	project, id := segments[3], segments[5]
+	env, _ := find(f.store[environmentsOf(project)], id)
+	o := maps.Clone(env)
+	key := f.issue(scope{project: project, environment: id})
+	o["pdp_configs"] = []object{{
+		"id": f.newID(), "organization_id": f.org, "project_id": project,
+		"environment_id": id, "client_secret": key["secret"],
+		"opal_server_access_token": "permit_key_FAKEopal" + strings.ReplaceAll(id, "-", ""),
+	}}
+	o["stats"] = object{
+		"roles": 0, "users": 0, "policies": 0, "resources": 0, "tenants": 0,
+		"has_decision_logs": false, "members": []object{}, "mau": 0,
+	}
+	return http.StatusOK, o
+}
+
+// copyEnvironment answers a copy of the environment of the path, which has segments, with IDs in
+// place of keys, into the target_env of fields: a new environment, which it creates in the
+// project as a POST to its environments does, or an existing one, by its key or its ID. It copies
+// no object, as the fake keeps none that a scenario reads from a copy. A copy, op copy_environment,
+// answers 201 with the environment of the target; a copy in the background, op
+// copy_environment_async, answers 202 with a task that is processing, whose result the fake keeps
+// for copyResult, as having succeeded. A target that names neither, a new environment whose key
+// the project has, and an existing environment that it does not have get 422, 409 and 404. The
+// caller holds f.mu.
+func (f *Fake) copyEnvironment(op string, segments []string, fields object) (int, any) {
+	project := segments[3]
+	target, _ := fields["target_env"].(object)
+	var env object
+	switch created, existing := target["new"], target["existing"]; {
+	case created != nil:
+		attrs, _ := created.(object)
+		status, answer := f.create(createEnvironment, segments[:5], attrs)
+		if status != http.StatusOK {
+			return status, answer
+		}
+		env, _ = answer.(object)
+	case existing != nil:
+		ident, _ := existing.(string)
+		found, ok := find(f.store[environmentsOf(project)], ident)
+		if !ok {
+			return http.StatusNotFound, errorBody("NOT_FOUND", "no environment "+ident)
+		}
+		env = found
+	default:
+		return http.StatusUnprocessableEntity, errorBody("VALIDATION_ERROR",
+			"the target names no environment")
+	}
+	if op == opCopy {
+		return http.StatusCreated, env
+	}
+	tasks := collectionOf(segments) + "/tasks"
+	task := object{"task_id": f.newID(), "status": "processing"}
+	f.store[tasks] = append(f.store[tasks], object{
+		"task_id": task["task_id"], "status": "success", "result": env,
+	})
+	return http.StatusAccepted, task
+}
+
+// copyResult answers GET /v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result, whose
+// path has segments: the task of a copy in the background of the environment of the path, or 404
+// for a task that it does not have. The caller holds f.mu.
+func (f *Fake) copyResult(segments []string) (int, any) {
+	tasks := collectionOf(segments[:len(segments)-2]) + "/tasks"
+	for _, task := range f.store[tasks] {
+		if task["task_id"] == segments[len(segments)-2] {
+			return http.StatusOK, task
+		}
+	}
+	return http.StatusNotFound, errorBody("NOT_FOUND", "no task "+segments[len(segments)-2])
 }
 
 // unsupported fails the test for a request that the fake does not implement, such as a POST

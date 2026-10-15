@@ -179,6 +179,13 @@ var (
 // The rules of the arguments of a call, which the SDK checks before it sends the request. The
 // error of such a rule names the argument before the message.
 var (
+	// CopyResultWaitNegative rejects a CopyResultOptions whose Wait is less than zero.
+	CopyResultWaitNegative = Rule{
+		ID: "copy-result.wait.negative",
+		Message: "Wait is less than zero; give 0 to read the task without a wait, or a wait of " +
+			"up to 60 seconds",
+	}
+
 	// ListPageNegative rejects a ListOptions whose Page is less than zero.
 	ListPageNegative = Rule{
 		ID: "list.page.negative",
@@ -284,6 +291,7 @@ var rules = []Rule{
 	URLQuery,
 	URLScheme,
 	URLUserinfo,
+	CopyResultWaitNegative,
 	DecisionFilterEmpty,
 	DecisionOptionNil,
 	DecisionOptionZero,

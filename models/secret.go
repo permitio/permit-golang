@@ -11,8 +11,9 @@ import (
 )
 
 // Secret is a credential that the API returns, such as the secret of an API key in
-// [APIKeyRead.Secret], which does not print. Read the credential with [Secret.Value]; the zero
-// Secret is empty, and [NewSecret] makes one that holds a credential.
+// [APIKeyRead.Secret] or the client secret of a PDP in [PDPConfigRead.ClientSecret], which does
+// not print. Read the credential with [Secret.Value]; the zero Secret is empty, and [NewSecret]
+// makes one that holds a credential.
 //
 // String, GoString, Format with every verb, flag and width, LogValue and MarshalJSON all give a
 // marker, the word REDACTED in square brackets, for a Secret that holds a credential, and "" for

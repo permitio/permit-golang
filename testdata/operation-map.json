@@ -57,6 +57,15 @@
     "EnvironmentsService.All": [
       "list_environments"
     ],
+    "EnvironmentsService.Copy": [
+      "copy_environment"
+    ],
+    "EnvironmentsService.CopyAsync": [
+      "copy_environment_async"
+    ],
+    "EnvironmentsService.CopyResult": [
+      "get_copy_environment_async_result"
+    ],
     "EnvironmentsService.Create": [
       "create_environment"
     ],
@@ -68,6 +77,9 @@
     ],
     "EnvironmentsService.List": [
       "list_environments"
+    ],
+    "EnvironmentsService.Stats": [
+      "stats_environments"
     ],
     "EnvironmentsService.Update": [
       "update_environment"

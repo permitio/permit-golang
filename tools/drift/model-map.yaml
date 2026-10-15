@@ -137,6 +137,37 @@ models:
       url: {required: true, null_policy: rejects}
       tenant: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
+  # A copy of an environment into another, with EnvironmentsService.Copy and CopyAsync. The API
+  # rejects null for the target and for each field with a default: the conflict strategy, the
+  # scope, each filter of the scope and each list of a filter; and reads null for the existing or
+  # the new environment of the target, which have no default, as the field left out. These null
+  # policies are not measured yet: the phase api.environments of the local harness confirms them.
+  EnvironmentCopy:
+    schema: EnvironmentCopy
+    fields:
+      target_env: {required: true, null_policy: rejects}
+      conflict_strategy: {required: false, null_policy: rejects}
+      scope: {required: false, null_policy: rejects}
+  EnvironmentCopyConflictStrategy:
+    schema: EnvironmentCopyConflictStrategy
+  EnvironmentCopyScope:
+    schema: EnvironmentCopyScope
+    fields:
+      resources: {required: false, null_policy: rejects}
+      roles: {required: false, null_policy: rejects}
+      user_sets: {required: false, null_policy: rejects}
+      resource_sets: {required: false, null_policy: rejects}
+      custom_policies: {required: false, null_policy: rejects}
+  EnvironmentCopyScopeFilters:
+    schema: EnvironmentCopyScopeFilters
+    fields:
+      include: {required: false, null_policy: rejects}
+      exclude: {required: false, null_policy: rejects}
+  EnvironmentCopyTarget:
+    schema: EnvironmentCopyTarget
+    fields:
+      existing: {required: false, null_policy: ignores}
+      new: {required: false, null_policy: ignores}
   # An environment to create, with EnvironmentsService.Create or as a new project holds it in
   # initial_environments, with the configuration of its JSON Web Key Sets. As in every create,
   # the API reads null for a field that the schema does not require as the field left out, and
@@ -187,6 +218,41 @@ models:
       jwks_unpinned: {required: false, null_policy: n/a}
       settings: {required: false, null_policy: n/a}
       email_configuration: {required: true, null_policy: n/a}
+  # The statistics of an environment, which embed the environment as EnvironmentRead with the
+  # configurations of its PDPs, whose credentials are each a Secret. The statistics leave out the
+  # members of the organization that the reply lists.
+  EnvironmentStatistics:
+    schema: EnvironmentStatistics
+    left_out:
+      members: >-
+        the members of the organization, which the SDK does not model, as the members of the
+        organization are account administration that it does not cover
+    fields:
+      roles: {required: true, null_policy: n/a}
+      users: {required: true, null_policy: n/a}
+      policies: {required: true, null_policy: n/a}
+      resources: {required: true, null_policy: n/a}
+      tenants: {required: true, null_policy: n/a}
+      has_decision_logs: {required: true, null_policy: n/a}
+      mau: {required: true, null_policy: n/a}
+  EnvironmentStats:
+    schema: EnvironmentStats
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      avp_policy_store_id: {required: false, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      custom_branch_name: {required: false, null_policy: n/a}
+      jwks: {required: false, null_policy: n/a}
+      jwks_unpinned: {required: false, null_policy: n/a}
+      settings: {required: false, null_policy: n/a}
+      pdp_configs: {required: true, null_policy: n/a}
+      stats: {required: true, null_policy: n/a}
   # A change to an environment. An update stores null for the description, the branch name, the
   # configuration of the JSON Web Key Sets and the settings, which clears each, and rejects null
   # for the name, which only a value changes. These null policies are not measured yet: the phase
@@ -199,6 +265,18 @@ models:
       custom_branch_name: {required: false, null_policy: accepts}
       jwks: {required: false, null_policy: accepts}
       settings: {required: false, null_policy: accepts}
+  ErrorCode:
+    schema: ErrorCode
+  # An error of the API that a reply holds as a value, such as the error that ended a task.
+  ErrorDetails:
+    schema: ErrorDetails
+    fields:
+      id: {required: true, null_policy: n/a}
+      title: {required: true, null_policy: n/a}
+      error_code: {required: true, null_policy: n/a}
+      message: {required: false, null_policy: n/a}
+      support_link: {required: false, null_policy: n/a}
+      additional_info: {required: false, null_policy: n/a}
   JwksConfig:
     schema: JwksConfig
     fields:
@@ -235,6 +313,20 @@ models:
       resource: {required: false, null_policy: n/a}
       permissions: {required: true, null_policy: n/a}
       roles: {required: false, null_policy: n/a}
+  # The configuration of a PDP of an environment, as the statistics of the environment hold it.
+  PDPConfigRead:
+    schema: PDPConfigRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      client_secret: {required: true, null_policy: n/a}
+      debug_audit_logs: {required: false, null_policy: n/a}
+      min_pdp_version: {required: false, null_policy: n/a}
+      num_shards: {required: false, null_policy: n/a}
+      opal_server_access_token: {required: false, null_policy: n/a}
   # A project, as a create sends it, as an update sends it and as the API returns it. A create
   # reads null for a field that the schema does not require as the field left out, as every
   # create does, but for initial_environments, a list with a default, whose null it rejects. An
@@ -291,6 +383,17 @@ models:
       type: {required: true, null_policy: n/a}
       key: {required: true, null_policy: n/a}
       attributes: {required: false, null_policy: n/a}
+  # The task of a copy of an environment that runs in the background, as the copy and the result
+  # of its task return it.
+  TaskResultEnvironmentRead:
+    schema: TaskResult_EnvironmentRead_
+    fields:
+      task_id: {required: true, null_policy: n/a}
+      status: {required: true, null_policy: n/a}
+      result: {required: false, null_policy: n/a}
+      error: {required: false, null_policy: n/a}
+  TaskStatus:
+    schema: TaskStatus
   TenantDetails:
     spec: pdp-container
     schema: _TenantDetails

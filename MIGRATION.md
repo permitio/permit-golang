@@ -1122,6 +1122,55 @@ the environment keeps its name. `Description` and `CustomBranchName`, which were
 field out, and the environment keeps it; `models.Null[T]()` sends null, which v1 could not send;
 and `models.Some(value)` sends the value, the settings and the configuration as a whole.
 
+<a id="M-environments-9"></a>
+### M-environments-9: StatsEnvironments of the generated client becomes Environments.Stats
+
+- v1: `openapi.EnvironmentsApiService.StatsEnvironments`
+- v2: `permit.EnvironmentsService.Stats`
+
+v1 read the statistics of an environment only through the generated client of `pkg/openapi`.
+Call `client.Environments.Stats(ctx, projectKey, environmentKey)` instead, with the key or the ID
+of the project and of the environment. It returns a `*models.EnvironmentStats`, which embeds
+`models.EnvironmentRead`, whose fields it promotes, as
+[M-environments-2](#M-environments-2) says of `Get`, with `PDPConfigs` and `Stats`. `Stats` is a
+`models.EnvironmentStatistics` in place of v1's `models.Statistics`: its counts are `int`, and it
+adds `MAU`, the number of monthly active users. A `models.PDPConfigRead` has `ID`,
+`OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`, `OrganizationId`,
+`ProjectId` and `EnvironmentId`, and the fields of the reply that v1 dropped. Its credentials
+print as a marker, also with `%+v` and in a log, and their `Value` method returns them; the
+client also replaces them in its later errors and log lines.
+
+<a id="M-environments-10"></a>
+### M-environments-10: CopyEnvironment of the generated client becomes Environments.Copy
+
+- v1: `openapi.EnvironmentsApiService.CopyEnvironment`
+- v2: `permit.EnvironmentsService.Copy`
+
+v1 copied an environment only through the generated client of `pkg/openapi`. Call
+`client.Environments.Copy(ctx, projectKey, environmentKey, environmentCopy)` instead: it copies
+the environment that the keys name into the target of a `models.EnvironmentCopy`, and returns the
+environment that it copied into as a `*models.EnvironmentRead`. Build the copy as a struct
+literal:
+
+- `TargetEnv` is a `models.EnvironmentCopyTarget` in place of v1's `models.TargetEnv`: `Existing`,
+  a plain string left out when empty, names an existing environment, and `New`, a
+  `*models.EnvironmentCreate` in place of v1's `*models.New`, creates one, with its settings and
+  the configuration of its JSON Web Key Sets.
+- `ConflictStrategy` is a `models.EnvironmentCopyConflictStrategy`, an open enum, in place of a
+  `*string`: `models.EnvironmentCopyConflictStrategyFail` or
+  `models.EnvironmentCopyConflictStrategyOverwrite`, left out when empty.
+- `Scope` is a `models.EnvironmentCopyScope`, left out when it is the zero value, in place of
+  v1's `*models.Scope`. Each of its filters, `Resources`, `Roles`, `UserSets`, `ResourceSets` and
+  the new `CustomPolicies`, is a `models.EnvironmentCopyScopeFilters` in place of v1's
+  `models.Resources`, `models.UserSets`, `models.ResourceSets`, `models.CopyEnvironmentScopeRoles`
+  and the `*models.Roles` of v1's `Scope`, which held resource roles and not a filter. A nil
+  `Include` or `Exclude` is left out, and an empty list that is not nil sends `[]`.
+
+`Copy` is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have copied
+the environment when a request got no complete reply. It needs a project-level API key, or an
+organization-level one. `EnvironmentsService.CopyAsync` and `EnvironmentsService.CopyResult`,
+which v1 did not have, submit a copy that runs in the background and read its task.
+
 <a id="M-apikeys-1"></a>
 ### M-apikeys-1: GetEnvironmentApiKey becomes Client.APIKeys.GetEnvironmentKey
 
@@ -1363,15 +1412,21 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.APIKeyScopeRead` | `models.APIKeyScopeRead` |
 | `models.AttributeType` | `models.AttributeType` |
 | `models.Attributes` | `models.Attributes` |
+| `models.EnvironmentCopy` | `models.EnvironmentCopy` |
+| `models.EnvironmentCopyScope` | `models.EnvironmentCopyScope` |
+| `models.EnvironmentCopyScopeFilters` | `models.EnvironmentCopyScopeFilters` |
+| `models.EnvironmentCopyTarget` | `models.EnvironmentCopyTarget` |
 | `models.EnvironmentCreate` | `models.EnvironmentCreate` |
 | `models.EnvironmentRead` | `models.EnvironmentRead` |
+| `models.EnvironmentStats` | `models.EnvironmentStats` |
 | `models.EnvironmentUpdate` | `models.EnvironmentUpdate` |
 | `models.MemberAccessLevel` | `models.MemberAccessLevel` |
 | `models.MemberAccessObj` | `models.MemberAccessObj` |
+| `models.PDPConfigRead` | `models.PDPConfigRead` |
 | `models.ProjectCreate` | `models.ProjectCreate` |
 | `models.ProjectRead` | `models.ProjectRead` |
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
 
-Not mapped yet: 370 of the 384 types of v1's pkg/models.
+Not mapped yet: 364 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

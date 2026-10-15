@@ -95,7 +95,6 @@ openapi.DecisionLogsIngressApiService.* decision-logs
 openapi.DefaultApiService.* stress
 openapi.ElementsConfigsApiService.* elements-configs
 openapi.ElementsDataApiService.* elements-data
-openapi.EnvironmentsApiService.* environments
 openapi.InstructionsApiService.* instructions
 openapi.MembersApiService.* members
 openapi.OPALDataApiService.* opal-data

@@ -109,6 +109,36 @@ var defaultOps = []Op{
 		DeleteSelf: true,
 	},
 
+	// The statistics of an environment, and the copies of an environment into another. A copy
+	// needs a key of the project, or of its organization: an environment-level key may not copy
+	// an environment. The key levels of the statistics, of the copy that runs in the background
+	// and of the result of its task are not measured yet, like those above. The statistics hold
+	// the credentials of the PDPs of the environment: client_secret, which the client finds by
+	// its name, and opal_server_access_token, which is listed here, as its name is not one of
+	// those. A copy creates or changes an environment, so a retry sends it again only after a
+	// 429; reading the result of its task changes nothing.
+	{
+		ID: "stats_environments", Method: http.MethodGet,
+		Route: "/v2/projects/{proj_id}/envs/{env_id}/stats", Idempotent: true,
+		KeyLevel: ProjectLevel, SensitiveBodyFields: []string{"opal_server_access_token"},
+		ResponseModel: "EnvironmentStats",
+	},
+	{
+		ID: "copy_environment", Method: http.MethodPost,
+		Route: "/v2/projects/{proj_id}/envs/{env_id}/copy", KeyLevel: ProjectLevel,
+		RequestModel: "EnvironmentCopy", ResponseModel: "EnvironmentRead",
+	},
+	{
+		ID: "copy_environment_async", Method: http.MethodPost,
+		Route: "/v2/projects/{proj_id}/envs/{env_id}/copy/async", KeyLevel: ProjectLevel,
+		RequestModel: "EnvironmentCopy", ResponseModel: "TaskResultEnvironmentRead",
+	},
+	{
+		ID: "get_copy_environment_async_result", Method: http.MethodGet,
+		Route:      "/v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result",
+		Idempotent: true, KeyLevel: ProjectLevel, ResponseModel: "TaskResultEnvironmentRead",
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

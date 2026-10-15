@@ -26,6 +26,13 @@ var routes = []Route{
 	{"PATCH", "/v2/projects/{proj_id}/envs/{env_id}", "update_environment"},
 	{"DELETE", "/v2/projects/{proj_id}/envs/{env_id}", "delete_environment"},
 	{"PUT", "/v2/projects/{proj_id}/envs/{env_id}/copy", "copy_environment"},
+	{"GET", "/v2/projects/{proj_id}/envs/{env_id}/stats", "stats_environments"},
+	{"POST", "/v2/projects/{proj_id}/envs/{env_id}/copy", "copy_environment"},
+	{"POST", "/v2/projects/{proj_id}/envs/{env_id}/copy/async", "copy_environment_async"},
+	{
+		"GET", "/v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result",
+		"get_copy_environment_async_result",
+	},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users", "create_user"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/users", "list_users"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "get_user"},
@@ -349,6 +356,72 @@ func TestPages(t *testing.T) {
 			t.Errorf("GET /v2/projects/proj/envs%s listed %v, want %v", query, keys, want)
 		}
 	}
+}
+
+// TestStatsAndCopies checks the statistics of an environment: the environment, with statistics
+// of zero and one PDP configuration whose client secret is the environment's API key, and 404
+// for an environment that does not exist. It checks a copy into a new environment, which it
+// creates with the key and the IDs of a create, and which a second copy with that key conflicts
+// with; into an existing one, by key or by ID, which it answers; and 404 for an existing one that
+// does not exist and 422 for a target that names neither. A copy in the background creates the
+// environment too, answers 202 with a task that is processing, and its result is the task, which
+// succeeded with the environment; a task that the environment does not have gets 404.
+func TestStatsAndCopies(t *testing.T) {
+	h := newHarness(t)
+	dev, devKey := h.createEnv("dev")
+	stats := h.expect(200, "GET", "/v2/projects/proj/envs/dev/stats", "", projectKey)
+	configs, _ := stats["pdp_configs"].([]any)
+	config, _ := configs[0].(map[string]any)
+	counts, _ := stats["stats"].(map[string]any)
+	if stats["id"] != dev["id"] || len(configs) != 1 || config["client_secret"] != devKey ||
+		config["environment_id"] != dev["id"] || counts["users"] != 0.0 ||
+		counts["has_decision_logs"] != false {
+		t.Errorf("the statistics of dev are %v", stats)
+	}
+	opal, _ := config["opal_server_access_token"].(string)
+	if !regexp.MustCompile(`^permit_key_FAKEopal[0-9]{32}$`).MatchString(opal) {
+		t.Errorf("the OPAL token of dev's PDP is %q, want a fake key that is not dev's API key",
+			opal)
+	}
+	h.expect(404, "GET", "/v2/projects/proj/envs/staging/stats", "", projectKey)
+
+	copies := "/v2/projects/proj/envs/dev/copy"
+	created := h.expect(201, "POST", copies, `{"target_env":{"new":{"key":"qa","name":"QA"}}}`,
+		projectKey)
+	if created["key"] != "qa" || created["id"] == dev["id"] ||
+		created["project_id"] != h.fake.ProjectID() {
+		t.Errorf("the copy into a new environment answered %v", created)
+	}
+	if got := h.expect(200, "GET", "/v2/projects/proj/envs/qa", "", projectKey); got["id"] !=
+		created["id"] {
+		t.Errorf("the environment of the copy is %v, want %v", got, created)
+	}
+	h.expect(409, "POST", copies, `{"target_env":{"new":{"key":"qa","name":"QA"}}}`, projectKey)
+	id, _ := created["id"].(string)
+	for _, existing := range []string{"qa", id} {
+		if got := h.expect(201, "POST", copies, `{"target_env":{"existing":"`+existing+`"}}`,
+			projectKey); got["id"] != id {
+			t.Errorf("the copy into the existing environment %s answered %v", existing, got)
+		}
+	}
+	h.expect(404, "POST", copies, `{"target_env":{"existing":"nope"}}`, projectKey)
+	h.expect(422, "POST", copies, `{"target_env":{}}`, projectKey)
+
+	async := `{"target_env":{"new":{"key":"qa2","name":"QA"}}}`
+	task := h.expect(202, "POST", copies+"/async", async, projectKey)
+	taskID, _ := task["task_id"].(string)
+	if task["status"] != "processing" || taskID == "" || len(task) != 2 {
+		t.Errorf("the copy in the background answered %v", task)
+	}
+	result := h.expect(200, "GET", copies+"/async/"+taskID+"/result", "", projectKey)
+	env, _ := result["result"].(map[string]any)
+	if result["task_id"] != taskID || result["status"] != "success" || env["key"] != "qa2" {
+		t.Errorf("the result of the task is %v", result)
+	}
+	h.expect(200, "GET", "/v2/projects/proj/envs/qa2", "", projectKey)
+	h.expect(404, "GET", copies+"/async/no-task/result", "", projectKey)
+	h.expect(404, "GET", "/v2/projects/proj/envs/qa/copy/async/"+taskID+"/result", "",
+		projectKey)
 }
 
 func TestRoutes(t *testing.T) {

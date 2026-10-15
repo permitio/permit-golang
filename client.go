@@ -44,7 +44,8 @@ type Client struct {
 	// Projects lists, reads, creates, changes and deletes the projects of the organization.
 	Projects *ProjectsService `json:"-"`
 
-	// Environments lists, reads, creates, changes and deletes the environments of a project.
+	// Environments lists, reads, creates, changes, copies and deletes the environments of a
+	// project, and reads their statistics.
 	Environments *EnvironmentsService `json:"-"`
 
 	apiKey  redact.Secret

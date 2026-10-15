@@ -729,6 +729,10 @@ github.com/permitio/permit-golang/v2/models TestStringOrListAccessors
 github.com/permitio/permit-golang/v2/models TestStringOrListErrors
 github.com/permitio/permit-golang/v2/models FuzzStringOrList
 github.com/permitio/permit-golang/v2/models ExampleStringOrList
+github.com/permitio/permit-golang/v2/models TestStatsPrintNoCredential
+github.com/permitio/permit-golang/v2/models TestStatsInLogsAndJSON
+github.com/permitio/permit-golang/v2/models TestPDPCredentialsEncodeAndCompare
+github.com/permitio/permit-golang/v2/models TestPDPCredentialsDecode
 
 github.com/permitio/permit-golang/v2/tools/drift TestRepositoryModelMap
 github.com/permitio/permit-golang/v2/tools/drift TestRepositoryModels
@@ -975,6 +979,15 @@ github.com/permitio/permit-golang/v2 TestMalformedEnvironmentReplies
 github.com/permitio/permit-golang/v2 TestEnvironmentsAfterClose
 github.com/permitio/permit-golang/v2 ExampleEnvironmentsService
 github.com/permitio/permit-golang/v2 ExampleEnvironmentsService_Update
+github.com/permitio/permit-golang/v2 TestEnvironmentCopyBodies
+github.com/permitio/permit-golang/v2 TestCopyAsyncSubmitsOnce
+github.com/permitio/permit-golang/v2 TestCopyResultWait
+github.com/permitio/permit-golang/v2 TestCopyResultOfATaskThatFailed
+github.com/permitio/permit-golang/v2 TestCopyResultTaskInThePath
+github.com/permitio/permit-golang/v2 TestStatsCredentialsJoinTheRedaction
+github.com/permitio/permit-golang/v2 TestMalformedStatsAndCopyReplies
+github.com/permitio/permit-golang/v2 ExampleEnvironmentsService_Stats
+github.com/permitio/permit-golang/v2 ExampleEnvironmentsService_CopyAsync
 
 github.com/permitio/permit-golang/v2 TestAPIKeysAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestAPIKeysAllReadsTheOptionsOnce
@@ -1036,6 +1049,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestEnvironmentLifecycle
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestAccess
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBodies
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPages
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestStatsAndCopies
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoutes
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestParents
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceInstances
@@ -1053,6 +1067,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_project
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_stats_and_copy
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_environment_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context

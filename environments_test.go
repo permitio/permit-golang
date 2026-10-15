@@ -23,6 +23,10 @@ const (
 	getEnvironmentRoute    = "GET /v2/projects/{proj_id}/envs/{env_id}"
 	updateEnvironmentRoute = "PATCH /v2/projects/{proj_id}/envs/{env_id}"
 	deleteEnvironmentRoute = "DELETE /v2/projects/{proj_id}/envs/{env_id}"
+	statsEnvironmentRoute  = "GET /v2/projects/{proj_id}/envs/{env_id}/stats"
+	copyEnvironmentRoute   = "POST /v2/projects/{proj_id}/envs/{env_id}/copy"
+	copyAsyncRoute         = "POST /v2/projects/{proj_id}/envs/{env_id}/copy/async"
+	copyResultRoute        = "GET /v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result"
 )
 
 // environmentBody is the body of a reply of the API that holds the environment production.
@@ -214,11 +218,11 @@ func TestInvalidEnvironmentListOptions(t *testing.T) {
 }
 
 // TestEnvironmentsNeedNoScope checks that the calls of the environments look up no scope and
-// fill in none: a client without WithScope lists, gets, creates, changes and deletes the
-// environments of the project that the call names, and sends no request but the call's, as the
-// API fails each request to a route that the test did not register, such as the lookup of the
-// scope. With the scope of another project from WithScope, each call still sends the project
-// that it names.
+// fill in none: a client without WithScope lists, gets, creates, changes, deletes and copies the
+// environments of the project that the call names, reads their statistics and the task of a
+// copy, and sends no request but the call's, as the API fails each request to a route that the
+// test did not register, such as the lookup of the scope. With the scope of another project from
+// WithScope, each call still sends the project that it names.
 func TestEnvironmentsNeedNoScope(t *testing.T) {
 	calls := func(t *testing.T, c *Client) {
 		t.Helper()
@@ -244,6 +248,20 @@ func TestEnvironmentsNeedNoScope(t *testing.T) {
 		if err := c.Environments.Delete(ctx, "my-project", "production"); err != nil {
 			t.Errorf("Delete returned %v", err)
 		}
+		if _, err := c.Environments.Stats(ctx, "my-project", "production"); err != nil {
+			t.Errorf("Stats returned %v", err)
+		}
+		copyTo := models.EnvironmentCopy{TargetEnv: models.EnvironmentCopyTarget{Existing: "qa"}}
+		if _, err := c.Environments.Copy(ctx, "my-project", "production", copyTo); err != nil {
+			t.Errorf("Copy returned %v", err)
+		}
+		if _, err := c.Environments.CopyAsync(ctx, "my-project", "production", copyTo); err != nil {
+			t.Errorf("CopyAsync returned %v", err)
+		}
+		_, resultErr := c.Environments.CopyResult(ctx, "my-project", "production", "t", nil)
+		if resultErr != nil {
+			t.Errorf("CopyResult returned %v", resultErr)
+		}
 	}
 	for name, opts := range map[string][]Option{
 		"no scope":                            nil,
@@ -259,6 +277,11 @@ func TestEnvironmentsNeedNoScope(t *testing.T) {
 			api.Handle(createEnvironmentRoute, environment)
 			api.Handle(updateEnvironmentRoute, environment)
 			api.Handle(deleteEnvironmentRoute, mockpermit.Reply{Status: http.StatusNoContent})
+			task := mockpermit.Reply{Body: `{"task_id":"t","status":"processing"}`}
+			api.Handle(statsEnvironmentRoute, environment)
+			api.Handle(copyEnvironmentRoute, environment)
+			api.Handle(copyAsyncRoute, task)
+			api.Handle(copyResultRoute, task)
 			calls(t, projectClient(t, api, opts...))
 			for _, r := range api.Requests() {
 				if !strings.HasPrefix(r.RawPath, "/v2/projects/my-project/envs") {
@@ -277,14 +300,49 @@ func TestEnvironmentsNeedNoScope(t *testing.T) {
 // matches ErrInvalidConfig and names the placeholder, and no request.
 func TestEnvironmentKeysInThePath(t *testing.T) {
 	ok := mockpermit.Reply{Body: environmentBody}
+	task := mockpermit.Reply{Body: `{"task_id":"t","status":"processing"}`}
+	copyTo := models.EnvironmentCopy{TargetEnv: models.EnvironmentCopyTarget{Existing: "qa"}}
 	methods := []struct {
 		name  string
 		route string
 		reply mockpermit.Reply
-		// envs says that the path of the method names an environment after its project.
-		envs bool
-		call func(c *Client, projectKey, environmentKey string) error
+		// envs says that the path of the method names an environment after its project, and
+		// suffix is the rest of its path after them, such as /stats.
+		envs   bool
+		suffix string
+		call   func(c *Client, projectKey, environmentKey string) error
 	}{
+		{
+			name: "Stats", route: statsEnvironmentRoute, reply: ok, envs: true, suffix: "/stats",
+			call: func(c *Client, projectKey, environmentKey string) error {
+				_, err := c.Environments.Stats(t.Context(), projectKey, environmentKey)
+				return err
+			},
+		},
+		{
+			name: "Copy", route: copyEnvironmentRoute, reply: ok, envs: true, suffix: "/copy",
+			call: func(c *Client, projectKey, environmentKey string) error {
+				_, err := c.Environments.Copy(t.Context(), projectKey, environmentKey, copyTo)
+				return err
+			},
+		},
+		{
+			name: "CopyAsync", route: copyAsyncRoute, reply: task, envs: true,
+			suffix: "/copy/async",
+			call: func(c *Client, projectKey, environmentKey string) error {
+				_, err := c.Environments.CopyAsync(t.Context(), projectKey, environmentKey, copyTo)
+				return err
+			},
+		},
+		{
+			name: "CopyResult", route: copyResultRoute, reply: task, envs: true,
+			suffix: "/copy/async/t/result",
+			call: func(c *Client, projectKey, environmentKey string) error {
+				_, err := c.Environments.CopyResult(t.Context(), projectKey, environmentKey, "t",
+					nil)
+				return err
+			},
+		},
 		{
 			name: "List", route: listEnvironmentsRoute, reply: mockpermit.Reply{Body: `[]`},
 			call: func(c *Client, projectKey, _ string) error {
@@ -342,7 +400,7 @@ func TestEnvironmentKeysInThePath(t *testing.T) {
 		for _, m := range methods {
 			want := "/v2/projects/" + escaped + "/envs"
 			if m.envs {
-				want += "/" + escaped
+				want += "/" + escaped + m.suffix
 			}
 			api := mockpermit.NewAPI(t)
 			api.Handle(m.route, m.reply)
@@ -539,8 +597,9 @@ func TestEnvironmentUpdateThatCannotBeJSON(t *testing.T) {
 }
 
 // TestEnvironmentRetries checks when a call of the environments sends its request again: Create,
-// which the API may have acted on, after a 429 only, so a 503 ends it after one request; Update,
-// Get, Delete and List, which do the same when sent twice, after a 503 too.
+// Copy and CopyAsync, which the API may have acted on, after a 429 only, so a 503 ends each after
+// one request; Update, Get, Delete, List, Stats and CopyResult, which do the same when sent
+// twice, after a 503 too.
 func TestEnvironmentRetries(t *testing.T) {
 	again := http.Header{"Retry-After": {"0"}}
 	limited := mockpermit.Reply{Status: http.StatusTooManyRequests, Header: again, Body: `{}`}
@@ -551,6 +610,16 @@ func TestEnvironmentRetries(t *testing.T) {
 	createCall := func(c *Client) error {
 		_, err := c.Environments.Create(t.Context(), "p",
 			models.EnvironmentCreate{Key: "k", Name: "n"})
+		return err
+	}
+	task := mockpermit.Reply{Body: `{"task_id":"t","status":"processing"}`}
+	copyTo := models.EnvironmentCopy{TargetEnv: models.EnvironmentCopyTarget{Existing: "qa"}}
+	copyCall := func(c *Client) error {
+		_, err := c.Environments.Copy(t.Context(), "p", "e", copyTo)
+		return err
+	}
+	copyAsyncCall := func(c *Client) error {
+		_, err := c.Environments.CopyAsync(t.Context(), "p", "e", copyTo)
 		return err
 	}
 	for _, tc := range []struct {
@@ -596,6 +665,40 @@ func TestEnvironmentRetries(t *testing.T) {
 			replies: []mockpermit.Reply{unavailable, {Body: `[]`}},
 			call: func(c *Client) error {
 				_, err := c.Environments.List(t.Context(), "p", nil)
+				return err
+			},
+		},
+		{
+			name: "Copy after a 429", route: copyEnvironmentRoute,
+			replies: []mockpermit.Reply{limited, ok}, call: copyCall,
+		},
+		{
+			name: "Copy after a 503", route: copyEnvironmentRoute,
+			replies: []mockpermit.Reply{unavailable}, call: copyCall,
+			status: http.StatusServiceUnavailable,
+		},
+		{
+			name: "CopyAsync after a 429", route: copyAsyncRoute,
+			replies: []mockpermit.Reply{limited, task}, call: copyAsyncCall,
+		},
+		{
+			name: "CopyAsync after a 503", route: copyAsyncRoute,
+			replies: []mockpermit.Reply{unavailable}, call: copyAsyncCall,
+			status: http.StatusServiceUnavailable,
+		},
+		{
+			name: "Stats after a 503", route: statsEnvironmentRoute,
+			replies: []mockpermit.Reply{unavailable, ok},
+			call: func(c *Client) error {
+				_, err := c.Environments.Stats(t.Context(), "p", "e")
+				return err
+			},
+		},
+		{
+			name: "CopyResult after a 503", route: copyResultRoute,
+			replies: []mockpermit.Reply{unavailable, task},
+			call: func(c *Client) error {
+				_, err := c.Environments.CopyResult(t.Context(), "p", "e", "t", nil)
 				return err
 			},
 		},
@@ -675,13 +778,17 @@ func TestMalformedEnvironmentReplies(t *testing.T) {
 	}
 }
 
-// isNilPointer reports whether v is a nil pointer to an environment, the result of a call that
-// failed.
+// isNilPointer reports whether v is a nil pointer to an environment, to the statistics of one or
+// to the task of a copy, the result of a call that failed.
 func isNilPointer(v any) bool {
 	switch p := v.(type) {
 	case *models.EnvironmentRead:
 		return p == nil
 	case *models.EnvironmentReadWithEmailConfig:
+		return p == nil
+	case *models.EnvironmentStats:
+		return p == nil
+	case *models.TaskResultEnvironmentRead:
 		return p == nil
 	default:
 		return false
@@ -689,7 +796,7 @@ func isNilPointer(v any) bool {
 }
 
 // TestEnvironmentsAfterClose checks that each method returns ErrClosed after Close, and sends
-// nothing.
+// nothing, CopyResult also with options that it rejects.
 func TestEnvironmentsAfterClose(t *testing.T) {
 	api := mockpermit.NewAPI(t)
 	c := projectClient(t, api)
@@ -703,8 +810,13 @@ func TestEnvironmentsAfterClose(t *testing.T) {
 	_, createErr := c.Environments.Create(ctx, "p", models.EnvironmentCreate{Key: "k", Name: "n"})
 	_, updateErr := c.Environments.Update(ctx, "p", "e", models.EnvironmentUpdate{})
 	deleteErr := c.Environments.Delete(ctx, "p", "e")
-	for i, err := range append([]error{listErr, getErr, createErr, updateErr, deleteErr},
-		allErrs...) {
+	_, statsErr := c.Environments.Stats(ctx, "p", "e")
+	_, copyErr := c.Environments.Copy(ctx, "p", "e", models.EnvironmentCopy{})
+	_, asyncErr := c.Environments.CopyAsync(ctx, "p", "e", models.EnvironmentCopy{})
+	_, resultErr := c.Environments.CopyResult(ctx, "p", "e", "t", &CopyResultOptions{Wait: -1})
+	for i, err := range append([]error{
+		listErr, getErr, createErr, updateErr, deleteErr, statsErr, copyErr, asyncErr, resultErr,
+	}, allErrs...) {
 		if !errors.Is(err, ErrClosed) {
 			t.Errorf("call %d after Close returned %v, want ErrClosed", i, err)
 		}

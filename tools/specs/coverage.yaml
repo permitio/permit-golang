@@ -130,10 +130,10 @@ control-plane:
   - {op: get_environment, route: "GET /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
   - {op: update_environment, route: "PATCH /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
   - {op: delete_environment, route: "DELETE /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
-  - {op: copy_environment, route: "POST /v2/projects/{proj_id}/envs/{env_id}/copy", stage: GA, status: planned}
-  - {op: copy_environment_async, route: "POST /v2/projects/{proj_id}/envs/{env_id}/copy/async", stage: GA, status: planned}
-  - {op: get_copy_environment_async_result, route: "GET /v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result", stage: GA, status: planned}
-  - {op: stats_environments, route: "GET /v2/projects/{proj_id}/envs/{env_id}/stats", stage: GA, status: planned}
+  - {op: copy_environment, route: "POST /v2/projects/{proj_id}/envs/{env_id}/copy", stage: GA, status: covered}
+  - {op: copy_environment_async, route: "POST /v2/projects/{proj_id}/envs/{env_id}/copy/async", stage: GA, status: covered}
+  - {op: get_copy_environment_async_result, route: "GET /v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result", stage: GA, status: covered}
+  - {op: stats_environments, route: "GET /v2/projects/{proj_id}/envs/{env_id}/stats", stage: GA, status: covered}
   - {op: test_jwks_by_url, route: "POST /v2/projects/{proj_id}/envs/{env_id}/test_jwks", stage: GA, status: excluded, reason: dashboard-only}
   # Groups
   - {op: list_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups", stage: deprecated, status: excluded, reason: deprecated}

@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"iter"
 	"net/http"
+	"time"
 
 	"github.com/permitio/permit-golang/v2"
+	"github.com/permitio/permit-golang/v2/internal/testkit/canary"
 	"github.com/permitio/permit-golang/v2/internal/testkit/mockpermit"
 	"github.com/permitio/permit-golang/v2/models"
 )
@@ -130,7 +132,7 @@ func environmentCases() []wireCase {
 	updateErr := projectError("update_environment", http.MethodPatch, envRoute,
 		http.StatusUnprocessableEntity, environmentInvalidBody)
 	updateErr.Detail = "body.jwks.ttl: value is not a valid integer"
-	return []wireCase{
+	return append([]wireCase{
 		{
 			Method: "EnvironmentsService.List",
 			Op:     "list_environments",
@@ -241,6 +243,221 @@ func environmentCases() []wireCase {
 				Status: http.StatusForbidden, Body: environmentForbiddenBody,
 			},
 			WantErr: forbidden("delete_environment", http.MethodDelete, envRoute),
+		},
+	}, environmentCopyCases(forbidden)...)
+}
+
+// environmentCopyCases returns the wire cases of the statistics of an environment and of its
+// copies, with the keys that environmentCases describes, and forbidden, which returns the error
+// of the reply with environmentForbiddenBody to a request of op. The result of a task has two
+// cases: one with a wait, and one without, whose request has no query.
+func environmentCopyCases(forbidden func(op, method, route string) *permit.Error) []wireCase {
+	const (
+		envRoute    = "/v2/projects/{proj_id}/envs/{env_id}"
+		statsRoute  = envRoute + "/stats"
+		copyRoute   = envRoute + "/copy"
+		asyncRoute  = copyRoute + "/async"
+		resultRoute = asyncRoute + "/{task_id}/result"
+	)
+	statsErr := projectError("stats_environments", http.MethodGet, statsRoute,
+		http.StatusNotFound, environmentNotFoundBody)
+	statsErr.Code, statsErr.Title, statsErr.RequestID = "NOT_FOUND", "Not Found", "req-7"
+	statsErr.Detail = "the environment does not exist"
+	copyErr := projectError("copy_environment", http.MethodPost, copyRoute,
+		http.StatusUnprocessableEntity, copyInvalidBody)
+	copyErr.Detail = "body.target_env: field required"
+	resultErr := func() *permit.Error {
+		e := projectError("get_copy_environment_async_result", http.MethodGet, resultRoute,
+			http.StatusNotFound, taskNotFoundBody)
+		e.Code, e.Title, e.RequestID = "NOT_FOUND", "Not Found", "req-9"
+		e.Detail = "the task does not exist"
+		return e
+	}
+	result := func(opts *permit.CopyResultOptions, query string) wireCase {
+		return wireCase{
+			Method: "EnvironmentsService.CopyResult",
+			Op:     "get_copy_environment_async_result",
+			Route:  "GET " + resultRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Environments.CopyResult(ctx, "50%é", ".hidden", "a/b", opts)
+			},
+			Request: wireRequest{
+				RawPath:  "/v2/projects/50%25%C3%A9/envs/.hidden/copy/async/a%2Fb/result",
+				RawQuery: query,
+			},
+			Reply: mockpermit.Reply{
+				Body: replyFixture("get_copy_environment_async_result.200.json"),
+			},
+			WantResult: finishedCopyTask(),
+			ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: taskNotFoundBody},
+			WantErr:    resultErr(),
+		}
+	}
+	return []wireCase{
+		{
+			Method: "EnvironmentsService.Stats",
+			Op:     "stats_environments",
+			Route:  "GET " + statsRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Environments.Stats(ctx, "a/b", "50%é")
+			},
+			Request:    wireRequest{RawPath: "/v2/projects/a%2Fb/envs/50%25%C3%A9/stats"},
+			Reply:      mockpermit.Reply{Body: replyFixture("stats_environments.200.json")},
+			WantResult: fixtureStats(),
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusNotFound, Body: environmentNotFoundBody,
+			},
+			WantErr: statsErr,
+		},
+		{
+			Method: "EnvironmentsService.Copy",
+			Op:     "copy_environment",
+			Route:  "POST " + copyRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Environments.Copy(ctx, ".hidden", "a/b", copyToNewEnvironment())
+			},
+			Request: wireRequest{
+				RawPath: "/v2/projects/.hidden/envs/a%2Fb/copy", Body: copyToNewEnvironmentBody,
+			},
+			Reply: mockpermit.Reply{
+				Status: http.StatusCreated, Body: replyFixture("copy_environment.201.json"),
+			},
+			WantResult: copiedEnvironment(),
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusUnprocessableEntity, Body: copyInvalidBody,
+			},
+			WantErr: copyErr,
+		},
+		{
+			Method: "EnvironmentsService.CopyAsync",
+			Op:     "copy_environment_async",
+			Route:  "POST " + asyncRoute,
+			Modes:  []wireMode{apiMode},
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Environments.CopyAsync(ctx, "50%é", ".hidden", models.EnvironmentCopy{
+					TargetEnv:        models.EnvironmentCopyTarget{Existing: "staging"},
+					ConflictStrategy: models.EnvironmentCopyConflictStrategyOverwrite,
+					Scope: models.EnvironmentCopyScope{
+						Roles: models.EnvironmentCopyScopeFilters{Include: []string{"admin"}},
+					},
+				})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/projects/50%25%C3%A9/envs/.hidden/copy/async",
+				Body: `{"target_env":{"existing":"staging"},"conflict_strategy":"overwrite",` +
+					`"scope":{"roles":{"include":["admin"]}}}`,
+			},
+			Reply: mockpermit.Reply{
+				Status: http.StatusAccepted, Body: replyFixture("copy_environment_async.202.json"),
+			},
+			WantResult: &models.TaskResultEnvironmentRead{
+				TaskID: copyTaskID, Status: models.TaskStatusProcessing,
+			},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusForbidden, Body: environmentForbiddenBody,
+			},
+			WantErr: forbidden("copy_environment_async", http.MethodPost, asyncRoute),
+		},
+		result(&permit.CopyResultOptions{Wait: 1500 * time.Millisecond}, "wait=1.5"),
+		result(nil, ""),
+	}
+}
+
+// The error bodies of the Permit API in the wire cases of the copies of an environment: a copy
+// without a target, and a task that does not exist.
+const (
+	copyInvalidBody = `{"detail":[{"loc":["body","target_env"],"msg":"field required",` +
+		`"type":"value_error.missing"}]}`
+	taskNotFoundBody = `{"error_code":"NOT_FOUND","title":"Not Found",` +
+		`"message":"the task does not exist","id":"req-9"}`
+)
+
+// The IDs of the PDP configuration of the reply fixture stats_environments.200.json, and of the
+// environment and of the task of the replies of a copy.
+const (
+	pdpConfigID         = "00000000-0000-4000-8000-000000000010"
+	copiedEnvironmentID = "00000000-0000-4000-8000-000000000011"
+	copyTaskID          = "00000000-0000-4000-8000-000000000012"
+)
+
+// fixtureStats are the statistics of the reply fixture stats_environments.200.json, with every
+// field but the members of the organization, which the model leaves out.
+func fixtureStats() *models.EnvironmentStats {
+	return &models.EnvironmentStats{
+		EnvironmentRead: models.EnvironmentRead{
+			Key: "production", ID: exampleEnvironmentID, OrganizationID: exampleOrganizationID,
+			ProjectID: exampleProjectID, CreatedAt: at("2026-10-14T09:30:00Z"),
+			UpdatedAt: at("2026-10-15T10:00:00.123456"), AVPPolicyStoreID: "store-1",
+			Name: "Production", Description: "Live traffic",
+			CustomBranchName: "production-policy",
+			JWKS: &models.JwksConfig{
+				Audience: models.StringList("app", "admin"), TTL: 600,
+			},
+			JWKSUnpinned: []string{"k0"},
+			Settings:     models.Attributes{"limit": json.Number("9007199254740993")},
+		},
+		PDPConfigs: []models.PDPConfigRead{{
+			ID: pdpConfigID, Name: "Production PDP", OrganizationID: exampleOrganizationID,
+			ProjectID: exampleProjectID, EnvironmentID: exampleEnvironmentID,
+			ClientSecret:   models.NewSecret(canary.Key("pdpfixture")),
+			DebugAuditLogs: new(false), MinPDPVersion: "0.5.0", NumShards: 2,
+			OPALServerAccessToken: models.NewSecret(canary.Key("opalfixture")),
+		}},
+		Stats: models.EnvironmentStatistics{
+			Roles: 3, Users: 1200, Policies: 4, Resources: 5, Tenants: 7, HasDecisionLogs: true,
+			MAU: 9007199254740993,
+		},
+	}
+}
+
+// copyToNewEnvironment is the copy that the wire case of EnvironmentsService.Copy sends: into a
+// new environment, with a conflict strategy, and a scope with a filter of each kind, an empty
+// list among them.
+func copyToNewEnvironment() models.EnvironmentCopy {
+	return models.EnvironmentCopy{
+		TargetEnv: models.EnvironmentCopyTarget{
+			New: &models.EnvironmentCreate{Key: "qa-copy", Name: "QA copy"},
+		},
+		ConflictStrategy: models.EnvironmentCopyConflictStrategyFail,
+		Scope: models.EnvironmentCopyScope{
+			Resources:      models.EnvironmentCopyScopeFilters{Include: []string{"doc-*"}},
+			Roles:          models.EnvironmentCopyScopeFilters{Exclude: []string{"admin"}},
+			UserSets:       models.EnvironmentCopyScopeFilters{Include: []string{}},
+			ResourceSets:   models.EnvironmentCopyScopeFilters{Include: []string{"*"}},
+			CustomPolicies: models.EnvironmentCopyScopeFilters{Exclude: []string{"legacy"}},
+		},
+	}
+}
+
+// copyToNewEnvironmentBody is the body that the call of EnvironmentsService.Copy of
+// copyToNewEnvironment sends.
+const copyToNewEnvironmentBody = `{"target_env":{"new":{"key":"qa-copy","name":"QA copy"}},` +
+	`"conflict_strategy":"fail","scope":{"resources":{"include":["doc-*"]},` +
+	`"roles":{"exclude":["admin"]},"user_sets":{"include":[]},` +
+	`"resource_sets":{"include":["*"]},"custom_policies":{"exclude":["legacy"]}}}`
+
+// copiedEnvironment is the environment of the reply fixture copy_environment.201.json.
+func copiedEnvironment() *models.EnvironmentRead {
+	return &models.EnvironmentRead{
+		Key: "qa-copy", ID: copiedEnvironmentID, OrganizationID: exampleOrganizationID,
+		ProjectID: exampleProjectID, CreatedAt: at("2026-10-15T11:00:00Z"),
+		UpdatedAt: at("2026-10-15T11:00:00Z"), Name: "QA copy",
+		Description: "A copy of production", Settings: models.Attributes{"debug": true},
+	}
+}
+
+// finishedCopyTask is the task of the reply fixture get_copy_environment_async_result.200.json:
+// a copy that succeeded, with the environment that it copied into.
+func finishedCopyTask() *models.TaskResultEnvironmentRead {
+	return &models.TaskResultEnvironmentRead{
+		TaskID: copyTaskID, Status: models.TaskStatusSuccess,
+		Result: &models.EnvironmentRead{
+			Key: "qa-copy", ID: copiedEnvironmentID, OrganizationID: exampleOrganizationID,
+			ProjectID: exampleProjectID, CreatedAt: at("2026-10-15T11:00:00Z"),
+			UpdatedAt: at("2026-10-15T11:00:00Z"), Name: "QA copy",
 		},
 	}
 }

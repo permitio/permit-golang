@@ -18,6 +18,12 @@ allow:
       APIKeyRead leaves out, as the SDK covers no account administration of the members of the
       organization, and the invite of a member holds its invite code
     trigger: when the SDK models the members of the organization
+  - key: model EnvironmentStatistics field members
+    reason: >-
+      the statistics of an environment list the members of the organization, which
+      EnvironmentStatistics leaves out, as the SDK covers no account administration of the
+      members of the organization
+    trigger: when the SDK models the members of the organization
   - key: reply get_api_key_scope.200.organization-null.json#/project_id
     reason: >-
       the API answers the scope of an organization-level API key with project_id null, which the

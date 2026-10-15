@@ -1,6 +1,7 @@
 package permit_test
 
 import (
+	"net/http"
 	"os"
 	"testing"
 
@@ -66,6 +67,13 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("get_environment.200.json")})
 	servers.API.Handle("PATCH /v2/projects/{proj_id}/envs/{env_id}",
 		mockpermit.Reply{Body: replyFixture("update_environment.200.json")})
+	servers.API.Handle("GET /v2/projects/{proj_id}/envs/{env_id}/stats",
+		mockpermit.Reply{Body: replyFixture("stats_environments.200.json")})
+	servers.API.Handle("POST /v2/projects/{proj_id}/envs/{env_id}/copy/async", mockpermit.Reply{
+		Status: http.StatusAccepted, Body: replyFixture("copy_environment_async.202.json"),
+	})
+	servers.API.Handle("GET /v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result",
+		mockpermit.Reply{Body: replyFixture("get_copy_environment_async_result.200.json")})
 	servers.API.Handle("GET /v2/api-key/{proj_id}/{env_id}",
 		mockpermit.Reply{Body: replyFixture("get_environment_api_key.200.json")})
 	servers.API.Handle("POST /v2/api-key/{api_key_id}/rotate-secret",

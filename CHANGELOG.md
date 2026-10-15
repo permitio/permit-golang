@@ -183,12 +183,12 @@ change from v1 and what to use instead.
 ### Environments
 
 - The `Environments` field of the client, a `*permit.EnvironmentsService`, lists, reads, creates,
-  changes and deletes the environments of a project, whose key or ID each method takes after the
-  context, in place of the project of v1's context: `List` returns a page as a
-  `*permit.Page[models.EnvironmentReadWithEmailConfig]` and `All` reads every page, 100
-  environments at a time; `Get` reads one environment by its key or its ID, in place of v1's
-  `Get`, `GetById` and `GetByKey`, as a `*models.EnvironmentReadWithEmailConfig`; `Create` takes a
-  `models.EnvironmentCreate`, `Update` a `models.EnvironmentUpdate`, and both return the
+  changes, copies and deletes the environments of a project and reads their statistics; each method
+  takes the key or the ID of the project after the context, in place of the project of v1's context:
+  `List` returns a page as a `*permit.Page[models.EnvironmentReadWithEmailConfig]` and `All` reads
+  every page, 100 environments at a time; `Get` reads one environment by its key or its ID, in place
+  of v1's `Get`, `GetById` and `GetByKey`, as a `*models.EnvironmentReadWithEmailConfig`; `Create`
+  takes a `models.EnvironmentCreate`, `Update` a `models.EnvironmentUpdate`, and both return the
   environment as a `*models.EnvironmentRead`; `Delete` deletes an environment with its data.
 - The calls need no scope: they send no request for the scope of the API key, and read none of
   `WithScope`. Each is sent with a project-level API key of the project, or an
@@ -205,9 +205,23 @@ change from v1 and what to use instead.
   model.
 - The keys of a project and of an environment are each sent as one segment of the path, escaped;
   an empty key, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request is sent.
-  `Delete` returns nil when the API answers 404, as the environment is gone already. `Create` is
-  sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply
-  or a failed connection too.
+  `Delete` returns nil when the API answers 404, as the environment is gone already. `Create`,
+  `Copy` and `CopyAsync` are sent again after a 429 only; the other calls are sent again after a
+  500, 502, 503 or 504 reply or a failed connection too.
+- `Stats` returns an environment with its statistics and the configurations of its PDPs, as a
+  `*models.EnvironmentStats`, which v1 read only through its generated client. The client secret
+  of a PDP, `models.PDPConfigRead.ClientSecret`, and its `OPALServerAccessToken` are each a
+  `models.Secret` (see API keys), and the client replaces them in its later errors and log lines.
+  `models.EnvironmentStatistics` leaves out the members of the organization that the reply lists.
+- `Copy` copies an environment into a new or an existing one, as a `models.EnvironmentCopy` says,
+  and returns the environment that it copied into; v1 copied only through its generated client.
+  `CopyAsync` submits the same copy to run in the background and returns its task, a
+  `*models.TaskResultEnvironmentRead`, after one request: it does not poll the task. `CopyResult`
+  reads the task by its ID, once, with an optional wait, `CopyResultOptions.Wait`, sent in seconds;
+  a `Wait` less than zero is an error that matches `ErrInvalidConfig`, with the rule
+  `copy-result.wait.negative`. A copy needs a project-level API key, or an organization-level one.
+- `models.EnvironmentCopyConflictStrategy` and `models.TaskStatus` are open enums, and the error
+  that ended a task is a `models.ErrorDetails`, whose code is the open enum `models.ErrorCode`.
 
 ### API keys
 

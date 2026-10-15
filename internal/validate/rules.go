@@ -202,6 +202,14 @@ var (
 			"not read as a number; give a finite number",
 	}
 
+	// ListAttributeFilterRepeated rejects an attribute filter that names the attribute of an
+	// earlier filter of the list, which would send the parameter attr_<name> twice.
+	ListAttributeFilterRepeated = Rule{
+		ID: "list.attribute-filter.repeated",
+		Message: "the attribute filter names the attribute of an earlier filter; give one filter " +
+			"for each attribute",
+	}
+
 	// ListPageNegative rejects a ListOptions whose Page is less than zero.
 	ListPageNegative = Rule{
 		ID: "list.page.negative",
@@ -325,6 +333,7 @@ var rules = []Rule{
 	DecisionUserKeyEmpty,
 	ListAttributeFilterNameEmpty,
 	ListAttributeFilterNotFinite,
+	ListAttributeFilterRepeated,
 	ListPageNegative,
 	ListPerPageNegative,
 	PathAPIKeyIDScope,

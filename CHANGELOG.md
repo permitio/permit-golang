@@ -310,9 +310,10 @@ change from v1 and what to use instead.
 - `permit.TenantsListOptions` filters a list by the attributes of the tenants, in place of v1's
   `ListByAttributes`: each `permit.AttributeFilter`, which `permit.AttributeEquals(name, value)`
   builds from a string, a bool, an int, an int64 or a float64, is sent as the query parameter
-  `attr_<name>`, which the API's spec does not list. A filter without a name, and a float64 that
-  is NaN or an infinity, are errors that match `ErrInvalidConfig`, with the rules
-  `list.attribute-filter.name-empty` and `list.attribute-filter.not-finite`, and no request is
+  `attr_<name>`, which the API's spec does not list. A filter without a name, a float64 that is
+  NaN or an infinity, and a filter whose name an earlier filter has are errors that match
+  `ErrInvalidConfig`, with the rules `list.attribute-filter.name-empty`,
+  `list.attribute-filter.not-finite` and `list.attribute-filter.repeated`, and no request is
   sent.
 - `models.TenantUpdate.Description` and `Attributes` are `models.Optional` fields: unset leaves
   the field out, `models.Null` sends null and `models.Some` sends the value; attributes replace the
@@ -332,6 +333,31 @@ change from v1 and what to use instead.
   nil when the API answers 404, as the tenant is gone already. `Create` is sent again after a 429
   only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection
   too.
+
+### Resource actions
+
+- The `ResourceActions` field of the client, a `*permit.ResourceActionsService`, lists, reads,
+  creates, changes and deletes the actions of a resource of the environment of the client's
+  scope. Each method takes the key or the ID of the resource first: `List` returns a page as a
+  `*permit.Page[models.ResourceActionRead]` and `All` reads every page, 100 actions at a time;
+  `Get` reads one action by its key or its ID, in place of v1's `Get`, `GetById` and
+  `GetByKey`; `Create` takes a `models.ResourceActionCreate` and `Update` a
+  `models.ResourceActionUpdate`, and each returns the action as a `*models.ResourceActionRead`;
+  `Delete` deletes an action.
+- v1's `ListByAttributes` is the `Attributes` of `permit.ResourceActionsListOptions`, which `List`
+  and `All` send in the query parameters `attr_<name>`. Each is a `permit.AttributeFilter`, which
+  `permit.AttributeEquals(name, value)` builds, as for the tenants. A filter without a name, a
+  float64 that is NaN or an infinity, and a filter whose name an earlier filter has are errors
+  that match `ErrInvalidConfig`, and no request is sent.
+- Every call returns the SDK's errors, a `*permit.Error` for a reply with an error status, where
+  v1's `List`, `Get`, `Create`, `Update` and `Delete` returned the error of the generated client.
+- In `models.ResourceActionUpdate`, `Description` is a `models.Optional[string]` and `Attributes`
+  a `models.Optional[models.Attributes]`, so an update can send null for them, which clears them.
+- The keys of the resource and of the action are sent as segments of the path, escaped; an empty
+  key, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request for the call is
+  sent. `Delete` returns nil when the API answers 404, as the action is gone already. `Create` is
+  sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply
+  or a failed connection too.
 
 ### Errors
 

@@ -111,3 +111,10 @@ M-facts-3
 M-facts-4
 M-facts-5
 M-facts-6
+M-resource-actions-1
+M-resource-actions-2
+M-resource-actions-3
+M-resource-actions-4
+M-resource-actions-5
+M-resource-actions-6
+M-resource-actions-7

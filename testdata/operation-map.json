@@ -102,6 +102,24 @@
     "ProjectsService.Update": [
       "update_project"
     ],
+    "ResourceActionsService.All": [
+      "list_resource_actions"
+    ],
+    "ResourceActionsService.Create": [
+      "create_resource_action"
+    ],
+    "ResourceActionsService.Delete": [
+      "delete_resource_action"
+    ],
+    "ResourceActionsService.Get": [
+      "get_resource_action"
+    ],
+    "ResourceActionsService.List": [
+      "list_resource_actions"
+    ],
+    "ResourceActionsService.Update": [
+      "update_resource_action"
+    ],
     "ResourcesService.All": [
       "list_resources"
     ],

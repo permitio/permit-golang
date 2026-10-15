@@ -539,8 +539,9 @@ func TestResourceInstances(t *testing.T) {
 
 // TestAttributeFilters checks that a GET of a collection lists the objects whose attributes
 // match each attr_<name> of its query: a string as it is, a bool and a number as their JSON text,
-// every filter at once, and no object for an attribute that none has or for a name given twice
-// with two values; and that it pages what the filters keep.
+// every filter at once, and no object for an attribute that none has, for a name given twice
+// with two values, or for an attribute whose value is an object or an array; and that it pages
+// what the filters keep.
 func TestAttributeFilters(t *testing.T) {
 	h := newHarness(t)
 	h.createEnv("dev")
@@ -549,11 +550,12 @@ func TestAttributeFilters(t *testing.T) {
 		`{"key": "a", "name": "a", "attributes": {"tier": "gold", "seats": 10, "on": true}}`,
 		`{"key": "b", "name": "b", "attributes": {"tier": "gold", "seats": 2}}`,
 		`{"key": "c", "name": "c"}`,
+		`{"key": "d", "name": "d", "attributes": {"tier": {"value": "gold"}, "seats": [10]}}`,
 	} {
 		h.expect(200, "POST", tenants, body, projectKey)
 	}
 	for query, want := range map[string][]any{
-		"":                                    {"a", "b", "c"},
+		"":                                    {"a", "b", "c", "d"},
 		"?attr_tier=gold":                     {"a", "b"},
 		"?attr_tier=gold&attr_seats=10":       {"a"},
 		"?attr_on=true":                       {"a"},

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"iter"
+	"math"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/testkit/mockpermit"
+	"github.com/permitio/permit-golang/v2/internal/validate"
 	"github.com/permitio/permit-golang/v2/internal/wire"
 )
 
@@ -482,5 +484,80 @@ func TestNegativeListOptions(t *testing.T) {
 				items, errs, tc.want)
 		}
 		api.AssertUntouched()
+	}
+}
+
+// TestAttributeFilterValues checks the parameter that addAttributeFilters adds for a value at the
+// edges of its type: an int of 0, an int64 at its limits, and a float64 with every digit, without
+// a fraction, at its largest and at its smallest above zero.
+func TestAttributeFilterValues(t *testing.T) {
+	for _, tc := range []struct {
+		filter AttributeFilter
+		want   string
+	}{
+		{AttributeEquals("k", 0), "attr_k=0"},
+		{AttributeEquals("k", int64(math.MaxInt64)), "attr_k=9223372036854775807"},
+		{AttributeEquals("k", int64(math.MinInt64)), "attr_k=-9223372036854775808"},
+		{AttributeEquals("k", 0.1), "attr_k=0.1"},
+		{AttributeEquals("k", 1.0), "attr_k=1"},
+		{AttributeEquals("k", math.MaxFloat64), "attr_k=1.7976931348623157e%2B308"},
+		{AttributeEquals("k", math.SmallestNonzeroFloat64), "attr_k=5e-324"},
+	} {
+		query := &wire.Query{}
+		if err := addAttributeFilters(query, "op", []AttributeFilter{tc.filter}); err != nil {
+			t.Errorf("%+v: addAttributeFilters returned %v", tc.filter, err)
+		}
+		if got := query.Encode(); got != tc.want {
+			t.Errorf("%+v: the query is %q, want %q", tc.filter, got, tc.want)
+		}
+	}
+}
+
+// TestAttributeFiltersThatAreNotValid checks the rule and the place of the filter that the error
+// of addAttributeFilters names, and that the query then holds no filter: a filter that breaks two
+// rules gets the first of name-empty, not-finite and repeated, and a repeat is a name that an
+// earlier filter has, whatever the type and the value of either.
+func TestAttributeFiltersThatAreNotValid(t *testing.T) {
+	valid := AttributeEquals("a", 1.0)
+	for _, tc := range []struct {
+		name    string
+		filters []AttributeFilter
+		place   int
+		rule    validate.Rule
+	}{
+		{
+			"an empty name and NaN",
+			[]AttributeFilter{AttributeEquals("", math.NaN())},
+			1, validate.ListAttributeFilterNameEmpty,
+		},
+		{
+			"NaN for the name of an earlier filter",
+			[]AttributeFilter{valid, AttributeEquals("a", math.NaN())},
+			2, validate.ListAttributeFilterNotFinite,
+		},
+		{
+			"a repeat after another name",
+			[]AttributeFilter{valid, AttributeEquals("b", "x"), AttributeEquals("a", true)},
+			3, validate.ListAttributeFilterRepeated,
+		},
+		{
+			"a repeat of the same value",
+			[]AttributeFilter{valid, valid},
+			2, validate.ListAttributeFilterRepeated,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			query := &wire.Query{}
+			err := addAttributeFilters(query, "op", tc.filters)
+			want := &configError{
+				setting: "op: attribute filter " + strconv.Itoa(tc.place), rule: tc.rule,
+			}
+			if !errors.Is(err, ErrInvalidConfig) || err.Error() != want.Error() {
+				t.Errorf("addAttributeFilters returned %v, want %v", err, want)
+			}
+			if got := query.Encode(); got != "" {
+				t.Errorf("the query is %q, want no filter", got)
+			}
+		})
 	}
 }

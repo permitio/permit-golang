@@ -29,6 +29,7 @@ decision.url.empty the URL is empty; give the URL of the request to check, as th
 decision.user-key.empty the user key is empty; give the key of the user, as the PDP rejects a request without one
 list.attribute-filter.name-empty the attribute filter names no attribute; build it with AttributeEquals and the name of the attribute
 list.attribute-filter.not-finite the value of the attribute filter is NaN or an infinity, which the API does not read as a number; give a finite number
+list.attribute-filter.repeated the attribute filter names the attribute of an earlier filter; give one filter for each attribute
 list.page.negative Page is less than zero; give 0 or 1 for the first page, or the number of a later page
 list.per-page.negative PerPage is less than zero; give 0 to leave the number of items on a page to the method, or a number from 1
 path.api-key-id.scope the API key ID is scope, which names the route of the scope of the API key, not a key; pass the ID of an API key

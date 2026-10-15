@@ -1432,7 +1432,8 @@ whose attribute `name` equals the value, and is sent as the query parameter `att
 sent each entry of its map. The value is a string, a bool, an int, an int64 or a float64, in
 place of any value that v1 printed with `%v`; a float64 is sent as JSON writes it, such as
 `1000000` where v1 sent `1e+06`, and NaN or an infinity is an error that matches
-`permit.ErrInvalidConfig`, as is a filter without a name.
+`permit.ErrInvalidConfig`, as are a filter without a name and a filter whose name an earlier
+filter has, which v1's map could not hold.
 `TenantsService.All(ctx, opts)` returns an `iter.Seq2[models.TenantRead, error]` that reads every
 page, 100 tenants at a time:
 
@@ -1562,6 +1563,130 @@ own that returns a copy of that service, such as `permit.TenantsService.WaitForS
 `api.NewFactsClientConfig` built a configuration of the generated client for the PDP URL, which
 v1 did not use; pass `permit.WithFactsViaPDP()` to `permit.New` to send the facts to the PDP
 container.
+
+<a id="M-resource-actions-1"></a>
+### M-resource-actions-1: ResourceActions becomes Client.ResourceActions, which acts on the environment of the scope
+
+- v1: `api.ResourceActions`
+- v1: `api.NewResourceActionsApi`
+- v2: `permit.ResourceActionsService`
+
+Call the methods of the actions of a resource on the `ResourceActions` field of the client,
+`client.ResourceActions`, in place of `client.Api.ResourceActions`; `permit.New` builds it, so
+nothing takes the place of `api.NewResourceActionsApi`. Each method takes a `context.Context`
+first and the key or the ID of the resource next, and acts on the environment of the client's
+scope, as v1's methods acted on the environment of the client's context: `permit.WithScope`, or
+else the scope of the API key, which the client looks up once, as [M-scope-2](#M-scope-2) says.
+A scope without an environment, such as that of a project-level API key without
+`permit.WithScope`, is an error that matches `permit.ErrInvalidConfig`, with no request for the
+call.
+
+v1's `List`, `Get`, `Create`, `Update` and `Delete` returned the error of the generated client of
+`pkg/openapi` as it was, not an `errors.PermitError`. Every v2 method returns a
+`*permit.Error`, or an error that wraps one, as [M-errors-1](#M-errors-1) says, so
+`errors.Is(err, permit.ErrNotFound)` and the other sentinels work for each of them.
+
+The action models keep their names and change their fields: `models.ResourceActionRead` has
+`ID`, `OrganizationID`, `ProjectID`, `EnvironmentID` and `ResourceID` in place of `Id`,
+`OrganizationId`, `ProjectId`, `EnvironmentId` and `ResourceId`; its description is a plain
+string, empty when the reply has none, in place of a pointer; `CreatedAt` and `UpdatedAt` are
+`models.Time`, which embeds `time.Time`; its `Attributes` are a `models.Attributes` whose
+numbers are `json.Number`, as [M-models-1](#M-models-1) says; and it has the fields of the reply
+that v1 dropped: `V1CompatPath`, `V1CompatIsBuiltIn` and `V1CompatName`. Build
+`models.ResourceActionCreate` and `models.ResourceActionUpdate` as struct literals, in place of
+their constructors and setters.
+
+<a id="M-resource-actions-2"></a>
+### M-resource-actions-2: GetById and GetByKey become Get
+
+- v1: `api.ResourceActions.Get`
+- v1: `api.ResourceActions.GetById`
+- v1: `api.ResourceActions.GetByKey`
+- v2: `permit.ResourceActionsService.Get`
+
+`ResourceActionsService.Get(ctx, resourceKey, actionKey)` takes the key or the ID of the resource
+and of the action, as all three v1 methods sent the same request: pass `id.String()` for a
+`uuid.UUID`. A key that holds a `/` or a `%` is sent escaped, as one segment of the path, and an
+empty key, `.` or `..` is an error that matches `permit.ErrInvalidConfig`, with no request for
+the action. An action that the resource does not have is a `*permit.Error` that matches
+`permit.ErrNotFound`.
+
+<a id="M-resource-actions-3"></a>
+### M-resource-actions-3: ResourceActions.List returns a page, and All reads every page
+
+- v1: `api.ResourceActions.List`
+- v2: `permit.ResourceActionsService.List`
+
+`ResourceActionsService.List(ctx, resourceKey, opts)` takes a
+`*permit.ResourceActionsListOptions`, nil for the first page with the API's default of 30
+actions, in place of the page and the number of actions as two ints, and returns a
+`*permit.Page[models.ResourceActionRead]`, as [M-lists-1](#M-lists-1) says. The options embed
+`permit.ListOptions`. v1 failed for more than 100 actions on a page before any request; v2 sends
+the number as given, and the API answers above 100 with an error.
+`ResourceActionsService.All(ctx, resourceKey, opts)` returns an
+`iter.Seq2[models.ResourceActionRead, error]` that reads every page, 100 actions at a time.
+
+<a id="M-resource-actions-4"></a>
+### M-resource-actions-4: ListByAttributes becomes the Attributes option of List
+
+- v1: `api.ResourceActions.ListByAttributes`
+- v2: `permit.ResourceActionsListOptions`
+
+v2 has no `ListByAttributes` method: give the filters to `Attributes` of
+`permit.ResourceActionsListOptions`, which `ResourceActionsService.List` and
+`ResourceActionsService.All` send in the query parameters `attr_<name>`, as v1 did. In place of
+a `map[string]interface{}`, `Attributes` is a `[]permit.AttributeFilter`, each of which
+`permit.AttributeEquals(name, value)` builds, as [M-tenants-3](#M-tenants-3) says, such as
+`client.ResourceActions.List(ctx, "document", &permit.ResourceActionsListOptions{Attributes: []permit.AttributeFilter{permit.AttributeEquals("risk", "low")}})`
+in place of
+`client.Api.ResourceActions.ListByAttributes(ctx, "document", 1, 30, map[string]interface{}{"risk": "low"})`.
+
+The value is a string, a bool, an int, an int64 or a float64. A string is sent as it is, a bool
+as `true` or `false`, and an integer as its decimal digits. A float64 is sent as `encoding/json`
+writes it, such as `1000000` or `1e-7`, where v1 wrote fmt's `%v` form, such as `1e+06` or
+`1e-07`; NaN and the infinities are errors that match `permit.ErrInvalidConfig`, with no
+request. A value of any other type, such as a map or a slice, which v1 sent as text, does not
+compile. Two filters of the same name, which a map could not hold, and a filter without a name
+are errors that match `permit.ErrInvalidConfig`, with no request.
+
+<a id="M-resource-actions-5"></a>
+### M-resource-actions-5: ResourceActions.Create takes models.ResourceActionCreate as a struct literal
+
+- v1: `api.ResourceActions.Create`
+- v2: `permit.ResourceActionsService.Create`
+
+`ResourceActionsService.Create(ctx, resourceKey, action)` sends the `models.ResourceActionCreate`
+as [M-resource-actions-1](#M-resource-actions-1) says: its key and its name always, and its
+description and its attributes when they are set, an empty map of attributes as `{}`. A key that
+another action of the resource has is a `*permit.Error` that matches `permit.ErrConflict`. Create
+is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created the
+action when a request got no complete reply.
+
+<a id="M-resource-actions-6"></a>
+### M-resource-actions-6: ResourceActions.Update takes models.ResourceActionUpdate, which can send null
+
+- v1: `api.ResourceActions.Update`
+- v2: `permit.ResourceActionsService.Update`
+
+Build the change as a struct literal of `models.ResourceActionUpdate`, in place of
+`models.NewResourceActionUpdate` and its setters. The request holds only the fields that are set.
+`Description` is a `models.Optional[string]` and `Attributes` a
+`models.Optional[models.Attributes]`: unset leaves the field out, `models.Null` sends null, which
+clears it and which v1 could not send, and `models.Some` sends the value, the attributes as a
+whole. An update is sent again after a 500, 502, 503 or 504 reply or a failed connection, as
+sending it twice sets the same fields.
+
+<a id="M-resource-actions-7"></a>
+### M-resource-actions-7: ResourceActions.Delete of an action that is gone returns nil
+
+- v1: `api.ResourceActions.Delete`
+- v2: `permit.ResourceActionsService.Delete`
+
+`ResourceActionsService.Delete(ctx, resourceKey, actionKey)` returns nil when the API answers
+404, as the action is gone already, such as when a retry follows a delete that succeeded; v1
+returned the error of the generated client. A mistyped key of the action or of the resource
+returns nil too, so check the keys before a delete that must remove something. Any other error
+status is a `*permit.Error` with the status and the body.
 
 ## Wire behaviour
 
@@ -1756,6 +1881,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ProjectRead` | `models.ProjectRead` |
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
 | `models.RelationBlockRead` | `models.RelationBlockRead` |
+| `models.ResourceActionCreate` | `models.ResourceActionCreate` |
+| `models.ResourceActionRead` | `models.ResourceActionRead` |
+| `models.ResourceActionUpdate` | `models.ResourceActionUpdate` |
 | `models.ResourceCreate` | `models.ResourceCreate` |
 | `models.ResourceRead` | `models.ResourceRead` |
 | `models.ResourceReplace` | `models.ResourceReplace` |
@@ -1765,6 +1893,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 347 of the 384 types of v1's pkg/models.
+Not mapped yet: 344 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

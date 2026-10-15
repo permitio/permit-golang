@@ -30,9 +30,6 @@ api.NewRelationshipTuplesApi relationship-tuples
 api.ResourceActionGroups resource-action-groups
 api.ResourceActionGroups.* resource-action-groups
 api.NewResourceActionGroupsApi resource-action-groups
-api.ResourceActions resource-actions
-api.ResourceActions.* resource-actions
-api.NewResourceActionsApi resource-actions
 api.ResourceAttributes resource-attributes
 api.ResourceAttributes.* resource-attributes
 api.NewResourceAttributesApi resource-attributes

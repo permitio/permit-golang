@@ -274,11 +274,11 @@ control-plane:
   - {op: update_resource_action_group, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: planned}
   - {op: delete_resource_action_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: planned}
   # Resource Actions
-  - {op: list_resource_actions, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", stage: GA, status: planned}
-  - {op: create_resource_action, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", stage: GA, status: planned}
-  - {op: get_resource_action, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: planned}
-  - {op: update_resource_action, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: planned}
-  - {op: delete_resource_action, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: planned}
+  - {op: list_resource_actions, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", stage: GA, status: covered}
+  - {op: create_resource_action, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", stage: GA, status: covered}
+  - {op: get_resource_action, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: covered}
+  - {op: update_resource_action, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: covered}
+  - {op: delete_resource_action, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: covered}
   # Resource Attributes
   - {op: list_resource_attributes, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", stage: GA, status: planned}
   - {op: create_resource_attribute, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", stage: GA, status: planned}
@@ -487,7 +487,7 @@ pdp:
 sdk_only_params:
   - op: list_resource_actions
     param: "attr_*"
-    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; the SDK keeps them until a check against the API shows whether it applies them."
+    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; a check against the local stack showed that the API applies a string attribute filter to the actions of a resource."
   - op: list_roles
     param: "attr_*"
     reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; the SDK keeps them until a check against the API shows whether it applies them."

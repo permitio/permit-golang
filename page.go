@@ -30,8 +30,9 @@ type ListOptions struct {
 // AttributeFilter keeps the items of a list whose attribute has a value, such as the tenants
 // whose tier is gold. A list sends it as the query parameter attr_<name>, with the value as
 // text, and the API keeps the items whose attribute matches it; the API's spec does not list
-// these parameters. Build one with [AttributeEquals]. The zero AttributeFilter is not valid: a
-// call that gets one returns an error that matches [ErrInvalidConfig] and sends no request.
+// these parameters. Build one with [AttributeEquals]. The zero AttributeFilter is not valid, nor
+// is a filter that names the attribute of an earlier filter of the same list: a call that gets
+// one returns an error that matches [ErrInvalidConfig] and sends no request.
 type AttributeFilter struct {
 	// name is the name of the attribute, which the parameter's name holds after attr_.
 	name string
@@ -49,8 +50,8 @@ type AttributeFilter struct {
 // AttributeEquals("seats", 10). The query sends a string as it is, a bool as true or false, an
 // integer as its decimal digits, and a float64 as encoding/json writes it, such as 0.5, 1000000,
 // 1e-7 or 1e+21. An empty name, and a float64 that is NaN or an infinity, make a filter that is
-// not valid: a call that gets it returns an error that matches [ErrInvalidConfig] and sends no
-// request.
+// not valid, as does a name that an earlier filter of the same list has, whatever the values: a
+// call that gets it returns an error that matches [ErrInvalidConfig] and sends no request.
 func AttributeEquals[T string | bool | int | int64 | float64](name string, value T,
 ) AttributeFilter {
 	f := AttributeFilter{name: name}
@@ -72,8 +73,11 @@ func AttributeEquals[T string | bool | int | int64 | float64](name string, value
 
 // addAttributeFilters adds each of filters to query as the parameter attr_<name>, in order, for
 // a call of the operation op. It returns the error of the first filter that is not valid, which
-// names op and the filter's place in filters, and then adds none.
+// names op and the filter's place in filters, and then adds none. It checks each filter against
+// the rules in this order, and returns the first that it breaks: a name that is empty, a value
+// that is NaN or an infinity, and a name that an earlier filter has.
 func addAttributeFilters(query *wire.Query, op string, filters []AttributeFilter) error {
+	seen := make(map[string]bool, len(filters))
 	for i, f := range filters {
 		setting := op + ": attribute filter " + strconv.Itoa(i+1)
 		switch {
@@ -81,7 +85,10 @@ func addAttributeFilters(query *wire.Query, op string, filters []AttributeFilter
 			return &configError{setting: setting, rule: validate.ListAttributeFilterNameEmpty}
 		case f.notFinite:
 			return &configError{setting: setting, rule: validate.ListAttributeFilterNotFinite}
+		case seen[f.name]:
+			return &configError{setting: setting, rule: validate.ListAttributeFilterRepeated}
 		}
+		seen[f.name] = true
 	}
 	for _, f := range filters {
 		query.AddString("attr_"+f.name, &f.value)

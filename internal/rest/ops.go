@@ -209,6 +209,39 @@ var defaultOps = []Op{
 		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The actions of a resource of an environment, each at the environment level, as v1 sends
+	// them too. These key levels are not measured yet: the phase api.resource_actions of the
+	// local harness confirms them. The list is a JSON array of at most 100 actions. A PATCH sets
+	// the fields that it names to the values that it gives, so it does the same when sent twice;
+	// a create does not.
+	{
+		ID: "list_resource_actions", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ResourceActionRead",
+	},
+	{
+		ID: "create_resource_action", Method: http.MethodPost,
+		Route:    "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions",
+		KeyLevel: EnvironmentLevel, RequestModel: "ResourceActionCreate",
+		ResponseModel: "ResourceActionRead",
+	},
+	{
+		ID: "get_resource_action", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ResourceActionRead",
+	},
+	{
+		ID: "update_resource_action", Method: http.MethodPatch,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "ResourceActionUpdate",
+		ResponseModel: "ResourceActionRead",
+	},
+	{
+		ID: "delete_resource_action", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

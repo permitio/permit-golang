@@ -84,6 +84,14 @@ var cloudScenarios = []scenario{
 		run: tenantLifecycle,
 	},
 	{
+		name: "resource_action_lifecycle", methods: []string{
+			"ResourceActionsService.Create", "ResourceActionsService.Get",
+			"ResourceActionsService.List", "ResourceActionsService.All",
+			"ResourceActionsService.Update", "ResourceActionsService.Delete",
+		},
+		run: resourceActionLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

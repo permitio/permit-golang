@@ -1936,7 +1936,11 @@ on the environment of the client's scope, and a list whose options filter it: `r
    All method takes the same options and returns the iterator of `all`. A method that takes a
    `*ListOptions` copies it with `listOptions`; a method whose options struct has filters copies
    the whole struct itself, with a nil opts as the zero struct, as `localRoleAssignmentsRequest`
-   does, and passes its `ListOptions`.
+   does, and passes its `ListOptions`. A list that the API filters by the attributes of its items,
+   with query parameters `attr_<name>` that `sdk_only_params` of `coverage.yaml` lists, has an
+   `Attributes []AttributeFilter` in its options struct, whose filters `AttributeEquals` builds
+   and `addAttributeFilters` (`page.go`) checks and adds to the query before any request, as
+   `tenants.go` and `resource_actions.go` do.
    Two of the fields decide when a call sends the request again: `Idempotent` for an operation
    that does the same when it is sent twice, which a call sends again after a 429, a 500, 502,
    503 or 504, or a request without a complete reply; `NoRetry` for one that a call never sends

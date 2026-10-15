@@ -177,8 +177,8 @@ func TestTenantsAllReadsTheOptionsOnce(t *testing.T) {
 }
 
 // TestTenantAttributeFilters checks the query of the attribute filters of each type of value,
-// with the names sorted and the values of one name in the order of the filters, the name and the
-// value escaped, a float64 as encoding/json writes it, and no attr_ parameter without a filter.
+// with the names sorted, the name and the value escaped, a float64 as encoding/json writes it,
+// and no attr_ parameter without a filter.
 func TestTenantAttributeFilters(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -212,11 +212,6 @@ func TestTenantAttributeFilters(t *testing.T) {
 				"attr_tiny=1e-7&attr_zero=-0",
 		},
 		{
-			"one name twice, in order",
-			[]AttributeFilter{AttributeEquals("tier", "gold"), AttributeEquals("tier", "silver")},
-			"attr_tier=gold&attr_tier=silver",
-		},
-		{
 			"characters that the query escapes",
 			[]AttributeFilter{AttributeEquals("a b&c", "x=y&z é")},
 			"attr_a+b%26c=x%3Dy%26z+%C3%A9",
@@ -240,8 +235,9 @@ func TestTenantAttributeFilters(t *testing.T) {
 // TestInvalidTenantListOptions checks that List and All return an error that matches
 // ErrInvalidConfig, which names the rule and the place of the filter, for a Page or a PerPage less
 // than zero and for an attribute filter that is not valid: the zero AttributeFilter, one without
-// a name, and a float64 that is NaN or an infinity, also after a valid filter; and that neither
-// sends a request. A client without WithScope sends no lookup of the scope for a filter either.
+// a name, a float64 that is NaN or an infinity, also after a valid filter, and one whose name an
+// earlier filter has; and that neither sends a request. A client without WithScope sends no
+// lookup of the scope for a filter either.
 func TestInvalidTenantListOptions(t *testing.T) {
 	valid := AttributeEquals("tier", "gold")
 	for _, tc := range []struct {
@@ -279,6 +275,13 @@ func TestInvalidTenantListOptions(t *testing.T) {
 				Attributes: []AttributeFilter{valid, AttributeEquals("n", math.Inf(-1))},
 			},
 			"attribute filter 2: " + validate.ListAttributeFilterNotFinite.Message,
+		},
+		{
+			"a repeated name",
+			&TenantsListOptions{
+				Attributes: []AttributeFilter{valid, AttributeEquals("tier", "silver")},
+			},
+			"attribute filter 2: " + validate.ListAttributeFilterRepeated.Message,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

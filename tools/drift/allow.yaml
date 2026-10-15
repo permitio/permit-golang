@@ -161,3 +161,45 @@ allow:
       the API's documentation hides the v1compat_attributes of a role of a resource, which v1 never
       sent, so RoleBlockEditable leaves it out
     trigger: when the API's documentation describes the v1compat_attributes of a role of a resource
+  - key: model ResourceActionCreate field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of a create of an action, which v1 never
+      sent, so ResourceActionCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_path of a create of an action
+  - key: model ResourceActionCreate field v1compat_is_built_in
+    reason: >-
+      the API's documentation hides the v1compat_is_built_in of a create of an action, which v1
+      never sent, so ResourceActionCreate leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_is_built_in of a create of an action
+  - key: model ResourceActionCreate field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of a create of an action, which v1 never
+      sent, so ResourceActionCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_name of a create of an action
+  - key: model ResourceActionUpdate field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of an update of an action, which v1 never
+      sent, so ResourceActionUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_path of an update of an action
+  - key: model ResourceActionUpdate field v1compat_is_built_in
+    reason: >-
+      the API's documentation hides the v1compat_is_built_in of an update of an action, which v1
+      never sent, so ResourceActionUpdate leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_is_built_in of an update of an action
+  - key: model ResourceActionUpdate field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of an update of an action, which v1 never
+      sent, so ResourceActionUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_name of an update of an action
+  - key: reply update_resource_action.200.json#/description
+    reason: >-
+      the API answers with description null for an action after an update that sent null for its
+      description, which clears it, and the published spec types the description as a string only
+    trigger: when the published spec allows null for the description of ResourceActionRead
+  - key: reply update_resource_action.200.json#/attributes
+    reason: >-
+      the API answers with attributes null for an action after an update that sent null for its
+      attributes, which clears them, and the published spec types the attributes as an object only
+    trigger: when the published spec allows null for the attributes of ResourceActionRead

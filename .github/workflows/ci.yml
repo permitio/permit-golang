@@ -50,8 +50,8 @@ env:
   # The Go releases the test legs run, as exact patch releases: the minimum that go.mod's go line
   # allows, and the newest patch of each supported Go release that is at least 7 days old.
   GO_FLOOR: "1.26.0"
-  GO_126: "1.26.8"
-  GO_127: "1.27.1"
+  GO_126: "1.26.9"
+  GO_127: "1.27.2"
   # The crons in on.schedule, by mode: security twice a week, weekly once a week.
   SECURITY_CRON: "23 4 * * 1,4"
   WEEKLY_CRON: "41 6 * * 1"
@@ -926,7 +926,7 @@ jobs:
             -summary "$GITHUB_STEP_SUMMARY" "$record"
       - name: Upload the live snapshots
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: spec-snapshots
           path: ${{ runner.temp }}/spec-snapshots

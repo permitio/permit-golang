@@ -102,11 +102,11 @@ sha256.linux/arm64 = a1ee9f6ffb7d112b64ff726a2a0717c21175c1114361391f4a132956751
 # Run only through .github/scripts/security-scan.sh, which never prints its output: with
 # --results=verified, it reports secrets that work.
 [trufflehog]
-version = 3.99.0
+version = 3.99.2
 url = https://github.com/trufflesecurity/trufflehog/releases/download/v{version}/trufflehog_{version}_{os}_{arch}.tar.gz
 archive = tar.gz
 binary = trufflehog
-sha256.darwin/arm64 = 9f33b39458d3e3dba69867cd85bcd1df9a6a52083495ed770eb9f42b4e2a63a9
-sha256.darwin/amd64 = 96eea7bda1969c51e3eb8fa0e7659a9cc1ffa975393a7732498d2e8d20c63060
-sha256.linux/amd64 = e35ae3fd1e4b7a0c1699d0fda1814282bf906d03379bd4337b092b3a84c6740b
-sha256.linux/arm64 = ad6fb802f0e6f097829c1eee659b97fc0533a08fa34633cde15bc8fc3258dfb7
+sha256.darwin/arm64 = b612143d840b4c75d41fe40436c5932efead001951283f18c87013c4145e1675
+sha256.darwin/amd64 = c23a1b10522b8b84cfd04dc88a3a8819d3dc23b20f15e23540ba442b4b2fbeed
+sha256.linux/amd64 = 3c7b0d1dc4278294269bfdd7594bca8bb28c78da0a4a06ad202ded37b48deca4
+sha256.linux/arm64 = 929b81efffca752eafd58bf6f17bf725d354f338636a7bbbee65c086d2f9ddf3

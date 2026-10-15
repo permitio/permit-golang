@@ -509,6 +509,43 @@ models:
       type: {required: true, null_policy: n/a}
       key: {required: true, null_policy: n/a}
       attributes: {required: false, null_policy: n/a}
+  # An action group of a resource, as a create sends it, as an update changes it and as the API
+  # returns it. A create reads null for the description and the attributes, which have no
+  # default, as the fields left out, as every create does, and rejects null for its required
+  # fields and for the actions, which have a default. An update accepts null for the description,
+  # which clears it, and for the actions, and rejects null for the name and the attributes, which
+  # only a value changes. These null policies are not measured yet: the phase
+  # api.resource_action_groups of the local harness confirms them.
+  ResourceActionGroupCreate:
+    schema: ResourceActionGroupCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      actions: {required: false, null_policy: rejects}
+  ResourceActionGroupRead:
+    schema: ResourceActionGroupRead
+    fields:
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      actions: {required: false, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ResourceActionGroupUpdate:
+    schema: ResourceActionGroupUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      attributes: {required: false, null_policy: rejects}
+      actions: {required: false, null_policy: accepts}
   # A resource of an environment, as a create, a replace and an update send it and as the API
   # returns it. A create and a replace read null for a field that the schema does not require
   # as the field left out, as every create does, and reject null for a required one. An update

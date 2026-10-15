@@ -1059,6 +1059,23 @@ github.com/permitio/permit-golang/v2 TestResourceActionRetries
 github.com/permitio/permit-golang/v2 TestMalformedResourceActionReplies
 github.com/permitio/permit-golang/v2 TestResourceActionsAfterClose
 github.com/permitio/permit-golang/v2 ExampleResourceActionsService
+github.com/permitio/permit-golang/v2 TestResourceActionGroupsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestResourceActionGroupsAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestResourceActionGroupsAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestResourceActionGroupsAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestResourceActionGroupsListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidResourceActionGroupListOptions
+github.com/permitio/permit-golang/v2 TestResourceActionGroupsUseTheScope
+github.com/permitio/permit-golang/v2 TestResourceActionGroupKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteResourceActionGroupThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherResourceActionGroupCalls
+github.com/permitio/permit-golang/v2 TestResourceActionGroupBodies
+github.com/permitio/permit-golang/v2 TestResourceActionGroupBodiesThatCannotBeJSON
+github.com/permitio/permit-golang/v2 TestResourceActionGroupActionsReadBack
+github.com/permitio/permit-golang/v2 TestResourceActionGroupRetries
+github.com/permitio/permit-golang/v2 TestMalformedResourceActionGroupReplies
+github.com/permitio/permit-golang/v2 TestResourceActionGroupsAfterClose
+github.com/permitio/permit-golang/v2 ExampleResourceActionGroupsService
 
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
@@ -1126,6 +1143,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_environment_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenant_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

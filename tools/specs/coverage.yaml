@@ -268,11 +268,11 @@ control-plane:
   - {op: bulk_delete_relationship_tuples, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: planned}
   - {op: list_relationship_tuples_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed", stage: GA, status: planned}
   # Resource Action Groups
-  - {op: list_resource_action_groups, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: planned}
-  - {op: create_resource_action_group, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: planned}
-  - {op: get_resource_action_group, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: planned}
-  - {op: update_resource_action_group, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: planned}
-  - {op: delete_resource_action_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: planned}
+  - {op: list_resource_action_groups, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: covered}
+  - {op: create_resource_action_group, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: covered}
+  - {op: get_resource_action_group, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: covered}
+  - {op: update_resource_action_group, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: covered}
+  - {op: delete_resource_action_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: covered}
   # Resource Actions
   - {op: list_resource_actions, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", stage: GA, status: covered}
   - {op: create_resource_action, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", stage: GA, status: covered}

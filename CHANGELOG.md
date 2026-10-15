@@ -359,6 +359,39 @@ change from v1 and what to use instead.
   sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply
   or a failed connection too.
 
+### Resource action groups
+
+- The `ResourceActionGroups` field of the client, a `*permit.ResourceActionGroupsService`, lists,
+  reads, creates, changes and deletes the action groups of a resource of the environment of the
+  client's scope; each method takes the key or the ID of the resource first. `List` returns a
+  page as a `*permit.Page[models.ResourceActionGroupRead]` and `All` reads every page, 100 action
+  groups at a time; `Get` reads one action group by its key or its ID, in place of v1's `Get`,
+  `GetById` and `GetByKey`; `Create` takes a `models.ResourceActionGroupCreate` and `Update` a
+  `models.ResourceActionGroupUpdate`, and both return the action group as a
+  `*models.ResourceActionGroupRead`; `Delete` deletes an action group.
+- `Delete` sends
+  `DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}`,
+  the route of the action group. Up to v1.2.8, v1's `Delete` sent the route of the action of the
+  resource whose key was the group's key, so it deleted that action, or failed and left the group
+  in place.
+- `Update` is new: v1 had no update of an action group. In `models.ResourceActionGroupUpdate`,
+  `Description` and `Actions` are `models.Optional` fields: unset leaves the field out,
+  `models.Null` sends null and `models.Some` sends the value, `[]` for an empty slice; `Name` is
+  left out when empty, and `Attributes` when nil. Set `Actions` in each update to the keys of the
+  actions that the group keeps: an update that leaves them out may remove them all.
+- The list sends no attribute filter: v1's `ListByAttributes` never sent its filter, and listed
+  every action group of the resource. Filter the action groups that `List` or `All` return by
+  their `Attributes` instead.
+- The calls act on the environment of the client's scope, from `WithScope` or from the scope of
+  the API key, which the client looks up once; a scope without an environment is an error that
+  matches `ErrInvalidConfig`, and no request for the call is sent. Each call is sent with an
+  environment-level API key, or with a key of a wider level and `WithScope`.
+- A key of a resource or of an action group is sent as one segment of the path, escaped; an
+  empty key, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request for the call
+  is sent. `Delete` returns nil when the API answers 404, as the action group is gone already.
+  `Create` is sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or
+  504 reply or a failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

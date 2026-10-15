@@ -96,5 +96,11 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: `[]`})
 	servers.API.Handle("POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions",
 		mockpermit.Reply{Body: replyFixture("create_resource_action.200.json")})
+	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups",
+		mockpermit.Reply{Body: replyFixture("list_resource_action_groups.200.json")},
+		mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/"+
+		"action_groups/{action_group_id}",
+		mockpermit.Reply{Body: replyFixture("update_resource_action_group.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

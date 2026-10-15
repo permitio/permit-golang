@@ -19,6 +19,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_environment_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenant_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

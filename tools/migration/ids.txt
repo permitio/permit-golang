@@ -118,3 +118,9 @@ M-resource-actions-4
 M-resource-actions-5
 M-resource-actions-6
 M-resource-actions-7
+M-action-groups-1
+M-action-groups-2
+M-action-groups-3
+M-action-groups-4
+M-action-groups-5
+M-action-groups-6

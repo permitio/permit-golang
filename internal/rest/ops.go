@@ -242,6 +242,43 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The action groups of a resource of an environment, each at the environment level, as v1
+	// sends them too. These key levels are not measured yet: the phase api.resource_action_groups
+	// of the local harness confirms them. The list is a JSON array of at most 100 action groups. A
+	// PATCH sets the fields that it names to the values that it gives, so it does the same when
+	// sent twice; a create does not.
+	{
+		ID: "list_resource_action_groups", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "ResourceActionGroupRead",
+	},
+	{
+		ID: "create_resource_action_group", Method: http.MethodPost,
+		Route:    "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups",
+		KeyLevel: EnvironmentLevel, RequestModel: "ResourceActionGroupCreate",
+		ResponseModel: "ResourceActionGroupRead",
+	},
+	{
+		ID: "get_resource_action_group", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/" +
+			"{action_group_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ResourceActionGroupRead",
+	},
+	{
+		ID: "update_resource_action_group", Method: http.MethodPatch,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/" +
+			"{action_group_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "ResourceActionGroupUpdate",
+		ResponseModel: "ResourceActionGroupRead",
+	},
+	{
+		ID: "delete_resource_action_group", Method: http.MethodDelete,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/" +
+			"{action_group_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

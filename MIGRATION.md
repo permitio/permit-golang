@@ -1688,6 +1688,124 @@ returned the error of the generated client. A mistyped key of the action or of t
 returns nil too, so check the keys before a delete that must remove something. Any other error
 status is a `*permit.Error` with the status and the body.
 
+<a id="M-action-groups-1"></a>
+### M-action-groups-1: ResourceActionGroups becomes Client.ResourceActionGroups, with Update
+
+- v1: `api.ResourceActionGroups`
+- v1: `api.NewResourceActionGroupsApi`
+- v2: `permit.ResourceActionGroupsService`
+
+Call the methods of the action groups on the `ResourceActionGroups` field of the client,
+`client.ResourceActionGroups`, in place of `client.Api.ResourceActionGroups`; `permit.New` builds
+it, so nothing takes the place of `api.NewResourceActionGroupsApi`. Each method takes a
+`context.Context` first, then the key or the ID of the resource, and acts on the environment of
+the client's scope, as v1's methods acted on the environment of the client's context:
+`permit.WithScope`, or else the scope of the API key, which the client looks up once, as
+[M-scope-2](#M-scope-2) says. A scope without an environment, such as that of a project-level API
+key without `permit.WithScope`, is an error that matches `permit.ErrInvalidConfig`, with no
+request for the call.
+
+`models.ResourceActionGroupRead` has `ID`, `OrganizationID`, `ProjectID`, `EnvironmentID` and
+`ResourceID` in place of `Id`, `OrganizationId`, `ProjectId`, `EnvironmentId` and `ResourceId`;
+`Description` is a plain string, empty when the reply has none, in place of a pointer;
+`Attributes` is a `models.Attributes`, whose numbers are `json.Number`, as
+[M-models-1](#M-models-1) says; and `CreatedAt` and `UpdatedAt` are `models.Time`, which embeds
+`time.Time`.
+
+`ResourceActionGroupsService.Update(ctx, resourceKey, actionGroupKey, update)` is new: v1 had no
+update of an action group. It takes a `models.ResourceActionGroupUpdate`, whose request holds
+only the fields that are set. Its `Actions` are a `models.Optional[[]string]`: unset leaves them
+out, `models.Some` sends the keys, and `models.Null[[]string]()` sends null. Set the actions in
+each update, to the keys of the actions that the group keeps: an update that leaves them out may
+remove them all.
+
+<a id="M-action-groups-2"></a>
+### M-action-groups-2: GetById and GetByKey become Get
+
+- v1: `api.ResourceActionGroups.Get`
+- v1: `api.ResourceActionGroups.GetById`
+- v1: `api.ResourceActionGroups.GetByKey`
+- v2: `permit.ResourceActionGroupsService.Get`
+
+`ResourceActionGroupsService.Get(ctx, resourceKey, actionGroupKey)` takes the key or the ID of the
+resource and of the action group, as all three v1 methods sent the same request: pass
+`id.String()` for a `uuid.UUID`. A key that holds a `/` or a `%` is sent escaped, as one segment
+of the path, and an empty key, `.` or `..` is an error that matches `permit.ErrInvalidConfig`,
+with no request. An action group that the resource does not have is a `*permit.Error` that
+matches `permit.ErrNotFound`.
+
+<a id="M-action-groups-3"></a>
+### M-action-groups-3: ResourceActionGroups.List returns a page, and All reads every page
+
+- v1: `api.ResourceActionGroups.List`
+- v2: `permit.ResourceActionGroupsService.List`
+
+`ResourceActionGroupsService.List(ctx, resourceKey, opts)` takes a `*permit.ListOptions`, nil for
+the first page with the API's default of 30 action groups, in place of the page and the number of
+action groups as two ints, and returns a `*permit.Page[models.ResourceActionGroupRead]`, as
+[M-lists-1](#M-lists-1) says. v1 failed for more than 100 action groups on a page before any
+request; v2 sends the number as given, and the API answers above 100 with an error.
+`ResourceActionGroupsService.All(ctx, resourceKey, opts)` returns an
+`iter.Seq2[models.ResourceActionGroupRead, error]` that reads every page, 100 action groups at a
+time:
+
+```go
+for group, err := range client.ResourceActionGroups.All(ctx, "document", nil) {
+	if err != nil {
+		return err
+	}
+	fmt.Println(group.Key, group.Actions)
+}
+```
+
+<a id="M-action-groups-4"></a>
+### M-action-groups-4: ResourceActionGroups.ListByAttributes becomes List, without a filter
+
+- v1: `api.ResourceActionGroups.ListByAttributes`
+- v2: `permit.ResourceActionGroupsService.List`
+- Bug fix: could never work before
+
+v1's `ListByAttributes` never sent its filter: it listed every action group of the resource,
+whatever the map it was given held. v2 has no attribute filter for the action groups: call
+`ResourceActionGroupsService.List` or `ResourceActionGroupsService.All`, and keep the action
+groups whose `Attributes` match. Code that called `ListByAttributes` got every action group, so
+check what it did with those that did not match its filter.
+
+<a id="M-action-groups-5"></a>
+### M-action-groups-5: ResourceActionGroups.Create takes models.ResourceActionGroupCreate
+
+- v1: `api.ResourceActionGroups.Create`
+- v2: `permit.ResourceActionGroupsService.Create`
+
+Build the action group as a struct literal, such as
+`models.ResourceActionGroupCreate{Key: "editing", Name: "Editing", Actions: []string{"read", "write"}}`,
+in place of `models.NewResourceActionGroupCreate`. `Description` is a plain string, left out of
+the request when empty, in place of a `*string`; `Attributes`, a `models.Attributes`, and
+`Actions` are left out when nil, and an empty map or slice that is not nil sends `{}` or `[]`. A
+key that another action group of the resource has is a `*permit.Error` that matches
+`permit.ErrConflict`. Create is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as
+the API may have created the action group when a request got no complete reply.
+
+<a id="M-action-groups-6"></a>
+### M-action-groups-6: ResourceActionGroups.Delete deletes the action group, and returns nil when it is gone
+
+- v1: `api.ResourceActionGroups.Delete`
+- v2: `permit.ResourceActionGroupsService.Delete`
+
+Up to v1.2.8, v1's `Delete` sent
+`DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}`, the route
+that deletes an action of the resource: it deleted the action whose key was the group's key, or
+failed with 404 and left the action group in place. v1.3.0 sends the route of the action group,
+as v2 does: `DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}`.
+If code called `Delete` with v1.2.8 or earlier, check that its resources still have their
+actions.
+
+`ResourceActionGroupsService.Delete(ctx, resourceKey, actionGroupKey)` returns nil when the API
+answers 404, as the action group is gone already, such as when a retry follows a delete that
+succeeded; v1 returned an error. A mistyped key returns nil too, so check the key before a delete
+that must remove something. Any other error status is a `*permit.Error` with the status and the
+body.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -1882,6 +2000,8 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
 | `models.RelationBlockRead` | `models.RelationBlockRead` |
 | `models.ResourceActionCreate` | `models.ResourceActionCreate` |
+| `models.ResourceActionGroupCreate` | `models.ResourceActionGroupCreate` |
+| `models.ResourceActionGroupRead` | `models.ResourceActionGroupRead` |
 | `models.ResourceActionRead` | `models.ResourceActionRead` |
 | `models.ResourceActionUpdate` | `models.ResourceActionUpdate` |
 | `models.ResourceCreate` | `models.ResourceCreate` |
@@ -1893,6 +2013,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 344 of the 384 types of v1's pkg/models.
+Not mapped yet: 342 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

@@ -256,3 +256,123 @@ func listedResource(ctx context.Context, t *testing.T, c *permit.Client, id stri
 	}
 	return false
 }
+
+// resourceActionGroupLifecycle checks the calls of the action groups with the environment-level
+// API key of the scratch environment, on a resource of its own, whose key starts with the run's
+// prefix, and on its action group editing, each of which it registers with the ledger before it
+// creates it. The resource has the actions read and write, and editing, an action whose key is
+// the group's key. The scenario creates the group with read and write, gets it by its key and by
+// its ID, finds it in the page that List returns and with All, changes its name and its actions,
+// and deletes it. Then it checks that the resource still has its three actions, as a delete sent
+// to the route of the action editing would have deleted that action and left the group, waits
+// until a get of the group's ID matches ErrNotFound, and deletes the group again, which returns
+// nil.
+func resourceActionGroupLifecycle(s *suite) func(t *testing.T) {
+	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
+		const group = "editing"
+		key := s.cfg.prefix.Key("sdk-action-groups")
+		self := "/v2/schema/" + url.PathEscape(s.env.ProjectID) + "/" + url.PathEscape(s.env.ID) +
+			"/resources/" + url.PathEscape(key)
+		s.ledger.Register("resource "+key, s.api.Remover(self),
+			s.api.Absence(self, framework.AbsenceTimeout))
+		c := s.client(t, s.env.APIKey())
+		ctx := s.ctx(t)
+		resource, err := c.Resources.Create(ctx, models.ResourceCreate{
+			Key: key, Name: key,
+			Actions: map[string]models.ActionBlockEditable{"read": {}, "write": {}, group: {}},
+		})
+		if err != nil {
+			t.Fatalf("setup: Create of the resource %s: %v", key, err)
+		}
+		groupSelf := self + "/action_groups/" + group
+		s.ledger.Register("action group "+group+" of "+key, s.api.Remover(groupSelf),
+			s.api.Absence(groupSelf, framework.AbsenceTimeout))
+		created, err := c.ResourceActionGroups.Create(ctx, key, models.ResourceActionGroupCreate{
+			Key: group, Name: "Editing", Description: "An action group of the Go SDK's tests",
+			Attributes: models.Attributes{"run": key}, Actions: []string{"read", "write"},
+		})
+		if err != nil {
+			t.Fatalf("Create of the action group %s of %s: %v", group, key, err)
+		}
+		if created.Key != group || created.ID == "" || created.EnvironmentID != s.env.ID ||
+			created.Attributes["run"] != key {
+			t.Fatalf("Create returned the action group %q (ID %q) of the environment %q with the "+
+				"attributes %v, want %s in %s with the attribute run", created.Key, created.ID,
+				created.EnvironmentID, created.Attributes, group, s.env.ID)
+		}
+		checkGroupActions(t, "Create", created, "read", "write")
+		for _, ref := range [][2]string{{key, group}, {resource.ID, created.ID}} {
+			got, getErr := c.ResourceActionGroups.Get(ctx, ref[0], ref[1])
+			if getErr != nil {
+				t.Fatalf("Get of the action group %s of %s: %v", ref[1], ref[0], getErr)
+			}
+			if got.ID != created.ID || got.Key != group {
+				t.Errorf("Get of %s of %s returned the action group %s (ID %s), want %s (ID %s)",
+					ref[1], ref[0], got.Key, got.ID, group, created.ID)
+			}
+		}
+		isCreated := func(g models.ResourceActionGroupRead) bool { return g.ID == created.ID }
+		page, err := c.ResourceActionGroups.List(ctx, key, nil)
+		if err != nil || !slices.ContainsFunc(page.Data, isCreated) {
+			t.Errorf("List of the action groups of %s returned %+v, %v; want a page with %s", key,
+				page, err, group)
+		}
+		var all []string
+		for g, allErr := range c.ResourceActionGroups.All(ctx, key, nil) {
+			if allErr != nil {
+				t.Fatalf("All of the action groups of %s: %v", key, allErr)
+			}
+			all = append(all, g.ID)
+		}
+		if !slices.Contains(all, created.ID) {
+			t.Errorf("All of the action groups of %s yielded %q, want %s among them", key, all,
+				created.ID)
+		}
+		updated, err := c.ResourceActionGroups.Update(ctx, key, group,
+			models.ResourceActionGroupUpdate{
+				Name: "Renamed editing", Actions: models.Some([]string{"read"}),
+			})
+		if err != nil {
+			t.Fatalf("Update of the action group %s of %s: %v", group, key, err)
+		}
+		if updated.Name != "Renamed editing" {
+			t.Errorf("Update returned the name %q, want Renamed editing", updated.Name)
+		}
+		checkGroupActions(t, "Update", updated, "read")
+		if deleteErr := c.ResourceActionGroups.Delete(ctx, key, group); deleteErr != nil {
+			t.Fatalf("Delete of the action group %s of %s: %v", group, key, deleteErr)
+		}
+		after, err := c.Resources.Get(ctx, key)
+		if err != nil {
+			t.Fatalf("Get of the resource %s after the delete of its action group: %v", key, err)
+		}
+		checkActions(t, "Get after the delete of the action group", after, group, "read", "write")
+		gone := framework.Poll(ctx, framework.AbsenceTimeout, s.cfg.syncInterval,
+			func(ctx context.Context) (bool, error) {
+				_, getErr := c.ResourceActionGroups.Get(ctx, key, created.ID)
+				if errors.Is(getErr, permit.ErrNotFound) {
+					return true, nil
+				}
+				return false, getErr
+			})
+		if gone != nil {
+			t.Fatalf("Get of the deleted action group %s of %s: %v", created.ID, key, gone)
+		}
+		if err := c.ResourceActionGroups.Delete(ctx, key, group); err != nil {
+			t.Errorf("Delete of the action group %s of %s that is gone returned %v, want nil",
+				group, key, err)
+		}
+	}
+}
+
+// checkGroupActions checks that got, the action group that call returned, holds the actions
+// whose keys are want, in any order, and no other.
+func checkGroupActions(t *testing.T, call string, got *models.ResourceActionGroupRead,
+	want ...string,
+) {
+	t.Helper()
+	if keys := slices.Sorted(slices.Values(got.Actions)); !slices.Equal(keys, want) {
+		t.Errorf("%s returned the action group %s with the actions %q, want %q", call, got.Key,
+			keys, want)
+	}
+}

@@ -275,6 +275,30 @@ models: type ResourceActionCreate struct, Attributes Attributes
 models: type ResourceActionCreate struct, Description string
 models: type ResourceActionCreate struct, Key string
 models: type ResourceActionCreate struct, Name string
+models: type ResourceActionGroupCreate struct
+models: type ResourceActionGroupCreate struct, Actions []string
+models: type ResourceActionGroupCreate struct, Attributes Attributes
+models: type ResourceActionGroupCreate struct, Description string
+models: type ResourceActionGroupCreate struct, Key string
+models: type ResourceActionGroupCreate struct, Name string
+models: type ResourceActionGroupRead struct
+models: type ResourceActionGroupRead struct, Actions []string
+models: type ResourceActionGroupRead struct, Attributes Attributes
+models: type ResourceActionGroupRead struct, CreatedAt Time
+models: type ResourceActionGroupRead struct, Description string
+models: type ResourceActionGroupRead struct, EnvironmentID string
+models: type ResourceActionGroupRead struct, ID string
+models: type ResourceActionGroupRead struct, Key string
+models: type ResourceActionGroupRead struct, Name string
+models: type ResourceActionGroupRead struct, OrganizationID string
+models: type ResourceActionGroupRead struct, ProjectID string
+models: type ResourceActionGroupRead struct, ResourceID string
+models: type ResourceActionGroupRead struct, UpdatedAt Time
+models: type ResourceActionGroupUpdate struct
+models: type ResourceActionGroupUpdate struct, Actions Optional[[]string]
+models: type ResourceActionGroupUpdate struct, Attributes Attributes
+models: type ResourceActionGroupUpdate struct, Description Optional[string]
+models: type ResourceActionGroupUpdate struct, Name string
 models: type ResourceActionRead struct
 models: type ResourceActionRead struct, Attributes Attributes
 models: type ResourceActionRead struct, CreatedAt Time
@@ -458,6 +482,12 @@ permit: method (*ProjectsService) Delete(ctx context.Context, projectKey string)
 permit: method (*ProjectsService) Get(ctx context.Context, projectKey string) (*models.ProjectRead, error)
 permit: method (*ProjectsService) List(ctx context.Context, opts *ListOptions) (*Page[models.ProjectRead], error)
 permit: method (*ProjectsService) Update(ctx context.Context, projectKey string, update models.ProjectUpdate) (*models.ProjectRead, error)
+permit: method (*ResourceActionGroupsService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.ResourceActionGroupRead, error]
+permit: method (*ResourceActionGroupsService) Create(ctx context.Context, resourceKey string, group models.ResourceActionGroupCreate) (*models.ResourceActionGroupRead, error)
+permit: method (*ResourceActionGroupsService) Delete(ctx context.Context, resourceKey string, actionGroupKey string) error
+permit: method (*ResourceActionGroupsService) Get(ctx context.Context, resourceKey string, actionGroupKey string) (*models.ResourceActionGroupRead, error)
+permit: method (*ResourceActionGroupsService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceActionGroupRead], error)
+permit: method (*ResourceActionGroupsService) Update(ctx context.Context, resourceKey string, actionGroupKey string, update models.ResourceActionGroupUpdate) (*models.ResourceActionGroupRead, error)
 permit: method (*ResourceActionsService) All(ctx context.Context, resourceKey string, opts *ResourceActionsListOptions) iter.Seq2[models.ResourceActionRead, error]
 permit: method (*ResourceActionsService) Create(ctx context.Context, resourceKey string, action models.ResourceActionCreate) (*models.ResourceActionRead, error)
 permit: method (*ResourceActionsService) Delete(ctx context.Context, resourceKey string, actionKey string) error
@@ -517,6 +547,7 @@ permit: type Client struct
 permit: type Client struct, APIKeys *APIKeysService
 permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Projects *ProjectsService
+permit: type Client struct, ResourceActionGroups *ResourceActionGroupsService
 permit: type Client struct, ResourceActions *ResourceActionsService
 permit: type Client struct, Resources *ResourcesService
 permit: type Client struct, Tenants *TenantsService
@@ -569,6 +600,7 @@ permit: type Resource struct, Context map[string]any
 permit: type Resource struct, Key string
 permit: type Resource struct, Tenant string
 permit: type Resource struct, Type string
+permit: type ResourceActionGroupsService struct
 permit: type ResourceActionsListOptions struct
 permit: type ResourceActionsListOptions struct, Attributes []AttributeFilter
 permit: type ResourceActionsListOptions struct, embedded ListOptions

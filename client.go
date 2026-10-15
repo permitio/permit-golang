@@ -58,6 +58,9 @@ type Client struct {
 	// ResourceActions lists, reads, creates, changes and deletes the actions of a resource of
 	// the environment of the client's scope.
 	ResourceActions *ResourceActionsService `json:"-"`
+	// ResourceActionGroups lists, reads, creates, changes and deletes the action groups of the
+	// resources of the environment of the client's scope.
+	ResourceActionGroups *ResourceActionGroupsService `json:"-"`
 
 	apiKey  redact.Secret
 	apiURL  string
@@ -150,6 +153,7 @@ func New(opts ...Option) (*Client, error) {
 	c.Resources = &ResourcesService{client: c}
 	c.Tenants = &TenantsService{facts: facts{client: c}}
 	c.ResourceActions = &ResourceActionsService{client: c}
+	c.ResourceActionGroups = &ResourceActionGroupsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

@@ -27,9 +27,6 @@ api.NewProxyConfigsApi proxy-configs
 api.RelationshipTuples relationship-tuples
 api.RelationshipTuples.* relationship-tuples
 api.NewRelationshipTuplesApi relationship-tuples
-api.ResourceActionGroups resource-action-groups
-api.ResourceActionGroups.* resource-action-groups
-api.NewResourceActionGroupsApi resource-action-groups
 api.ResourceAttributes resource-attributes
 api.ResourceAttributes.* resource-attributes
 api.NewResourceAttributesApi resource-attributes

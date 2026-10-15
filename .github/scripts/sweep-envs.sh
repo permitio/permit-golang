@@ -2,10 +2,12 @@
 # sweep-envs.sh deletes the scratch environments that end-to-end jobs left behind, such as one
 # whose delete at the end of its leg failed: every environment of the project of
 # PERMIT_E2E_PROJECT_KEY whose key is a run prefix, gosdk-ci-<run>-<attempt>-<leg> as
-# e2e-env.sh names them, and that was created more than 24 hours ago. A leg runs for minutes, so
-# no running leg's environment is that old. Nothing else is deleted: no environment with another
-# key, such as production, at any age; no environment younger than 24 hours; no environment whose
-# creation time it cannot read; and nothing outside that project. The e2e job of
+# e2e-env.sh names the environment of a leg, or a run prefix and a suffix,
+# gosdk-ci-<run>-<attempt>-<leg>-<name> as a scenario of tools/e2e names an environment that it
+# creates, and that was created more than 24 hours ago. A leg runs for minutes, so no running
+# leg's environment is that old. Nothing else is deleted: no environment with another key, such
+# as production, at any age; no environment younger than 24 hours; no environment whose creation
+# time it cannot read; and nothing outside that project. The e2e job of
 # .github/workflows/ci.yml runs it at its start, as the lane has no scheduled run. It reads:
 #
 #   PERMIT_E2E_PROJECT_KEY  a project-level API key, which can list and delete the environments
@@ -144,7 +146,7 @@ for ((page = 1; ; page++)); do
 done
 
 now=$(date +%s)
-key_re='^gosdk-ci-[0-9]{1,20}-[0-9]{1,20}-[a-z][a-z0-9]{0,15}$'
+key_re='^gosdk-ci-[0-9]{1,20}-[0-9]{1,20}-[a-z][a-z0-9]{0,15}(-[a-z0-9][a-z0-9-]{0,63})?$'
 total=0 matched=0 deleted=0 failed=0
 while IFS=$'\t' read -r id env_key created <&3; do
   total=$((total + 1))

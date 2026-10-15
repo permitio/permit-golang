@@ -1170,8 +1170,9 @@ They check five things:
   other, by their JSON names. The type of each field holds every alternative of its property, and
   is of no JSON kind that the property does not allow: an object schema of `components.schemas` is
   the type whose row maps it, an enum schema the enum type whose row maps it, a string of format
-  `date-time` a `models.Time`, and an object without properties `models.Attributes`, or a map of
-  the type of its values. An enum type has a constant for each value of its schema, and no other.
+  `date-time` a `models.Time`, a property that is a string or a list of strings a
+  `models.StringOrList`, and an object without properties `models.Attributes`, or a map of the
+  type of its values. An enum type has a constant for each value of its schema, and no other.
   A count keeps the map complete: each exported type of `models` is a row under `models`, or under
   `blocks` when no schema describes it, such as `Optional`; each row is an exported type of
   `models` or of the root package, and not a name that both export; and `modelTypes` in
@@ -1561,10 +1562,11 @@ API and a stub `docker`, for its leg, `pinned`:
 
 - `.github/scripts/sweep-envs.sh`, first, as the lane has no scheduled run: deletes the
   environments of the key's project whose key is a run prefix, `gosdk-ci-<run>-<attempt>-<leg>`,
-  and that are older than 24 hours, such as one that a leg failed to delete. It deletes no other
-  environment, at any age, and fails on a key that is not project-level or that the API refuses.
-  A delete that fails, or a scope or a list that it cannot read for another reason, is a
-  warning, and the job goes on: the sweep of a later run tries again.
+  or a run prefix and a suffix, `gosdk-ci-<run>-<attempt>-<leg>-<name>`, as a scenario names an
+  environment that it creates, and that are older than 24 hours, such as one that a leg failed to
+  delete. It deletes no other environment, at any age, and fails on a key that is not
+  project-level or that the API refuses. A delete that fails, or a scope or a list that it cannot
+  read for another reason, is a warning, and the job goes on: the sweep of a later run tries again.
 - `.github/scripts/e2e-env.sh create <leg>`: creates the leg's scratch environment, reads its API
   key, masks it with `::add-mask::` before anything else, and then exports it with the
   environment's ID and its project's ID. Without `PERMIT_E2E_PROJECT_KEY`, a pull request and a
@@ -1900,7 +1902,8 @@ and `tools/e2e/projects_test.go`.
      fails for a type with a `Known` method that it does not check.
    - Attributes, and any other map of JSON values, are `models.Attributes`, which keeps each
      number as a `json.Number`; a timestamp is a `models.Time`, which reads RFC 3339 with or
-     without a zone.
+     without a zone; and a property that is a string or a list of strings is a
+     `models.StringOrList`, which keeps the form that it was made or decoded in.
 
    `models/testdata/golden` holds the bodies that each kind of `Optional` field, and a map
    tagged `omitzero`, encode to, and both supported Go versions must write them byte for byte.

@@ -5,17 +5,17 @@
 // The fake serves the routes that it is given, those of a spec snapshot, and keeps the objects of
 // each collection in memory, a collection being the path of a route without its last parameter:
 // a POST to a collection creates an object with an ID, a GET, a PATCH, a PUT or a DELETE of an
-// item reads, changes or deletes it, a GET of a collection lists it, and a DELETE of a collection
-// with a body removes the objects that hold each field of the body. A parameter matches an
-// object by its ID or its identifier: its key, or for a resource instance, an object with a
-// resource, <resource>:<key>, as the Permit API names it. A parameter that is not the last
-// segment of its route and follows resources, roles, tenants or users, such as {resource_id} in
-// .../resources/{resource_id}/roles, must match an object, or the request gets 404; another
-// parameter, such as {group_instance_key}, stays as it is when it matches none. Deleting an
-// environment revokes its API keys. Each request body goes through the check that the fake is
-// given, such as the structural walker of tools/drift, and a body that the check rejects gets
-// 422. The fake also serves the scope of an API key and the API key of an environment, which it
-// makes up.
+// item reads, changes or deletes it, a GET of a collection lists it, one page of it when the query
+// holds page or per_page, and a DELETE of a collection with a body removes the objects that hold
+// each field of the body. A parameter matches an object by its ID or its identifier: its key, or
+// for a resource instance, an object with a resource, <resource>:<key>, as the Permit API names it.
+// A parameter that is not the last segment of its route and follows resources, roles, tenants or
+// users, such as {resource_id} in .../resources/{resource_id}/roles, must match an object, or the
+// request gets 404; another parameter, such as {group_instance_key}, stays as it is when it matches
+// none. Deleting an environment revokes its API keys. Each request body goes through the check that
+// the fake is given, such as the structural walker of tools/drift, and a body that the check
+// rejects gets 422. The fake also serves the scope of an API key and the API key of an environment,
+// which it makes up.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An
@@ -218,7 +218,7 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	status, answer := f.answer(rt, segments, fields, key)
+	status, answer := f.answer(rt, segments, fields, key, r.URL.Query())
 	reply(w, status, answer)
 }
 

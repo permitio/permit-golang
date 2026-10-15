@@ -18,6 +18,9 @@ var (
 	// attributesType is models.Attributes, any JSON object.
 	attributesType = reflect.TypeFor[models.Attributes]()
 
+	// stringOrListType is models.StringOrList, a string or an array of strings.
+	stringOrListType = reflect.TypeFor[models.StringOrList]()
+
 	// numberType is json.Number, any JSON number.
 	numberType = reflect.TypeFor[json.Number]()
 
@@ -367,6 +370,9 @@ func (c *comparer) matchType(t reflect.Type, schema any, at string, s *spec) ([]
 	if len(alts) == 0 {
 		return []string{"the schema at " + at + " allows only null"}, nil
 	}
+	if t == stringOrListType {
+		return c.matchStringOrList(alts, at, s)
+	}
 	if t.Kind() == reflect.Interface || t == rawType {
 		if len(alts) == 1 && typeOf(alts[0].schema) != "" {
 			problem := "its type " + t.String() + " holds any JSON value, and the schema at " +
@@ -382,6 +388,52 @@ func (c *comparer) matchType(t reflect.Type, schema any, at string, s *spec) ([]
 			return nil, err
 		}
 		problems = append(problems, more...)
+	}
+	return problems, nil
+}
+
+// matchStringOrList returns the problems of a models.StringOrList against alts, the alternatives
+// other than null of the schema that at locates in s. A StringOrList holds a string or an array of
+// strings, as it was made or decoded, so each alternative is a string that is no enum and no
+// timestamp or an array of such strings, and the schema allows both kinds.
+func (c *comparer) matchStringOrList(alts []alternative, at string, s *spec) ([]string, error) {
+	var problems []string
+	kinds := map[string]bool{}
+	cannotHold := func(what string) string {
+		return "its type models.StringOrList cannot hold " + what + ", which the schema at " + at +
+			" allows"
+	}
+	for _, alt := range alts {
+		typ := typeOf(alt.schema)
+		switch typ {
+		case "string":
+			_, enum := alt.schema["enum"]
+			format, _ := alt.schema["format"].(string)
+			switch {
+			case enum && alt.name == "":
+				problems = append(problems, cannotHold("an enum of strings"))
+			case enum || format == "date-time":
+				problems = append(problems, cannotHold(describe(alt)))
+			}
+		case "array":
+			items, ok := alt.schema["items"]
+			if !ok {
+				items = true
+			}
+			more, err := c.matchType(reflect.TypeFor[string](), items, at+"/items", s)
+			if err != nil {
+				return nil, err
+			}
+			problems = append(problems, more...)
+		default:
+			problems = append(problems, cannotHold(describe(alt)))
+		}
+		kinds[typ] = true
+	}
+	if !kinds["string"] || !kinds["array"] {
+		problems = append(problems, "its type models.StringOrList holds a string or an array "+
+			"of strings, and the schema at "+at+" does not allow both: give it a type of the "+
+			"kind that it allows")
 	}
 	return problems, nil
 }

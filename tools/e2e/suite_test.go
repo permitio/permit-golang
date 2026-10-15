@@ -47,6 +47,13 @@ var cloudScenarios = []scenario{
 	{name: "unauthorized_key", methods: []string{"Client.Scope"}, run: unauthorizedKey},
 	{name: "get_project", methods: []string{"ProjectsService.Get"}, run: getProject},
 	{
+		name: "environment_lifecycle", methods: []string{
+			"EnvironmentsService.Create", "EnvironmentsService.Get", "EnvironmentsService.List",
+			"EnvironmentsService.All", "EnvironmentsService.Update", "EnvironmentsService.Delete",
+		},
+		run: environmentLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

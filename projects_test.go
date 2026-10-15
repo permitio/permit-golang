@@ -395,7 +395,7 @@ func TestProjectBodies(t *testing.T) {
 		InitialEnvironments: []models.EnvironmentCreate{{
 			Key: "e", Name: "E", Description: "d", CustomBranchName: "b",
 			JWKS: &models.JwksConfig{
-				Audience: "aud", Issuer: []string{"i1", "i2"},
+				Audience: models.OneString("aud"), Issuer: models.StringList("i1", "i2"),
 				JWKS: &models.JwksObj{Keys: []models.Attributes{{"kid": "k"}}}, TTL: 60,
 				URL: "https://example.com/jwks",
 			},

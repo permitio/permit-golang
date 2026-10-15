@@ -33,6 +33,24 @@
     "Client.UserTenants": [
       "Get_User_Tenants_user_tenants_post"
     ],
+    "EnvironmentsService.All": [
+      "list_environments"
+    ],
+    "EnvironmentsService.Create": [
+      "create_environment"
+    ],
+    "EnvironmentsService.Delete": [
+      "delete_environment"
+    ],
+    "EnvironmentsService.Get": [
+      "get_environment"
+    ],
+    "EnvironmentsService.List": [
+      "list_environments"
+    ],
+    "EnvironmentsService.Update": [
+      "update_environment"
+    ],
     "ProjectsService.All": [
       "list_projects"
     ],

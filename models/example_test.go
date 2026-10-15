@@ -112,3 +112,27 @@ func ExampleTime() {
 	// 2026-10-14T09:30:00.5Z UTC
 	// true
 }
+
+// The audience of a token is one string or a list: a StringOrList keeps the form that it was
+// decoded in, so a configuration read from a reply is sent back as it came.
+func ExampleStringOrList() {
+	var config models.JwksConfig
+	reply := []byte(`{"audience":"app","issuer":["https://a.example.com","https://b.example.com"]}`)
+	if err := json.Unmarshal(reply, &config); err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(config.Audience.Values(), config.Audience.IsList())
+	fmt.Println(config.Issuer.Values(), config.Issuer.IsList())
+	config.Audience = models.StringList("app", "admin")
+	body, err := json.Marshal(config)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(body))
+	// Output:
+	// [app] false
+	// [https://a.example.com https://b.example.com] true
+	// {"audience":["app","admin"],"issuer":["https://a.example.com","https://b.example.com"]}
+}

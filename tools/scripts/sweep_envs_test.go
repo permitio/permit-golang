@@ -94,10 +94,11 @@ func deleted(f *fakePermit) []string {
 	return ids
 }
 
-// TestSweepEnvs checks that the sweep deletes the environments whose key is a run prefix and
-// that are older than 24 hours, and keeps every other one: another key at any age, a young
-// scratch environment, and one whose creation time it cannot read. It reads every page, and
-// gives the key to curl in a file, not on its command line.
+// TestSweepEnvs checks that the sweep deletes the environments whose key is a run prefix, or a
+// run prefix and a suffix, and that are older than 24 hours, and keeps every other one: another
+// key at any age, also one that only looks like a run prefix and a suffix, a young scratch
+// environment, and one whose creation time it cannot read. It reads every page, and gives the key
+// to curl in a file, not on its command line.
 func TestSweepEnvs(t *testing.T) {
 	now := time.Now().UTC()
 	ago := func(d time.Duration, zone *time.Location, layout string) string {
@@ -124,8 +125,26 @@ func TestSweepEnvs(t *testing.T) {
 			withZone)},
 		{ID: "old-naive", Key: "gosdk-ci-15-3-pinned", CreatedAt: ago(30*time.Hour, time.UTC,
 			naive)},
-		{ID: "suffix", Key: "gosdk-ci-16-1-pinned-x", CreatedAt: ago(2*day, time.UTC,
+		// A run prefix and a suffix, as a scenario names an environment of its own.
+		{
+			ID: "old-suffixed", Key: "gosdk-ci-16-1-pinned-sdk-environment",
+			CreatedAt: ago(2*day, time.UTC, time.RFC3339),
+		},
+		{
+			ID: "young-suffixed", Key: "gosdk-ci-21-1-cloudpdp-sdk-environment",
+			CreatedAt: ago(23*time.Hour, time.UTC, time.RFC3339),
+		},
+		// Keys that only look like a run prefix and a suffix.
+		{ID: "trailing-hyphen", Key: "gosdk-ci-16-1-pinned-", CreatedAt: ago(2*day, time.UTC,
 			time.RFC3339)},
+		{ID: "upper-suffix", Key: "gosdk-ci-16-1-pinned-Sdk", CreatedAt: ago(2*day, time.UTC,
+			time.RFC3339)},
+		{
+			ID: "long-suffix", Key: "gosdk-ci-16-1-pinned-" + strings.Repeat("a", 65),
+			CreatedAt: ago(2*day, time.UTC, time.RFC3339),
+		},
+		{ID: "before-prefix", Key: "copy-gosdk-ci-16-1-pinned-sdk", CreatedAt: ago(2*day,
+			time.UTC, time.RFC3339)},
 		{ID: "upper", Key: "gosdk-ci-17-1-Pinned", CreatedAt: ago(2*day, time.UTC,
 			time.RFC3339)},
 		{ID: "no-attempt", Key: "gosdk-ci-18-pinned", CreatedAt: ago(2*day, time.UTC,
@@ -153,7 +172,7 @@ func TestSweepEnvs(t *testing.T) {
 		t.Fatalf("exit = %d, want 0; stdout:\n%s\nstderr:\n%s", result.exit, result.stdout,
 			result.stderr)
 	}
-	want := []string{"old-pinned", "old-east", "old-naive", "old-last-page"}
+	want := []string{"old-pinned", "old-east", "old-naive", "old-suffixed", "old-last-page"}
 	if got := deleted(fake); !slices.Equal(got, want) {
 		t.Errorf("deleted %q, want %q", got, want)
 	}
@@ -173,15 +192,17 @@ func TestSweepEnvs(t *testing.T) {
 	for _, want := range []string{
 		"sweep-envs: deleted gosdk-ci-11-1-pinned, 25 hours old\n",
 		"sweep-envs: keeping gosdk-ci-12-1-latest: it is 23 hours old\n",
+		"sweep-envs: deleted gosdk-ci-16-1-pinned-sdk-environment, 48 hours old\n",
+		"sweep-envs: keeping gosdk-ci-21-1-cloudpdp-sdk-environment: it is 23 hours old\n",
 		"sweep-envs: keeping gosdk-ci-19-1-pinned: its creation time cannot be read\n",
-		"sweep-envs: the project holds 112 environments, 7 of them scratch environments; " +
-			"deleted 4 older than 24 hours, and 0 could not be deleted\n",
+		"sweep-envs: the project holds 117 environments, 9 of them scratch environments; " +
+			"deleted 5 older than 24 hours, and 0 could not be deleted\n",
 	} {
 		if !strings.Contains(result.stdout, want) {
 			t.Errorf("stdout does not contain %q:\n%s", want, result.stdout)
 		}
 	}
-	assertWrapped(t, result.stdout, "the project holds 112 environments")
+	assertWrapped(t, result.stdout, "the project holds 117 environments")
 	assertNoSecret(t, result)
 	assertKeyNotInArgs(t, curlLog)
 }

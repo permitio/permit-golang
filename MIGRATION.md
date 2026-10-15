@@ -988,6 +988,140 @@ is gone already, such as when a retry follows a delete that succeeded; v1 return
 the code `NotFound`. A mistyped key returns nil too, so check the key before a delete that must
 remove something. Any other error status is a `*permit.Error` with the status and the body.
 
+<a id="M-environments-1"></a>
+### M-environments-1: Environments becomes Client.Environments, whose methods take the project
+
+- v1: `api.Environments`
+- v1: `api.NewEnvironmentsApi`
+- v2: `permit.EnvironmentsService`
+
+Call the methods of the environments on the `Environments` field of the client,
+`client.Environments`, in place of `client.Api.Environments`; `permit.New` builds it, so nothing
+takes the place of `api.NewEnvironmentsApi`. Each method takes a `context.Context` first, then
+the key or the ID of the project, which v1 read from the project of the client's context: pass
+the project that v1's context named. The methods need no scope: they send no request for the
+scope of the API key and read none of `permit.WithScope`, so one client acts on the environments
+of any project that its API key may reach.
+
+`models.EnvironmentRead`, which `Create` and `Update` return, has `ID`, `OrganizationID` and
+`ProjectID` in place of `Id`, `OrganizationId` and `ProjectId`; its optional fields are plain
+strings, empty when the reply has none, in place of pointers; `CreatedAt` and `UpdatedAt` are
+`models.Time`, which embeds `time.Time`; and it has the fields of the reply that v1 dropped:
+`Settings`, a `models.Attributes` whose numbers are `json.Number`, as [M-models-1](#M-models-1)
+says, `JWKS`, a `*models.JwksConfig`, `JWKSUnpinned` and `AVPPolicyStoreID`.
+
+<a id="M-environments-2"></a>
+### M-environments-2: GetById and GetByKey become Get, which returns the email configuration
+
+- v1: `api.Environments.Get`
+- v1: `api.Environments.GetById`
+- v1: `api.Environments.GetByKey`
+- v2: `permit.EnvironmentsService.Get`
+
+`EnvironmentsService.Get(ctx, projectKey, environmentKey)` takes the key or the ID of the
+environment, as all three v1 methods sent the same request: pass `id.String()` for a
+`uuid.UUID`. It returns a `*models.EnvironmentReadWithEmailConfig`, the model that the API
+returns, in place of a `*models.EnvironmentRead`, which dropped fields of the reply: it embeds
+`models.EnvironmentRead`, whose fields it promotes, so `environment.Key` reads as before, and
+`environment.EnvironmentRead` is the value that code which takes a `models.EnvironmentRead`
+needs; `EmailConfiguration` is the ID of the environment's email configuration. A key that holds
+a `/` or a `%` is sent escaped, as one segment of the path, and an empty key, `.` or `..` is an
+error that matches `permit.ErrInvalidConfig`, with no request. An environment that the project
+does not have is a `*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-environments-3"></a>
+### M-environments-3: Environments.List returns a page, and All reads every page
+
+- v1: `api.Environments.List`
+- v2: `permit.EnvironmentsService.List`
+
+`EnvironmentsService.List(ctx, projectKey, opts)` takes a `*permit.ListOptions`, nil for the
+first page with the API's default of 30 environments, in place of the page and the number of
+environments as two ints, and returns a
+`*permit.Page[models.EnvironmentReadWithEmailConfig]`, as [M-lists-1](#M-lists-1) says, whose
+items are the model of [M-environments-2](#M-environments-2). v1 failed for more than 100
+environments on a page before any request; v2 sends the number as given, and the API answers
+above 100 with an error. `EnvironmentsService.All(ctx, projectKey, opts)` returns an
+`iter.Seq2[models.EnvironmentReadWithEmailConfig, error]` that reads every page, 100
+environments at a time:
+
+```go
+for environment, err := range client.Environments.All(ctx, "my-project", nil) {
+	if err != nil {
+		return err
+	}
+	fmt.Println(environment.Key)
+}
+```
+
+<a id="M-environments-4"></a>
+### M-environments-4: Environments.Create takes the project, and sends settings and JWKS
+
+- v1: `api.Environments.Create`
+- v2: `permit.EnvironmentsService.Create`
+
+`EnvironmentsService.Create(ctx, projectKey, environment)` creates the environment in the
+project that it names, and sends the settings and the configuration of the JSON Web Key Sets of
+the `models.EnvironmentCreate` when they are set, which v1 could not send; see
+[M-environments-7](#M-environments-7). A key that another environment of the project has is a
+`*permit.Error` that matches `permit.ErrConflict`. Create is sent again only after a 429, as
+[M-wire-5](#M-wire-5) says, as the API may have created the environment when a request got no
+complete reply.
+
+<a id="M-environments-5"></a>
+### M-environments-5: Environments.Update takes the project, and can send null
+
+- v1: `api.Environments.Update`
+- v2: `permit.EnvironmentsService.Update`
+
+`EnvironmentsService.Update(ctx, projectKey, environmentKey, update)` takes a
+`models.EnvironmentUpdate`, whose request holds only the fields that are set, and the
+environment keeps the others; see [M-environments-8](#M-environments-8). It returns the
+environment as a `*models.EnvironmentRead`. An update is sent again after a 500, 502, 503 or 504
+reply or a failed connection, as sending it twice sets the same fields.
+
+<a id="M-environments-6"></a>
+### M-environments-6: Environments.Delete of an environment that is gone returns nil
+
+- v1: `api.Environments.Delete`
+- v2: `permit.EnvironmentsService.Delete`
+
+`EnvironmentsService.Delete(ctx, projectKey, environmentKey)` returns nil when the API answers
+404, as the environment is gone already, such as when a retry follows a delete that succeeded;
+v1 returned an error with the code `NotFound`. A mistyped key returns nil too, so check the key
+before a delete that must remove something. Any other error status is a `*permit.Error` with the
+status and the body.
+
+<a id="M-environments-7"></a>
+### M-environments-7: models.EnvironmentCreate has plain strings, settings and JWKS
+
+- v1: models.EnvironmentCreate of pkg/models, with pointer fields and a constructor
+- v2: `models.EnvironmentCreate`
+
+Build the environment as a struct literal, such as
+`models.EnvironmentCreate{Key: "staging", Name: "Staging"}`, in place of
+`models.NewEnvironmentCreate`. `Description` and `CustomBranchName` are plain strings, left out of
+the request when empty, in place of v1's `*string`. `Settings`, a `models.Attributes`, and
+`JWKS`, a `*models.JwksConfig`, are new, each left out when nil; an empty `Settings` that is not
+nil sends `{}`. The `Audience` and the `Issuer` of a `models.JwksConfig` are each a
+`models.StringOrList`: `models.OneString("app")` sends a JSON string, and
+`models.StringList("app", "admin")` a JSON array, and one read from a reply keeps the form that
+the reply gave it.
+
+<a id="M-environments-8"></a>
+### M-environments-8: models.EnvironmentUpdate has Optional fields, settings and JWKS
+
+- v1: models.EnvironmentUpdate of pkg/models, with pointer fields and setters
+- v2: `models.EnvironmentUpdate`
+
+Build the change as a struct literal of `models.EnvironmentUpdate`, in place of
+`models.NewEnvironmentUpdate` and its setters. `Name` is a plain string, left out when empty, and
+the environment keeps its name. `Description` and `CustomBranchName`, which were `*string`, are
+`models.Optional[string]`, and `JWKS` and `Settings` are new, a
+`models.Optional[models.JwksConfig]` and a `models.Optional[models.Attributes]`: unset leaves the
+field out, and the environment keeps it; `models.Null[T]()` sends null, which v1 could not send;
+and `models.Some(value)` sends the value, the settings and the configuration as a whole.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -1153,10 +1287,12 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.AttributeType` | `models.AttributeType` |
 | `models.Attributes` | `models.Attributes` |
 | `models.EnvironmentCreate` | `models.EnvironmentCreate` |
+| `models.EnvironmentRead` | `models.EnvironmentRead` |
+| `models.EnvironmentUpdate` | `models.EnvironmentUpdate` |
 | `models.ProjectCreate` | `models.ProjectCreate` |
 | `models.ProjectRead` | `models.ProjectRead` |
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
 
-Not mapped yet: 377 of the 384 types of v1's pkg/models.
+Not mapped yet: 375 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

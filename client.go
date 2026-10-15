@@ -40,6 +40,9 @@ type Client struct {
 	// Projects lists, reads, creates, changes and deletes the projects of the organization.
 	Projects *ProjectsService `json:"-"`
 
+	// Environments lists, reads, creates, changes and deletes the environments of a project.
+	Environments *EnvironmentsService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -126,6 +129,7 @@ func New(opts ...Option) (*Client, error) {
 		registry:   rest.Default(),
 	}
 	c.Projects = &ProjectsService{client: c}
+	c.Environments = &EnvironmentsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

@@ -109,6 +109,7 @@ type wireNoResult struct{}
 // wire cases of the methods of its area. Add the function of a new file here.
 var wireCaseLists = []func() []wireCase{
 	scopeCases, decisionCases, permissionCases, containerCases, localCases, projectCases,
+	environmentCases,
 }
 
 // routeMethods are the request methods a route can have.

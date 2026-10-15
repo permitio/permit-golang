@@ -11,9 +11,12 @@ models: const AttributeTypeObjectArray AttributeType = "object_array"
 models: const AttributeTypeString AttributeType = "string"
 models: const AttributeTypeTime AttributeType = "time"
 models: func Null[T any]() Optional[T]
+models: func OneString(s string) StringOrList
 models: func Some[T any](v T) Optional[T]
+models: func StringList(values ...string) StringOrList
 models: method (*Attributes) UnmarshalJSON(data []byte) error
 models: method (*Optional[T]) UnmarshalJSON(data []byte) error
+models: method (*StringOrList) UnmarshalJSON(data []byte) error
 models: method (*Time) UnmarshalJSON(data []byte) error
 models: method (*Time) UnmarshalText(text []byte) error
 models: method (AttributeType) Known() bool
@@ -21,6 +24,11 @@ models: method (Optional[T]) Get() (T, bool)
 models: method (Optional[T]) IsNull() bool
 models: method (Optional[T]) IsZero() bool
 models: method (Optional[T]) MarshalJSON() ([]byte, error)
+models: method (StringOrList) Equal(other StringOrList) bool
+models: method (StringOrList) IsList() bool
+models: method (StringOrList) IsZero() bool
+models: method (StringOrList) MarshalJSON() ([]byte, error)
+models: method (StringOrList) Values() []string
 models: type APIKeyScopeRead struct
 models: type APIKeyScopeRead struct, EnvironmentID string
 models: type APIKeyScopeRead struct, OrganizationID string
@@ -34,9 +42,32 @@ models: type EnvironmentCreate struct, JWKS *JwksConfig
 models: type EnvironmentCreate struct, Key string
 models: type EnvironmentCreate struct, Name string
 models: type EnvironmentCreate struct, Settings Attributes
+models: type EnvironmentRead struct
+models: type EnvironmentRead struct, AVPPolicyStoreID string
+models: type EnvironmentRead struct, CreatedAt Time
+models: type EnvironmentRead struct, CustomBranchName string
+models: type EnvironmentRead struct, Description string
+models: type EnvironmentRead struct, ID string
+models: type EnvironmentRead struct, JWKS *JwksConfig
+models: type EnvironmentRead struct, JWKSUnpinned []string
+models: type EnvironmentRead struct, Key string
+models: type EnvironmentRead struct, Name string
+models: type EnvironmentRead struct, OrganizationID string
+models: type EnvironmentRead struct, ProjectID string
+models: type EnvironmentRead struct, Settings Attributes
+models: type EnvironmentRead struct, UpdatedAt Time
+models: type EnvironmentReadWithEmailConfig struct
+models: type EnvironmentReadWithEmailConfig struct, EmailConfiguration string
+models: type EnvironmentReadWithEmailConfig struct, embedded EnvironmentRead
+models: type EnvironmentUpdate struct
+models: type EnvironmentUpdate struct, CustomBranchName Optional[string]
+models: type EnvironmentUpdate struct, Description Optional[string]
+models: type EnvironmentUpdate struct, JWKS Optional[JwksConfig]
+models: type EnvironmentUpdate struct, Name string
+models: type EnvironmentUpdate struct, Settings Optional[Attributes]
 models: type JwksConfig struct
-models: type JwksConfig struct, Audience any
-models: type JwksConfig struct, Issuer any
+models: type JwksConfig struct, Audience StringOrList
+models: type JwksConfig struct, Issuer StringOrList
 models: type JwksConfig struct, JWKS *JwksObj
 models: type JwksConfig struct, TTL int
 models: type JwksConfig struct, URL string
@@ -67,6 +98,7 @@ models: type ProjectUpdate struct, ActivePolicyRepoID string
 models: type ProjectUpdate struct, Description Optional[string]
 models: type ProjectUpdate struct, Name string
 models: type ProjectUpdate struct, Settings Attributes
+models: type StringOrList struct
 models: type Time struct
 models: type Time struct, embedded time.Time
 permit: const Version = "2.0.0"
@@ -100,6 +132,12 @@ permit: method (*Client) Scope(ctx context.Context) (Scope, error)
 permit: method (*Client) String() string
 permit: method (*Client) UserPermissions(ctx context.Context, user User, opts ...PermissionsOption) (map[string]ObjectPermissions, error)
 permit: method (*Client) UserTenants(ctx context.Context, user User, opts ...CheckOption) ([]TenantDetails, error)
+permit: method (*EnvironmentsService) All(ctx context.Context, projectKey string, opts *ListOptions) iter.Seq2[models.EnvironmentReadWithEmailConfig, error]
+permit: method (*EnvironmentsService) Create(ctx context.Context, projectKey string, environment models.EnvironmentCreate) (*models.EnvironmentRead, error)
+permit: method (*EnvironmentsService) Delete(ctx context.Context, projectKey string, environmentKey string) error
+permit: method (*EnvironmentsService) Get(ctx context.Context, projectKey string, environmentKey string) (*models.EnvironmentReadWithEmailConfig, error)
+permit: method (*EnvironmentsService) List(ctx context.Context, projectKey string, opts *ListOptions) (*Page[models.EnvironmentReadWithEmailConfig], error)
+permit: method (*EnvironmentsService) Update(ctx context.Context, projectKey string, environmentKey string, update models.EnvironmentUpdate) (*models.EnvironmentRead, error)
 permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
 permit: method (*Error) Unwrap() error
@@ -139,7 +177,9 @@ permit: type CheckURLRequest struct, Tenant string
 permit: type CheckURLRequest struct, URL string
 permit: type CheckURLRequest struct, User User
 permit: type Client struct
+permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Projects *ProjectsService
+permit: type EnvironmentsService struct
 permit: type Error struct
 permit: type Error struct, Body []byte
 permit: type Error struct, Code string

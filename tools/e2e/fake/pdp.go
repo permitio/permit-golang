@@ -389,8 +389,8 @@ func (f *Fake) authorizedUsers(s scope, body []byte, _ url.Values) (int, any) {
 	return http.StatusOK, object{"resource": r.instance(), "tenant": r.Tenant, "users": users}
 }
 
-// defaultPerPage is the number of role assignments on a page of GET /local/role_assignments that
-// the PDP container gives without per_page.
+// defaultPerPage is the number of items on a page of a list that the PDP container gives without
+// per_page, as GET /local/role_assignments does, and that the Permit API gives too.
 const defaultPerPage = 30
 
 // localRoleAssignments answers GET /local/role_assignments: the role assignments of the user that

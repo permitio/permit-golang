@@ -316,6 +316,41 @@ func TestBodies(t *testing.T) {
 	}
 }
 
+// TestPages checks that a GET of a collection of 31 objects lists every object without page and
+// per_page, and with either, the page that they pick, in the order in which the objects were
+// created: pages of 30 when per_page holds no number from 1, the first page when page holds
+// none, and an empty page after the last.
+func TestPages(t *testing.T) {
+	h := newHarness(t)
+	var keys []any
+	for i := range 31 {
+		key := fmt.Sprintf("e%d", i+1)
+		h.createEnv(key)
+		keys = append(keys, key)
+	}
+	for query, want := range map[string][]any{
+		"":                    keys,
+		"?per_page=2":         keys[:2],
+		"?page=2&per_page=2":  keys[2:4],
+		"?page=16&per_page=2": keys[30:],
+		"?page=17&per_page=2": {},
+		"?page=1":             keys[:30],
+		"?page=2":             keys[30:],
+		"?page=3":             {},
+		"?page=0&per_page=x":  keys[:30],
+		"?page=2&per_page=-1": keys[30:],
+	} {
+		keys := []any{}
+		for _, env := range h.list("/v2/projects/proj/envs"+query, projectKey) {
+			o, _ := env.(map[string]any)
+			keys = append(keys, o["key"])
+		}
+		if !slices.Equal(keys, want) {
+			t.Errorf("GET /v2/projects/proj/envs%s listed %v, want %v", query, keys, want)
+		}
+	}
+}
+
 func TestRoutes(t *testing.T) {
 	h := newHarness(t)
 	h.createEnv("dev")

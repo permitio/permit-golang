@@ -18,9 +18,6 @@ api.NewConditionSetsApi condition-sets
 api.Elements elements
 api.Elements.* elements
 api.NewElementsApi elements
-api.Environments environments
-api.Environments.* environments
-api.NewEnvironmentsApi environments
 api.IPermitBaseFactsApi facts
 api.PermitBaseFactsApi facts
 api.PermitBaseFactsApi.* facts

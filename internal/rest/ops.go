@@ -43,6 +43,37 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: ProjectLevel, DeleteSelf: true,
 	},
 
+	// The environments of a project, each of which is sent with a key of the project, or of its
+	// organization. These key levels are not measured yet: the phase api.environments of the
+	// local harness confirms them.
+	// The list is a JSON array of at most 100 environments, and a list and a get return the
+	// environment with its email configuration. A PATCH sets the fields that it names to the
+	// values that it gives, so it does the same when sent twice; a create does not.
+	{
+		ID: "list_environments", Method: http.MethodGet, Route: "/v2/projects/{proj_id}/envs",
+		Idempotent: true, KeyLevel: ProjectLevel, MaxPerPage: 100,
+		ResponseModel: "EnvironmentReadWithEmailConfig",
+	},
+	{
+		ID: "create_environment", Method: http.MethodPost, Route: "/v2/projects/{proj_id}/envs",
+		KeyLevel: ProjectLevel, RequestModel: "EnvironmentCreate", ResponseModel: "EnvironmentRead",
+	},
+	{
+		ID: "get_environment", Method: http.MethodGet,
+		Route: "/v2/projects/{proj_id}/envs/{env_id}", Idempotent: true, KeyLevel: ProjectLevel,
+		ResponseModel: "EnvironmentReadWithEmailConfig",
+	},
+	{
+		ID: "update_environment", Method: http.MethodPatch,
+		Route: "/v2/projects/{proj_id}/envs/{env_id}", Idempotent: true, KeyLevel: ProjectLevel,
+		RequestModel: "EnvironmentUpdate", ResponseModel: "EnvironmentRead",
+	},
+	{
+		ID: "delete_environment", Method: http.MethodDelete,
+		Route: "/v2/projects/{proj_id}/envs/{env_id}", Idempotent: true, KeyLevel: ProjectLevel,
+		DeleteSelf: true,
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

@@ -1160,7 +1160,8 @@ jobs:
   # repository. The job runs in the integration environment, which holds the secret
   # PERMIT_E2E_PROJECT_KEY, a project-level API key of the project that its variable
   # PERMIT_PROJECT names; only the steps that call the Permit API get the key. It sweeps the
-  # project's scratch environments older than 24 hours (sweep-envs.sh), then creates the leg's
+  # project's scratch environments older than 24 hours, those of the legs and those that the
+  # scenarios create, whose keys start with a run prefix (sweep-envs.sh), then creates the leg's
   # own, gosdk-ci-<run>-<attempt>-pinned (e2e-env.sh create), and exports its API key once it is
   # masked. Without the secret, a pull request and a manual run from a ref other than master,
   # such as a release/* branch, pass with a notice, and a push to master, a release and a manual

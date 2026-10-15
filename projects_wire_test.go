@@ -235,9 +235,10 @@ func newProject() models.ProjectCreate {
 		InitialEnvironments: []models.EnvironmentCreate{{
 			Key: "qa", Name: "QA", Description: "Checks by hand", CustomBranchName: "qa-policy",
 			JWKS: &models.JwksConfig{
-				Audience: []string{"app", "admin"}, Issuer: "https://issuer.example.com",
-				JWKS: &models.JwksObj{Keys: []models.Attributes{{"kty": "RSA", "kid": "k1"}}},
-				TTL:  60, URL: "https://issuer.example.com/jwks.json",
+				Audience: models.StringList("app", "admin"),
+				Issuer:   models.OneString("https://issuer.example.com"),
+				JWKS:     &models.JwksObj{Keys: []models.Attributes{{"kty": "RSA", "kid": "k1"}}},
+				TTL:      60, URL: "https://issuer.example.com/jwks.json",
 			},
 			Settings: models.Attributes{"debug": true},
 		}},

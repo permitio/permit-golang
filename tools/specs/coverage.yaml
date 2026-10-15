@@ -125,11 +125,11 @@ control-plane:
   - {op: update_template_by_type, route: "POST /v2/facts/{proj_id}/{env_id}/email_templates/{template_type}", stage: GA, status: excluded, reason: dashboard-only}
   - {op: send_test_email_by_type, route: "POST /v2/facts/{proj_id}/{env_id}/email_templates/{template_type}/send_test_email", stage: GA, status: excluded, reason: dashboard-only}
   # Environments
-  - {op: list_environments, route: "GET /v2/projects/{proj_id}/envs", stage: GA, status: planned}
-  - {op: create_environment, route: "POST /v2/projects/{proj_id}/envs", stage: GA, status: planned}
-  - {op: get_environment, route: "GET /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: planned}
-  - {op: update_environment, route: "PATCH /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: planned}
-  - {op: delete_environment, route: "DELETE /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: planned}
+  - {op: list_environments, route: "GET /v2/projects/{proj_id}/envs", stage: GA, status: covered}
+  - {op: create_environment, route: "POST /v2/projects/{proj_id}/envs", stage: GA, status: covered}
+  - {op: get_environment, route: "GET /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
+  - {op: update_environment, route: "PATCH /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
+  - {op: delete_environment, route: "DELETE /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
   - {op: copy_environment, route: "POST /v2/projects/{proj_id}/envs/{env_id}/copy", stage: GA, status: planned}
   - {op: copy_environment_async, route: "POST /v2/projects/{proj_id}/envs/{env_id}/copy/async", stage: GA, status: planned}
   - {op: get_copy_environment_async_result, route: "GET /v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result", stage: GA, status: planned}

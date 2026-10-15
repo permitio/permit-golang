@@ -98,11 +98,12 @@ models:
       url: {required: true, null_policy: rejects}
       tenant: {required: true, null_policy: rejects}
       context: {required: false, null_policy: rejects}
-  # An environment to create, as a new project holds it in initial_environments, with the
-  # configuration of its JSON Web Key Sets. As in every create, the API reads null for a field
-  # that the schema does not require as the field left out, and rejects null for a required one.
-  # These null policies, like those of the projects below, are not measured yet: the phase
-  # api.projects of the local harness confirms them.
+  # An environment to create, with EnvironmentsService.Create or as a new project holds it in
+  # initial_environments, with the configuration of its JSON Web Key Sets. As in every create,
+  # the API reads null for a field that the schema does not require as the field left out, and
+  # rejects null for a required one. These null policies, like those of the projects below, are
+  # not measured yet: the phases api.environments and api.projects of the local harness confirm
+  # them.
   EnvironmentCreate:
     schema: EnvironmentCreate
     fields:
@@ -112,6 +113,53 @@ models:
       custom_branch_name: {required: false, null_policy: ignores}
       jwks: {required: false, null_policy: ignores}
       settings: {required: false, null_policy: ignores}
+  # An environment, as a create and an update return it, and with its email configuration as a
+  # list and a get return it; the second embeds the first.
+  EnvironmentRead:
+    schema: EnvironmentRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      avp_policy_store_id: {required: false, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      custom_branch_name: {required: false, null_policy: n/a}
+      jwks: {required: false, null_policy: n/a}
+      jwks_unpinned: {required: false, null_policy: n/a}
+      settings: {required: false, null_policy: n/a}
+  EnvironmentReadWithEmailConfig:
+    schema: EnvironmentReadWithEmailConfig
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      avp_policy_store_id: {required: false, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      custom_branch_name: {required: false, null_policy: n/a}
+      jwks: {required: false, null_policy: n/a}
+      jwks_unpinned: {required: false, null_policy: n/a}
+      settings: {required: false, null_policy: n/a}
+      email_configuration: {required: true, null_policy: n/a}
+  # A change to an environment. An update stores null for the description, the branch name, the
+  # configuration of the JSON Web Key Sets and the settings, which clears each, and rejects null
+  # for the name, which only a value changes. These null policies are not measured yet: the phase
+  # api.environments of the local harness confirms them.
+  EnvironmentUpdate:
+    schema: EnvironmentUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      custom_branch_name: {required: false, null_policy: accepts}
+      jwks: {required: false, null_policy: accepts}
+      settings: {required: false, null_policy: accepts}
   JwksConfig:
     schema: JwksConfig
     fields:
@@ -244,4 +292,7 @@ models:
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property
   Optional: a field that the API accepts null for, whose null policy is accepts
+  StringOrList: >-
+    one string or a list of strings, in the form that it was made or decoded in, the schema of
+    anyOf a string and an array of strings
   Time: a timestamp, the schema of a string of format date-time

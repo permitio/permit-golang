@@ -3,6 +3,7 @@ package fake
 import (
 	"maps"
 	"net/http"
+	"net/url"
 	"reflect"
 	"slices"
 	"strings"
@@ -15,9 +16,11 @@ const (
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
-// segments, with IDs in place of keys, and whose body holds fields, nil without a body, sent with
-// an API key of the scope key. The caller holds f.mu.
-func (f *Fake) answer(rt route, segments []string, fields object, key scope) (int, any) {
+// segments, with IDs in place of keys, whose query is query, and whose body holds fields, nil
+// without a body, sent with an API key of the scope key. The caller holds f.mu.
+func (f *Fake) answer(rt route, segments []string, fields object, key scope,
+	query url.Values,
+) (int, any) {
 	switch rt.Op {
 	case opScope:
 		body := object{"organization_id": f.org, "project_id": key.project}
@@ -29,7 +32,7 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope) (in
 		return http.StatusOK, f.issue(scope{project: segments[3], environment: segments[4]})
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
-		return f.collection(rt, segments, fields)
+		return f.collection(rt, segments, fields, query)
 	}
 	return f.item(rt, segments, fields)
 }
@@ -55,13 +58,14 @@ func (f *Fake) issue(s scope) object {
 }
 
 // collection answers a request to a route whose path ends with a literal segment: a POST
-// creates an object, a GET lists the collection and a DELETE with a body removes the objects that
-// hold each of its fields. The caller holds f.mu.
-func (f *Fake) collection(rt route, segments []string, fields object) (int, any) {
+// creates an object, a GET lists the collection, as listed says, and a DELETE with a body removes
+// the objects that hold each of its fields. The caller holds f.mu.
+func (f *Fake) collection(rt route, segments []string, fields object, query url.Values,
+) (int, any) {
 	path := collectionOf(segments)
 	switch {
 	case rt.Method == http.MethodGet:
-		return http.StatusOK, append([]object{}, f.store[path]...)
+		return http.StatusOK, listed(f.store[path], query)
 	case rt.Method == http.MethodPost && fields != nil:
 		return f.create(rt, segments, fields)
 	case rt.Method == http.MethodDelete && fields != nil:
@@ -75,6 +79,18 @@ func (f *Fake) collection(rt route, segments []string, fields object) (int, any)
 		return http.StatusNoContent, nil
 	}
 	return f.unsupported(rt)
+}
+
+// listed returns the objects of a collection that a GET with query lists, in the order in which
+// they were created: every object when query holds neither page nor per_page, and else the page
+// of page and per_page, the first page of 30 by default, as the Permit API pages a list.
+func listed(objects []object, query url.Values) []object {
+	if !query.Has("page") && !query.Has("per_page") {
+		return append([]object{}, objects...)
+	}
+	page, perPage := positive(query, "page", 1), positive(query, "per_page", defaultPerPage)
+	start := min((page-1)*perPage, len(objects))
+	return append([]object{}, objects[start:min(start+perPage, len(objects))]...)
 }
 
 // holds reports whether o holds each field of fields with the same value.

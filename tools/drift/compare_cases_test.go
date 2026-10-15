@@ -513,6 +513,57 @@ func TestMatchType(t *testing.T) {
 			"any for a union", reflect.TypeFor[any](),
 			`{"anyOf": [{"type": "string"}, {"type": "integer"}]}`, nil,
 		},
+		{
+			"a StringOrList for a string or a list", reflect.TypeFor[models.StringOrList](),
+			`{"anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]}`,
+			nil,
+		},
+		{
+			"a StringOrList for a list or null", reflect.TypeFor[models.StringOrList](),
+			`{"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "string"}, ` +
+				`{"type": "null"}]}`, nil,
+		},
+		{
+			"a StringOrList for a string", reflect.TypeFor[models.StringOrList](),
+			`{"type": "string"}`,
+			[]string{"its type models.StringOrList holds a string or an array of strings, and " +
+				"the schema at #/p does not allow both: give it a type of the kind that it " +
+				"allows"},
+		},
+		{
+			"a StringOrList for a list of numbers", reflect.TypeFor[models.StringOrList](),
+			`{"anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "integer"}}]}`,
+			[]string{"its type string cannot hold an integer, which the schema at #/p/items " +
+				"allows"},
+		},
+		{
+			"a StringOrList for a list of anything", reflect.TypeFor[models.StringOrList](),
+			`{"anyOf": [{"type": "string"}, {"type": "array"}]}`,
+			[]string{"its type string cannot hold any JSON value, which the schema at #/p/items " +
+				"allows"},
+		},
+		{
+			"a StringOrList for a timestamp, an enum or an object",
+			reflect.TypeFor[models.StringOrList](),
+			`{"anyOf": [{"type": "string", "format": "date-time"}, {"enum": ["a"], ` +
+				`"type": "string"}, {"type": "object"}, {"type": "array", "items": ` +
+				`{"type": "string"}}]}`,
+			[]string{
+				"its type models.StringOrList cannot hold a string of format date-time, which " +
+					"the schema at #/p allows",
+				"its type models.StringOrList cannot hold an enum of strings, which the schema " +
+					"at #/p allows",
+				"its type models.StringOrList cannot hold an object, which the schema at #/p " +
+					"allows",
+			},
+		},
+		{
+			"a StringOrList for an enum schema or a list", reflect.TypeFor[models.StringOrList](),
+			`{"anyOf": [{"$ref": "#/components/schemas/Color"}, {"type": "array", "items": ` +
+				`{"type": "string"}}]}`,
+			[]string{"its type models.StringOrList cannot hold the schema Color, which the " +
+				"schema at #/p allows"},
+		},
 		{"json.RawMessage for any value", reflect.TypeFor[json.RawMessage](), `{}`, nil},
 		{
 			"a mapped model", reflect.TypeFor[Scope](), `{"$ref": "#/components/schemas/Scope"}`,

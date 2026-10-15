@@ -180,6 +180,35 @@ change from v1 and what to use instead.
   already. `Create` is sent again after a 429 only; the other calls are sent again after a 500,
   502, 503 or 504 reply or a failed connection too.
 
+### Environments
+
+- The `Environments` field of the client, a `*permit.EnvironmentsService`, lists, reads, creates,
+  changes and deletes the environments of a project, whose key or ID each method takes after the
+  context, in place of the project of v1's context: `List` returns a page as a
+  `*permit.Page[models.EnvironmentReadWithEmailConfig]` and `All` reads every page, 100
+  environments at a time; `Get` reads one environment by its key or its ID, in place of v1's
+  `Get`, `GetById` and `GetByKey`, as a `*models.EnvironmentReadWithEmailConfig`; `Create` takes a
+  `models.EnvironmentCreate`, `Update` a `models.EnvironmentUpdate`, and both return the
+  environment as a `*models.EnvironmentRead`; `Delete` deletes an environment with its data.
+- The calls need no scope: they send no request for the scope of the API key, and read none of
+  `WithScope`. Each is sent with a project-level API key of the project, or an
+  organization-level key.
+- `models.EnvironmentRead` has the fields of the reply that v1 dropped: `Settings`, `JWKS`,
+  `JWKSUnpinned` and `AVPPolicyStoreID`; `models.EnvironmentReadWithEmailConfig` embeds it and
+  adds `EmailConfiguration`, the ID of the environment's email configuration.
+- A create and an update send the settings of an environment and the configuration of its JSON
+  Web Key Sets, which v1 could not send. In `models.EnvironmentUpdate`, `Description`,
+  `CustomBranchName`, `JWKS` and `Settings` are `models.Optional` fields: unset leaves the field
+  out, `models.Null` sends null and `models.Some` sends the value; `Name` is left out when empty.
+- `models.JwksConfig.Audience` and `Issuer` are a `models.StringOrList` (see Models). A reply
+  whose audience or issuer is neither a string nor a list of strings is an error that names the
+  model.
+- The keys of a project and of an environment are each sent as one segment of the path, escaped;
+  an empty key, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request is sent.
+  `Delete` returns nil when the API answers 404, as the environment is gone already. `Create` is
+  sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply
+  or a failed connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the
@@ -283,10 +312,14 @@ change from v1 and what to use instead.
   knows, such as `models.AttributeTypeString`, and a `Known` method. A value that the API adds
   later decodes as it is, and `Known` reports false for it.
 - `models.Attributes` is a `map[string]any` that keeps each number as a `json.Number`, also in
-  nested objects and arrays and under a plain `json.Unmarshal`. In an update model, nil leaves
-  the field out and an empty map sends `{}`.
+  nested objects and arrays and under a plain `json.Unmarshal`. A plain `Attributes` field of an
+  update model leaves the field out when it is nil, and sends `{}` for an empty map;
+  `models.EnvironmentUpdate.Settings` is a `models.Optional[models.Attributes]` instead.
 - `models.Time` embeds `time.Time` and reads an RFC 3339 timestamp with or without a zone; one
   without a zone is in UTC.
+- `models.StringOrList` is the type of a property that is a string or a list of strings:
+  `models.OneString` sends a JSON string and `models.StringList` a JSON array, a value read from
+  a reply keeps the form that the reply gave it, and `Values` returns its strings in either form.
 - `models.APIKeyScopeRead` is the scope of an API key: the IDs of its organization, project and
   environment.
 

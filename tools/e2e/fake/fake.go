@@ -7,10 +7,15 @@
 // a POST to a collection creates an object with an ID, a GET, a PATCH, a PUT or a DELETE of an
 // item reads, changes or deletes it, a GET of a collection lists it, and a DELETE of a collection
 // with a body removes the objects that hold each field of the body. A parameter matches an
-// object by its ID or its key. Deleting an environment revokes its API keys. Each request body
-// goes through the check that the fake is given, such as the structural walker of tools/drift,
-// and a body that the check rejects gets 422. The fake also serves the scope of an API key and
-// the API key of an environment, which it makes up.
+// object by its ID or its identifier: its key, or for a resource instance, an object with a
+// resource, <resource>:<key>, as the Permit API names it. A parameter that is not the last
+// segment of its route and follows resources, roles, tenants or users, such as {resource_id} in
+// .../resources/{resource_id}/roles, must match an object, or the request gets 404; another
+// parameter, such as {group_instance_key}, stays as it is when it matches none. Deleting an
+// environment revokes its API keys. Each request body goes through the check that the fake is
+// given, such as the structural walker of tools/drift, and a body that the check rejects gets
+// 422. The fake also serves the scope of an API key and the API key of an environment, which it
+// makes up.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An
@@ -97,6 +102,11 @@ type object = map[string]any
 
 // projects is the collection of the fake's project.
 const projects = "/v2/projects"
+
+// keyed are the collections, by the last segment of their path, whose objects the Permit API
+// names by key and whose routes go on after the object's parameter: a parameter that follows one
+// of them and is not the last segment of its route must match an object.
+var keyed = map[string]bool{"resources": true, "roles": true, "tenants": true, "users": true}
 
 // collectionOf returns the key of the collection whose path has segments, unescaped: the
 // path with each segment escaped, so that a segment that holds a slash stays one segment.
@@ -252,9 +262,10 @@ func isParam(s string) bool {
 }
 
 // resolve returns the segments of the path of the request to rt whose segments are values, with
-// each parameter that names an object by its key replaced by the object's ID, or the status and
-// the message of an error: 404 when the route's project or environment does not exist, and 403
-// when key's scope does not hold them.
+// each parameter that names an object by its identifier replaced by the object's ID, or the
+// status and the message of an error: 404 when the route's project or environment does not
+// exist, or the object of a parameter that is not the route's last segment and follows a keyed
+// collection, and 403 when key's scope does not hold the project or the environment.
 func (f *Fake) resolve(rt route, values []string, key scope) ([]string, int, string) {
 	path := make([]string, len(values))
 	project, environment := "", ""
@@ -279,6 +290,8 @@ func (f *Fake) resolve(rt route, values []string, key scope) ([]string, int, str
 			return nil, http.StatusNotFound, "no project " + values[i]
 		case s == "{env_id}" && !found:
 			return nil, http.StatusNotFound, "no environment " + values[i]
+		case !found && i < len(rt.segments)-1 && keyed[rt.segments[i-1]]:
+			return nil, http.StatusNotFound, "no object " + values[i]
 		case s == "{proj_id}":
 			project = path[i]
 		case s == "{env_id}":
@@ -294,14 +307,28 @@ func (f *Fake) resolve(rt route, values []string, key scope) ([]string, int, str
 	return path, 0, ""
 }
 
-// find returns the object of objects whose ID or key is ident.
+// find returns the object of objects whose ID or identifier is ident.
 func find(objects []object, ident string) (object, bool) {
 	for _, o := range objects {
-		if o["id"] == ident || o["key"] == ident {
+		if n, ok := identOf(o); o["id"] == ident || (ok && n == ident) {
 			return o, true
 		}
 	}
 	return nil, false
+}
+
+// identOf returns the identifier of o, by which a parameter names it as well as by its ID, and
+// which is not the API's name field: its key, or for a resource instance, an object with a
+// resource, <resource>:<key>, as the Permit API names an instance; false when o has no key.
+func identOf(o object) (string, bool) {
+	key, ok := o["key"].(string)
+	if !ok {
+		return "", false
+	}
+	if resource, ok := o["resource"].(string); ok {
+		return resource + ":" + key, true
+	}
+	return key, true
 }
 
 // checkBody returns the fields of body, a JSON object that the check of rt's operation accepts,

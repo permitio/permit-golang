@@ -35,27 +35,25 @@ func (l *Ledger) Register(name string, remove, verify func(context.Context) erro
 	l.entries = append(l.entries, &entry{name: name, remove: remove, verify: verify})
 }
 
-// Teardown removes the objects of l, the last registered first, then checks in the same order
-// that each removed object is gone, and returns the errors of both, joined. An object whose
-// removal failed is not checked, and an object is torn down at most once, however often Teardown
-// runs.
+// Teardown tears down the objects of l, the last registered first: it removes each object and
+// checks that it is gone before it moves to the next one, so that an object is checked while the
+// objects registered before it, such as the environment that holds it, still exist. It returns
+// the errors of the removals and the checks, joined. An object whose removal failed is not
+// checked, and an object is torn down at most once, however often Teardown runs.
 func (l *Ledger) Teardown(ctx context.Context) error {
 	l.mu.Lock()
 	entries := l.entries
 	l.mu.Unlock()
 	var errs []error
 	for _, e := range slices.Backward(entries) {
-		if l.done(e, false) {
-			continue
+		if !l.done(e, false) {
+			if err := e.remove(ctx); err != nil {
+				errs = append(errs, fmt.Errorf("removing %s: %w", e.name, err))
+				continue
+			}
+			l.mark(e, false)
 		}
-		if err := e.remove(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("removing %s: %w", e.name, err))
-			continue
-		}
-		l.mark(e, false)
-	}
-	for _, e := range slices.Backward(entries) {
-		if !l.done(e, false) || l.done(e, true) {
+		if l.done(e, true) {
 			continue
 		}
 		if err := e.verify(ctx); err != nil {

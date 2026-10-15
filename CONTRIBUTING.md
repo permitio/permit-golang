@@ -1365,9 +1365,14 @@ each object in a ledger before the request that creates it, treats a 404 to a de
 success and checks that the object is gone, polls with a bound on the elapsed time rather than
 sleeping, and retries a 429 with the reply's `Retry-After` or a backoff with jitter, apart from
 the SDK's own retries. Each call of the SDK carries the request recorder of `internal/testhook`.
-A seed builder in `tools/e2e/framework/seed` *(added in a later commit on this branch)* creates
-the test data that a scenario needs, such as resources, roles, tenants and users, in plain
-`net/http` too.
+The seed builder in `tools/e2e/framework/seed` creates the test data that a scenario needs in
+plain `net/http` too: resources, roles, resource roles, relations, tenants, users, resource
+instances, role assignments and relationship tuples, each registered in a ledger before its
+request. A ledger tears its objects down the last registered first, and checks that each is gone
+before it removes the next, so the seed may share the ledger of the scratch environment, whose
+deletion makes every object in it read as gone; a scenario may also give the builder a ledger of
+its own. `TestSeedBuilder` runs every call of the builder offline against the fake in every run,
+live runs included, and the fake checks each body against the spec.
 
 The dry run runs every scenario offline against the fake of the Permit API in
 `tools/e2e/fake`, which keeps the objects of each collection of the control plane's spec in

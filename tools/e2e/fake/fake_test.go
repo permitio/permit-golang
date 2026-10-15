@@ -32,6 +32,27 @@ var routes = []Route{
 	{"GET", "/v2/facts/{proj_id}/{env_id}/users/bulk", "bulk_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "post_user"},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users", "delete_users"},
+	{"POST", "/v2/schema/{proj_id}/{env_id}/resources", "create_resource"},
+	{"POST", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", "create_resource_role"},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", "list_resource_roles"},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}",
+		"get_resource_role",
+	},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/resource_instances", "create_resource_instance"},
+	{
+		"GET", "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+		"get_resource_instance",
+	},
+	{
+		"DELETE", "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+		"delete_resource_instance",
+	},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors", "get_role_ancestors"},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "list_tenant_users"},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "assign_role_to_user"},
+	{"POST", "/v2/schema/{proj_id}/{env_id}/groups", "create_group"},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", "list_group_roles"},
 	{"POST", "/v2/same/{first}", "same_first"},
 	{"POST", "/v2/same/{second}", "same_second"},
 }
@@ -331,6 +352,76 @@ func TestRoutes(t *testing.T) {
 			t.Errorf("a route that the fake does not serve, with the key %q, answered %d and "+
 				"reported %q", key, status, errs)
 		}
+	}
+}
+
+func TestParents(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	roles := "/v2/schema/proj/dev/resources/document/roles"
+	body := h.expect(404, "POST", roles, `{"key": "viewer"}`, projectKey)
+	if body["message"] != "no object document" {
+		t.Errorf("a create under a resource that does not exist answered %v", body)
+	}
+	h.expect(404, "GET", roles, "", projectKey)
+	h.expect(404, "GET", roles+"/viewer", "", projectKey)
+	resource := h.expect(200, "POST", "/v2/schema/proj/dev/resources", `{"key": "document"}`,
+		projectKey)
+	h.expect(200, "POST", roles, `{"key": "viewer"}`, projectKey)
+	id, _ := resource["id"].(string)
+	if got := h.expect(200, "GET", "/v2/schema/proj/dev/resources/"+id+"/roles/viewer", "",
+		projectKey); got["key"] != "viewer" {
+		t.Errorf("the role by its resource's ID is %v", got)
+	}
+	if list := h.list(roles, projectKey); len(list) != 1 {
+		t.Errorf("the roles of the resource are %v", list)
+	}
+	if body := h.expect(404, "GET", roles+"/editor", "", projectKey); body["message"] !=
+		"no object editor" {
+		t.Errorf("a role that does not exist of a resource that does answered %v", body)
+	}
+	for _, tc := range []struct{ method, path, body, parent string }{
+		{"GET", "/v2/schema/proj/dev/roles/admin/ancestors", "", "admin"},
+		{"GET", "/v2/facts/proj/dev/tenants/t1/users", "", "t1"},
+		{"POST", "/v2/facts/proj/dev/users/u1/roles", `{"role": "admin"}`, "u1"},
+	} {
+		if body := h.expect(404, tc.method, tc.path, tc.body, projectKey); body["message"] !=
+			"no object "+tc.parent {
+			t.Errorf("%s %s under an object that does not exist answered %v", tc.method, tc.path,
+				body)
+		}
+	}
+	h.expect(200, "POST", "/v2/schema/proj/dev/groups",
+		`{"group_instance_key": "g1", "group_tenant": "t1"}`, projectKey)
+	if list := h.list("/v2/schema/proj/dev/groups/g1/roles", projectKey); len(list) != 0 {
+		t.Errorf("the roles of a group, which the fake does not name by key, are %v", list)
+	}
+}
+
+func TestResourceInstances(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	instances := "/v2/facts/proj/dev/resource_instances"
+	doc := h.expect(200, "POST", instances, `{"resource": "document", "key": "a", "tenant": "t"}`,
+		projectKey)
+	h.expect(200, "POST", instances, `{"resource": "folder", "key": "a", "tenant": "t"}`,
+		projectKey)
+	if body := h.expect(409, "POST", instances, `{"resource": "document", "key": "a"}`,
+		projectKey); body["message"] != "an object has the key document:a" {
+		t.Errorf("a second instance document:a answered %v", body)
+	}
+	id, _ := doc["id"].(string)
+	for _, ident := range []string{"document:a", id} {
+		if got := h.expect(200, "GET", instances+"/"+ident, "", projectKey); got["id"] != id {
+			t.Errorf("the instance %s is %v, want document:a", ident, got)
+		}
+	}
+	h.expect(404, "GET", instances+"/a", "", projectKey)
+	h.expect(204, "DELETE", instances+"/document:a", "", projectKey)
+	h.expect(404, "GET", instances+"/document:a", "", projectKey)
+	if got := h.expect(200, "GET", instances+"/folder:a", "", projectKey); got["resource"] !=
+		"folder" {
+		t.Errorf("the instance folder:a is %v after the deletion of document:a", got)
 	}
 }
 

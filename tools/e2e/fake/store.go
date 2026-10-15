@@ -89,12 +89,12 @@ func holds(o, fields object) bool {
 
 // create adds an object with fields to the collection of a POST to rt, whose path has segments,
 // with a new ID and the IDs of the organization, the project and the environment of the path. An
-// object of the collection with the key of fields is a conflict. The caller holds f.mu.
+// object of the collection with the identifier of fields is a conflict. The caller holds f.mu.
 func (f *Fake) create(rt route, segments []string, fields object) (int, any) {
 	path := collectionOf(segments)
-	if key, ok := fields["key"].(string); ok {
-		if _, taken := find(f.store[path], key); taken {
-			return http.StatusConflict, errorBody("CONFLICT", "an object has the key "+key)
+	if n, ok := identOf(fields); ok {
+		if _, taken := find(f.store[path], n); taken {
+			return http.StatusConflict, errorBody("CONFLICT", "an object has the key "+n)
 		}
 	}
 	o := maps.Clone(fields)

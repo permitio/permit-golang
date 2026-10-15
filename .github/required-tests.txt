@@ -936,11 +936,18 @@ github.com/permitio/permit-golang/v2/tools/e2e/framework TestRetryAfter
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestAPICall
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestRemover
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestAbsence
+github.com/permitio/permit-golang/v2/tools/e2e/framework TestRemoverWithBody
+github.com/permitio/permit-golang/v2/tools/e2e/framework TestUnlisted
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestLedger
+github.com/permitio/permit-golang/v2/tools/e2e/framework TestLedgerChecksBeforeTheNextRemoval
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestReadKeys
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestCreateEnvironment
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestCreateEnvironmentRegistersFirst
 github.com/permitio/permit-golang/v2/tools/e2e/framework TestCreateEnvironmentChecksReplies
+github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestBuilder
+github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestBuilderChecksUnappliedRemovals
+github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestBuilderRegistersFailedWrites
+github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestLists
 github.com/permitio/permit-golang/v2/tools/e2e/framework/surface TestCheckPass
 github.com/permitio/permit-golang/v2/tools/e2e/framework/surface TestCheckFail
 github.com/permitio/permit-golang/v2/tools/e2e/framework/surface TestCheckDidNotRun
@@ -952,12 +959,15 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestEnvironmentLifecycle
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestAccess
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBodies
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoutes
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestParents
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceInstances
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
+github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder
 github.com/permitio/permit-golang/v2/tools/e2e TestVerdict
 
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestGitInTurnsOffMaintenance

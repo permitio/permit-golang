@@ -94,7 +94,8 @@ type Request struct {
 	// Method is the HTTP method, such as POST.
 	Method string
 
-	// Path is the path of the request with its parameters escaped, such as /v2/projects/p/envs.
+	// Path is the path of the request with its parameters escaped, such as /v2/projects/p/envs,
+	// and its query, if any, encoded, such as /v2/facts/p/e/role_assignments?user=u.
 	Path string
 
 	// Body is sent as JSON, or nothing is sent when it is nil.
@@ -222,8 +223,14 @@ func statusError(r Request, reply Response) error {
 // Remover returns a teardown that sends DELETE to path and succeeds on a reply with status 200,
 // 204 or 404: an object that is gone already is removed.
 func (a *API) Remover(path string) func(context.Context) error {
+	return a.RemoverWithBody(path, nil)
+}
+
+// RemoverWithBody returns a teardown as Remover does that sends body, unless it is nil, with the
+// DELETE, for an object that the body of a deletion names, such as a role assignment.
+func (a *API) RemoverWithBody(path string, body any) func(context.Context) error {
 	return func(ctx context.Context) error {
-		r := Request{Method: http.MethodDelete, Path: path}
+		r := Request{Method: http.MethodDelete, Path: path, Body: body}
 		reply, err := a.Do(ctx, r)
 		if err != nil {
 			return err
@@ -240,6 +247,16 @@ func (a *API) Remover(path string) func(context.Context) error {
 // timeout, and fails on a status other than 200 and 404, as a check that an object is gone that
 // does not trust the reply to its deletion.
 func (a *API) Absence(path string, timeout time.Duration) func(context.Context) error {
+	return a.Unlisted(path, timeout, func([]byte) (bool, error) { return true, nil })
+}
+
+// Unlisted returns a check that sends GET to path, a list such as
+// /v2/facts/p/e/role_assignments?user=u, until listed reports that the body of the reply does
+// not list the object or the reply has status 404, for at most timeout, and fails on another
+// status or an error of listed: the check of Absence for an object without a route of its own.
+func (a *API) Unlisted(path string, timeout time.Duration,
+	listed func(body []byte) (bool, error),
+) func(context.Context) error {
 	return func(ctx context.Context) error {
 		r := Request{Method: http.MethodGet, Path: path}
 		return Poll(ctx, timeout, a.interval, func(ctx context.Context) (bool, error) {
@@ -249,10 +266,14 @@ func (a *API) Absence(path string, timeout time.Duration) func(context.Context) 
 				return false, err
 			case reply.Status == http.StatusNotFound:
 				return true, nil
-			case reply.Status == http.StatusOK:
-				return false, nil
+			case reply.Status != http.StatusOK:
+				return false, statusError(r, reply)
 			}
-			return false, statusError(r, reply)
+			found, err := listed(reply.Body)
+			if err != nil {
+				return false, fmt.Errorf("framework: %s: %w", r, err)
+			}
+			return !found, nil
 		})
 	}
 }

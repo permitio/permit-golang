@@ -425,6 +425,74 @@ func TestAbsence(t *testing.T) {
 	}
 }
 
+func TestRemoverWithBody(t *testing.T) {
+	api, s, _ := newScripted(t, answer(204, ""), answer(404, ""), answer(422, "bad body"),
+		answer(200, ""))
+	remove := api.RemoverWithBody("/v2/x", map[string]string{"user": "u1"})
+	for range 2 {
+		if err := remove(t.Context()); err != nil {
+			t.Errorf("a removal answered 204 or 404 returned %v", err)
+		}
+	}
+	if err := remove(t.Context()); err == nil || !strings.Contains(err.Error(),
+		"DELETE /v2/x answered 422: bad body") {
+		t.Errorf("a removal answered 422 returned %v", err)
+	}
+	if err := api.Remover("/v2/y")(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	want := []exchange{
+		{
+			"DELETE", "/v2/x", "Bearer permit_key_FAKEapi", "application/json", "application/json",
+			`{"user":"u1"}`,
+		},
+		{"DELETE", "/v2/y", "Bearer permit_key_FAKEapi", "application/json", "", ""},
+	}
+	if got := []exchange{s.received[0], s.received[3]}; !slices.Equal(got, want) {
+		t.Errorf("the removals sent %+v, want %+v", got, want)
+	}
+}
+
+func TestUnlisted(t *testing.T) {
+	listed := func(body []byte) (bool, error) {
+		if string(body) == "not a list" {
+			return false, errors.New("decoding the list: no")
+		}
+		return strings.Contains(string(body), `"u1"`), nil
+	}
+	api, s, _ := newScripted(t, answer(200, `["u1", "u2"]`), answer(200, `["u2"]`),
+		answer(404, ""))
+	check := api.Unlisted("/v2/x?user=u1", time.Minute, listed)
+	if err := check(t.Context()); err != nil {
+		t.Errorf("an object that leaves the list after one try: %v", err)
+	}
+	if err := check(t.Context()); err != nil {
+		t.Errorf("a list that is gone: %v", err)
+	}
+	if len(s.received) != 3 || s.received[1].method != "GET" || s.received[1].path != "/v2/x" {
+		t.Errorf("the check sent %+v, want three GETs of /v2/x", s.received)
+	}
+	for _, tc := range []struct {
+		reply func(http.ResponseWriter)
+		want  string
+	}{
+		{answer(500, "down"), "GET /v2/x?user=u1 answered 500: down"},
+		{answer(204, ""), "GET /v2/x?user=u1 answered 204"},
+		{answer(200, "not a list"), "GET /v2/x?user=u1: decoding the list: no"},
+	} {
+		failing, _, _ := newScripted(t, tc.reply)
+		err := failing.Unlisted("/v2/x?user=u1", time.Minute, listed)(t.Context())
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("the check returned %v, want an error with %q", err, tc.want)
+		}
+	}
+	api, _, _ = newScripted(t, answer(200, `["u1"]`))
+	if err := api.Unlisted("/v2/x", 0, listed)(t.Context()); err == nil ||
+		!strings.Contains(err.Error(), "not done after 0s (1 tries)") {
+		t.Errorf("a check of an object that stays listed returned %v", err)
+	}
+}
+
 func TestLedger(t *testing.T) {
 	var order []string
 	failing := map[string]error{}
@@ -448,7 +516,7 @@ func TestLedger(t *testing.T) {
 		!strings.Contains(err.Error(), "checking that c is gone: boom") {
 		t.Errorf("Teardown returned %v", err)
 	}
-	wantOrder := []string{"remove c", "remove b", "remove a", "verify c", "verify a"}
+	wantOrder := []string{"remove c", "verify c", "remove b", "remove a", "verify a"}
 	if !slices.Equal(order, wantOrder) {
 		t.Errorf("Teardown ran %v, want %v", order, wantOrder)
 	}
@@ -467,7 +535,7 @@ func TestLedger(t *testing.T) {
 	if err := l.Teardown(t.Context()); err != nil {
 		t.Errorf("a second Teardown, with what failed fixed: %v", err)
 	}
-	wantOrder = []string{"remove b2", "remove b", "verify b2", "verify c", "verify b"}
+	wantOrder = []string{"remove b2", "verify b2", "verify c", "remove b", "verify b"}
 	if !slices.Equal(order, wantOrder) {
 		t.Errorf("a second Teardown ran %v, want %v", order, wantOrder)
 	}
@@ -476,6 +544,46 @@ func TestLedger(t *testing.T) {
 	}
 	if got := l.Counts().String(); got != "registered=4 completed=4 verified=4" {
 		t.Errorf("Counts().String() = %q", got)
+	}
+}
+
+// TestLedgerChecksBeforeTheNextRemoval tears down one ledger that holds an environment and a user
+// in it, whose removal does nothing. Once the environment is deleted, the user reads as gone, as
+// every object of a deleted environment does, so the user must be checked before that.
+func TestLedgerChecksBeforeTheNextRemoval(t *testing.T) {
+	var order []string
+	environment := true
+	var l Ledger
+	l.Register("environment e", func(context.Context) error {
+		order = append(order, "remove e")
+		environment = false
+		return nil
+	}, func(context.Context) error {
+		order = append(order, "verify e")
+		return nil
+	})
+	l.Register("user u", func(context.Context) error {
+		order = append(order, "remove u")
+		return nil
+	}, func(context.Context) error {
+		order = append(order, "verify u")
+		if environment {
+			return errors.New("still there")
+		}
+		return nil
+	})
+	err := l.Teardown(t.Context())
+	if want := "checking that user u is gone: still there"; err == nil || err.Error() != want {
+		t.Errorf("Teardown returned %v, want %q", err, want)
+	}
+	wantOrder := []string{"remove u", "verify u", "remove e", "verify e"}
+	if !slices.Equal(order, wantOrder) {
+		t.Errorf("Teardown ran %v, want %v", order, wantOrder)
+	}
+	want := "the ledger does not reconcile, registered=2 completed=2 verified=1: " +
+		"user u (removed, not checked to be gone)"
+	if err := l.Reconcile(); err == nil || err.Error() != want {
+		t.Errorf("Reconcile = %v, want %q", err, want)
 	}
 }
 

@@ -8,4 +8,5 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
+github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder
 github.com/permitio/permit-golang/v2/tools/e2e TestVerdict

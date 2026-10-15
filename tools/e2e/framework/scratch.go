@@ -43,6 +43,14 @@ func (e Environment) GoString() string {
 	return e.String()
 }
 
+// ExistingEnvironment returns the scratch environment key, with the ID id in the project whose ID
+// is projectID, and the API key apiKey, that a run did not create itself: in a live run,
+// .github/scripts/e2e-env.sh creates it before the run, so that the leg's container PDP can start
+// with its API key, and deletes it after the run.
+func ExistingEnvironment(projectID, id, key, apiKey string) Environment {
+	return Environment{ProjectID: projectID, ID: id, Key: key, apiKey: apiKey}
+}
+
 // CreateEnvironment creates the environment key in project, the key or the ID of a project, with
 // api, whose API key may create environments in it, and returns it with its API key. It registers
 // the environment's deletion and the check that it is gone in l before it sends the create.

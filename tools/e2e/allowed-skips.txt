@@ -1,0 +1,12 @@
+# Tests of tools/e2e that may skip in a live run of the end-to-end jobs of ci.yml, which check
+# their output with checkgotest -allow-skips (tools/cmd/checkgotest). Any other skip fails the
+# run, and so does an entry that has expired or whose test did not skip. The offline test job has
+# .github/allowed-skips.txt of its own: an advisory scenario (advisory.txt) needs an entry in
+# both, as it skips in the dry run too, and both name the ticket of its line of advisory.txt.
+#
+# One test per line, with five or more fields separated by spaces:
+#
+#   <import path> <test name> <ticket> <expiry> <un-skip condition>
+#
+# as .github/allowed-skips.txt describes them. Blank lines and lines that start with # are
+# ignored.

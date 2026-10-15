@@ -1,10 +1,11 @@
 # Public methods whose end-to-end scenario may skip, each with the ticket that allows the skip
 # and why. The scenario skips in the dry run too, and an entry of .github/allowed-skips.txt for
-# its test names the same ticket. TestE2ESurfaceComplete (completeness_test.go) checks that every
-# method of testdata/operation-map.json is in exactly one end-to-end state, and that each ticket
-# here is the ticket of an entry of allowed-skips.txt for a test of tools/e2e.
-# tools/cmd/apicoverage -advisory can read this file to mark the method's operations advisory;
-# the job that passes it is added in a later commit on this branch.
+# its test names the same ticket, as does one of tools/e2e/allowed-skips.txt for the live run.
+# TestE2ESurfaceComplete (completeness_test.go) checks that every method of
+# testdata/operation-map.json is in exactly one end-to-end state, and that each ticket here is
+# the ticket of an entry of .github/allowed-skips.txt for a test of tools/e2e. The api-coverage
+# job of ci.yml passes this file to tools/cmd/apicoverage -advisory, which marks the method's
+# operations advisory.
 #
 # One method per line: <Type>.<Method> <ticket> <reason>, such as
 # Client.Check TICKET-123 the PDP image that serves it is not released yet. Blank lines and lines

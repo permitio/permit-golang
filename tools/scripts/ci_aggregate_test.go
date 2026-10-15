@@ -265,6 +265,11 @@ func TestCIAggregate(t *testing.T) {
 			wantStdout: []string{"crossbuild skipped, although mode pull_request selects it"},
 		},
 		{
+			name: "E2E_JOBS with a job CI does not need",
+			env:  map[string]string{"E2E_JOBS": "e2e"}, wantExit: 2,
+			wantStdout: []string{"::error title=CI::E2E_JOBS names e2e, which CI does not need\n"},
+		},
+		{
 			name: "EXPECTED_JOBS off by one", env: map[string]string{"EXPECTED_JOBS": "5"},
 			wantExit: 2,
 			wantStdout: []string{
@@ -397,7 +402,7 @@ func TestCIAggregate(t *testing.T) {
 			copyScripts(t, root, "ci-aggregate.sh")
 			vars := map[string]string{
 				"EVENT": "pull_request", "INPUT_MODE": "", "SCHEDULE": "", "NEEDS": allPassed,
-				"EXPECTED_JOBS": "4", "PULL_REQUEST_JOBS": "", "ADVISORY_JOBS": "",
+				"EXPECTED_JOBS": "4", "PULL_REQUEST_JOBS": "", "E2E_JOBS": "", "ADVISORY_JOBS": "",
 				"SCHEDULED_JOBS": "prek-upstream:weekly", "SECURITY_CRON": securityCron,
 				"WEEKLY_CRON": weeklyCron,
 			}
@@ -469,4 +474,124 @@ func TestCIAggregate(t *testing.T) {
 				first, second)
 		}
 	})
+}
+
+// TestCIAggregateE2EJobs checks which runs select a job in E2E_JOBS, the end-to-end jobs: every
+// trigger of ci.yml, the pull request lane of e2e-pr.yml, which calls CI in the mode e2e on a
+// pull request, and a release. crossbuild stands in for the e2e job, and prek-upstream is the
+// weekly job.
+func TestCIAggregateE2EJobs(t *testing.T) {
+	needs := func(gate, e2e, weekly string) string {
+		return `{"prek": {"result": "` + gate + `"}, "test": {"result": "` + gate +
+			`"}, "crossbuild": {"result": "` + e2e + `"}, "prek-upstream": {"result": "` +
+			weekly + `"}}`
+	}
+	tests := []struct {
+		name, event, mode, schedule string
+		needs                       string
+		advisory                    string
+		wantExit                    int
+		want                        string
+	}{
+		{
+			name: "a pull request does not select it", event: "pull_request",
+			needs: needs("success", "skipped", "skipped"), wantExit: 0,
+			want: "::notice title=CI::crossbuild was not selected in mode pull_request\n",
+		},
+		{
+			name: "a push selects it", event: "push", needs: needs("success", "success", "skipped"),
+			wantExit: 0, want: "every job that mode push selects succeeded",
+		},
+		{
+			name: "a push that skipped it", event: "push",
+			needs: needs("success", "skipped", "skipped"), wantExit: 1,
+			want: "crossbuild skipped, although mode push selects it",
+		},
+		{
+			name: "a push on which it failed", event: "push",
+			needs: needs("success", "failure", "skipped"), wantExit: 1,
+			want: "Jobs that did not succeed in mode push: crossbuild failure",
+		},
+		{
+			name: "the mode pr does not select it", event: "workflow_dispatch", mode: "pr",
+			needs: needs("success", "skipped", "skipped"), wantExit: 0,
+			want: "crossbuild was not selected in mode pr",
+		},
+		{
+			name:  "the mode e2e selects it and no pull request check",
+			event: "workflow_dispatch", mode: "e2e", needs: needs("skipped", "success", "skipped"),
+			wantExit: 0, want: "prek was not selected in mode e2e",
+		},
+		{
+			name: "the mode e2e that skipped it", event: "workflow_dispatch", mode: "e2e",
+			needs: needs("skipped", "skipped", "skipped"), wantExit: 1,
+			want: "crossbuild skipped, although mode e2e selects it",
+		},
+		{
+			name: "the pull request lane, which calls CI in the mode e2e", event: "pull_request",
+			mode: "e2e", needs: needs("skipped", "success", "skipped"), wantExit: 0,
+			want: "every job that mode e2e selects succeeded",
+		},
+		{
+			name: "a release selects it", event: "workflow_dispatch", mode: "release",
+			needs: needs("success", "success", "skipped"), wantExit: 0,
+			want: "every job that mode release selects succeeded",
+		},
+		{
+			name: "a release that skipped it", event: "workflow_dispatch", mode: "release",
+			needs: needs("success", "skipped", "skipped"), wantExit: 1,
+			want: "crossbuild skipped, although mode release selects it",
+		},
+		{
+			name: "the weekly cron does not select it", event: "schedule", schedule: "41 6 * * 1",
+			needs: needs("skipped", "skipped", "success"), wantExit: 0,
+			want: "crossbuild was not selected in mode weekly",
+		},
+		{
+			name: "a manual run in the mode weekly does not select it", event: "workflow_dispatch",
+			mode: "weekly", needs: needs("skipped", "skipped", "success"), wantExit: 0,
+			want: "crossbuild was not selected in mode weekly",
+		},
+		{
+			name: "the security cron does not select it", event: "schedule",
+			schedule: "23 4 * * 1,4", needs: needs("skipped", "skipped", "skipped"), wantExit: 0,
+			want: "crossbuild was not selected in mode security",
+		},
+		{
+			name: "the mode security does not select it", event: "workflow_dispatch",
+			mode: "security", needs: needs("skipped", "skipped", "skipped"), wantExit: 0,
+			want: "crossbuild was not selected in mode security",
+		},
+		{
+			name: "an advisory e2e job that failed on a push", event: "push",
+			needs: needs("success", "failure", "skipped"), advisory: "crossbuild", wantExit: 0,
+			want: "::warning title=CI::crossbuild failure; it is advisory, so CI does not fail\n",
+		},
+		{
+			name: "an advisory e2e job skipped on a push", event: "push",
+			needs: needs("success", "skipped", "skipped"), advisory: "crossbuild", wantExit: 1,
+			want: "crossbuild skipped, although mode push selects it",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+			copyScripts(t, root, "ci-aggregate.sh")
+			env := []string{
+				"EVENT=" + tt.event, "INPUT_MODE=" + tt.mode, "SCHEDULE=" + tt.schedule,
+				"NEEDS=" + tt.needs, "EXPECTED_JOBS=4", "PULL_REQUEST_JOBS=",
+				"E2E_JOBS=crossbuild", "ADVISORY_JOBS=" + tt.advisory,
+				"SCHEDULED_JOBS=prek-upstream:weekly", "SECURITY_CRON=23 4 * * 1,4",
+				"WEEKLY_CRON=41 6 * * 1",
+			}
+
+			result := runScript(t, root, env,
+				filepath.Join(root, ".github", "scripts", "ci-aggregate.sh"))
+
+			if result.exit != tt.wantExit || !strings.Contains(result.stdout, tt.want) {
+				t.Errorf("exit = %d, want %d with %q; stdout:\n%s\nstderr:\n%s", result.exit,
+					tt.wantExit, tt.want, result.stdout, result.stderr)
+			}
+		})
+	}
 }

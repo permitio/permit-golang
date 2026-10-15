@@ -16,12 +16,37 @@
 //
 //   - One workflow has a job with the id ci and the name CI, the check the ruleset requires. Its
 //     if: is always(), its needs lists every other job of that workflow but the jobs that need
-//     CI, and a step's env sets EXPECTED_JOBS to the number of jobs it needs. PULL_REQUEST_JOBS
-//     and ADVISORY_JOBS name only jobs CI needs, as does SCHEDULED_JOBS, whose entries are
-//     job:mode.
+//     CI, and a step's env sets EXPECTED_JOBS to the number of jobs it needs. PULL_REQUEST_JOBS,
+//     E2E_JOBS and ADVISORY_JOBS name only jobs CI needs, as does SCHEDULED_JOBS, whose entries
+//     are job:mode.
 //   - A job that needs CI runs after it, to post a notice when CI failed on a push or in a
 //     release: its if: is failure() && ((!inputs.mode && github.event_name == 'push') ||
 //     inputs.mode == 'release'), and CI does not need it.
+//   - A job in E2E_JOBS, an end-to-end job, has the if: (!inputs.mode && github.event_name ==
+//     'push') || inputs.mode == 'e2e' || inputs.mode == 'release', which no pull request of the
+//     CI workflow matches, and every job of that workflow that runs in the integration
+//     environment is in E2E_JOBS. A command line of a step of it starts with checkgotest and
+//     passes -require-file tools/e2e/required.txt. When a step runs .github/scripts/e2e-env.sh
+//     create, a step runs e2e-env.sh delete, and each step that runs it has the if: always().
+//     ADVISORY_JOBS does not name e2e, the job with the pinned PDP; in a job that it does not
+//     name, each step that runs .github/scripts/pdp-up.sh up has a PDP_IMAGE, its own, its
+//     job's or its workflow's, that is <image>@sha256:<64 hex digits> once each ${{ env.NAME }}
+//     in it is replaced with the job's or the workflow's value.
+//   - Only a job in the integration environment reads a secret whose name starts with
+//     PERMIT_E2E_, and such a job reads no other secret: the environment holds the v1 lane's
+//     secrets too. No job reads PERMIT_API_KEY or PERMIT_ENV, the v1 lane's settings, as a secret
+//     or a variable. A workflow's top-level env and on: read neither such a secret nor those
+//     settings, as every job of the workflow would see them.
+//   - A workflow other than the CI one runs on pull_request only when pullRequestLanes lists
+//     it, as it is outside the check the ruleset requires: e2e-pr.yml, the pull request lane of
+//     the end-to-end tests. Each of its jobs that calls a workflow, runs in an environment or
+//     reads a secret has the if: github.event.pull_request.head.repo.full_name ==
+//     github.repository && github.actor != 'dependabot[bot]', as GitHub gives a pull request
+//     from a fork, or a run that Dependabot triggered, no secrets; and each that calls a
+//     workflow passes it mode: e2e.
+//   - A job that calls a workflow of this repository, uses: ./.github/workflows/<file>, grants
+//     every permission that a job of that workflow asks for, with its own permissions: or its
+//     workflow's: GitHub refuses to start the call otherwise, whatever the called job's if:.
 //   - A job in SCHEDULED_JOBS runs on exactly one cron and one mode: its if: is
 //     (!inputs.mode && github.event.schedule == '<cron>') || inputs.mode == '<mode>', where the
 //     workflow's env declares <cron> as <MODE>_CRON. A called run sees its caller's schedule;
@@ -156,6 +181,24 @@ const (
 	// release. A scheduled job posts its own result.
 	afterCIIf = "failure() && ((!inputs.mode && github.event_name == 'push') || " +
 		"inputs.mode == 'release')"
+	// e2eIf is the if: of a job in E2E_JOBS, an end-to-end job: it runs on a push, in the mode
+	// e2e and in a release, and never on a pull request of the CI workflow.
+	e2eIf = "(!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e' || " +
+		"inputs.mode == 'release'"
+	// e2eEnvironment is the GitHub environment of the end-to-end jobs, which holds their
+	// secrets, and e2eSecrets starts the name of each of those secrets.
+	e2eEnvironment = "integration"
+	e2eSecrets     = "PERMIT_E2E_" //nolint:gosec // G101: the start of secrets' names.
+	// sameRepoIf is the if: of a job of a pull request lane that reads secrets: it runs only for
+	// a pull request from a branch of this repository, in a run that Dependabot did not trigger,
+	// as GitHub gives the others no secrets.
+	sameRepoIf = "github.event.pull_request.head.repo.full_name == github.repository && " +
+		"github.actor != 'dependabot[bot]'"
+	// pinnedE2EJob is the end-to-end job with the pinned PDP, which a push to master and a
+	// release require.
+	pinnedE2EJob = "e2e"
+	// requiredTestsFile lists the tests that every run of the end-to-end scenarios must pass.
+	requiredTestsFile = "tools/e2e/required.txt"
 	// stopLines lists, for messages, the three lines that start a run: that stops workflow
 	// commands.
 	stopLines = `token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n'), ` +
@@ -206,7 +249,30 @@ var (
 	// refersToSchedule matches an if: that depends on the schedule.
 	refersToSchedule = regexp.MustCompile(
 		`github\.event\.schedule|github\.event_name\s*==\s*'schedule'`)
+	// settingRef matches a read of a secret or a variable, secrets.NAME or secrets['NAME'], and
+	// captures the context and the name.
+	settingRef = regexp.MustCompile(`\b(secrets|vars)\s*(?:\.\s*([A-Za-z_][A-Za-z0-9_]*)|` +
+		`\[\s*'([^']*)'\s*\])`)
+	// requiredTestsCall matches a command line that runs checkgotest with the list of the tests
+	// that every run of the end-to-end scenarios must pass.
+	requiredTestsCall = regexp.MustCompile(`^"?[^\s"]*checkgotest"?\s(?:[^&|;]*\s)?` +
+		`-require-file[\s=]` + regexp.QuoteMeta(requiredTestsFile) + `(?:\s|$)`)
+	// envExpression matches a read of the env context, ${{ env.NAME }}, and captures the name.
+	envExpression = regexp.MustCompile(`\$\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}`)
+	// digestImage matches an image reference pinned by digest.
+	digestImage = regexp.MustCompile(`^[^\s@]+@sha256:[0-9a-f]{64}$`)
 )
+
+// pullRequestLanes are the workflows that run on pull requests outside the CI workflow, so
+// outside the check the ruleset requires, by path, with what each is. Their jobs that read
+// secrets run only on a pull request from a branch of this repository.
+var pullRequestLanes = map[string]string{
+	".github/workflows/e2e-pr.yml": "the pull request lane of the end-to-end tests, whose " +
+		"deployment to the integration environment pull requests into master need",
+}
+
+// v1Settings are the settings of the integration environment that only the v1 lane reads.
+var v1Settings = []string{"PERMIT_API_KEY", "PERMIT_ENV"}
 
 func main() {
 	os.Exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
@@ -601,6 +667,7 @@ func check(output io.Writer, workflows []workflow, scripts, files map[string]str
 			ciWorkflows = append(ciWorkflows, w.path)
 		}
 	}
+	c.checkCalls(workflows)
 	// Without any job there is nothing to check, which the verdict reports as not having run.
 	switch len(ciWorkflows) {
 	case 0:
@@ -668,6 +735,7 @@ func (c *checker) checkWorkflow(w workflow, scripts map[string]string) bool {
 		env[p.key] = envVar{value: value, line: p.line}
 	}
 	c.checkTriggers(w, env)
+	c.checkWorkflowSettings(w)
 	c.collectPrefix(w.path, field(w.doc, "concurrency"))
 
 	jobs := pairs(field(w.doc, "jobs"))
@@ -679,10 +747,194 @@ func (c *checker) checkWorkflow(w workflow, scripts map[string]string) bool {
 			hasCI = true
 		}
 	}
-	if hasCI {
+	switch {
+	case hasCI:
 		c.checkCI(w, jobs, env)
+	case runsOnPullRequest(w):
+		c.checkPullRequestLane(w, jobs)
 	}
 	return hasCI
+}
+
+// runsOnPullRequest reports whether a workflow runs on pull_request.
+func runsOnPullRequest(w workflow) bool {
+	on := field(w.doc, "on")
+	return field(on, "pull_request") != nil || slices.ContainsFunc(items(on),
+		func(trigger *yaml.Node) bool { return trigger.Value == "pull_request" })
+}
+
+// checkPullRequestLane checks a workflow other than the CI workflow that runs on pull requests:
+// it must be one of pullRequestLanes; each of its jobs that calls a workflow, runs in an
+// environment or reads a secret must run only on a pull request from a branch of this
+// repository, in a run that Dependabot did not trigger; and each call passes mode: e2e.
+func (c *checker) checkPullRequestLane(w workflow, jobs []pair) {
+	if _, ok := pullRequestLanes[w.path]; !ok {
+		c.add(w.path, 0, "runs on pull_request outside the CI workflow, so outside the check the "+
+			"ruleset requires; check pull requests in the CI workflow, or list this workflow in "+
+			"cicheck's pullRequestLanes")
+		return
+	}
+	for _, job := range jobs {
+		readsSecret := slices.ContainsFunc(settingRefs(job.value), func(r setting) bool {
+			return r.context == "secrets"
+		})
+		uses, calls := scalar(field(job.value, "uses"))
+		if !calls && environment(job.value) == "" && !readsSecret {
+			continue
+		}
+		if cond, _ := scalar(field(job.value, "if")); expression(cond) != sameRepoIf {
+			c.add(w.path, job.line, "job %s of the pull request lane can read secrets, so its if: "+
+				"must be %s; a pull request from a fork, or a run that Dependabot triggered, gets "+
+				"no secrets", job.key, sameRepoIf)
+		}
+		if mode, _ := scalar(field(field(job.value, "with"), "mode")); calls && mode != "e2e" {
+			c.add(w.path, job.line, "job %s of the pull request lane calls %s with mode: %s; "+
+				"pass mode: e2e, so that the called run is the end-to-end jobs", job.key, uses,
+				mode)
+		}
+	}
+}
+
+// permissionLevels orders the levels of a permission of the GITHUB_TOKEN.
+var permissionLevels = map[string]int{"none": 0, "read": 1, "write": 2}
+
+// granted returns the level of the permission scope, such as contents, that a permissions:
+// grants: a mapping of scopes, read-all or write-all. Without one it grants nothing.
+func granted(permissions *yaml.Node, scope string) int {
+	if all, ok := scalar(permissions); ok {
+		switch all {
+		case "write-all":
+			return permissionLevels["write"]
+		case "read-all":
+			return permissionLevels["read"]
+		}
+		return permissionLevels["none"]
+	}
+	level, _ := scalar(field(permissions, scope))
+	return permissionLevels[level]
+}
+
+// checkCalls checks that each job that calls a workflow of this repository grants every
+// permission that a job of that workflow asks for: GitHub refuses to start the call otherwise,
+// whatever the if: of the called job.
+func (c *checker) checkCalls(workflows []workflow) {
+	byPath := map[string]workflow{}
+	for _, w := range workflows {
+		byPath[w.path] = w
+	}
+	for _, w := range workflows {
+		for _, job := range pairs(field(w.doc, "jobs")) {
+			uses, _ := scalar(field(job.value, "uses"))
+			path, local := strings.CutPrefix(uses, "./")
+			if !local {
+				continue
+			}
+			called, ok := byPath[path]
+			if !ok {
+				c.add(w.path, job.line, "job %s calls %s, but the workflows directory holds no "+
+					"such workflow", job.key, uses)
+				continue
+			}
+			grants := field(job.value, "permissions")
+			if grants == nil {
+				grants = field(w.doc, "permissions")
+			}
+			for _, calledJob := range pairs(field(called.doc, "jobs")) {
+				asks := field(calledJob.value, "permissions")
+				if asks == nil {
+					asks = field(called.doc, "permissions")
+				}
+				for _, p := range pairs(asks) {
+					level, _ := scalar(p.value)
+					if granted(grants, p.key) < permissionLevels[level] {
+						c.add(w.path, job.line, "job %s calls %s, whose job %s asks for %s: %s, "+
+							"which job %s does not grant; GitHub refuses to start the call",
+							job.key, uses, calledJob.key, p.key, level, job.key)
+					}
+				}
+			}
+		}
+	}
+}
+
+// environment returns the name of the GitHub environment that a job runs in, or "".
+func environment(job *yaml.Node) string {
+	env := field(job, "environment")
+	if name, ok := scalar(env); ok {
+		return name
+	}
+	name, _ := scalar(field(env, "name"))
+	return name
+}
+
+// setting is a read of a secret or a variable: its context, secrets or vars, its name and its
+// line.
+type setting struct {
+	context, name string
+	line          int
+}
+
+// settingRefs returns the secrets and variables that the scalars under n read, in their order.
+func settingRefs(n *yaml.Node) []setting {
+	n = resolve(n)
+	if n == nil {
+		return nil
+	}
+	if n.Kind == yaml.ScalarNode {
+		var found []setting
+		for _, m := range settingRef.FindAllStringSubmatch(n.Value, -1) {
+			found = append(found, setting{context: m[1], name: m[2] + m[3], line: n.Line})
+		}
+		return found
+	}
+	var found []setting
+	for _, child := range n.Content {
+		found = append(found, settingRefs(child)...)
+	}
+	return found
+}
+
+// checkSettings checks the secrets and variables that a job reads: a secret of the end-to-end
+// jobs only in their environment, no other secret in that environment, which holds the v1
+// lane's secrets too, and none of the v1 lane's settings anywhere.
+func (c *checker) checkSettings(path string, job pair) {
+	env := environment(job.value)
+	for _, ref := range settingRefs(job.value) {
+		e2e := strings.HasPrefix(ref.name, e2eSecrets)
+		switch {
+		case slices.Contains(v1Settings, ref.name):
+			c.add(path, ref.line, "job %s reads %s.%s, which only the v1 lane reads; the "+
+				"end-to-end jobs read the secrets %s* and the variable PERMIT_PROJECT", job.key,
+				ref.context, ref.name, e2eSecrets)
+		case ref.context != "secrets":
+		case e2e && env != e2eEnvironment:
+			c.add(path, ref.line, "job %s reads the secret %s outside the %s environment; give "+
+				"it environment: %s, so that only the runs that environment allows get it",
+				job.key, ref.name, e2eEnvironment, e2eEnvironment)
+		case !e2e && env == e2eEnvironment:
+			c.add(path, ref.line, "job %s runs in the %s environment and reads the secret %s; "+
+				"read only the secrets %s* there", job.key, e2eEnvironment, ref.name, e2eSecrets)
+		}
+	}
+}
+
+// checkWorkflowSettings checks the secrets and variables that a workflow's top-level env and on:
+// read, which reach every job of the workflow: neither reads a secret of the end-to-end jobs or
+// a setting of the v1 lane.
+func (c *checker) checkWorkflowSettings(w workflow) {
+	for _, key := range []string{"env", "on"} {
+		for _, ref := range settingRefs(field(w.doc, key)) {
+			switch {
+			case slices.Contains(v1Settings, ref.name):
+				c.add(w.path, ref.line, "the workflow's %s: reads %s.%s, which only the v1 lane "+
+					"reads", key, ref.context, ref.name)
+			case ref.context == "secrets" && strings.HasPrefix(ref.name, e2eSecrets):
+				c.add(w.path, ref.line, "the workflow's %s: reads the secret %s, which would "+
+					"reach every job of the workflow; read it in the env of a step of a job in "+
+					"the %s environment", key, ref.name, e2eEnvironment)
+			}
+		}
+	}
 }
 
 // checkTriggers checks the pull_request filters and that on.schedule and the env's crons match.
@@ -789,6 +1041,7 @@ func (c *checker) checkJob(w workflow, job pair, env map[string]envVar,
 	scripts map[string]string,
 ) {
 	c.collectPrefix(w.path, field(job.value, "concurrency"))
+	c.checkSettings(w.path, job)
 	if uses := field(job.value, "uses"); uses != nil {
 		c.checkUses(w.path, uses)
 		return
@@ -1051,7 +1304,13 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 		c.add(w.path, line, "EXPECTED_JOBS is %q, but CI needs %d jobs", expected, len(needs))
 	}
 	pullRequest := c.listedJobs(w.path, line, stepEnv, "PULL_REQUEST_JOBS", needs)
+	e2e := c.listedJobs(w.path, line, stepEnv, "E2E_JOBS", needs)
 	advisory := c.listedJobs(w.path, line, stepEnv, "ADVISORY_JOBS", needs)
+	if advisory[pinnedE2EJob] {
+		c.add(w.path, line, "ADVISORY_JOBS names %s, the end-to-end job with the pinned PDP, "+
+			"which a push to master and a release require; only the other end-to-end jobs may "+
+			"be advisory", pinnedE2EJob)
+	}
 	scheduled := map[string]bool{}
 	value, _ := scalar(field(stepEnv, "SCHEDULED_JOBS"))
 	for entry := range strings.FieldsSeq(value) {
@@ -1076,9 +1335,108 @@ func (c *checker) checkCI(w workflow, jobs []pair, env map[string]envVar) {
 				c.add(w.path, job.line, "job %s needs CI, so it runs after CI to report a "+
 					"failure, and its if: must be %s", job.key, afterCIIf)
 			}
+		case e2e[job.key]:
+			if cond, _ := scalar(field(job.value, "if")); expression(cond) != e2eIf {
+				c.add(w.path, job.line, "job %s is in E2E_JOBS, so its if: must be %s", job.key,
+					e2eIf)
+			}
+			c.checkE2EJob(w.path, job, env, advisory[job.key])
+		case environment(job.value) == e2eEnvironment:
+			c.add(w.path, job.line, "job %s runs in the %s environment, so list it in E2E_JOBS, "+
+				"whose if: keeps it off this workflow's pull requests, which may come from forks",
+				job.key, e2eEnvironment)
 		default:
 			c.checkGateIf(w.path, job, pullRequest[job.key])
 		}
+	}
+}
+
+// checkE2EJob checks the steps of a job in E2E_JOBS: one runs checkgotest with -require-file
+// tools/e2e/required.txt; when one creates a scratch environment with e2e-env.sh create, one
+// deletes it with e2e-env.sh delete, and each such delete runs under if: always(); and when the
+// job is required, each step that starts the PDP with pdp-up.sh up gives it an image pinned by
+// digest.
+func (c *checker) checkE2EJob(path string, job pair, env map[string]envVar, advisory bool) {
+	requiresTests, creates, deletes := false, false, false
+	for _, step := range items(field(job.value, "steps")) {
+		script, _ := scalar(field(step, "run"))
+		for _, command := range commandLines(script) {
+			switch {
+			case requiredTestsCall.MatchString(command):
+				requiresTests = true
+			case runsScript(command, "e2e-env.sh", "create"):
+				creates = true
+			case runsScript(command, "e2e-env.sh", "delete"):
+				deletes = true
+				if cond, _ := scalar(field(step, "if")); expression(cond) != "always()" {
+					c.add(path, step.Line, "job %s deletes its scratch environment in a step "+
+						"whose if: is not always(), so a failed or cancelled step before it "+
+						"would leave the environment behind", job.key)
+				}
+			case runsScript(command, "pdp-up.sh", "up") && !advisory:
+				c.checkPDPImage(path, job, step, env)
+			}
+		}
+	}
+	if !requiresTests {
+		c.add(path, job.line, "job %s is in E2E_JOBS, so a step of it runs checkgotest with "+
+			"-require-file %s, which fails a run that did not run and pass each test of that "+
+			"file", job.key, requiredTestsFile)
+	}
+	if creates && !deletes {
+		c.add(path, job.line, "job %s creates a scratch environment with e2e-env.sh create, so a "+
+			"step of it under if: always() deletes it with e2e-env.sh delete", job.key)
+	}
+}
+
+// runsScript reports whether a command line runs the script name of .github/scripts with the
+// first argument arg.
+func runsScript(command, name, arg string) bool {
+	m := scriptCall.FindStringSubmatch(command)
+	if m == nil || m[1] != name {
+		return false
+	}
+	args := strings.Fields(m[2])
+	return len(args) > 0 && strings.Trim(args[0], `"'`) == arg
+}
+
+// checkPDPImage checks that a step of a required end-to-end job that starts the PDP gives it an
+// image pinned by digest in PDP_IMAGE: the step's, the job's or the workflow's, with each
+// ${{ env.NAME }} in it replaced with the job's or the workflow's value of NAME.
+func (c *checker) checkPDPImage(path string, job pair, step *yaml.Node,
+	env map[string]envVar,
+) {
+	jobEnv := field(job.value, "env")
+	node := field(field(step, "env"), "PDP_IMAGE")
+	if node == nil {
+		node = field(jobEnv, "PDP_IMAGE")
+	}
+	var image string
+	var line int
+	switch workflowImage, ok := env["PDP_IMAGE"]; {
+	case node != nil:
+		image, _ = scalar(node)
+		line = node.Line
+	case ok:
+		image, line = workflowImage.value, workflowImage.line
+	default:
+		c.add(path, step.Line, "job %s starts the PDP without a PDP_IMAGE; a required "+
+			"end-to-end job runs <image>@sha256:<64 hex digits>", job.key)
+		return
+	}
+	resolved := envExpression.ReplaceAllStringFunc(image, func(ref string) string {
+		name := envExpression.FindStringSubmatch(ref)[1]
+		if value, ok := scalar(field(jobEnv, name)); ok {
+			return value
+		}
+		if value, ok := env[name]; ok {
+			return value.value
+		}
+		return ref
+	})
+	if !digestImage.MatchString(resolved) {
+		c.add(path, line, "job %s starts the PDP image %s, which is not pinned by digest; a "+
+			"required end-to-end job runs <image>@sha256:<64 hex digits>", job.key, resolved)
 	}
 }
 

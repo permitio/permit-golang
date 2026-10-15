@@ -8,6 +8,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -42,23 +44,75 @@ var cloudScenarios = []scenario{
 }
 
 // TestCloud runs the scenarios of the cloud lane, then checks that the Debug logs of every
-// client of the run hold no API key.
+// client of the run hold no API key, and that the record holds a request of each scenario that
+// passed: a scenario that passes without one checked nothing against the API.
 func TestCloud(t *testing.T) {
 	if run.cfg.mode == "" {
 		t.Skip(run.skip)
 	}
-	runCloud(t, run.cfg, run.record)
+	passed := runCloud(t, run.cfg, run.record)
+	requests := readRecord(t, run.recordPath, run.cfg.mode)
+	for _, name := range unrecorded(requests, passed) {
+		markBroken(t, "%s passed, and the record holds no request of it", name)
+	}
+	t.Logf("the record holds %d requests of the %d scenarios that passed", len(requests),
+		len(passed))
 }
 
 // runCloud runs each of cloudScenarios as a subtest of t in a suite of cfg that records to
-// record, then checks the suite's logs.
-func runCloud(t *testing.T, cfg config, record *testhook.File) {
+// record, then checks the suite's logs. It returns the names of the scenarios' subtests that
+// passed, and did not skip.
+func runCloud(t *testing.T, cfg config, record *testhook.File) []string {
 	t.Helper()
 	s := startSuite(t, cfg, record)
+	var passed []string
 	for _, sc := range cloudScenarios {
-		t.Run(sc.name, sc.run(s))
+		var name string
+		skipped := false
+		ok := t.Run(sc.name, func(t *testing.T) {
+			name = t.Name()
+			defer func() { skipped = t.Skipped() }()
+			sc.run(s)(t)
+		})
+		// A subtest that -run leaves out has no name, as it never ran.
+		if ok && name != "" && !skipped {
+			passed = append(passed, name)
+		}
 	}
 	t.Run("logs_hold_no_key", logsHoldNoKey(s))
+	return passed
+}
+
+// unrecorded returns each of passed, the names of the scenarios' subtests that passed, that sent
+// none of requests, nor did a subtest of it.
+func unrecorded(requests []recorded, passed []string) []string {
+	var missing []string
+	for _, name := range passed {
+		if !slices.ContainsFunc(requests, func(r recorded) bool {
+			return r.Test == name || strings.HasPrefix(r.Test, name+"/")
+		}) {
+			missing = append(missing, name)
+		}
+	}
+	return missing
+}
+
+// TestUnrecorded checks which scenarios that passed the record holds no request of: a request of
+// the scenario or of a subtest of it counts, and one of another scenario whose name starts the
+// same does not.
+func TestUnrecorded(t *testing.T) {
+	requests := []recorded{
+		{Test: "TestCloud/a"}, {Test: "TestCloud/b/sub"}, {Test: "TestCloud/cc"},
+	}
+
+	got := unrecorded(requests, []string{"TestCloud/a", "TestCloud/b", "TestCloud/c"})
+
+	if want := []string{"TestCloud/c"}; !slices.Equal(got, want) {
+		t.Errorf("unrecorded = %q, want %q", got, want)
+	}
+	if got := unrecorded(nil, nil); got != nil {
+		t.Errorf("unrecorded of no scenario = %q, want none", got)
+	}
 }
 
 // suite is a run of the scenarios in one scratch environment.
@@ -106,8 +160,9 @@ func newLogger(w io.Writer) *slog.Logger {
 	return slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
 
-// startSuite starts a suite of cfg on t, whose clients record to record: it starts a fake in a
-// dry run, and creates the scratch environment, whose teardown it registers on t first.
+// startSuite starts a suite of cfg on t, whose clients record to record. A dry run starts a fake
+// and creates the scratch environment, whose teardown it registers on t first; a live run uses
+// the one that e2e-env.sh created, and deletes after the run.
 func startSuite(t *testing.T, cfg config, record *testhook.File) *suite {
 	t.Helper()
 	s := &suite{
@@ -131,11 +186,15 @@ func startSuite(t *testing.T, cfg config, record *testhook.File) *suite {
 			t.Errorf("tearing down the run: %v", err)
 		}
 	})
-	var err error
-	s.env, err = framework.CreateEnvironment(t.Context(), api, ledger, cfg.project,
-		string(cfg.prefix))
-	if err != nil {
-		t.Fatalf("creating the scratch environment: %v", err)
+	if cfg.mode == testhook.Live {
+		s.env = cfg.env
+	} else {
+		var err error
+		s.env, err = framework.CreateEnvironment(t.Context(), api, ledger, cfg.project,
+			string(cfg.prefix))
+		if err != nil {
+			t.Fatalf("creating the scratch environment: %v", err)
+		}
 	}
 	s.secrets = append(s.secrets, s.env.APIKey())
 	return s

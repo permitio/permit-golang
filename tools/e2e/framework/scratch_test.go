@@ -136,3 +136,19 @@ func TestCreateEnvironmentChecksReplies(t *testing.T) {
 		})
 	}
 }
+
+func TestExistingEnvironment(t *testing.T) {
+	env := ExistingEnvironment("p", "e", "gosdk-ci-1-1-pinned", "permit_key_FAKEexisting")
+	want := Environment{
+		ProjectID: "p", ID: "e", Key: "gosdk-ci-1-1-pinned", apiKey: "permit_key_FAKEexisting",
+	}
+	if env != want || env.APIKey() != "permit_key_FAKEexisting" {
+		t.Errorf("ExistingEnvironment = %s, API key %q; want %s and its API key", env,
+			env.APIKey(), want)
+	}
+	for _, printed := range []string{fmt.Sprint(env), fmt.Sprintf("%+v %#v", env, env)} {
+		if strings.Contains(printed, env.APIKey()) {
+			t.Errorf("the environment prints as %q, with its API key", printed)
+		}
+	}
+}

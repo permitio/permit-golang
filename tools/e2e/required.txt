@@ -1,7 +1,7 @@
-# Tests that must run and pass in every run of the end-to-end scenarios, dry or live. The live
-# job checks them with checkgotest -require-file (tools/cmd/checkgotest) (added in a later commit
-# on this branch). One test per line: its package import path and its name, separated by a space.
-# Blank lines and lines that start with # are ignored.
+# Tests that must run and pass in every run of the end-to-end scenarios, dry or live. The e2e
+# jobs of ci.yml check them with checkgotest -require-file (tools/cmd/checkgotest). One test per
+# line: its package import path and its name, separated by a space. Blank lines and lines that
+# start with # are ignored.
 
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
@@ -10,3 +10,5 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
 github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder
 github.com/permitio/permit-golang/v2/tools/e2e TestVerdict
+github.com/permitio/permit-golang/v2/tools/e2e TestUnrecorded
+github.com/permitio/permit-golang/v2/tools/e2e TestConfigure

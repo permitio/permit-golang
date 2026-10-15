@@ -974,3 +974,27 @@ github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestGitInTurnsOffMaint
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestGitInTurnsOffMaintenance
 github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestGitInTurnsOffMaintenance
 github.com/permitio/permit-golang/v2/tools/scripts TestGitEnvTurnsOffMaintenance
+
+github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckE2E
+github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregateE2EJobs
+github.com/permitio/permit-golang/v2/tools/scripts TestE2EEnvCreate
+github.com/permitio/permit-golang/v2/tools/scripts TestE2EEnvMasksBeforeExport
+github.com/permitio/permit-golang/v2/tools/scripts TestE2EEnvCreateFails
+github.com/permitio/permit-golang/v2/tools/scripts TestE2EEnvWithoutTheSecret
+github.com/permitio/permit-golang/v2/tools/scripts TestE2EEnvDelete
+github.com/permitio/permit-golang/v2/tools/scripts TestE2EEnvDidNotRun
+github.com/permitio/permit-golang/v2/tools/scripts TestPDPUp
+github.com/permitio/permit-golang/v2/tools/scripts TestPDPUpDefaults
+github.com/permitio/permit-golang/v2/tools/scripts TestPDPUpBoundedByTime
+github.com/permitio/permit-golang/v2/tools/scripts TestPDPUpStopped
+github.com/permitio/permit-golang/v2/tools/scripts TestPDPLogs
+github.com/permitio/permit-golang/v2/tools/scripts TestPDPDown
+github.com/permitio/permit-golang/v2/tools/scripts TestPDPUpDidNotRun
+github.com/permitio/permit-golang/v2/tools/scripts TestSweepEnvs
+github.com/permitio/permit-golang/v2/tools/scripts TestSweepEnvsDeleteFails
+github.com/permitio/permit-golang/v2/tools/scripts TestSweepEnvsGivesUp
+github.com/permitio/permit-golang/v2/tools/scripts TestSweepEnvsDidNotRun
+github.com/permitio/permit-golang/v2/tools/scripts TestSweepEnvsWithoutTheKey
+github.com/permitio/permit-golang/v2/tools/e2e/framework TestExistingEnvironment
+github.com/permitio/permit-golang/v2/tools/e2e TestUnrecorded
+github.com/permitio/permit-golang/v2/tools/e2e TestConfigure

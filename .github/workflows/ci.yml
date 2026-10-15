@@ -6,9 +6,10 @@ name: CI
 # Pull requests into any branch, with no path filter, so a stacked pull request is checked and a
 # required check always starts. Pushes to master, so a regression shows there. workflow_dispatch
 # and workflow_call take a mode: pr runs the pull request checks, release (which release.yml
-# passes) runs them for a release, and e2e, security and weekly run the periodic jobs. Each cron
-# in on.schedule is declared once more as <MODE>_CRON in env, which cicheck and ci-aggregate.sh
-# read; GitHub does not allow expressions in on:.
+# passes) runs them and the end-to-end jobs for a release, e2e runs the end-to-end jobs, which
+# a push to master runs too and e2e-pr.yml calls on a pull request, and security and weekly run
+# the periodic jobs. Each cron in on.schedule is declared once more as <MODE>_CRON in env, which
+# cicheck and ci-aggregate.sh read; GitHub does not allow expressions in on:.
 on:
   pull_request:
   push:
@@ -60,6 +61,9 @@ env:
   # A proxy address that refuses connections. The tests run with it, so a request that tries to
   # leave the runner fails; requests to loopback addresses, such as httptest servers, go direct.
   OFFLINE_PROXY: http://127.0.0.1:9
+  # The container PDP of the e2e job, pinned by digest. Dependabot does not update it.
+  PDP_IMAGE_PINNED_TAG: permitio/pdp-v2:0.9.16
+  PDP_IMAGE_PINNED_DIGEST: sha256:e3cf30794ec2d256636b4714641df46e51ee58a3f1f0d24c606e214e0bf8669a
 
 jobs:
   # Checks the workflows with cicheck, runs every hook in .pre-commit-config.yaml on every file,
@@ -399,11 +403,13 @@ jobs:
           "$RUNNER_TEMP/zipcheck"
 
   # Runs the root package's tests offline with PERMIT_API_COVERAGE_RECORD set, so that they
-  # record the requests they send to the mockpermit servers, then checks the record and
-  # tools/specs/coverage.yaml against the committed specs and testdata/operation-map.json with
-  # tools/cmd/apicoverage, which writes its report to the job summary. The record holds no live
-  # request, so the report marks its e2e column dry run. apicoverage exits 1 when a decision of
-  # coverage.yaml does not hold, and 2 when the record is incomplete or an input is malformed.
+  # record the requests they send to the mockpermit servers, and TestCloud of tools/e2e in its
+  # dry run with -e2e.record, then checks both records and tools/specs/coverage.yaml against the
+  # committed specs and testdata/operation-map.json with tools/cmd/apicoverage, which writes its
+  # report to the job summary. -advisory tools/e2e/advisory.txt marks the operations of the
+  # methods whose scenario is advisory. The records hold no live request, so the report's e2e
+  # column is dry run or advisory. apicoverage exits 1 when a decision of coverage.yaml does not
+  # hold, and 2 when a record is incomplete or an input is malformed.
   api-coverage:
     name: api-coverage
     if: >-
@@ -429,11 +435,16 @@ jobs:
           echo "::stop-commands::$token"
           trap 'echo "::$token::"' EXIT
           go mod download
+          go -C tools mod download
           go -C tools build -o "$RUNNER_TEMP/apicoverage" ./cmd/apicoverage
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
           record=$RUNNER_TEMP/api-coverage.jsonl
           PERMIT_API_COVERAGE_RECORD=$record go test -count=1 -shuffle=on .
-          "$RUNNER_TEMP/apicoverage" -summary "$GITHUB_STEP_SUMMARY" "$record"
+          dryrun=$RUNNER_TEMP/e2e-dryrun.jsonl
+          go -C tools test -count=1 -tags e2e -run '^TestCloud$' ./e2e -args -e2e.dryrun \
+            -e2e.record "$dryrun"
+          "$RUNNER_TEMP/apicoverage" -advisory tools/e2e/advisory.txt \
+            -summary "$GITHUB_STEP_SUMMARY" "$record" "$dryrun"
 
   # Scans for known vulnerabilities with govulncheck and Trivy through .github/scripts/vuln.sh:
   # the SDK's floor (go.mod as committed), its ceiling (every dependency at its newest version)
@@ -1141,14 +1152,118 @@ jobs:
             -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           [[ $result == REGRESSION ]]
 
+  # On a push to master, in the mode e2e and in a release: the end-to-end scenarios of tools/e2e
+  # against Permit, with the container PDP pinned by digest. The mode e2e runs from a manual run,
+  # and from e2e-pr.yml, which calls CI with it on a pull request from a branch of this
+  # repository. The job runs in the integration environment, which holds the secret
+  # PERMIT_E2E_PROJECT_KEY, a project-level API key of the project that its variable
+  # PERMIT_PROJECT names; only the steps that call the Permit API get the key. It sweeps the
+  # project's scratch environments older than 24 hours (sweep-envs.sh), then creates the leg's
+  # own, gosdk-ci-<run>-<attempt>-pinned (e2e-env.sh create), and exports its API key once it is
+  # masked. Without the secret, a pull request and a manual run from a ref other than master,
+  # such as a release/* branch, pass with a notice, and a push to master, a release and a manual
+  # run from master fail. pdp-up.sh starts the PDP as a step with the environment's key, on
+  # 127.0.0.1:7766, and waits up to 300 seconds for /healthy. The tests run in that environment,
+  # and checkgotest checks their output against tools/e2e/required.txt and
+  # tools/e2e/allowed-skips.txt; their request record is uploaded as the artifact
+  # e2e-record-pinned. On a failure the PDP's log is printed without the health checks, and at
+  # the end the container is removed and the environment deleted, with a warning when it leaked.
+  # Runs of the job do not wait for each other: each works in an environment of its own, and the
+  # sweep deletes only environments older than 24 hours. A failure on a push to master or in a
+  # release fails CI, which notify-gate-failure posts. The environment deploys from master, pull
+  # requests and release/* branches only: a manual run from another branch fails before its
+  # first step.
+  e2e:
+    name: e2e (pinned PDP)
+    if: >-
+      (!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e'
+      || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: integration
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+      LEG: pinned
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Sweep the scratch environments older than 24 hours
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+        run: .github/scripts/sweep-envs.sh
+      - name: Create the scratch environment
+        id: env
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          MODE: ${{ inputs.mode }}
+        run: .github/scripts/e2e-env.sh create "$LEG"
+      - name: Start the PDP
+        id: pdp
+        if: steps.env.outputs.created == 'true'
+        env:
+          PDP_IMAGE: ${{ env.PDP_IMAGE_PINNED_TAG }}@${{ env.PDP_IMAGE_PINNED_DIGEST }}
+        run: .github/scripts/pdp-up.sh up
+      - name: Run the end-to-end tests
+        id: tests
+        if: steps.env.outputs.created == 'true'
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          PERMIT_PDP_URL: http://127.0.0.1:7766
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          code=0
+          go -C tools test -count=1 -timeout 20m -json -tags e2e ./e2e -args -e2e.leg "$LEG" \
+            -e2e.record "$RUNNER_TEMP/e2e-record.jsonl" >"$RUNNER_TEMP/e2e.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require-file tools/e2e/required.txt \
+            -allow-skips tools/e2e/allowed-skips.txt "$RUNNER_TEMP/e2e.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      - name: Upload the request record
+        if: always() && steps.tests.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: e2e-record-pinned
+          path: ${{ runner.temp }}/e2e-record.jsonl
+          if-no-files-found: error
+          overwrite: true
+      - name: Print the PDP's log
+        if: failure() && steps.pdp.outcome != 'skipped'
+        run: .github/scripts/pdp-up.sh logs
+      - name: Remove the PDP
+        if: always() && steps.pdp.outcome != 'skipped'
+        run: .github/scripts/pdp-up.sh down
+      - name: Delete the scratch environment
+        if: always()
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+        run: .github/scripts/e2e-env.sh delete "$LEG"
+
   # The one check to require. It runs whatever happened to the jobs it needs, since GitHub counts
   # a skipped required check as passing. ci-aggregate.sh says how it decides; in short, each job
   # must succeed in the runs that select it: the pull request checks on pull_request, push and
   # the pr and release modes, and each job in SCHEDULED_JOBS (job:mode) on its cron or mode only.
-  # PULL_REQUEST_JOBS run on pull requests only, and a job in ADVISORY_JOBS may fail. cicheck
-  # fails when needs leaves out a job other than notify-gate-failure, which runs after CI,
-  # EXPECTED_JOBS is not the number of jobs in needs, or a job's if: is not the one its list calls
-  # for.
+  # PULL_REQUEST_JOBS run on pull requests only, E2E_JOBS on a push and in the modes e2e and
+  # release only, and a job in ADVISORY_JOBS may fail. cicheck fails when needs leaves out a job
+  # other than notify-gate-failure, which runs after CI, EXPECTED_JOBS is not the number of jobs
+  # in needs, or a job's if: is not the one its list calls for. e2e-pr.yml, the pull request lane
+  # of the end-to-end jobs, calls this workflow in the mode e2e, so that its CI decides that
+  # lane. The lane is outside the check the ruleset requires, but a pull request into master
+  # also needs the successful deployment to the integration environment that the lane makes.
   ci:
     name: CI
     if: always()
@@ -1171,6 +1286,7 @@ jobs:
       - digest
       - spec-drift
       - bench
+      - e2e
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -1185,11 +1301,12 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 18
+          EXPECTED_JOBS: 19
           PULL_REQUEST_JOBS: mutation dependency-review api-surface
           SCHEDULED_JOBS: >-
             prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly
             spec-drift:weekly bench:weekly
+          E2E_JOBS: e2e
           ADVISORY_JOBS: bench
         run: .github/scripts/ci-aggregate.sh
 

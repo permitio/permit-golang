@@ -47,7 +47,7 @@ func TestE2ESurfaceComplete(t *testing.T) {
 		markBroken(t, "the record of the dry run: %v", err)
 		return
 	}
-	requests := readRecord(t, path)
+	requests := readRecord(t, path, testhook.DryRun)
 	if len(requests) == 0 {
 		markBroken(t, "the dry run recorded no request")
 		return
@@ -101,8 +101,8 @@ type recorded struct {
 	Test     string `json:"test"`
 }
 
-// readRecord returns the requests of the record in path, all of the mode dryrun.
-func readRecord(t *testing.T, path string) []recorded {
+// readRecord returns the requests of the record in path, which must all be of the mode mode.
+func readRecord(t *testing.T, path string, mode testhook.Mode) []recorded {
 	t.Helper()
 	f, err := os.Open(path)
 	if err != nil {
@@ -121,8 +121,8 @@ func readRecord(t *testing.T, path string) []recorded {
 		if r.Type != "request" {
 			continue
 		}
-		if r.Mode != string(testhook.DryRun) {
-			markBroken(t, "the dry run recorded a request in the mode %q", r.Mode)
+		if r.Mode != string(mode) {
+			markBroken(t, "a run in the mode %s recorded a request in the mode %q", mode, r.Mode)
 		}
 		requests = append(requests, r)
 	}

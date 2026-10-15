@@ -2,15 +2,17 @@
 
 // Package e2e holds the end-to-end scenarios of the SDK, which build only with the tag e2e.
 //
-// TestCloud runs the scenarios of the cloud lane in a scratch environment that it creates for
-// the run and deletes at its end: with -e2e.dryrun, offline against the fake of tools/e2e/fake,
-// and otherwise against the Permit API, or the one at PERMIT_E2E_API_URL, with the
-// project-level API key in PERMIT_E2E_PROJECT_KEY of the project in PERMIT_E2E_PROJECT; it
-// skips when PERMIT_E2E_PROJECT_KEY is not set. Each call of the SDK carries the request
-// recorder of internal/testhook, in the mode dryrun or live, and -e2e.record keeps the record
-// for tools/cmd/apicoverage. TestE2ESurfaceComplete runs the scenarios in a dry run of its own
-// and checks that each public method is in exactly one end-to-end state, as
-// tools/e2e/framework/surface describes.
+// TestCloud runs the scenarios of the cloud lane in a scratch environment. With -e2e.dryrun it
+// runs offline against the fake of tools/e2e/fake, in an environment that it creates for the
+// run and deletes at its end. Otherwise it runs against the Permit API, or the one at
+// PERMIT_E2E_API_URL, with the project-level API key in PERMIT_E2E_PROJECT_KEY of the project in
+// PERMIT_E2E_PROJECT, in the environment that .github/scripts/e2e-env.sh created for the run and
+// deletes after it, whose API key the leg's container PDP uses too; it skips when
+// PERMIT_E2E_PROJECT_KEY is not set. Each call of the SDK carries the request recorder of
+// internal/testhook, in the mode dryrun or live, and -e2e.record keeps the record for
+// tools/cmd/apicoverage; each scenario that passes must have sent a request of that mode.
+// TestE2ESurfaceComplete runs the scenarios in a dry run of its own and checks that each public
+// method is in exactly one end-to-end state, as tools/e2e/framework/surface describes.
 //
 // The run exits 2, DID NOT RUN, when the ledger of what it created does not reconcile, which
 // means that it may have left objects behind, when its configuration or an input of the gate is
@@ -28,6 +30,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 
@@ -44,13 +47,17 @@ var (
 	leg = flag.String("e2e.leg", "cloud", "the leg of a live run, the last part of its prefix")
 )
 
-// The environment variables of a live run.
+// The environment variables of a live run. .github/scripts/e2e-env.sh create exports the last
+// three, the scratch environment's.
 const (
 	envProjectKey = "PERMIT_E2E_PROJECT_KEY"
 	envProject    = "PERMIT_E2E_PROJECT"
 	envAPIURL     = "PERMIT_E2E_API_URL"
 	envRun        = "GITHUB_RUN_ID"
 	envAttempt    = "GITHUB_RUN_ATTEMPT"
+	envProjectID  = "PERMIT_E2E_PROJECT_ID"
+	envEnvID      = "PERMIT_E2E_ENV_ID"
+	envEnvAPIKey  = "PERMIT_E2E_ENV_API_KEY"
 )
 
 // The project, its API key and the run prefix of a dry run.
@@ -77,6 +84,10 @@ type config struct {
 
 	// prefix is the run prefix, the scratch environment's key.
 	prefix framework.Prefix
+
+	// env is the scratch environment of a live run, which e2e-env.sh created; a dry run creates
+	// its own.
+	env framework.Environment
 }
 
 // dryRunConfig is the config of a dry run.
@@ -91,8 +102,9 @@ var run struct {
 	cfg  config
 	skip string
 
-	// record is the request record of TestCloud.
-	record *testhook.File
+	// record is the request record of TestCloud, and recordPath its file.
+	record     *testhook.File
+	recordPath string
 
 	mu sync.Mutex
 
@@ -152,6 +164,7 @@ func runMain(m *testing.M) int {
 		fmt.Fprintf(os.Stderr, "e2e: DID NOT RUN: %v\n", err)
 		return 2
 	}
+	run.recordPath = path
 	code := m.Run()
 	if err := run.record.Close(code); err != nil {
 		run.broken = append(run.broken, err.Error())
@@ -197,10 +210,14 @@ func configure() (config, string, error) {
 		return config{}, "TestCloud runs with -e2e.dryrun, or live with " + envProjectKey +
 			" and " + envProject + " set", nil
 	}
-	for _, name := range []string{envProject, envRun, envAttempt} {
+	for _, name := range []string{
+		envProject, envRun, envAttempt, envProjectID, envEnvID, envEnvAPIKey,
+	} {
 		if getenv(name) == "" {
 			return config{}, "", fmt.Errorf("%s is set, and %s is not; a live run needs %s, %s, "+
-				"%s and %s", envProjectKey, name, envProjectKey, envProject, envRun, envAttempt)
+				"%s and %s, and the scratch environment's %s, %s and %s, which "+
+				".github/scripts/e2e-env.sh create exports", envProjectKey, name, envProjectKey,
+				envProject, envRun, envAttempt, envProjectID, envEnvID, envEnvAPIKey)
 		}
 	}
 	prefix, err := framework.NewPrefix(getenv(envRun), getenv(envAttempt), *leg)
@@ -214,6 +231,8 @@ func configure() (config, string, error) {
 	return config{
 		mode: testhook.Live, apiURL: apiURL, project: getenv(envProject),
 		projectKey: getenv(envProjectKey), prefix: prefix,
+		env: framework.ExistingEnvironment(getenv(envProjectID), getenv(envEnvID), string(prefix),
+			getenv(envEnvAPIKey)),
 	}, "", nil
 }
 
@@ -264,4 +283,60 @@ func TestVerdict(t *testing.T) {
 				out.String(), tc.want, tc.out)
 		}
 	}
+}
+
+// TestConfigure checks the settings of a run without -e2e.dryrun: a live run in the scratch
+// environment whose ID, project ID and API key .github/scripts/e2e-env.sh create exports, a run
+// that fails without one of them, and one that skips without the project's key.
+func TestConfigure(t *testing.T) {
+	saved := *dryRun
+	*dryRun = false
+	t.Cleanup(func() { *dryRun = saved })
+	live := map[string]string{
+		envProjectKey: "permit_key_FAKEproject", envProject: "gosdk-e2e", envAPIURL: "",
+		envRun: "1234", envAttempt: "2", envProjectID: "project-id-1", envEnvID: "env-id-1",
+		envEnvAPIKey: "permit_key_FAKEenvironment",
+	}
+	setenv := func(t *testing.T, without string) {
+		t.Helper()
+		for name, value := range live {
+			if name == without {
+				value = ""
+			}
+			t.Setenv(name, value)
+		}
+	}
+
+	t.Run("live", func(t *testing.T) {
+		setenv(t, "")
+		cfg, skip, err := configure()
+		prefix := "gosdk-ci-1234-2-" + *leg
+		want := framework.ExistingEnvironment("project-id-1", "env-id-1", prefix,
+			"permit_key_FAKEenvironment")
+		if err != nil || skip != "" || cfg.mode != testhook.Live || cfg.env != want ||
+			string(cfg.prefix) != prefix || cfg.project != "gosdk-e2e" ||
+			cfg.projectKey != "permit_key_FAKEproject" || cfg.apiURL != "https://api.permit.io" {
+			t.Errorf("configure() = %+v (environment %s), %q, %v; want a live run in %s", cfg,
+				cfg.env, skip, err, want)
+		}
+	})
+	for _, name := range []string{envEnvID, envProjectID, envEnvAPIKey, envRun} {
+		t.Run("without "+name, func(t *testing.T) {
+			setenv(t, name)
+			_, _, err := configure()
+			if err == nil || !strings.Contains(err.Error(), name+" is not") ||
+				!strings.Contains(err.Error(), ".github/scripts/e2e-env.sh create exports") {
+				t.Errorf("configure() returned %v, want an error that names %s and e2e-env.sh",
+					err, name)
+			}
+		})
+	}
+	t.Run("without the project's key", func(t *testing.T) {
+		setenv(t, envProjectKey)
+		cfg, skip, err := configure()
+		if err != nil || cfg.mode != "" || !strings.Contains(skip, envProjectKey) {
+			t.Errorf("configure() = %+v, %q, %v; want no mode and why TestCloud skips", cfg,
+				skip, err)
+		}
+	})
 }

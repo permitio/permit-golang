@@ -9,15 +9,16 @@
 #   <MODE>_CRON        the crons of the workflow env, such as WEEKLY_CRON for mode weekly
 #   PULL_REQUEST_JOBS  the jobs that run on pull requests only (space separated)
 #   SCHEDULED_JOBS     the periodic jobs, as job:mode, each selected in its mode only
+#   E2E_JOBS           the end-to-end jobs, selected on a push, in mode e2e and in a release
 #   ADVISORY_JOBS      the jobs that may fail or be cancelled without failing CI
 #
 # The run's mode is INPUT_MODE when it is set. Otherwise it is the mode whose <MODE>_CRON is
 # SCHEDULE on a scheduled run, and the event, pull_request or push, on any other run. The modes
 # pull_request, push, pr and release select the pull request checks: every job in no list, or in
-# ADVISORY_JOBS only. A job in PULL_REQUEST_JOBS is selected in mode pull_request only, and a job
-# in SCHEDULED_JOBS in its own mode only. A job the mode does not select may be skipped. Every
-# other result than success fails CI, except that a job in ADVISORY_JOBS may fail or be
-# cancelled; that is printed as a warning.
+# ADVISORY_JOBS only. A job in PULL_REQUEST_JOBS is selected in mode pull_request only, a job in
+# SCHEDULED_JOBS in its own mode only, and a job in E2E_JOBS in the modes push, e2e and release
+# only. A job the mode does not select may be skipped. Every other result than success fails CI,
+# except that a job in ADVISORY_JOBS may fail or be cancelled; that is printed as a warning.
 #
 # Exit codes: 0 when every needed job succeeded or was not selected; 1 when a job failed, was
 # cancelled, or was skipped in a run that selects it; 2 when the check did not run: the script
@@ -46,8 +47,10 @@ input_mode=${INPUT_MODE:-}
 schedule=${SCHEDULE:-}
 pull_request_jobs=${PULL_REQUEST_JOBS:-}
 scheduled_jobs=${SCHEDULED_JOBS:-}
+e2e_jobs=${E2E_JOBS:-}
 advisory_jobs=${ADVISORY_JOBS:-}
 gate_modes='pull_request push pr release'
+e2e_modes='push e2e release'
 periodic_modes='e2e security weekly'
 mode_re='^[a-z0-9_-]+$'
 
@@ -103,6 +106,7 @@ check_needed() {
   done
 }
 check_needed PULL_REQUEST_JOBS "$pull_request_jobs"
+check_needed E2E_JOBS "$e2e_jobs"
 check_needed ADVISORY_JOBS "$advisory_jobs"
 for entry in $scheduled_jobs; do
   if [[ $entry != *:* ]] || ! contains "$periodic_modes" "${entry#*:}"; then
@@ -122,6 +126,10 @@ selected() {
   done
   if contains "$pull_request_jobs" "$1"; then
     [[ $mode == pull_request ]]
+    return
+  fi
+  if contains "$e2e_jobs" "$1"; then
+    contains "$e2e_modes" "$mode"
     return
   fi
   contains "$gate_modes" "$mode"

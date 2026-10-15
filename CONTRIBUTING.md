@@ -590,6 +590,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, checks the models against the published specs, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots) and [Model drift](#model-drift). |
 | `bench` | On a push to `master` and weekly: runs the benchmarks of the decision calls, compares them with the previous result on `master`, writes the report to the job summary and posts a regression, or a run that did not complete, to Slack. Advisory: it never fails CI. See [Benchmarks](#benchmarks). |
+| `e2e` | On a push to `master`, in the mode `e2e` and in a release: the end-to-end scenarios against Permit in a scratch environment, with the container PDP pinned by digest. See [Against Permit](#against-permit). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
 | `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: posts one line to Slack. `CI` does not need it. |
 
@@ -598,26 +599,33 @@ Which jobs a run selects depends on its mode:
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
   `test`, `crossbuild`, `consumer`, `docs`, `zipcheck`, `api-coverage`, `vuln` and `secrets`. A
   pull request runs `mutation`, `dependency-review` and `api-surface` too, and a push to `master`
-  runs `bench`.
+  runs `bench` and `e2e`.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
-  weekly jobs, `security` the security scan, and `e2e` the jobs of that mode *(added in a later
-  commit on this branch)*. The release workflow *(added in a later commit on this branch)* calls
-  CI with the mode `release`, which runs the pull request checks.
+  weekly jobs, `security` the security scan, and `e2e` the end-to-end jobs. The release workflow
+  *(added in a later commit on this branch)* calls CI with the mode `release`, which runs the
+  pull request checks and the end-to-end jobs.
+- `.github/workflows/e2e-pr.yml`, the pull request lane of the end-to-end tests, calls CI with
+  the mode `e2e` on a pull request from a branch of this repository; see
+  [Against Permit](#against-permit). That run's `CI` decides the lane, and is not the check the
+  ruleset requires; a pull request into `master` needs the lane's deployment to `integration`
+  instead.
 - Two crons start the periodic modes: `SECURITY_CRON` twice a week and `WEEKLY_CRON` once a week.
   Each cron is listed in `on.schedule` and set once more in the workflow's `env`, as
   `<MODE>_CRON`, which cicheck and ci-aggregate.sh read.
 
 The `CI` job fails when a job it needs failed or was cancelled, or was skipped in a run that
-selects it, and passes a job that the run does not select. Three lists in its step change that:
+selects it, and passes a job that the run does not select. Four lists in its step change that:
 `PULL_REQUEST_JOBS` run on pull requests only, each job in `SCHEDULED_JOBS` (`job:mode`) is
 required in its mode only (an advisory one, such as `bench`, may also run on a push to `master`),
-and a job in `ADVISORY_JOBS` may fail without failing CI. ci-aggregate.sh exits 0
+`E2E_JOBS` run on a push to `master` and in the modes `e2e` and `release` only, and a job in
+`ADVISORY_JOBS` may fail without failing CI. ci-aggregate.sh exits 0
 when CI passes, 1 when a job did not succeed, and 2 when it could not decide: the job results
 cannot be read, there are not `EXPECTED_JOBS` of them, a list names a job CI does not need, or
 the mode, event or cron is unknown.
 
 When you add a job, add it to `CI`'s `needs` and change `EXPECTED_JOBS`; when it runs only on
-pull requests, on a cron or as an advisory check, add it to the list for that. Give the job the
+pull requests, on a cron, as an end-to-end job or as an advisory check, add it to the list for
+that. Give the job the
 `if:` of its kind, exactly as `ci.yml` writes it:
 
 - a pull request check, advisory or not:
@@ -630,7 +638,11 @@ pull requests, on a cron or as an advisory check, add it to the list for that. G
 - a job in `SCHEDULED_JOBS` that runs on a push to `master` too, as `bench` does:
   `(!inputs.mode && (github.event_name == 'push' || github.event.schedule == '<cron>')) || inputs.mode == '<mode>'`.
   Only a job in `ADVISORY_JOBS` may: no pull request runs it before the push, so its failure must
-  not fail CI on `master`.
+  not fail CI on `master`;
+- a job in `E2E_JOBS`:
+  `(!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e' || inputs.mode == 'release'`.
+  A job of `ci.yml` in the `integration` environment must be in `E2E_JOBS`, so that no pull
+  request of `ci.yml`, which may come from a fork, runs it.
 
 A job that needs `CI` runs after it, so `CI` does not need it; only `notify-gate-failure` does,
 and its `if:` is
@@ -641,7 +653,12 @@ When you add or remove a git hook, change `EXPECTED_HOOKS`.
 
 cicheck checks these rules and the workflows' hardening: every action pinned to a commit SHA with
 a version comment, `persist-credentials: false`, `cache: false` and an exact Go version on every
-`setup-go`, a pinned runner and a timeout on every job, no `${{` in a `run:`, and the rest that
+`setup-go`, a pinned runner and a timeout on every job, no `${{` in a `run:`, the secrets of the
+end-to-end jobs read only in the `integration` environment, an end-to-end job that checks
+`tools/e2e/required.txt`, deletes its environment under `if: always()` and, when required,
+starts a PDP pinned by digest, `e2e-pr.yml` as the one workflow outside CI that runs on pull
+requests, only for those from a branch of this repository and in the mode `e2e`, a call of a
+workflow that grants every permission the called jobs ask for, and the rest that
 `go -C tools doc ./cmd/cicheck` lists. Tool output must not be able to issue workflow commands,
 so a `run:` that does more than call scripts in `.github/scripts` starts with these three lines,
 after any blank and comment lines, with one variable name in all three:
@@ -740,9 +757,11 @@ range starts at the newest commit of the pull request whose `mutation` check suc
 the head still contains, or at the merge base when there is none, as
 `.github/scripts/mutation-range.sh` works it out; so the lines of a run that a newer push
 cancelled are tested in the next one. Changed lines in `tools/`, the programs that check the
-SDK, are tested like SDK code. Maintainers push a pull request's next commit only after CI
-passed on the previous one, so that each commit's lines get a run. The weekly job tests every Go
-file of both modules and only reports.
+SDK, are tested like SDK code. The gate builds without the tag `e2e`, so it mutates the
+packages under `tools/e2e/framework` and `tools/e2e/fake` but not the scenarios of `tools/e2e`,
+which the end-to-end dry run and the `e2e` job exercise instead. Maintainers push a pull
+request's next commit only after CI passed on the previous one, so that each commit's lines get
+a run. The weekly job tests every Go file of both modules and only reports.
 
 ## Benchmarks
 
@@ -913,7 +932,7 @@ These jobs of `ci.yml` post to Slack:
 | `mutation (weekly)` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
 | `spec-drift` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
 | `bench` | A push to `master`, Mondays and the mode `weekly`, when the benchmarks regressed or their report did not complete | `SLACK_WEBHOOK_URL` |
-| `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release | `SLACK_WEBHOOK_URL` |
+| `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release, such as when `e2e` failed | `SLACK_WEBHOOK_URL` |
 
 Each post starts with one line, `<repo> <check>: <result>. <details>. <run URL>`, which
 `tools/cmd/notify` writes and posts; the security scan and the digest put their report under it,
@@ -1351,14 +1370,23 @@ with a path that holds a query, or with fewer requests than covered rows.
 `go -C tools doc ./cmd/apicoverage` describes every rule.
 
 The `api-coverage` job of `ci.yml` runs these steps offline on every pull request and push to
-`master`, and writes the report to the job summary, where the end-to-end column is a dry run.
+`master`, adds the record of `TestCloud`'s [dry run](#end-to-end-tests) and
+`-advisory tools/e2e/advisory.txt`, and writes the report to the job summary, where the
+end-to-end column is a dry run or advisory:
+
+```sh
+go -C tools test -count=1 -tags e2e -run '^TestCloud$' ./e2e -args -e2e.dryrun \
+  -e2e.record "$PWD/bin/e2e-dryrun.jsonl"
+bin/apicoverage -advisory tools/e2e/advisory.txt bin/api-coverage.jsonl bin/e2e-dryrun.jsonl
+```
 
 ## End-to-end tests
 
 The end-to-end scenarios in [tools/e2e](tools/e2e) build only with the tag `e2e`. `TestCloud`
-runs the scenarios of the cloud lane, the list `cloudScenarios`, in a scratch environment that
-it creates for the run, with the key `gosdk-ci-<run>-<attempt>-<leg>`, and deletes at its end,
-then checks that the Debug logs of every client of the run hold none of its API keys. The code
+runs the scenarios of the cloud lane, the list `cloudScenarios`, in a scratch environment with
+the key `gosdk-ci-<run>-<attempt>-<leg>`, which is created for the run and deleted at its end,
+then checks that the Debug logs of every client of the run hold none of its API keys, and that
+the run's request record holds a request of each scenario that passed. The code
 that creates and checks what a scenario needs, in `tools/e2e/framework`, uses plain `net/http`
 and not the SDK, so it does not depend on the code under test. It registers the teardown of
 each object in a ledger before the request that creates it, treats a 404 to a deletion as
@@ -1398,10 +1426,12 @@ Without `-e2e.dryrun`, `TestCloud` runs against the Permit API, or the one at
 `PERMIT_E2E_API_URL`, such as a local stack, with the project-level key in
 `PERMIT_E2E_PROJECT_KEY`, in the project that `PERMIT_E2E_PROJECT` names, with the run and the
 attempt in `GITHUB_RUN_ID` and `GITHUB_RUN_ATTEMPT` and the leg that `-e2e.leg` gives, and
-skips when the key is not set *(the job that runs it is added in a later commit on this
-branch)*. `-e2e.record` keeps its request record for apicoverage. `tools/e2e/required.txt`
-lists the tests that every run of the scenarios must run and pass, and the live job checks them
-with checkgotest *(added in a later commit on this branch)*.
+skips when the key is not set. It runs in the scratch environment that
+`.github/scripts/e2e-env.sh create` made for the run, which exports its ID, its project's ID
+and its API key, and deletes it afterwards (see [Against Permit](#against-permit)); the SDK's
+clients reach the PDP at `PERMIT_PDP_URL`. `-e2e.record` keeps its request record for
+apicoverage. `tools/e2e/required.txt` lists the tests that every run of the scenarios must run
+and pass, and the `e2e` job checks them with checkgotest.
 
 `TestE2ESurfaceComplete` runs the cloud scenarios in a dry run of its own and checks that each
 method of `testdata/operation-map.json` is in exactly one end-to-end state, with a count
@@ -1411,7 +1441,7 @@ sentinel: the methods add up to the four states.
 | --- | --- |
 | cloud | A cloud scenario lists the method in its `methods`, and its dry run sends each of the method's operations. Two methods may send the same operation, so a request alone makes no method cloud. |
 | local-only | `tools/e2e/local-only.txt`: `<Method> <reason> <phase>`, with the reason `org-key`, `account-level-write`, `needs-pdp-id` or `unverified-response`, and the phase of the local harness that proves the method instead. |
-| advisory | `tools/e2e/advisory.txt`: `<Method> <ticket> <reason>`, for a scenario that may skip while the ticket is open. The scenario skips in the dry run too, with an entry of `.github/allowed-skips.txt` for its test that names the same ticket; the gate fails an advisory line whose ticket no entry for a test of `tools/e2e` names. |
+| advisory | `tools/e2e/advisory.txt`: `<Method> <ticket> <reason>`, for a scenario that may skip while the ticket is open. The scenario skips in the dry run too, with an entry of `.github/allowed-skips.txt` for its test that names the same ticket; the gate fails an advisory line whose ticket no entry for a test of `tools/e2e` names. The `e2e` job checks its live run against `tools/e2e/allowed-skips.txt`, which needs the same entry: checkgotest fails on an entry whose test did not skip, and `.github/allowed-skips.txt` names tests that the live run does not run, so the live run has a file of its own. |
 | pending | `tools/e2e/pending.txt`: `<Method> e2e-pending <area>`, for a method that no scenario calls yet. A release refuses a pending line *(added in a later commit on this branch)*. |
 
 When a commit adds a public method, it adds a line to `pending.txt`, or a scenario that calls
@@ -1424,6 +1454,91 @@ operation whose `KeyLevel` is `OrganizationLevel` fails the gate too, while
 organization-level key: remove the call from the cloud scenarios and list each method that
 sends the operation in `local-only.txt` with the reason `org-key`, or set `organization_key:
 true` once the lane has the key.
+
+### Against Permit
+
+The `e2e` job of `ci.yml` runs the scenarios against Permit's production API, with the container
+PDP pinned by digest (`PDP_IMAGE_PINNED_TAG` and `PDP_IMAGE_PINNED_DIGEST` in the workflow's
+`env`); a push to `master`, a release and a manual run with the mode `e2e` require it. Advisory
+legs against the newest release of the container PDP and against the cloud PDP *(added in a
+later commit on this branch)* do not fail CI. `.github/workflows/e2e-pr.yml` runs the same job
+on a pull request from a branch of this repository, in a run that Dependabot did not trigger, by
+calling `ci.yml` with the mode `e2e`; a newer push to the pull request cancels its older run.
+That lane is outside the check the ruleset requires, but required through the deployment rule:
+a pull request into `master` needs a successful deployment to the `integration` environment,
+which the lane makes, so a failing lane blocks the merge. A pull request from a fork, or a run
+that Dependabot triggered, gets no secrets, so the lane skips it with a notice; a maintainer
+merges such a pull request once the lane has run on a branch of this repository that holds its
+commits. An outside contributor runs the offline tests and the end-to-end dry run, which CI
+runs on their pull request too.
+
+The job runs these scripts, which `tools/scripts` tests offline against a fake of the Permit
+API and a stub `docker`, for its leg, `pinned`:
+
+- `.github/scripts/sweep-envs.sh`, first, as the lane has no scheduled run: deletes the
+  environments of the key's project whose key is a run prefix, `gosdk-ci-<run>-<attempt>-<leg>`,
+  and that are older than 24 hours, such as one that a leg failed to delete. It deletes no other
+  environment, at any age, and fails on a key that is not project-level or that the API refuses.
+  A delete that fails, or a scope or a list that it cannot read for another reason, is a
+  warning, and the job goes on: the sweep of a later run tries again.
+- `.github/scripts/e2e-env.sh create <leg>`: creates the leg's scratch environment, reads its API
+  key, masks it with `::add-mask::` before anything else, and then exports it with the
+  environment's ID and its project's ID. Without `PERMIT_E2E_PROJECT_KEY`, a pull request and a
+  manual run from a ref other than `master` pass with a notice, and a push to `master`, a release
+  and a manual run from `master` fail, so that they never pass without the tests.
+- `.github/scripts/pdp-up.sh up`: starts the container PDP as a step, with the environment's API
+  key, on `127.0.0.1:7766`, and waits up to 300 seconds of elapsed time for `/healthy`. A
+  service container would start before any step, when no key of the run exists yet. `pdp-up.sh
+  logs` prints its log without the health checks when the job fails, and `pdp-up.sh down`
+  removes it.
+- The tests run in the environment, and checkgotest checks their output with
+  `-require-file tools/e2e/required.txt -allow-skips tools/e2e/allowed-skips.txt`. Their request
+  record is uploaded as the artifact `e2e-record-pinned`.
+- `.github/scripts/e2e-env.sh delete <leg>`: deletes the environment, and warns that it leaked
+  when the delete fails; a later sweep deletes it.
+
+Runs of the job do not wait for each other: each works in a scratch environment of its own, and
+the sweep deletes only environments older than 24 hours. A failure of `e2e` on a push to
+`master` or in a release fails `CI`, which `notify-gate-failure` posts to Slack.
+
+The job runs in the GitHub environment `integration`, to which a maintainer adds the secret
+before the lane's first run. It deploys from `master`, from pull requests (`refs/pull/*/merge`)
+and from `release/*` branches: a manual run from another branch fails before its first step,
+and one from a `release/*` branch passes with a notice while the secret is missing. It holds:
+
+- the secret `PERMIT_E2E_PROJECT_KEY`: a project-level API key of the project of these tests, one
+  that can create, read and delete the project's environments and read their API keys. An
+  environment-level key cannot; `e2e-env.sh` names the key level that is missing when the API
+  answers 401 or 403. The lane has no organization-level key (`tools/e2e/keys.yaml`);
+- the variable `PERMIT_PROJECT`: the key of that project.
+
+cicheck checks that only a job in that environment reads a secret named `PERMIT_E2E_*`, and that
+no workflow reads `PERMIT_API_KEY` or `PERMIT_ENV`, the v1 lane's settings, which the environment
+holds too. To run a leg from your machine with such a key, against Permit, or against a local
+stack at `PERMIT_E2E_API_URL` that the PDP container reaches too, such as one at
+`host.docker.internal`, as `pdp-up.sh` gives the container that URL:
+
+```sh
+export PERMIT_E2E_PROJECT_KEY=... PERMIT_E2E_PROJECT=<project key>
+export GITHUB_RUN_ID=<a number of your own> GITHUB_RUN_ATTEMPT=1 GITHUB_ENV="$(mktemp)"
+.github/scripts/e2e-env.sh create local
+set -a && . "$GITHUB_ENV" && set +a
+PDP_IMAGE=permitio/pdp-v2:<tag> .github/scripts/pdp-up.sh up
+go -C tools test -count=1 -tags e2e ./e2e -args -e2e.leg local
+.github/scripts/pdp-up.sh down
+.github/scripts/e2e-env.sh delete local
+```
+
+### Test tiers
+
+| Tier | When | What | Required | Alert |
+| --- | --- | --- | --- | --- |
+| Offline | Every pull request and push to `master` | The tests of both modules and the end-to-end dry run, with no network | Yes: `CI` | The pull request's `CI` check |
+| Local full stack | Before a release | A maintainer-run local full-stack suite | For a release *(the release workflow is added in a later commit on this branch)* | The release's harness evidence *(added in a later commit on this branch)* |
+| Production scratch | A push to `master`, a manual run with the mode `e2e`, a release, and a pull request from a branch of this repository | The `e2e` job above, in a scratch environment of Permit's production API | Yes on `master`, in a release and in a manual run; on a pull request into `master`, through the deployment rule | `notify-gate-failure` on `master` and in a release; on a pull request, the lane's `CI` check and its `integration` deployment |
+| Post-release smoke | After a release *(added in a later commit on this branch)* | The scenarios against the released module | No | *(Added in a later commit on this branch.)* |
+
+The tiers are owned by `@permitio/r-d`.
 
 ## Dependency updates
 
@@ -1729,7 +1844,7 @@ lets it do, so a wait of seconds takes no real time and is exact.
 - Maintainers merge pull requests, and close the issue when the release that contains the change
   ships.
 - CI runs on a pull request from a fork only after a maintainer approves the run, and the
-  end-to-end tests against Permit *(added in a later commit on this branch)* do not run on forks.
+  end-to-end tests against Permit do not run on forks; see [Against Permit](#against-permit).
 
 ## Public repository rules
 

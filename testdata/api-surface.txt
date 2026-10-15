@@ -2,6 +2,10 @@
 # TestSurfaceSnapshot (surface_test.go) fails when the source differs. After an intended
 # change, rewrite this file with go test -run TestSurfaceSnapshot -update . and review the
 # diff.
+models: const APIKeyOwnerTypeElements APIKeyOwnerType = "elements"
+models: const APIKeyOwnerTypeMember APIKeyOwnerType = "member"
+models: const APIKeyOwnerTypeNATSPDPConfig APIKeyOwnerType = "nats_pdp_config"
+models: const APIKeyOwnerTypePDPConfig APIKeyOwnerType = "pdp_config"
 models: const AttributeTypeArray AttributeType = "array"
 models: const AttributeTypeBool AttributeType = "bool"
 models: const AttributeTypeJSON AttributeType = "json"
@@ -10,25 +14,67 @@ models: const AttributeTypeObject AttributeType = "object"
 models: const AttributeTypeObjectArray AttributeType = "object_array"
 models: const AttributeTypeString AttributeType = "string"
 models: const AttributeTypeTime AttributeType = "time"
+models: const MemberAccessLevelAdmin MemberAccessLevel = "admin"
+models: const MemberAccessLevelNoAccess MemberAccessLevel = "no_access"
+models: const MemberAccessLevelRead MemberAccessLevel = "read"
+models: const MemberAccessLevelWrite MemberAccessLevel = "write"
+models: const MemberAccessObjEnv MemberAccessObj = "env"
+models: const MemberAccessObjOrg MemberAccessObj = "org"
+models: const MemberAccessObjProject MemberAccessObj = "project"
+models: func NewSecret(credential string) Secret
 models: func Null[T any]() Optional[T]
 models: func OneString(s string) StringOrList
 models: func Some[T any](v T) Optional[T]
 models: func StringList(values ...string) StringOrList
 models: method (*Attributes) UnmarshalJSON(data []byte) error
 models: method (*Optional[T]) UnmarshalJSON(data []byte) error
+models: method (*Secret) UnmarshalJSON(data []byte) error
 models: method (*StringOrList) UnmarshalJSON(data []byte) error
 models: method (*Time) UnmarshalJSON(data []byte) error
 models: method (*Time) UnmarshalText(text []byte) error
+models: method (APIKeyOwnerType) Known() bool
 models: method (AttributeType) Known() bool
+models: method (MemberAccessLevel) Known() bool
+models: method (MemberAccessObj) Known() bool
 models: method (Optional[T]) Get() (T, bool)
 models: method (Optional[T]) IsNull() bool
 models: method (Optional[T]) IsZero() bool
 models: method (Optional[T]) MarshalJSON() ([]byte, error)
+models: method (Secret) Equal(other Secret) bool
+models: method (Secret) Format(f fmt.State, verb rune)
+models: method (Secret) GoString() string
+models: method (Secret) LogValue() slog.Value
+models: method (Secret) MarshalJSON() ([]byte, error)
+models: method (Secret) String() string
+models: method (Secret) Value() string
 models: method (StringOrList) Equal(other StringOrList) bool
 models: method (StringOrList) IsList() bool
 models: method (StringOrList) IsZero() bool
 models: method (StringOrList) MarshalJSON() ([]byte, error)
 models: method (StringOrList) Values() []string
+models: type APIKeyCreate struct
+models: type APIKeyCreate struct, AccessLevel MemberAccessLevel
+models: type APIKeyCreate struct, EnvironmentID string
+models: type APIKeyCreate struct, Name string
+models: type APIKeyCreate struct, ObjectType MemberAccessObj
+models: type APIKeyCreate struct, OrganizationID string
+models: type APIKeyCreate struct, OwnerType APIKeyOwnerType
+models: type APIKeyCreate struct, ProjectID string
+models: type APIKeyOwnerType string
+models: type APIKeyRead struct
+models: type APIKeyRead struct, AccessLevel MemberAccessLevel
+models: type APIKeyRead struct, CreatedAt Time
+models: type APIKeyRead struct, Env *EnvironmentRead
+models: type APIKeyRead struct, EnvironmentID string
+models: type APIKeyRead struct, ID string
+models: type APIKeyRead struct, LastUsedAt Time
+models: type APIKeyRead struct, Name string
+models: type APIKeyRead struct, ObjectType MemberAccessObj
+models: type APIKeyRead struct, OrganizationID string
+models: type APIKeyRead struct, OwnerType APIKeyOwnerType
+models: type APIKeyRead struct, Project *ProjectRead
+models: type APIKeyRead struct, ProjectID string
+models: type APIKeyRead struct, Secret Secret
 models: type APIKeyScopeRead struct
 models: type APIKeyScopeRead struct, EnvironmentID string
 models: type APIKeyScopeRead struct, OrganizationID string
@@ -73,6 +119,8 @@ models: type JwksConfig struct, TTL int
 models: type JwksConfig struct, URL string
 models: type JwksObj struct
 models: type JwksObj struct, Keys []Attributes
+models: type MemberAccessLevel string
+models: type MemberAccessObj string
 models: type Optional[T any] struct
 models: type ProjectCreate struct
 models: type ProjectCreate struct, ActivePolicyRepoID string
@@ -98,6 +146,7 @@ models: type ProjectUpdate struct, ActivePolicyRepoID string
 models: type ProjectUpdate struct, Description Optional[string]
 models: type ProjectUpdate struct, Name string
 models: type ProjectUpdate struct, Settings Attributes
+models: type Secret struct
 models: type StringOrList struct
 models: type Time struct
 models: type Time struct, embedded time.Time
@@ -116,6 +165,13 @@ permit: func WithRetry(policy RetryPolicy) Option
 permit: func WithScope(project string, environment string) Option
 permit: func WithTenants(tenants ...string) PermissionsOption
 permit: func WithTimeout(timeout time.Duration) Option
+permit: method (*APIKeysService) All(ctx context.Context, opts *APIKeysListOptions) iter.Seq2[models.APIKeyRead, error]
+permit: method (*APIKeysService) Create(ctx context.Context, key models.APIKeyCreate) (*models.APIKeyRead, error)
+permit: method (*APIKeysService) Delete(ctx context.Context, apiKeyID string) error
+permit: method (*APIKeysService) Get(ctx context.Context, apiKeyID string) (*models.APIKeyRead, error)
+permit: method (*APIKeysService) GetEnvironmentKey(ctx context.Context, projectKey string, environmentKey string) (*models.APIKeyRead, error)
+permit: method (*APIKeysService) List(ctx context.Context, opts *APIKeysListOptions) (*Page[models.APIKeyRead], error)
+permit: method (*APIKeysService) RotateSecret(ctx context.Context, apiKeyID string) (*models.APIKeyRead, error)
 permit: method (*Client) AllTenantsCheck(ctx context.Context, user User, action string, resource Resource, opts ...CheckOption) ([]TenantDetails, error)
 permit: method (*Client) AuthorizedUsers(ctx context.Context, action string, resource Resource, opts ...CheckOption) (AuthorizedUsersResult, error)
 permit: method (*Client) BulkCheck(ctx context.Context, checks []CheckRequest) ([]bool, error)
@@ -151,6 +207,11 @@ permit: method (Option) Format(f fmt.State, verb rune)
 permit: method (Option) GoString() string
 permit: method (Option) LogValue() slog.Value
 permit: method (Option) String() string
+permit: type APIKeysListOptions struct
+permit: type APIKeysListOptions struct, ObjectType models.MemberAccessObj
+permit: type APIKeysListOptions struct, Project string
+permit: type APIKeysListOptions struct, embedded ListOptions
+permit: type APIKeysService struct
 permit: type AuthorizedUserAssignment struct
 permit: type AuthorizedUserAssignment struct, Resource string
 permit: type AuthorizedUserAssignment struct, Role string
@@ -177,6 +238,7 @@ permit: type CheckURLRequest struct, Tenant string
 permit: type CheckURLRequest struct, URL string
 permit: type CheckURLRequest struct, User User
 permit: type Client struct
+permit: type Client struct, APIKeys *APIKeysService
 permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Projects *ProjectsService
 permit: type EnvironmentsService struct

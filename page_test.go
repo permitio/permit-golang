@@ -57,9 +57,9 @@ func arrayOf[T any](t *testing.T, items []T) mockpermit.Reply {
 	return mockpermit.Reply{Body: string(body)}
 }
 
-// pageOf returns a reply whose body is the paginated object that holds items in data, followed
-// by counts, the members of the counts, such as `,"page_count":2`.
-func pageOf(t *testing.T, items []testObject, counts string) mockpermit.Reply {
+// pageOf returns a reply whose body is the paginated object that holds items in data, of any type
+// of item, followed by counts, the members of the counts, such as `,"page_count":2`.
+func pageOf[T any](t *testing.T, items []T, counts string) mockpermit.Reply {
 	t.Helper()
 	return mockpermit.Reply{Body: `{"data":` + arrayOf(t, items).Body + counts + `}`}
 }

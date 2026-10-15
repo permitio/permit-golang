@@ -70,13 +70,13 @@ control-plane:
   - {op: get_request_body_v2_history__event_id__request_get, route: "GET /v2/history/{event_id}/request", stage: GA, status: excluded, reason: account-admin}
   - {op: get_response_body_v2_history__event_id__response_get, route: "GET /v2/history/{event_id}/response", stage: GA, status: excluded, reason: account-admin}
   # API Keys
-  - {op: list_api_keys, route: "GET /v2/api-key", stage: GA, status: planned}
-  - {op: create_api_key, route: "POST /v2/api-key", stage: GA, status: planned}
+  - {op: list_api_keys, route: "GET /v2/api-key", stage: GA, status: covered}
+  - {op: create_api_key, route: "POST /v2/api-key", stage: GA, status: covered}
   - {op: get_api_key_scope, route: "GET /v2/api-key/scope", stage: GA, status: covered}
-  - {op: get_api_key, route: "GET /v2/api-key/{api_key_id}", stage: GA, status: planned}
-  - {op: delete_api_key, route: "DELETE /v2/api-key/{api_key_id}", stage: GA, status: planned}
-  - {op: rotate_api_key, route: "POST /v2/api-key/{api_key_id}/rotate-secret", stage: GA, status: planned}
-  - {op: get_environment_api_key, route: "GET /v2/api-key/{proj_id}/{env_id}", stage: GA, status: planned}
+  - {op: get_api_key, route: "GET /v2/api-key/{api_key_id}", stage: GA, status: covered}
+  - {op: delete_api_key, route: "DELETE /v2/api-key/{api_key_id}", stage: GA, status: covered}
+  - {op: rotate_api_key, route: "POST /v2/api-key/{api_key_id}/rotate-secret", stage: GA, status: covered}
+  - {op: get_environment_api_key, route: "GET /v2/api-key/{proj_id}/{env_id}", stage: GA, status: covered}
   # Audit Elements Data
   - {op: elements_list_audit_logs, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/audit_logs", stage: GA, status: excluded, reason: elements-session}
   # Audit Log Replay

@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/permitio/permit-golang/v2/internal/redact"
 	"github.com/permitio/permit-golang/v2/internal/wire"
 )
 
@@ -275,7 +276,8 @@ type mismatch struct {
 // that with wire.Encode, the SDK's encoder, and compares the result with want. value and want
 // are JSON values with each number as a json.Number, as the generator writes them. A property
 // that is null in want may be left out of the result when its field of t is not a
-// models.Optional, as withoutPlainNulls says. It returns each place where the result differs
+// models.Optional, as withoutPlainNulls says, and a credential of want that a models.Secret holds
+// comes back as the marker, as markedSecrets says. It returns each place where the result differs
 // from want, or one for the whole value that says what failed; none when the result is want.
 func roundTrip(t reflect.Type, value, want any, decode func([]byte, any) error) []mismatch {
 	data, err := json.Marshal(value)
@@ -296,12 +298,61 @@ func roundTrip(t reflect.Type, value, want any, decode func([]byte, any) error) 
 		return []mismatch{{"", fmt.Sprintf("%s encodes as %s, which does not decode: %v", t,
 			encoded, err)}}
 	}
-	found := differences(withoutPlainNulls(t, want), withoutPlainNulls(t, got), "")
+	found := differences(withoutPlainNulls(t, markedSecrets(t, want)), withoutPlainNulls(t, got),
+		"")
 	for i, m := range found {
 		found[i].text = fmt.Sprintf("%s decodes into %s and encodes back as %s: %s", data, t,
 			encoded, m.text)
 	}
 	return found
+}
+
+// markedSecrets returns value, a JSON value of type t, with the marker in place of each string
+// that is not empty, at any depth, whose field is a models.Secret: a Secret encodes the marker in
+// place of its credential, and the empty string as it is. Only the value that a round trip
+// expects is marked, so a Secret that encoded its credential would still differ from it.
+func markedSecrets(t reflect.Type, value any) any {
+	if inner := optionalOf(t); inner != nil {
+		t = inner
+	}
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	switch v := value.(type) {
+	case string:
+		if t == secretType && v != "" {
+			return redact.Marker
+		}
+		return v
+	case map[string]any:
+		var fields map[string]goField
+		if t.Kind() == reflect.Struct {
+			fields, _ = jsonFields(t)
+		}
+		object := make(map[string]any, len(v))
+		for name, item := range v {
+			switch f, ok := fields[name]; {
+			case t.Kind() == reflect.Map:
+				object[name] = markedSecrets(t.Elem(), item)
+			case ok:
+				object[name] = markedSecrets(f.typ, item)
+			default:
+				object[name] = item
+			}
+		}
+		return object
+	case []any:
+		if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
+			return value
+		}
+		items := make([]any, 0, len(v))
+		for _, item := range v {
+			items = append(items, markedSecrets(t.Elem(), item))
+		}
+		return items
+	default:
+		return value
+	}
 }
 
 // withoutPlainNulls returns value, a JSON value of type t, without each property, at any depth,

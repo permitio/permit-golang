@@ -16,6 +16,12 @@
 #
 # Blank lines and lines that start with # are ignored.
 
+APIKeysService.All org-key api.api_keys
+APIKeysService.Create org-key api.api_keys
+APIKeysService.Delete org-key api.api_keys
+APIKeysService.Get org-key api.api_keys
+APIKeysService.List org-key api.api_keys
+APIKeysService.RotateSecret org-key api.api_keys
 ProjectsService.All org-key api.projects
 ProjectsService.Create org-key api.projects
 ProjectsService.Delete account-level-write api.projects

@@ -1,5 +1,26 @@
 {
   "methods": {
+    "APIKeysService.All": [
+      "list_api_keys"
+    ],
+    "APIKeysService.Create": [
+      "create_api_key"
+    ],
+    "APIKeysService.Delete": [
+      "delete_api_key"
+    ],
+    "APIKeysService.Get": [
+      "get_api_key"
+    ],
+    "APIKeysService.GetEnvironmentKey": [
+      "get_environment_api_key"
+    ],
+    "APIKeysService.List": [
+      "list_api_keys"
+    ],
+    "APIKeysService.RotateSecret": [
+      "rotate_api_key"
+    ],
     "Client.AllTenantsCheck": [
       "is_allowed_all_tenants_allowed_all_tenants_post"
     ],

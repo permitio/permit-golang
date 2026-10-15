@@ -54,6 +54,10 @@ var cloudScenarios = []scenario{
 		run: environmentLifecycle,
 	},
 	{
+		name: "get_environment_key", methods: []string{"APIKeysService.GetEnvironmentKey"},
+		run: getEnvironmentKey,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

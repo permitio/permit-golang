@@ -12,6 +12,9 @@ import (
 // decision types of the root package, those of the requests to the PDP and of its replies. Add
 // each type that gets a row under models; TestRepositoryModelMap fails while the two differ.
 var modelTypes = []any{
+	models.APIKeyCreate{},
+	models.APIKeyOwnerType(""),
+	models.APIKeyRead{},
 	models.APIKeyScopeRead{},
 	models.AttributeType(""),
 	permit.AuthorizedUserAssignment{},
@@ -26,6 +29,8 @@ var modelTypes = []any{
 	models.JwksConfig{},
 	models.JwksObj{},
 	permit.LocalRoleAssignment{},
+	models.MemberAccessLevel(""),
+	models.MemberAccessObj(""),
 	permit.ObjectPermissions{},
 	models.ProjectCreate{},
 	models.ProjectRead{},

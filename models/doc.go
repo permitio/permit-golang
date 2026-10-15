@@ -19,4 +19,9 @@
 //
 // [Attributes] keeps each number as a [json.Number], with every digit of its text, and [Time]
 // reads a timestamp with or without a zone.
+//
+// # Credentials
+//
+// A credential that the API returns, such as the secret of an API key, is a [Secret], which
+// prints and encodes a marker in place of the credential; its Value method returns it.
 package models

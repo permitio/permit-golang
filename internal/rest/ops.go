@@ -16,6 +16,41 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "APIKeyScopeRead",
 	},
 
+	// The API keys of the organization. Reading the key of an environment needs a project-level
+	// key; listing, reading, creating, deleting and rotating keys need an organization-level
+	// key. The list is a paginated object of at most 100 keys. A rotation is never sent twice:
+	// after a 500, 502, 503 or 504 reply or a failed connection, the API may have rotated the
+	// secret, and a second rotation would replace the secret that the first returned; after a
+	// 429, which the API did not act on, the call also returns the error, and leaves the retry to
+	// the caller. The secret of a reply joins the client's redaction set under its credential
+	// name, secret.
+	{
+		ID: "get_environment_api_key", Method: http.MethodGet,
+		Route: "/v2/api-key/{proj_id}/{env_id}", Idempotent: true, KeyLevel: ProjectLevel,
+		ResponseModel: "APIKeyRead",
+	},
+	{
+		ID: "list_api_keys", Method: http.MethodGet, Route: "/v2/api-key", Idempotent: true,
+		KeyLevel: OrganizationLevel, MaxPerPage: 100, ResponseModel: "APIKeyRead",
+	},
+	{
+		ID: "create_api_key", Method: http.MethodPost, Route: "/v2/api-key",
+		KeyLevel: OrganizationLevel, RequestModel: "APIKeyCreate", ResponseModel: "APIKeyRead",
+	},
+	{
+		ID: "get_api_key", Method: http.MethodGet, Route: "/v2/api-key/{api_key_id}",
+		Idempotent: true, KeyLevel: OrganizationLevel, ResponseModel: "APIKeyRead",
+	},
+	{
+		ID: "delete_api_key", Method: http.MethodDelete, Route: "/v2/api-key/{api_key_id}",
+		Idempotent: true, KeyLevel: OrganizationLevel, DeleteSelf: true,
+	},
+	{
+		ID: "rotate_api_key", Method: http.MethodPost,
+		Route: "/v2/api-key/{api_key_id}/rotate-secret", NoRetry: true,
+		KeyLevel: OrganizationLevel, ResponseModel: "APIKeyRead",
+	},
+
 	// The projects of the organization. Listing and creating them needs an organization-level
 	// key; reading, changing and deleting one needs a key of the project, or of its
 	// organization. The list is a JSON array of at most 100 projects. A PATCH sets the fields

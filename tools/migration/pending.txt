@@ -81,7 +81,6 @@ config.FactsSyncTimeoutPolicyIgnore facts
 permit.Client.SyncUser users
 
 # Block b: operations of pkg/openapi
-openapi.APIKeysApiService.* api-keys
 openapi.AuthenticationApiService.ElementsLoginAs elements
 openapi.AuthenticationApiService.DevLogin auth
 openapi.AuthenticationApiService.Login auth

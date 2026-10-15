@@ -193,6 +193,15 @@ var (
 			"the method, or a number from 1",
 	}
 
+	// PathAPIKeyIDScope rejects the API key ID scope in a call that acts on one API key: GET
+	// /v2/api-key/scope is the route of the scope of the API key, so the request would reach
+	// that route, or no route, in place of the key's.
+	PathAPIKeyIDScope = Rule{
+		ID: "path.api-key-id.scope",
+		Message: "the API key ID is scope, which names the route of the scope of the API key, " +
+			"not a key; pass the ID of an API key",
+	}
+
 	// PathSegmentDot rejects a path parameter that is . or .., which a server or a proxy on the
 	// way may resolve as a step in the path, so that the request reaches another route.
 	PathSegmentDot = Rule{
@@ -283,6 +292,7 @@ var rules = []Rule{
 	DecisionUserKeyEmpty,
 	ListPageNegative,
 	ListPerPageNegative,
+	PathAPIKeyIDScope,
 	PathSegmentDot,
 	PathSegmentEmpty,
 	ScopeEnvironmentMissing,

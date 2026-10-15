@@ -37,6 +37,10 @@ const maxIdleConnsPerHost = 64
 // Client itself, such as [Client.Check]. A Client encodes as the empty JSON object: it holds
 // no data.
 type Client struct {
+	// APIKeys reads the API key of an environment, and lists, reads, creates, deletes and
+	// rotates the API keys of the organization.
+	APIKeys *APIKeysService `json:"-"`
+
 	// Projects lists, reads, creates, changes and deletes the projects of the organization.
 	Projects *ProjectsService `json:"-"`
 
@@ -128,6 +132,7 @@ func New(opts ...Option) (*Client, error) {
 		httpClient: s.httpClient,
 		registry:   rest.Default(),
 	}
+	c.APIKeys = &APIKeysService{client: c}
 	c.Projects = &ProjectsService{client: c}
 	c.Environments = &EnvironmentsService{client: c}
 	c.factsViaPDP = s.factsViaPDP

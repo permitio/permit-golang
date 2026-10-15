@@ -71,13 +71,15 @@ linters:
             - pkg: log$
               desc: log through internal/logging, which keeps credentials out of the logs
         slog:
-          # internal/redact uses log/slog for Secret.LogValue and its tests; it does not log.
-          # Tests use slog's handlers to record what the SDK logs; they do not log either.
+          # internal/redact and models/secret.go use log/slog for the LogValue of their Secret
+          # types, and internal/redact for its tests; neither logs. Tests use slog's handlers to
+          # record what the SDK logs; they do not log either.
           files:
             - "$all"
             - "!**/internal/logging/**"
             - "!${base-path}/options.go"
             - "!**/internal/redact/**"
+            - "!${base-path}/models/secret.go"
             - "!$test"
           deny:
             - pkg: log/slog

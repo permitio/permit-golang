@@ -203,10 +203,12 @@ phrases of `docRules`, and a count sentinel:
   wire cases send, and the doc comment of the method holds each rule's phrase, ignoring case and
   line breaks: `environment-level API key`, `project-level API key` or
   `organization-level API key`, the widest `KeyLevel` of its operations; `container PDP only`
-  when one of them is `ContainerOnly`; `waits for sync` when one of them is `WaitsForSync`; and
+  when one of them is `ContainerOnly`; `waits for sync` when one of them is `WaitsForSync`;
   `sent again only after a 429` when one of them is neither `Idempotent` nor `NoRetry`, such as
-  a create. A method that does not wait must not say `waits for sync`, and one whose operations
-  are each `Idempotent` or `NoRetry` must not say `sent again only after a 429`.
+  a create; and `sent once` when one of them is `NoRetry`, such as rotating an API key. A method
+  that does not wait must not say `waits for sync`, one whose operations are each `Idempotent` or
+  `NoRetry` must not say `sent again only after a 429`, and one without a `NoRetry` operation
+  must not say `sent once`.
 
 The fixture modules in `testdata/doccheck` prove the rules: `pass` passes them all, and `links`,
 `undocumented`, `examples` and `notstruct` break them. `TestDocRulesFromTheRegistry` and
@@ -1171,8 +1173,9 @@ They check five things:
   is of no JSON kind that the property does not allow: an object schema of `components.schemas` is
   the type whose row maps it, an enum schema the enum type whose row maps it, a string of format
   `date-time` a `models.Time`, a property that is a string or a list of strings a
-  `models.StringOrList`, and an object without properties `models.Attributes`, or a map of the
-  type of its values. An enum type has a constant for each value of its schema, and no other.
+  `models.StringOrList`, a string that holds a credential may be a `models.Secret`, and an object
+  without properties `models.Attributes`, or a map of the type of its values. An enum type has a
+  constant for each value of its schema, and no other.
   A count keeps the map complete: each exported type of `models` is a row under `models`, or under
   `blocks` when no schema describes it, such as `Optional`; each row is an exported type of
   `models` or of the root package, and not a name that both export; and `modelTypes` in
@@ -1739,6 +1742,10 @@ decode, and for a request that got no complete reply.
   `redact.Set` with `Set.AddFields`, so that the client's later errors and log lines replace them
   too: the strings under a key that is, in lower case and without `-` and `_`, one of the
   credential names that its doc lists, such as secret, token, apikey or accesstoken.
+- A model that holds a credential that the API returns, such as the secret of an API key, holds
+  it in a `models.Secret`, which wraps a `redact.Secret`: it prints and encodes the marker in
+  place of the credential, and its `Value` method returns it. The round trip of the drift tests
+  expects the marker in its place; see [Model drift](#model-drift).
 - When a route's body holds a credential in a field whose name is not one of those names, list
   the field in the `SensitiveBodyFields` of the route's `rest.Op` in the
   [operation registry](#operation-registry), also when the name contains one of them, such as
@@ -1753,13 +1760,13 @@ decode, and for a request that got no complete reply.
 ## Logging
 
 Only `internal/logging` logs. depguard fails an import of `log` outside `internal/logging` and
-`options.go`, which declares `WithLogger`, and of `log/slog` outside those two, `internal/redact`,
-for `Secret.LogValue`, and test files, which record what the SDK logs with slog's handlers. Each
-client has a `logging.Logger`, which
-wraps the handler of the caller's logger in one that replaces the members of the client's
-`redact.Set`, and what the stateless patterns of `redact.Scrub` find, in every part of a line. To
-log something new, add a method to `logging.Logger`, test it there, and list its attributes in
-the documentation of `WithLogger`:
+`options.go`, which declares `WithLogger`, and of `log/slog` outside those two, `internal/redact`
+and `models/secret.go`, for the `LogValue` of their `Secret` types, and test files, which record
+what the SDK logs with slog's handlers. Each client has a `logging.Logger`, which wraps the handler
+of the caller's logger in one that replaces the members of the client's `redact.Set`, and what the
+stateless patterns of `redact.Scrub` find, in every part of a line. To log something new, add a
+method to `logging.Logger`, test it there, and list its attributes in the documentation of
+`WithLogger`:
 
 - Its message is a constant that starts with `permit: `: sloglint fails a message that is not
   static, and an attribute key on its forbidden list (api_key, token, authorization, password,
@@ -1901,9 +1908,10 @@ and `tools/e2e/projects_test.go`.
      value the SDK does not know. Check it in `TestOpenEnums` (`models/enum_test.go`), which
      fails for a type with a `Known` method that it does not check.
    - Attributes, and any other map of JSON values, are `models.Attributes`, which keeps each
-     number as a `json.Number`; a timestamp is a `models.Time`, which reads RFC 3339 with or
-     without a zone; and a property that is a string or a list of strings is a
-     `models.StringOrList`, which keeps the form that it was made or decoded in.
+     number as a `json.Number`; a timestamp is a `models.Time`, which reads RFC 3339 with or without
+     a zone; a property that is a string or a list of strings is a `models.StringOrList`, which
+     keeps the form that it was made or decoded in; and a credential that the API returns, such as
+     the secret of an API key, is a `models.Secret`, which prints a marker in place of it.
 
    `models/testdata/golden` holds the bodies that each kind of `Optional` field, and a map
    tagged `omitzero`, encode to, and both supported Go versions must write them byte for byte.

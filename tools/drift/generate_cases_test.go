@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/permitio/permit-golang/v2/internal/redact"
 	"github.com/permitio/permit-golang/v2/internal/wire"
 	"github.com/permitio/permit-golang/v2/models"
 )
@@ -107,6 +108,28 @@ type NoteThatLoses struct {
 // MarshalJSON leaves out Note.
 func (NoteThatLoses) MarshalJSON() ([]byte, error) {
 	return []byte("{}"), nil
+}
+
+// The types below are Key, whose property secret is a credential.
+
+// KeySecret holds secret in a models.Secret, which encodes as the marker.
+type KeySecret struct {
+	Secret models.Secret `json:"secret,omitzero"`
+}
+
+// KeyPlain holds secret in a string, which encodes the credential as it is.
+type KeyPlain struct {
+	Secret string `json:"secret"`
+}
+
+// Keys holds KeySecret below other types, and KeyPlain.
+type Keys struct {
+	ByKey map[string]KeySecret                `json:"by_key"`
+	List  []KeySecret                         `json:"list"`
+	One   *KeySecret                          `json:"one"`
+	Opt   models.Optional[KeySecret]          `json:"opt,omitzero"`
+	Plain KeyPlain                            `json:"plain"`
+	Pairs [1]map[string]models.Optional[bool] `json:"pairs"`
 }
 
 // Notes holds NotePlain below other types.
@@ -391,10 +414,48 @@ func TestRoundTrip(t *testing.T) {
 			},
 			strictDecode, nil,
 		},
+		{
+			"a credential that a Secret holds", reflect.TypeFor[KeySecret](),
+			map[string]any{"secret": "s"},
+			strictDecode, nil,
+		},
+		{
+			"an empty credential", reflect.TypeFor[KeySecret](),
+			map[string]any{"secret": ""},
+			strictDecode, nil,
+		},
+		{
+			"null in a Secret", reflect.TypeFor[KeySecret](),
+			map[string]any{"secret": nil},
+			strictDecode, nil,
+		},
+		{
+			"credentials of Secrets below other types and of a plain string",
+			reflect.TypeFor[Keys](),
+			map[string]any{
+				"by_key": map[string]any{"a": map[string]any{"secret": "s"}},
+				"list":   []any{map[string]any{"secret": "s"}},
+				"one":    map[string]any{"secret": "s"}, "opt": map[string]any{"secret": "s"},
+				"plain": map[string]any{"secret": "s"}, "pairs": []any{map[string]any{"a": true}},
+			},
+			strictDecode, nil,
+		},
+		{
+			"a credential of a Secret where the value is another kind",
+			reflect.TypeFor[KeySecret](),
+			map[string]any{"secret": json.Number("1")},
+			strictDecode,
+			[]mismatch{{"", `{"secret":1} does not decode into drift.KeySecret: models: a ` +
+				"Secret is read from a JSON string or null"}},
+		},
 	} {
 		if got := roundTrip(tc.typ, tc.value, tc.value, tc.decode); !slices.Equal(got, tc.want) {
 			t.Errorf("%s: roundTrip =\n%q\nwant\n%q", tc.name, got, tc.want)
 		}
+	}
+	marked := markedSecrets(reflect.TypeFor[KeySecret](), map[string]any{"secret": "s"})
+	if want := map[string]any{"secret": redact.Marker}; !reflect.DeepEqual(marked, want) {
+		t.Errorf("markedSecrets of a credential = %v, want %v", marked, want)
 	}
 	withField := map[string]any{"organization_id": "o", "project_id": "p", "added_later": true}
 	if got := roundTrip(reflect.TypeFor[Scope](), withField, scope, wire.Decode); got != nil {

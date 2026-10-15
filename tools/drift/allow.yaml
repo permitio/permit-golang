@@ -12,6 +12,12 @@
 #
 # An entry that accepts no finding fails as stale: remove it.
 allow:
+  - key: model APIKeyRead field created_by_member
+    reason: >-
+      the reply of an API key can hold the member of the organization who created it, which
+      APIKeyRead leaves out, as the SDK covers no account administration of the members of the
+      organization, and the invite of a member holds its invite code
+    trigger: when the SDK models the members of the organization
   - key: reply get_api_key_scope.200.organization-null.json#/project_id
     reason: >-
       the API answers the scope of an organization-level API key with project_id null, which the

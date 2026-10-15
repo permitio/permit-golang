@@ -51,3 +51,9 @@ func (s *UsersService) Get(ctx context.Context, key string) (models.User, error)
 func (s *UsersService) Create(ctx context.Context, key string) (models.User, error) {
 	return models.User{Key: key}, ctx.Err()
 }
+
+// Rotate gives the user with the key a new token. It needs an environment-level API key, and is
+// sent once.
+func (s *UsersService) Rotate(ctx context.Context, key string) (models.User, error) {
+	return models.User{Key: key}, ctx.Err()
+}

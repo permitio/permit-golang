@@ -21,6 +21,9 @@ var (
 	// stringOrListType is models.StringOrList, a string or an array of strings.
 	stringOrListType = reflect.TypeFor[models.StringOrList]()
 
+	// secretType is models.Secret, a credential, a string that encodes as the marker.
+	secretType = reflect.TypeFor[models.Secret]()
+
 	// numberType is json.Number, any JSON number.
 	numberType = reflect.TypeFor[json.Number]()
 
@@ -452,6 +455,11 @@ func (c *comparer) matchAlternative(t reflect.Type, alt alternative, at string, 
 		return mismatch, nil
 	case t == timeType:
 		if typ != "string" || format != "date-time" {
+			return mismatch, nil
+		}
+		return nil, nil
+	case t == secretType:
+		if _, enum := alt.schema["enum"]; typ != "string" || enum || format == "date-time" {
 			return mismatch, nil
 		}
 		return nil, nil

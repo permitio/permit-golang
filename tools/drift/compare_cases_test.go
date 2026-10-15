@@ -509,6 +509,24 @@ func TestMatchType(t *testing.T) {
 			"a Time", reflect.TypeFor[models.Time](), `{"type": "string", "format": "date-time"}`,
 			nil,
 		},
+		{"a Secret for a string", reflect.TypeFor[models.Secret](), `{"type": "string"}`, nil},
+		{
+			"a Secret for a string or null", reflect.TypeFor[models.Secret](),
+			`{"anyOf": [{"type": "string"}, {"type": "null"}]}`, nil,
+		},
+		{
+			"a Secret for a number, an enum, a timestamp or an object",
+			reflect.TypeFor[models.Secret](),
+			`{"anyOf": [{"type": "integer"}, {"enum": ["a"], "type": "string"}, ` +
+				`{"type": "string", "format": "date-time"}, {"type": "object"}]}`,
+			[]string{
+				"its type models.Secret cannot hold an integer, which the schema at #/p allows",
+				"its type models.Secret cannot hold a string, which the schema at #/p allows",
+				"its type models.Secret cannot hold a string of format date-time, which the " +
+					"schema at #/p allows",
+				"its type models.Secret cannot hold an object, which the schema at #/p allows",
+			},
+		},
 		{
 			"any for a union", reflect.TypeFor[any](),
 			`{"anyOf": [{"type": "string"}, {"type": "integer"}]}`, nil,

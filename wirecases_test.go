@@ -110,6 +110,7 @@ type wireNoResult struct{}
 var wireCaseLists = []func() []wireCase{
 	scopeCases, decisionCases, permissionCases, containerCases, localCases, projectCases,
 	environmentCases,
+	apiKeyCases,
 }
 
 // routeMethods are the request methods a route can have.

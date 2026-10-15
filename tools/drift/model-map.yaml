@@ -23,6 +23,45 @@
 # blocks.<Type>: a type that no schema describes, which models use for their fields, with what it
 # stands for.
 models:
+  # An API key, as a create sends it and as the API returns it. A create reads null for a field
+  # that the schema does not require and that has no default as the field left out, as every
+  # create does, and rejects null for the organization and for the fields with a default: the
+  # level, the access level and the owner type. These null policies are not measured yet: the
+  # phase api.api_keys of the local harness confirms them. The model of the reply leaves out the
+  # member who created the key.
+  APIKeyCreate:
+    schema: APIKeyCreate
+    fields:
+      organization_id: {required: true, null_policy: rejects}
+      project_id: {required: false, null_policy: ignores}
+      environment_id: {required: false, null_policy: ignores}
+      object_type: {required: false, null_policy: rejects}
+      access_level: {required: false, null_policy: rejects}
+      owner_type: {required: false, null_policy: rejects}
+      name: {required: false, null_policy: ignores}
+  APIKeyOwnerType:
+    schema: APIKeyOwnerType
+  APIKeyRead:
+    schema: APIKeyRead
+    left_out:
+      created_by_member: >-
+        the member of the organization who created the key, which the SDK does not model, as
+        the members of the organization are account administration that it does not cover, and
+        the invite of a member holds its invite code
+    fields:
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: false, null_policy: n/a}
+      environment_id: {required: false, null_policy: n/a}
+      object_type: {required: false, null_policy: n/a}
+      access_level: {required: false, null_policy: n/a}
+      owner_type: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      secret: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      last_used_at: {required: false, null_policy: n/a}
+      env: {required: false, null_policy: n/a}
+      project: {required: false, null_policy: n/a}
   APIKeyScopeRead:
     schema: APIKeyScopeRead
     fields:
@@ -182,6 +221,10 @@ models:
       role: {required: true, null_policy: n/a}
       tenant: {required: true, null_policy: n/a}
       resource_instance: {required: false, null_policy: n/a}
+  MemberAccessLevel:
+    schema: MemberAccessLevel
+  MemberAccessObj:
+    schema: MemberAccessObj
   ObjectPermissions:
     spec: pdp-container
     schema: _UserPermissionsResult
@@ -292,6 +335,9 @@ models:
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property
   Optional: a field that the API accepts null for, whose null policy is accepts
+  Secret: >-
+    a credential that the API returns, the schema of a string, which encodes as the marker of
+    package redact in place of the credential
   StringOrList: >-
     one string or a list of strings, in the form that it was made or decoded in, the schema of
     anyOf a string and an array of strings

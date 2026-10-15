@@ -1122,6 +1122,80 @@ the environment keeps its name. `Description` and `CustomBranchName`, which were
 field out, and the environment keeps it; `models.Null[T]()` sends null, which v1 could not send;
 and `models.Some(value)` sends the value, the settings and the configuration as a whole.
 
+<a id="M-apikeys-1"></a>
+### M-apikeys-1: GetEnvironmentApiKey becomes Client.APIKeys.GetEnvironmentKey
+
+- v1: `openapi.APIKeysApiService.GetEnvironmentApiKey`
+- v2: `permit.APIKeysService.GetEnvironmentKey`
+
+Call the methods of the API keys on the `APIKeys` field of the client, `client.APIKeys`, in place
+of the generated `APIKeysApiService` of `pkg/openapi` and its request builders: each method takes
+a `context.Context` first, then its parameters, and sends its request without `Execute`.
+`APIKeysService.GetEnvironmentKey(ctx, projectKey, environmentKey)` takes the key or the ID of the
+project and of the environment, each sent escaped as one segment of the path, and needs no scope:
+it sends no request for the scope of the API key and reads none of `permit.WithScope`.
+
+The calls return a `*models.APIKeyRead`, whose fields change: `ID`, `OrganizationID`, `ProjectID`
+and `EnvironmentID` in place of `Id`, `OrganizationId`, `ProjectId` and `EnvironmentId`; its
+optional fields are plain values, empty when the reply has none, in place of pointers;
+`CreatedAt` and `LastUsedAt` are `models.Time`, which embeds `time.Time`; `Name`, `Env`, a
+`*models.EnvironmentRead`, and `Project` are new; and `CreatedByMember` is not in the v2 model. The credential of the key, a `*string` in
+v1, is a type that prints a marker in its place with `fmt`, `log/slog` and `encoding/json`: call
+its `Value` method to read it. The client keeps each credential that its calls return out of its
+errors and its log lines, as it does its own API key.
+
+<a id="M-apikeys-2"></a>
+### M-apikeys-2: ListApiKeys returns a page, and All reads every page
+
+- v1: `openapi.APIKeysApiService.ListApiKeys`
+- v2: `permit.APIKeysService.List`
+
+`APIKeysService.List(ctx, opts)` takes a `*permit.APIKeysListOptions`, nil for the first page
+with the API's default of 30 keys, in place of the `Page` and `PerPage` setters of the request,
+and returns a `*permit.Page[models.APIKeyRead]` with the counts of the reply, in place of a
+`*models.PaginatedResultAPIKeyRead`, as [M-lists-1](#M-lists-1) says. The options embed
+`permit.ListOptions`, and filter by the level of the key, `ObjectType`, and by its project,
+`Project`, neither of which v1 could send. `APIKeysService.All(ctx, opts)` returns an
+`iter.Seq2[models.APIKeyRead, error]` that reads every page, 100 keys at a time.
+
+<a id="M-apikeys-3"></a>
+### M-apikeys-3: GetApiKey becomes Get
+
+- v1: `openapi.APIKeysApiService.GetApiKey`
+- v2: `permit.APIKeysService.Get`
+
+`APIKeysService.Get(ctx, apiKeyID)` takes the ID of the key, sent escaped as one segment of the
+path; an empty ID, `.` or `..` is an error that matches `permit.ErrInvalidConfig`, with no
+request, and so is the ID `scope`, which names the route of the scope of the API key, not a key.
+A key that the organization does not have is a `*permit.Error` that matches
+`permit.ErrNotFound`.
+
+<a id="M-apikeys-4"></a>
+### M-apikeys-4: CreateApiKey takes models.APIKeyCreate as a value
+
+- v1: `openapi.APIKeysApiService.CreateApiKey`
+- v2: `permit.APIKeysService.Create`
+
+Build the key as a struct literal, such as `models.APIKeyCreate{OrganizationID: orgID}`, in place
+of `models.NewAPIKeyCreate` and its setters; an optional field that is empty is left out of the
+request, in place of a nil pointer, and the API gives it its default. `ObjectType`, `AccessLevel`
+and `OwnerType` are open enums with a constant for each value, such as `models.MemberAccessObjEnv`,
+`models.MemberAccessLevelRead` and `models.APIKeyOwnerTypeMember`, and `models.APIKeyOwnerType`
+has the value `nats_pdp_config`, which v1 did not know. Create is sent again only after a 429, as
+[M-wire-5](#M-wire-5) says, as the API may have created the key when a request got no complete
+reply.
+
+<a id="M-apikeys-5"></a>
+### M-apikeys-5: DeleteApiKey of a key that is gone returns nil
+
+- v1: `openapi.APIKeysApiService.DeleteApiKey`
+- v2: `permit.APIKeysService.Delete`
+
+`APIKeysService.Delete(ctx, apiKeyID)` returns nil when the API answers 404, as the key is gone
+already, such as when a retry follows a delete that succeeded; v1 returned an error. A mistyped
+ID returns nil too, so check the ID before a delete that must remove something. Any other error
+status is a `*permit.Error` with the status and the body.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -1283,16 +1357,21 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 
 | v1 | v2 |
 | --- | --- |
+| `models.APIKeyCreate` | `models.APIKeyCreate` |
+| `models.APIKeyOwnerType` | `models.APIKeyOwnerType` |
+| `models.APIKeyRead` | `models.APIKeyRead` |
 | `models.APIKeyScopeRead` | `models.APIKeyScopeRead` |
 | `models.AttributeType` | `models.AttributeType` |
 | `models.Attributes` | `models.Attributes` |
 | `models.EnvironmentCreate` | `models.EnvironmentCreate` |
 | `models.EnvironmentRead` | `models.EnvironmentRead` |
 | `models.EnvironmentUpdate` | `models.EnvironmentUpdate` |
+| `models.MemberAccessLevel` | `models.MemberAccessLevel` |
+| `models.MemberAccessObj` | `models.MemberAccessObj` |
 | `models.ProjectCreate` | `models.ProjectCreate` |
 | `models.ProjectRead` | `models.ProjectRead` |
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
 
-Not mapped yet: 375 of the 384 types of v1's pkg/models.
+Not mapped yet: 370 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

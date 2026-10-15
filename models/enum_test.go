@@ -72,6 +72,12 @@ func TestOpenEnums(t *testing.T) {
 			models.AttributeTypeString, models.AttributeTypeTime, models.AttributeTypeArray,
 			models.AttributeTypeJSON, models.AttributeTypeObject,
 			models.AttributeTypeObjectArray),
+		checkOpenEnum(t, models.MemberAccessObjOrg, models.MemberAccessObjProject,
+			models.MemberAccessObjEnv),
+		checkOpenEnum(t, models.MemberAccessLevelAdmin, models.MemberAccessLevelWrite,
+			models.MemberAccessLevelRead, models.MemberAccessLevelNoAccess),
+		checkOpenEnum(t, models.APIKeyOwnerTypePDPConfig, models.APIKeyOwnerTypeMember,
+			models.APIKeyOwnerTypeElements, models.APIKeyOwnerTypeNATSPDPConfig),
 	}
 
 	p, err := surface.Read(".")

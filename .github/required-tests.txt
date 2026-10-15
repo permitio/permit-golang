@@ -709,6 +709,10 @@ github.com/permitio/permit-golang/v2/models TestTimeEncodesWithItsZone
 github.com/permitio/permit-golang/v2/models TestTimeNullLeavesItAsItIs
 github.com/permitio/permit-golang/v2/models TestTimeDecodeErrors
 github.com/permitio/permit-golang/v2/models TestTimeDecodesAsText
+github.com/permitio/permit-golang/v2/models TestSecretPrintsNoCredential
+github.com/permitio/permit-golang/v2/models TestSecretInLogsAndJSON
+github.com/permitio/permit-golang/v2/models TestSecretKeepsItsCredential
+github.com/permitio/permit-golang/v2/models TestSecretDecodes
 github.com/permitio/permit-golang/v2/models FuzzOptional
 github.com/permitio/permit-golang/v2/models FuzzAttributes
 github.com/permitio/permit-golang/v2/models ExampleOptional
@@ -972,6 +976,24 @@ github.com/permitio/permit-golang/v2 TestEnvironmentsAfterClose
 github.com/permitio/permit-golang/v2 ExampleEnvironmentsService
 github.com/permitio/permit-golang/v2 ExampleEnvironmentsService_Update
 
+github.com/permitio/permit-golang/v2 TestAPIKeysAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestAPIKeysAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestAPIKeysAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestAPIKeysListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidAPIKeyListOptions
+github.com/permitio/permit-golang/v2 TestAPIKeysNeedNoScope
+github.com/permitio/permit-golang/v2 TestAPIKeyIDsInThePath
+github.com/permitio/permit-golang/v2 TestDeleteAPIKeyThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherAPIKeyCalls
+github.com/permitio/permit-golang/v2 TestAPIKeyCreateBodies
+github.com/permitio/permit-golang/v2 TestAPIKeyRetries
+github.com/permitio/permit-golang/v2 TestMalformedAPIKeyReplies
+github.com/permitio/permit-golang/v2 TestAPIKeySecretsJoinTheClientSet
+github.com/permitio/permit-golang/v2 TestAPIKeyCallsLogNoSecret
+github.com/permitio/permit-golang/v2 TestAPIKeysAfterClose
+github.com/permitio/permit-golang/v2 ExampleAPIKeysService
+github.com/permitio/permit-golang/v2 ExampleAPIKeysService_RotateSecret
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1031,6 +1053,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_project
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_environment_key
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

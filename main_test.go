@@ -66,5 +66,9 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("get_environment.200.json")})
 	servers.API.Handle("PATCH /v2/projects/{proj_id}/envs/{env_id}",
 		mockpermit.Reply{Body: replyFixture("update_environment.200.json")})
+	servers.API.Handle("GET /v2/api-key/{proj_id}/{env_id}",
+		mockpermit.Reply{Body: replyFixture("get_environment_api_key.200.json")})
+	servers.API.Handle("POST /v2/api-key/{api_key_id}/rotate-secret",
+		mockpermit.Reply{Body: replyFixture("rotate_api_key.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

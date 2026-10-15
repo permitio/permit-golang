@@ -63,12 +63,14 @@ type docRule struct {
 
 // The phrases of the doc rules other than the key levels. A call sends the request of an
 // operation that is neither Idempotent nor NoRetry, such as a create, again after a 429 only, as
-// WithRetry describes, so its doc comment says so; "sent once" stays for a NoRetry operation,
-// which WithRetry names that way.
+// WithRetry describes, so its doc comment says so; a call never sends the request of a NoRetry
+// operation again, not even after a 429, and WithRetry names such an operation as one whose
+// documentation says that it is sent once.
 const (
 	containerOnlyPhrase = "container PDP only"
 	waitsForSyncPhrase  = "waits for sync"
 	onlyAfter429Phrase  = "sent again only after a 429"
+	sentOncePhrase      = "sent once"
 )
 
 // keyLevelPhrases name the level of API key that an operation needs, as the doc comments of the
@@ -84,8 +86,9 @@ var keyLevelPhrases = map[rest.KeyLevel]string{
 // registry, sorted by method, and a problem for each ID that registry does not hold. The doc
 // comment of each method names the level of API key that it needs, the widest level of its
 // operations; says "container PDP only" when only the container PDP serves one of them; says
-// "waits for sync" when one of them waits for the PDP's policy, and only then; and says "sent
-// again only after a 429" when one of them is neither Idempotent nor NoRetry, and only then.
+// "waits for sync" when one of them waits for the PDP's policy, and only then; says "sent again
+// only after a 429" when one of them is neither Idempotent nor NoRetry, and only then; and says
+// "sent once" when one of them is NoRetry, and only then.
 func docRules(methods map[string][]string, registry *rest.Registry) ([]docRule, []string) {
 	var (
 		rules    []docRule
@@ -93,7 +96,7 @@ func docRules(methods map[string][]string, registry *rest.Registry) ([]docRule, 
 	)
 	for _, method := range slices.Sorted(maps.Keys(methods)) {
 		var level rest.KeyLevel
-		var containerOnly, waits, onlyAfter429, known bool
+		var containerOnly, waits, onlyAfter429, sentOnce, known bool
 		for _, id := range methods[method] {
 			op, ok := registry.Op(id)
 			if !ok {
@@ -106,6 +109,7 @@ func docRules(methods map[string][]string, registry *rest.Registry) ([]docRule, 
 			containerOnly = containerOnly || op.ContainerOnly
 			waits = waits || op.WaitsForSync
 			onlyAfter429 = onlyAfter429 || !op.Idempotent && !op.NoRetry
+			sentOnce = sentOnce || op.NoRetry
 		}
 		if !known {
 			continue
@@ -115,7 +119,8 @@ func docRules(methods map[string][]string, registry *rest.Registry) ([]docRule, 
 			rules = append(rules, docRule{Method: method, Phrase: containerOnlyPhrase})
 		}
 		rules = append(rules, docRule{Method: method, Phrase: waitsForSyncPhrase, Absent: !waits},
-			docRule{Method: method, Phrase: onlyAfter429Phrase, Absent: !onlyAfter429})
+			docRule{Method: method, Phrase: onlyAfter429Phrase, Absent: !onlyAfter429},
+			docRule{Method: method, Phrase: sentOncePhrase, Absent: !sentOnce})
 	}
 	return rules, problems
 }
@@ -970,8 +975,8 @@ func TestDocChecksPassAFixture(t *testing.T) {
 		t.Errorf("the checks found problems in the pass fixture:\n%s",
 			strings.Join(problems, "\n"))
 	}
-	if links != 14 || identifiers != 11 {
-		t.Errorf("the checks counted %d doc links and %d identifiers, want 14 and 11", links,
+	if links != 14 || identifiers != 12 {
+		t.Errorf("the checks counted %d doc links and %d identifiers, want 14 and 12", links,
 			identifiers)
 	}
 }
@@ -1255,26 +1260,34 @@ func docTestRegistry(t *testing.T) *rest.Registry {
 // TestDocRulesFromTheRegistry checks the rules that docRules derives from the facts of the
 // operations a method calls, and that the pass fixture, whose methods say what the rules ask,
 // passes them: a method that calls several operations needs the widest key level of them, waits
-// for sync when one of them waits, is container PDP only when one of them is, and is sent again
-// only after a 429 when one of them is neither Idempotent nor NoRetry, also when an operation
-// without the fact comes after it.
+// for sync when one of them waits, is container PDP only when one of them is, is sent again only
+// after a 429 when one of them is neither Idempotent nor NoRetry, and is sent once when one of
+// them is NoRetry, also when an operation without the fact comes after it.
 func TestDocRulesFromTheRegistry(t *testing.T) {
 	rules, problems := docRules(map[string][]string{
 		"UsersService.Get":    {"test_doc_get", "test_doc_list"},
 		"Client.Check":        {"test_doc_check", "test_doc_list"},
 		"UsersService.Create": {"test_doc_create", "test_doc_list"},
+		"UsersService.Rotate": {"test_doc_rotate", "test_doc_list"},
 	}, docTestRegistry(t))
 	want := []docRule{
 		{Method: "Client.Check", Phrase: "environment-level API key"},
 		{Method: "Client.Check", Phrase: "container PDP only"},
 		{Method: "Client.Check", Phrase: "waits for sync", Absent: true},
 		{Method: "Client.Check", Phrase: "sent again only after a 429", Absent: true},
+		{Method: "Client.Check", Phrase: "sent once", Absent: true},
 		{Method: "UsersService.Create", Phrase: "environment-level API key"},
 		{Method: "UsersService.Create", Phrase: "waits for sync", Absent: true},
 		{Method: "UsersService.Create", Phrase: "sent again only after a 429"},
+		{Method: "UsersService.Create", Phrase: "sent once", Absent: true},
 		{Method: "UsersService.Get", Phrase: "project-level API key"},
 		{Method: "UsersService.Get", Phrase: "waits for sync"},
 		{Method: "UsersService.Get", Phrase: "sent again only after a 429", Absent: true},
+		{Method: "UsersService.Get", Phrase: "sent once", Absent: true},
+		{Method: "UsersService.Rotate", Phrase: "environment-level API key"},
+		{Method: "UsersService.Rotate", Phrase: "waits for sync", Absent: true},
+		{Method: "UsersService.Rotate", Phrase: "sent again only after a 429", Absent: true},
+		{Method: "UsersService.Rotate", Phrase: "sent once"},
 	}
 	if diff := cmp.Diff(want, rules); diff != "" || problems != nil {
 		t.Errorf("docRules returned the problems %q and rules that differ (-want +got):\n%s",
@@ -1293,13 +1306,15 @@ func TestDocRulesFromTheRegistry(t *testing.T) {
 // TestDocRulesFromTheRegistryThatFail binds the methods of the pass fixture to operations whose
 // facts their doc comments do not say: a method that waits for sync without the phrase, one
 // with the phrase that does not wait, a key level that the comment does not name, a create
-// without the phrase of its retries and an Idempotent method with it, and an operation that the
+// without the phrase of its retries and an Idempotent method with it, a NoRetry operation without
+// the phrase that it is sent once and an Idempotent method with it, and an operation that the
 // registry does not hold.
 func TestDocRulesFromTheRegistryThatFail(t *testing.T) {
 	rules, problems := docRules(map[string][]string{
-		"Client.Check":        {"test_doc_get", "test_doc_create"},
+		"Client.Check":        {"test_doc_get", "test_doc_create", "test_doc_rotate"},
 		"UsersService.Get":    {"test_doc_org", "test_doc_list"},
 		"UsersService.Create": {"test_doc_list"},
+		"UsersService.Rotate": {"test_doc_list"},
 		"UsersService.Put":    {"test_doc_nothing"},
 	}, docTestRegistry(t))
 	_, pkgs := readFixture(t, "pass", ".")
@@ -1312,11 +1327,14 @@ func TestDocRulesFromTheRegistryThatFail(t *testing.T) {
 		dir + `sdk.go:36: the doc comment of Client.Check does not say "waits for sync"`,
 		dir + `sdk.go:36: the doc comment of Client.Check does not say ` +
 			`"sent again only after a 429"`,
+		dir + `sdk.go:36: the doc comment of Client.Check does not say "sent once"`,
 		dir + `sdk.go:51: the doc comment of UsersService.Create says ` +
 			`"sent again only after a 429", which it must not say`,
 		dir + `sdk.go:45: the doc comment of UsersService.Get does not say ` +
 			`"organization-level API key"`,
 		dir + `sdk.go:45: the doc comment of UsersService.Get says "waits for sync", which it ` +
+			"must not say",
+		dir + `sdk.go:57: the doc comment of UsersService.Rotate says "sent once", which it ` +
 			"must not say",
 	}
 	if diff := cmp.Diff(want, problems); diff != "" {
@@ -1324,10 +1342,11 @@ func TestDocRulesFromTheRegistryThatFail(t *testing.T) {
 	}
 }
 
-// TestDocRulesOfTheRetries checks the rule of the phrase of the retries for each kind of
+// TestDocRulesOfTheRetries checks the rules of the phrases of the retries for each kind of
 // operation: a method of an operation that is neither Idempotent nor NoRetry says that it is
 // sent again only after a 429, and a method of an Idempotent or a NoRetry operation does not, as
-// a NoRetry operation is never sent again.
+// a NoRetry operation is never sent again; a method of a NoRetry operation says that it is sent
+// once, and a method of any other operation does not.
 func TestDocRulesOfTheRetries(t *testing.T) {
 	rules, problems := docRules(map[string][]string{
 		"KeysService.Create": {"test_doc_create"},
@@ -1336,14 +1355,17 @@ func TestDocRulesOfTheRetries(t *testing.T) {
 	}, docTestRegistry(t))
 	var got []docRule
 	for _, rule := range rules {
-		if rule.Phrase == onlyAfter429Phrase {
+		if rule.Phrase == onlyAfter429Phrase || rule.Phrase == sentOncePhrase {
 			got = append(got, rule)
 		}
 	}
 	want := []docRule{
 		{Method: "KeysService.Create", Phrase: "sent again only after a 429"},
+		{Method: "KeysService.Create", Phrase: "sent once", Absent: true},
 		{Method: "KeysService.Get", Phrase: "sent again only after a 429", Absent: true},
+		{Method: "KeysService.Get", Phrase: "sent once", Absent: true},
 		{Method: "KeysService.Rotate", Phrase: "sent again only after a 429", Absent: true},
+		{Method: "KeysService.Rotate", Phrase: "sent once"},
 	}
 	if diff := cmp.Diff(want, got); diff != "" || problems != nil {
 		t.Errorf("docRules returned the problems %q and rules of the retries that differ "+

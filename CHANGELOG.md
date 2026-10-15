@@ -209,6 +209,40 @@ change from v1 and what to use instead.
   sent again after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply
   or a failed connection too.
 
+### API keys
+
+- The `APIKeys` field of the client, a `*permit.APIKeysService`, reads the API key of an
+  environment and manages the API keys of the organization: `GetEnvironmentKey` reads the key
+  of an environment by the key or the ID of its project and its own; `List` returns a page as a
+  `*permit.Page[models.APIKeyRead]`, with the counts of the reply, and `All` reads every page,
+  100 keys at a time, both filtered by `permit.APIKeysListOptions`, by the level of the key and
+  by its project; `Get` reads one key by its ID; `Create` takes a `models.APIKeyCreate`;
+  `Delete` deletes a key; and `RotateSecret` is new: it gives a key a new secret.
+- `GetEnvironmentKey` needs a project-level API key; the other calls need an organization-level
+  key. None needs a scope: they send no request for the scope of the API key, and read none of
+  `WithScope`.
+- The secret of a key is a `models.Secret`, which prints `[REDACTED]` in place of the credential
+  with `fmt` and every verb, `String`, `GoString`, the `LogValue` that `log/slog` calls and
+  `MarshalJSON`, so a printed, logged or encoded `models.APIKeyRead` holds no credential; its
+  `Value` method returns the credential, `Equal` compares two credentials in a time that does not
+  depend on their content, and `models.NewSecret` makes one. Its `UnmarshalJSON` reads a JSON string, and null as the empty
+  `models.Secret`; any other value is an error that does not hold the value. The client adds each
+  secret that its calls return to the credentials that it keeps out of its errors and its log
+  lines, as it does its own API key.
+- `RotateSecret` is sent once: never again. After a 500, 502, 503 or 504 reply or a failed
+  connection, the API may have rotated the secret, and a second rotation would replace the secret
+  that the first returned; after a 429, which the API did not act on, the call also returns the
+  error, and leaves the retry to the caller. `Create` is sent again after a 429 only; the other
+  calls are sent again after a 500, 502, 503 or 504 reply or a failed connection too. `Delete`
+  returns nil when the API answers 404, as the key is gone already. An ID or a key is sent as one
+  segment of the path, escaped; an empty one, `.` or `..` is an error that matches
+  `ErrInvalidConfig`, and no request is sent. So is the ID `scope` for `Get`, `Delete` and
+  `RotateSecret`, as it names the route of the scope of the API key, not a key.
+- `models.APIKeyOwnerType`, `models.MemberAccessObj` and `models.MemberAccessLevel` are open enums;
+  `models.APIKeyOwnerType` knows `nats_pdp_config`. `models.APIKeyRead.Env` is the environment of
+  the key, a `*models.EnvironmentRead`; `models.APIKeyRead` leaves out the member who created the
+  key.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

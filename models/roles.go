@@ -130,20 +130,22 @@ type RoleUpdate struct {
 }
 
 // AddRolePermissions is the body of a grant of permissions to a role, which
-// RolesService.AssignPermissions of the root package sends.
+// RolesService.AssignPermissions and ResourceRolesService.AssignPermissions of the root package
+// send.
 type AddRolePermissions struct {
 	// Permissions are the permissions to grant, each <resource>:<action>, such as
-	// document:read. The request always holds them: RolesService.AssignPermissions sends [] for a
-	// nil slice.
+	// document:read. The request always holds them: each method that sends the body sends [] for
+	// a nil slice.
 	Permissions []string `json:"permissions"`
 }
 
 // RemoveRolePermissions is the body of a removal of permissions from a role, which
-// RolesService.RemovePermissions of the root package sends.
+// RolesService.RemovePermissions and ResourceRolesService.RemovePermissions of the root package
+// send.
 type RemoveRolePermissions struct {
 	// Permissions are the permissions to remove, each <resource>:<action>, such as
-	// document:read. The request always holds them: RolesService.RemovePermissions sends [] for a
-	// nil slice.
+	// document:read. The request always holds them: each method that sends the body sends [] for
+	// a nil slice.
 	Permissions []string `json:"permissions"`
 }
 

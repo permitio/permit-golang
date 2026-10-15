@@ -74,6 +74,10 @@ type Client struct {
 	// client's scope, and changes their permissions.
 	Roles *RolesService `json:"-"`
 
+	// ResourceRoles lists, reads, creates, changes and deletes the roles of the resources of the
+	// environment of the client's scope, and changes their permissions.
+	ResourceRoles *ResourceRolesService `json:"-"`
+
 	// UserAttributes lists, reads, creates, changes and deletes the attributes of the users of
 	// the environment of the client's scope: the schema of what a user may hold, not its values.
 	UserAttributes *UserAttributesService `json:"-"`
@@ -173,6 +177,7 @@ func New(opts ...Option) (*Client, error) {
 	c.ResourceAttributes = &ResourceAttributesService{client: c}
 	c.ResourceRelations = &ResourceRelationsService{client: c}
 	c.Roles = &RolesService{client: c}
+	c.ResourceRoles = &ResourceRolesService{client: c}
 	c.UserAttributes = &UserAttributesService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {

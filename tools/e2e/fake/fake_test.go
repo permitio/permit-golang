@@ -46,6 +46,15 @@ var routes = []Route{
 		"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}",
 		"get_resource_role",
 	},
+	{
+		"POST", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions",
+		"assign_permissions_to_resource_role",
+	},
+	{
+		"DELETE",
+		"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions",
+		"remove_permissions_from_resource_role",
+	},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/resource_instances", "create_resource_instance"},
 	{
 		"GET", "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
@@ -790,4 +799,51 @@ func TestBulkRoles(t *testing.T) {
 		t.Errorf("a bulk replace without a body reported %q, want that the fake does not "+
 			"implement it", errs)
 	}
+}
+
+// TestResourceRolePermissions checks the grants and removals of the permissions of a role of a
+// resource, which keep the permissions that the role has and skip one that it has already or
+// does not have, a permission given as <resource>:<action> being the action's key, and change
+// that role alone, not the role of another resource or of the environment with its key; that a
+// grant to a role of the environment whose key is a resource's keeps <resource>:<action> as it
+// is given; and that a role or a resource that does not exist gets 404.
+func TestResourceRolePermissions(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	schema := "/v2/schema/proj/dev"
+	h.expect(200, "POST", schema+"/resources", `{"key": "doc"}`, projectKey)
+	h.expect(200, "POST", schema+"/resources", `{"key": "folder"}`, projectKey)
+	for _, path := range []string{"/resources/doc/roles", "/resources/folder/roles", "/roles"} {
+		h.expect(200, "POST", schema+path, `{"key": "editor", "permissions": ["read"]}`,
+			projectKey)
+	}
+	roles := schema + "/resources/doc/roles"
+	for _, tc := range []struct{ method, body, want string }{
+		{"POST", `{"permissions": ["read", "write"]}`, "[read write]"},
+		{"POST", `{"permissions": ["doc:read", "share"]}`, "[read write share]"},
+		{"DELETE", `{"permissions": ["doc:write", "none"]}`, "[read share]"},
+	} {
+		reply := h.expect(200, tc.method, roles+"/editor/permissions", tc.body, projectKey)
+		if got := fmt.Sprint(reply["permissions"]); got != tc.want {
+			t.Errorf("%s %s answered %v, want the permissions %s", tc.method, tc.body, reply,
+				tc.want)
+		}
+	}
+	for _, path := range []string{"/resources/folder/roles/editor", "/roles/editor"} {
+		if got := h.expect(200, "GET", schema+path, "", projectKey); fmt.Sprint(
+			got["permissions"]) != "[read]" {
+			t.Errorf("GET %s answered %v, want the permissions [read] that it was created with",
+				path, got)
+		}
+	}
+	h.expect(200, "POST", schema+"/roles", `{"key": "doc"}`, projectKey)
+	granted := h.expect(200, "POST", schema+"/roles/doc/permissions",
+		`{"permissions": ["doc:read"]}`, projectKey)
+	if got := fmt.Sprint(granted["permissions"]); got != "[doc:read]" {
+		t.Errorf("POST /roles/doc/permissions of doc:read answered %v, want the permissions "+
+			"[doc:read] as given", granted)
+	}
+	h.expect(404, "POST", roles+"/none/permissions", `{"permissions": ["read"]}`, projectKey)
+	h.expect(404, "DELETE", schema+"/resources/none/roles/editor/permissions",
+		`{"permissions": ["read"]}`, projectKey)
 }

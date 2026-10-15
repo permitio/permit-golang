@@ -280,3 +280,17 @@ allow:
       RoleList decodes roles of the paginated form into a slice, which encodes back as a JSON
       array, as the entry of the field roles of RoleList says; the SDK never sends a RoleList
     trigger: when the published spec gives the roles of RoleList one form
+  - key: model ResourceRoleCreate field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of a create of a role of a resource,
+      which v1 never sent, so ResourceRoleCreate leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_settings of a create of a role of a
+      resource
+  - key: model ResourceRoleCreate field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of a create of a role of a resource,
+      which v1 never sent, so ResourceRoleCreate leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_attributes of a create of a role of a
+      resource

@@ -30,9 +30,8 @@ api.NewRelationshipTuplesApi relationship-tuples
 api.ResourceInstances resource-instances
 api.ResourceInstances.* resource-instances
 api.NewResourceInstancesApi resource-instances
-api.ResourceRoles resource-roles
-api.ResourceRoles.* resource-roles
-api.NewResourceRolesApi resource-roles
+api.ResourceRoles.GetAncestors resource-roles
+api.ResourceRoles.GetDescendants resource-roles
 api.RoleAssignments role-assignments
 api.RoleAssignments.* role-assignments
 api.NewRoleAssignmentsApi role-assignments
@@ -76,7 +75,6 @@ openapi.OrganizationsApiService.ListOrganizations organizations
 openapi.OrganizationsApiService.UpdateOrganization organizations
 openapi.PolicyDecisionPointsApiService.* pdp-configs
 openapi.PolicyGitRepositoriesApiService.* policy-repos
-openapi.ResourceRolesApiService.* resource-roles
 openapi.RoleAssignmentsApiService.* role-assignments
 openapi.TenantsApiService.* tenants
 openapi.UsersApiService.* users

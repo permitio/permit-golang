@@ -125,6 +125,15 @@ var cloudScenarios = []scenario{
 		run: roleLifecycle,
 	},
 	{
+		name: "resource_role_lifecycle", methods: []string{
+			"ResourceRolesService.Create", "ResourceRolesService.List", "ResourceRolesService.All",
+			"ResourceRolesService.Get", "ResourceRolesService.Update",
+			"ResourceRolesService.AssignPermissions", "ResourceRolesService.RemovePermissions",
+			"ResourceRolesService.Delete",
+		},
+		run: resourceRoleLifecycle,
+	},
+	{
 		name: "user_attribute_lifecycle", methods: []string{
 			"UserAttributesService.Create", "UserAttributesService.Get",
 			"UserAttributesService.List", "UserAttributesService.All",

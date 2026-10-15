@@ -298,15 +298,15 @@ control-plane:
   - {op: get_resource_relation, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}", stage: GA, status: covered}
   - {op: delete_resource_relation, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}", stage: GA, status: covered}
   # Resource Roles
-  - {op: list_resource_roles, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", stage: GA, status: planned}
-  - {op: create_resource_role, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", stage: GA, status: planned}
-  - {op: get_resource_role, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: planned}
-  - {op: update_resource_role, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: planned}
-  - {op: delete_resource_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: planned}
+  - {op: list_resource_roles, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", stage: GA, status: covered}
+  - {op: create_resource_role, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", stage: GA, status: covered}
+  - {op: get_resource_role, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: update_resource_role, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: delete_resource_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: covered}
   - {op: get_resource_role_ancestors, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/ancestors", stage: GA, status: planned}
   - {op: get_resource_role_descendants, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/descendants", stage: GA, status: planned}
-  - {op: assign_permissions_to_resource_role, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions", stage: GA, status: planned}
-  - {op: remove_permissions_from_resource_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions", stage: GA, status: planned}
+  - {op: assign_permissions_to_resource_role, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions", stage: GA, status: covered}
+  - {op: remove_permissions_from_resource_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions", stage: GA, status: covered}
   # Resources
   - {op: list_resources, route: "GET /v2/schema/{proj_id}/{env_id}/resources", stage: GA, status: covered}
   - {op: create_resource, route: "POST /v2/schema/{proj_id}/{env_id}/resources", stage: GA, status: covered}

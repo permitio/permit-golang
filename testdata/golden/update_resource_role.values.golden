@@ -1,0 +1,1 @@
+{"name":"R","description":"<a>&\u2028b","permissions":["read"],"attributes":{},"extends":["viewer"],"granted_to":{"users_with_role":[{"role":"owner","on_resource":"folder","linked_by_relation":"parent"}],"when":{"no_direct_roles_on_object":true}}}

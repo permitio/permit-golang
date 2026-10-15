@@ -1132,6 +1132,22 @@ github.com/permitio/permit-golang/v2 TestMalformedRoleReplies
 github.com/permitio/permit-golang/v2 TestRolesAfterClose
 github.com/permitio/permit-golang/v2 ExampleRolesService
 
+github.com/permitio/permit-golang/v2 TestResourceRoleAttributesOfAnyType
+github.com/permitio/permit-golang/v2 TestResourceRolesAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestResourceRolesAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestResourceRolesListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidResourceRoleListOptions
+github.com/permitio/permit-golang/v2 TestResourceRolesUseTheScope
+github.com/permitio/permit-golang/v2 TestResourceRoleKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteResourceRoleThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherResourceRoleCalls
+github.com/permitio/permit-golang/v2 TestResourceRoleBodies
+github.com/permitio/permit-golang/v2 TestResourceRoleBodiesThatCannotBeJSON
+github.com/permitio/permit-golang/v2 TestResourceRoleRetries
+github.com/permitio/permit-golang/v2 TestMalformedResourceRoleReplies
+github.com/permitio/permit-golang/v2 TestResourceRolesAfterClose
+github.com/permitio/permit-golang/v2 ExampleResourceRolesService
+
 github.com/permitio/permit-golang/v2 TestUserAttributeTypes
 github.com/permitio/permit-golang/v2 TestUserAttributesAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestUserAttributesAllYieldsAnErrorOnce
@@ -1202,6 +1218,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestAttributeFilters
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRolePermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoleRelatives
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRoles
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceRolePermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1225,6 +1242,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_group_l
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_relation_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_role_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle/update
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance

@@ -150,3 +150,12 @@ M-user-attributes-2
 M-user-attributes-3
 M-user-attributes-4
 M-user-attributes-5
+M-resource-roles-1
+M-resource-roles-2
+M-resource-roles-3
+M-resource-roles-4
+M-resource-roles-5
+M-resource-roles-6
+M-resource-roles-7
+M-resource-roles-8
+M-resource-roles-9

@@ -402,6 +402,55 @@ var defaultOps = []Op{
 		ResponseModel: "RoleCreateBulkOperationResult",
 	},
 
+	// The roles of a resource of an environment, each at the environment level, as v1 sends them
+	// too. These key levels are not measured yet: the phase api.resource_roles of the local
+	// harness confirms them. The list is a JSON array of at most 100 roles. A PATCH sets the
+	// fields that it names to the values that it gives, so it does the same when sent twice; so
+	// does a grant or a removal of permissions, which v1's documentation says skips a permission
+	// that the role has already, or does not have. A create does not. A removal of permissions
+	// names them in its body, so a 404 to it is an error.
+	{
+		ID: "list_resource_roles", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ResourceRoleRead",
+	},
+	{
+		ID: "create_resource_role", Method: http.MethodPost,
+		Route:    "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles",
+		KeyLevel: EnvironmentLevel, RequestModel: "ResourceRoleCreate",
+		ResponseModel: "ResourceRoleRead",
+	},
+	{
+		ID: "get_resource_role", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ResourceRoleRead",
+	},
+	{
+		ID: "update_resource_role", Method: http.MethodPatch,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "ResourceRoleUpdate",
+		ResponseModel: "ResourceRoleRead",
+	},
+	{
+		ID: "delete_resource_role", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+	{
+		ID: "assign_permissions_to_resource_role", Method: http.MethodPost,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/" +
+			"permissions",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "AddRolePermissions",
+		ResponseModel: "ResourceRoleRead",
+	},
+	{
+		ID: "remove_permissions_from_resource_role", Method: http.MethodDelete,
+		Route: "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/" +
+			"permissions",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "RemoveRolePermissions",
+		ResponseModel: "ResourceRoleRead",
+	},
+
 	// The attributes of the users of an environment, each at the environment level, as the
 	// routes of the schema of an environment are, such as those of the attributes of a resource:
 	// v1 sent these routes only through its generated client. These key levels are not measured

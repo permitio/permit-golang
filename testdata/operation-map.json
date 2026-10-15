@@ -171,6 +171,30 @@
     "ResourceRelationsService.List": [
       "list_resource_relations"
     ],
+    "ResourceRolesService.All": [
+      "list_resource_roles"
+    ],
+    "ResourceRolesService.AssignPermissions": [
+      "assign_permissions_to_resource_role"
+    ],
+    "ResourceRolesService.Create": [
+      "create_resource_role"
+    ],
+    "ResourceRolesService.Delete": [
+      "delete_resource_role"
+    ],
+    "ResourceRolesService.Get": [
+      "get_resource_role"
+    ],
+    "ResourceRolesService.List": [
+      "list_resource_roles"
+    ],
+    "ResourceRolesService.RemovePermissions": [
+      "remove_permissions_from_resource_role"
+    ],
+    "ResourceRolesService.Update": [
+      "update_resource_role"
+    ],
     "ResourcesService.All": [
       "list_resources"
     ],

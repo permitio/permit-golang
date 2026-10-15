@@ -24,6 +24,9 @@ const (
 	opRoleAncestors         = "get_role_ancestors"
 	opRoleDescendants       = "get_role_descendants"
 	opBulkReplaceRoles      = "bulk_create_or_replace_roles"
+
+	opAssignResourceRolePermissions = "assign_permissions_to_resource_role"
+	opRemoveResourceRolePermissions = "remove_permissions_from_resource_role"
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -50,7 +53,8 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 		return f.unsupported(rt)
 	case opCopyResult:
 		return f.copyResult(segments)
-	case opAssignRolePermissions, opRemoveRolePermissions:
+	case opAssignRolePermissions, opRemoveRolePermissions, opAssignResourceRolePermissions,
+		opRemoveResourceRolePermissions:
 		if fields != nil {
 			return f.rolePermissions(rt.Op, segments, fields)
 		}
@@ -335,19 +339,33 @@ func (f *Fake) copyResult(segments []string) (int, any) {
 	return http.StatusNotFound, errorBody("NOT_FOUND", "no task "+segments[len(segments)-2])
 }
 
-// rolePermissions answers a grant, op assign_permissions_to_role, or a removal, op
-// remove_permissions_from_role, of the permissions of fields to or from the role of the path,
-// which has segments, with IDs in place of keys, as resolve found it: the role with the
+// rolePermissions answers a grant, op assign_permissions_to_role or
+// assign_permissions_to_resource_role, or a removal, op remove_permissions_from_role or
+// remove_permissions_from_resource_role, of the permissions of fields to or from the role of the
+// path, which has segments, with IDs in place of keys, as resolve found it: the role with the
 // permissions that it did not have added, or with those of fields left out, as the Permit API
-// skips a permission that the role has already, or does not have. The caller holds f.mu.
+// skips a permission that the role has already, or does not have. A permission of a role of a
+// resource given as <resource>:<action> is the action's key, as the role holds the keys of the
+// actions of its resource. The caller holds f.mu.
 func (f *Fake) rolePermissions(op string, segments []string, fields object) (int, any) {
-	role, _ := find(f.store[collectionOf(segments[:6])], segments[6])
+	role, _ := find(f.store[collectionOf(segments[:len(segments)-2])], segments[len(segments)-2])
 	have, _ := role["permissions"].([]any)
 	given, _ := fields["permissions"].([]any)
+	if op == opAssignResourceRolePermissions || op == opRemoveResourceRolePermissions {
+		resource, _ := find(f.store[collectionOf(segments[:6])], segments[6])
+		prefix := text(resource, "key") + ":"
+		given = slices.Clone(given)
+		for i, p := range given {
+			if s, ok := p.(string); ok {
+				given[i] = strings.TrimPrefix(s, prefix)
+			}
+		}
+	}
+	remove := op == opRemoveRolePermissions || op == opRemoveResourceRolePermissions
 	kept := slices.DeleteFunc(append([]any{}, have...), func(p any) bool {
-		return op == opRemoveRolePermissions && slices.Contains(given, p)
+		return remove && slices.Contains(given, p)
 	})
-	if op == opAssignRolePermissions {
+	if !remove {
 		for _, p := range given {
 			if !slices.Contains(kept, p) {
 				kept = append(kept, p)

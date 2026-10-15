@@ -628,8 +628,9 @@ func TestRoleKeysInThePath(t *testing.T) {
 	}
 }
 
-// TestRolesSendNoParentRoute checks that no method of the roles sends a request to a route of
-// the parents of a role, which v1's AddParentRole and RemoveParentRole sent and the API's
+// TestRolesSendNoParentRoute checks that no method of the roles or of the roles of a resource
+// sends a request to a route of the parents of a role, which v1's AddParentRole and
+// RemoveParentRole, and AddParent and RemoveParent of the roles of a resource, sent and the API's
 // documentation does not list: the registry holds no route under /roles/ with /parents, and the
 // strict mock, which serves only the routes of the roles that the API lists, fails any request
 // to one. A role's parents are the roles that it extends, which its update sets. A route of the
@@ -651,10 +652,16 @@ func TestRolesSendNoParentRoute(t *testing.T) {
 	for route, r := range replies {
 		api.Handle(route, r...)
 	}
+	handleResourceRoleCalls(api, resourceRoleCalls)
 	c := resourceClient(t, api)
 	for _, m := range calls {
 		if err := m.call(t.Context(), c, "editor"); err != nil {
 			t.Errorf("%s returned %v", m.name, err)
+		}
+	}
+	for _, m := range resourceRoleCalls {
+		if _, err := m.call(t.Context(), c, "document", "editor"); err != nil {
+			t.Errorf("%s of the roles of a resource returned %v", m.name, err)
 		}
 	}
 	for _, r := range api.Requests() {

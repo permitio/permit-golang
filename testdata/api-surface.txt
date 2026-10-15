@@ -402,6 +402,14 @@ models: type ResourceReplace struct, Relations map[string]string
 models: type ResourceReplace struct, Roles map[string]RoleBlockEditable
 models: type ResourceReplace struct, TypeAttributes Attributes
 models: type ResourceReplace struct, URN string
+models: type ResourceRoleCreate struct
+models: type ResourceRoleCreate struct, Attributes Attributes
+models: type ResourceRoleCreate struct, Description string
+models: type ResourceRoleCreate struct, Extends []string
+models: type ResourceRoleCreate struct, GrantedTo *DerivedRoleBlockEdit
+models: type ResourceRoleCreate struct, Key string
+models: type ResourceRoleCreate struct, Name string
+models: type ResourceRoleCreate struct, Permissions []string
 models: type ResourceRoleRead struct
 models: type ResourceRoleRead struct, Attributes Attributes
 models: type ResourceRoleRead struct, CreatedAt Time
@@ -418,6 +426,13 @@ models: type ResourceRoleRead struct, ProjectID string
 models: type ResourceRoleRead struct, Resource string
 models: type ResourceRoleRead struct, ResourceID string
 models: type ResourceRoleRead struct, UpdatedAt Time
+models: type ResourceRoleUpdate struct
+models: type ResourceRoleUpdate struct, Attributes Optional[Attributes]
+models: type ResourceRoleUpdate struct, Description Optional[string]
+models: type ResourceRoleUpdate struct, Extends []string
+models: type ResourceRoleUpdate struct, GrantedTo Optional[DerivedRoleBlockEdit]
+models: type ResourceRoleUpdate struct, Name string
+models: type ResourceRoleUpdate struct, Permissions []string
 models: type ResourceUpdate struct
 models: type ResourceUpdate struct, Actions map[string]ActionBlockEditable
 models: type ResourceUpdate struct, Attributes map[string]AttributeBlockEditable
@@ -596,6 +611,14 @@ permit: method (*ResourceRelationsService) Create(ctx context.Context, resourceK
 permit: method (*ResourceRelationsService) Delete(ctx context.Context, resourceKey string, relationKey string) error
 permit: method (*ResourceRelationsService) Get(ctx context.Context, resourceKey string, relationKey string) (*models.RelationRead, error)
 permit: method (*ResourceRelationsService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.RelationRead], error)
+permit: method (*ResourceRolesService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.ResourceRoleRead, error]
+permit: method (*ResourceRolesService) AssignPermissions(ctx context.Context, resourceKey string, roleKey string, permissions []string) (*models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) Create(ctx context.Context, resourceKey string, role models.ResourceRoleCreate) (*models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) Delete(ctx context.Context, resourceKey string, roleKey string) error
+permit: method (*ResourceRolesService) Get(ctx context.Context, resourceKey string, roleKey string) (*models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceRoleRead], error)
+permit: method (*ResourceRolesService) RemovePermissions(ctx context.Context, resourceKey string, roleKey string, permissions []string) (*models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) Update(ctx context.Context, resourceKey string, roleKey string, update models.ResourceRoleUpdate) (*models.ResourceRoleRead, error)
 permit: method (*ResourcesService) All(ctx context.Context, opts *ResourcesListOptions) iter.Seq2[models.ResourceRead, error]
 permit: method (*ResourcesService) Create(ctx context.Context, resource models.ResourceCreate) (*models.ResourceRead, error)
 permit: method (*ResourcesService) Delete(ctx context.Context, resourceKey string) error
@@ -670,6 +693,7 @@ permit: type Client struct, ResourceActionGroups *ResourceActionGroupsService
 permit: type Client struct, ResourceActions *ResourceActionsService
 permit: type Client struct, ResourceAttributes *ResourceAttributesService
 permit: type Client struct, ResourceRelations *ResourceRelationsService
+permit: type Client struct, ResourceRoles *ResourceRolesService
 permit: type Client struct, Resources *ResourcesService
 permit: type Client struct, Roles *RolesService
 permit: type Client struct, Tenants *TenantsService
@@ -734,6 +758,7 @@ permit: type ResourceDetails struct, Attributes map[string]any
 permit: type ResourceDetails struct, Key string
 permit: type ResourceDetails struct, Type string
 permit: type ResourceRelationsService struct
+permit: type ResourceRolesService struct
 permit: type ResourcesListOptions struct
 permit: type ResourcesListOptions struct, Search string
 permit: type ResourcesListOptions struct, embedded ListOptions

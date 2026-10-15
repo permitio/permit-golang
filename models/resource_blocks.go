@@ -85,7 +85,8 @@ type RelationBlockRead struct {
 }
 
 // ResourceRoleRead is a role of a resource, as the API returns it in the roles of a
-// [ResourceRead].
+// [ResourceRead], and as the methods of ResourceRolesService of the root package that return a
+// role return it.
 type ResourceRoleRead struct {
 	// Name is the role's name.
 	Name string `json:"name"`

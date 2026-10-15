@@ -2190,6 +2190,154 @@ extends := append(slices.Clone(role.Extends), "viewer")
 _, err = client.Roles.Update(ctx, "editor", models.RoleUpdate{Extends: extends})
 ```
 
+<a id="M-resource-roles-1"></a>
+### M-resource-roles-1: ResourceRoles becomes Client.ResourceRoles, which acts on the environment of the scope
+
+- v1: `api.ResourceRoles`
+- v1: `api.NewResourceRolesApi`
+- v2: `permit.ResourceRolesService`
+
+Call the methods of the roles of a resource on the `ResourceRoles` field of the client,
+`client.ResourceRoles`, in place of `client.Api.ResourceRoles`; `permit.New` builds it, so
+nothing takes the place of `api.NewResourceRolesApi`. Each method takes a `context.Context`
+first, then the key or the ID of the resource, then that of the role when it acts on one, and
+acts on the environment of the client's scope, as v1's methods acted on the environment of the
+client's context: `permit.WithScope`, or else the scope of the API key, which the client looks up
+once, as [M-scope-2](#M-scope-2) says. A scope without an environment, such as that of a
+project-level API key without `permit.WithScope`, is an error that matches
+`permit.ErrInvalidConfig`, with no request for the call. Every method returns a `*permit.Error`,
+or an error that wraps one, as [M-errors-1](#M-errors-1) says.
+
+The models keep their names and change their fields: `models.ResourceRoleRead` has `ID`,
+`OrganizationID`, `ProjectID`, `EnvironmentID` and `ResourceID` in place of `Id`,
+`OrganizationId`, `ProjectId`, `EnvironmentId` and `ResourceId`; its description is a plain
+string, empty when the reply has none, in place of a pointer; `CreatedAt` and `UpdatedAt` are
+`models.Time`, which embeds `time.Time`; and it has `Attributes`, a `models.Attributes` of any
+JSON value whose numbers are `json.Number`, as [M-models-1](#M-models-1) says, and `Resource`,
+the key of the resource, which v1's model dropped. Build `models.ResourceRoleCreate` and
+`models.ResourceRoleUpdate` as struct literals, in place of their constructors and setters; each
+has `Attributes` and `GrantedTo`, which v1's did not have.
+
+<a id="M-resource-roles-2"></a>
+### M-resource-roles-2: ResourceRoles.List takes the resource first, and returns a page
+
+- v1: `api.ResourceRoles.List`
+- v2: `permit.ResourceRolesService.List`
+
+v1's `List(ctx, page, perPage, resourceId)` took the page and the number of roles before the
+resource, and returned a `*[]models.ResourceRoleRead`. `ResourceRolesService.List(ctx,
+resourceKey, opts)` takes the resource first and a `*permit.ListOptions` next, nil for the first
+page with the API's default of 30 roles, and returns a `*permit.Page[models.ResourceRoleRead]`,
+as [M-lists-1](#M-lists-1) says. v1 failed for more than 100 roles on a page before any request;
+v2 sends the number as given, and the API answers above 100 with an error.
+`ResourceRolesService.All(ctx, resourceKey, opts)` returns an
+`iter.Seq2[models.ResourceRoleRead, error]` that reads every page, 100 roles at a time.
+
+<a id="M-resource-roles-3"></a>
+### M-resource-roles-3: ResourceRoles.Get reads a role by its key or its ID
+
+- v1: `api.ResourceRoles.Get`
+- v2: `permit.ResourceRolesService.Get`
+
+`ResourceRolesService.Get(ctx, resourceKey, roleKey)` takes the key or the ID of the resource and
+of the role, as v1's `Get` did: pass `id.String()` for a `uuid.UUID`. A key that holds a `/` or a
+`%` is sent escaped, as one segment of the path, and an empty key, `.` or `..` is an error that
+matches `permit.ErrInvalidConfig`, with no request for the role. A role that the resource does
+not have is a `*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-resource-roles-4"></a>
+### M-resource-roles-4: ResourceRoles.Create takes models.ResourceRoleCreate as a struct literal
+
+- v1: `api.ResourceRoles.Create`
+- v2: `permit.ResourceRolesService.Create`
+
+`ResourceRolesService.Create(ctx, resourceKey, role)` sends the `models.ResourceRoleCreate`: its
+key and its name always, and its other fields when they are set, an empty slice of permissions or
+of the roles that it extends as `[]` and an empty map of attributes as `{}`. A key that another
+role of the resource has is a `*permit.Error` that matches `permit.ErrConflict`. Create is sent
+again only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created the role when
+a request got no complete reply.
+
+<a id="M-resource-roles-5"></a>
+### M-resource-roles-5: ResourceRoles.Update takes models.ResourceRoleUpdate, which can send null
+
+- v1: `api.ResourceRoles.Update`
+- v2: `permit.ResourceRolesService.Update`
+
+The request holds only the fields of the `models.ResourceRoleUpdate` that are set. `Permissions`
+and `Extends` are plain slices, each sent as a whole in place of the role's list: nil leaves the
+list out of the request; an empty slice that is not nil sends `[]`; and a list replaces it.
+`Description` is a `models.Optional[string]`, `Attributes` a `models.Optional[models.Attributes]`
+and `GrantedTo` a `models.Optional[models.DerivedRoleBlockEdit]`: unset leaves the field out,
+`models.Null` sends null, and `models.Some` sends the value. An update is sent again after a 500,
+502, 503 or 504 reply or a failed connection, as sending it twice sets the same fields.
+
+<a id="M-resource-roles-6"></a>
+### M-resource-roles-6: ResourceRoles.Delete of a role that is gone returns nil
+
+- v1: `api.ResourceRoles.Delete`
+- v2: `permit.ResourceRolesService.Delete`
+
+`ResourceRolesService.Delete(ctx, resourceKey, roleKey)` returns nil when the API answers 404, as
+the role is gone already, such as when a retry follows a delete that succeeded; v1 returned an
+error. A mistyped key of the role or of the resource returns nil too, so check the keys before a
+delete that must remove something. Any other error status is a `*permit.Error` with the status
+and the body.
+
+<a id="M-resource-roles-7"></a>
+### M-resource-roles-7: ResourceRoles.AssignPermissions takes the permissions as a slice
+
+- v1: `api.ResourceRoles.AssignPermissions`
+- v2: `permit.ResourceRolesService.AssignPermissions`
+
+`ResourceRolesService.AssignPermissions(ctx, resourceKey, roleKey, permissions)` takes the
+permissions as a `[]string`, in place of a `models.AddRolePermissions`, and returns the role as
+the API stores it after the grant. A nil slice sends `[]`, as an empty one does. A 404 is a
+`*permit.Error` that matches `permit.ErrNotFound`. It is sent again after a 500, 502, 503 or 504
+reply or a failed connection, as v1's documentation says that the API skips a permission that
+the role has already.
+
+<a id="M-resource-roles-8"></a>
+### M-resource-roles-8: ResourceRoles.RemovePermissions takes the permissions as a slice
+
+- v1: `api.ResourceRoles.RemovePermissions`
+- v2: `permit.ResourceRolesService.RemovePermissions`
+
+`ResourceRolesService.RemovePermissions(ctx, resourceKey, roleKey, permissions)` takes the
+permissions as a `[]string`, in place of a `models.RemoveRolePermissions`, and returns the role as
+the API stores it after the removal. A nil slice sends `[]`, as an empty one does. A 404 is a
+`*permit.Error` that matches `permit.ErrNotFound`, and not a removal that happened already, as
+the body names what to remove. It is sent again after a 500, 502, 503 or 504 reply or a failed
+connection, as v1's documentation says that the API skips a permission that the role does not
+have.
+
+<a id="M-resource-roles-9"></a>
+### M-resource-roles-9: AddParent and RemoveParent become Update with Extends
+
+- v1: `api.ResourceRoles.AddParent`
+- v1: `api.ResourceRoles.RemoveParent`
+- v1: `openapi.ResourceRolesApiService.AddParentResourceRole`
+- v1: `openapi.ResourceRolesApiService.RemoveParentResourceRole`
+- v2: replaced by `permit.ResourceRolesService.Update`
+- Bug fix: could never work before
+
+v1's parent methods sent `PUT` and `DELETE` to
+`/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/parents/{parent_role_id}`,
+a route that the API's documentation does not list. A role's parents are the roles of its
+resource that it extends: read the role with `ResourceRolesService.Get`, and send its `Extends`
+with the parent added or removed in `models.ResourceRoleUpdate.Extends` with
+`ResourceRolesService.Update`, as the update replaces the whole list:
+
+```go
+role, err := client.ResourceRoles.Get(ctx, "document", "editor")
+if err != nil {
+	return err
+}
+extends := append(slices.Clone(role.Extends), "viewer")
+_, err = client.ResourceRoles.Update(ctx, "document", "editor",
+	models.ResourceRoleUpdate{Extends: extends})
+```
+
 <a id="M-user-attributes-1"></a>
 ### M-user-attributes-1: ListUserAttributes of the generated client becomes Client.UserAttributes.List
 
@@ -2491,7 +2639,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceCreate` | `models.ResourceCreate` |
 | `models.ResourceRead` | `models.ResourceRead` |
 | `models.ResourceReplace` | `models.ResourceReplace` |
+| `models.ResourceRoleCreate` | `models.ResourceRoleCreate` |
 | `models.ResourceRoleRead` | `models.ResourceRoleRead` |
+| `models.ResourceRoleUpdate` | `models.ResourceRoleUpdate` |
 | `models.ResourceUpdate` | `models.ResourceUpdate` |
 | `models.RoleCreate` | `models.RoleCreate` |
 | `models.RoleRead` | `models.RoleRead` |
@@ -2500,6 +2650,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 
-Not mapped yet: 332 of the 384 types of v1's pkg/models.
+Not mapped yet: 330 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

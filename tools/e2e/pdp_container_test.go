@@ -6,17 +6,21 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"testing"
 
 	permit "github.com/permitio/permit-golang/v2"
+	"github.com/permitio/permit-golang/v2/models"
+	"github.com/permitio/permit-golang/v2/tools/e2e/framework"
 	"github.com/permitio/permit-golang/v2/tools/e2e/framework/seed"
 )
 
 // containerOnlyMethods are the public methods of the routes that only the PDP container serves,
 // which the scenario of the PDP container and the one of the cloud PDP cover. Client.CheckURL
-// sends one of those routes too, and stays pending until a scenario checks its decisions.
+// sends one of those routes too: the scenario of the cloud PDP sends it, and urlCheck checks its
+// decisions against the PDP container.
 var containerOnlyMethods = []string{
 	"Client.AllTenantsCheck", "Client.UserTenants", "Client.LocalRoleAssignments",
 	"Client.LocalRoleAssignmentsAll",
@@ -107,6 +111,61 @@ func tenantsAndLocalRoleAssignments(s *suite) func(t *testing.T) {
 		if want := []string{"1/1", "2/1", "3/1"}; !slices.Equal(pages, want) {
 			t.Errorf("LocalRoleAssignmentsAll of the user, one on a page, asked for the pages %q, "+
 				"as page/per_page; want %q", pages, want)
+		}
+	}
+}
+
+// urlCheck checks Client.CheckURL against the PDP container, with the mapping rule of a proxy
+// config of its own, whose key starts with the run's prefix, and which it registers with the
+// ledger before it creates it: the rule maps GET of a URL of the config to the action read of
+// the resource url-sheet. A user whose role in a tenant grants url-sheet:read may send the
+// request in that tenant, once the PDP has the rule, and a user without a role may not; nor may
+// the first user send another method to the URL, which no rule maps.
+func urlCheck(s *suite) func(t *testing.T) {
+	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
+		const reader, outsider, role, tenant = "url-reader", "url-outsider", "url-sheet-reader",
+			"url-1"
+		s.seed(t, world{
+			resources: []seed.Resource{{Key: "url-sheet", Actions: []string{"read"}}},
+			roles:     []seed.Role{{Key: role, Permissions: []string{"url-sheet:read"}}},
+			tenants:   []string{tenant},
+			users:     []string{reader, outsider},
+			assignments: []seed.RoleAssignment{
+				{User: reader, Role: role, Tenant: tenant},
+			},
+		})
+		key := s.cfg.prefix.Key("sdk-url-proxy")
+		self := "/v2/facts/" + url.PathEscape(s.env.ProjectID) + "/" + url.PathEscape(s.env.ID) +
+			"/proxy_configs/" + url.PathEscape(key)
+		s.ledger.Register("proxy config "+key, s.api.Remover(self),
+			s.api.Absence(self, framework.AbsenceTimeout))
+		token := s.cfg.prefix.Key("proxy-url-token")
+		s.secrets = append(s.secrets, token)
+		c := s.client(t, s.env.APIKey())
+		target := "https://app.example.com/" + key + "/sheets"
+		if _, err := c.ProxyConfigs.Create(s.ctx(t), models.ProxyConfigCreate{
+			Key: key, Name: key, AuthMechanism: models.AuthMechanismBearer,
+			Secret: models.ProxySecret{Bearer: new(models.NewSecret(token))},
+			MappingRules: []models.MappingRule{{
+				URL: target, HTTPMethod: models.MethodsGet, Resource: "url-sheet",
+				Action: "read",
+			}},
+		}); err != nil {
+			t.Fatalf("setup: Create of the proxy config %s: %v", key, err)
+		}
+		await(t, s, "CheckURL of "+reader, true, func(ctx context.Context) (bool, error) {
+			return c.CheckURL(ctx, permit.User{Key: reader}, http.MethodGet, target, tenant)
+		})
+		ctx := s.ctx(t)
+		for _, check := range []struct{ user, method string }{
+			{outsider, http.MethodGet}, {reader, http.MethodDelete},
+		} {
+			allowed, err := c.CheckURL(ctx, permit.User{Key: check.user}, check.method, target,
+				tenant)
+			if err != nil || allowed {
+				t.Errorf("CheckURL of %s for %s %s = %t, %v; want a denial", check.user,
+					check.method, target, allowed, err)
+			}
 		}
 	}
 }

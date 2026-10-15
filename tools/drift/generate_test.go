@@ -13,6 +13,7 @@ import (
 
 	"github.com/permitio/permit-golang/v2/internal/redact"
 	"github.com/permitio/permit-golang/v2/internal/wire"
+	"github.com/permitio/permit-golang/v2/models"
 )
 
 // unknownValue is a value that no enum knows and a field name that no model has, as a value or
@@ -308,15 +309,21 @@ func roundTrip(t reflect.Type, value, want any, decode func([]byte, any) error) 
 }
 
 // markedSecrets returns value, a JSON value of type t, with the marker in place of each string
-// that is not empty, at any depth, whose field is a models.Secret: a Secret encodes the marker in
-// place of its credential, and the empty string as it is. Only the value that a round trip
-// expects is marked, so a Secret that encoded its credential would still differ from it.
+// that is not empty, at any depth, whose field is a models.Secret, or a models.ProxySecret, which
+// holds a Secret or, for a JSON object, a map of them: a Secret encodes the marker in place of its
+// credential, and the empty string as it is. Only the value that a round trip expects is marked,
+// so a Secret that encoded its credential would still differ from it.
 func markedSecrets(t reflect.Type, value any) any {
 	if inner := optionalOf(t); inner != nil {
 		t = inner
 	}
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
+	}
+	if _, object := value.(map[string]any); t == proxySecretType && object {
+		t = reflect.TypeFor[map[string]models.Secret]()
+	} else if t == proxySecretType {
+		t = secretType
 	}
 	switch v := value.(type) {
 	case string:

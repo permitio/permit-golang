@@ -213,6 +213,7 @@ func fixtureComparer(t *testing.T) *comparer {
 		}),
 		constants: map[string]map[string]string{
 			"Color": {"ColorRed": "red", "ColorGreen": "green", "ColorBlue": "blue"},
+			"Shade": {"ShadeLight": "light", "ShadeDark": "dark"},
 		},
 		pkgPaths: []string{reflect.TypeFor[Scope]().PkgPath()},
 		sent:     map[string]string{},
@@ -625,6 +626,36 @@ func TestMatchType(t *testing.T) {
 		{
 			"a string for an inline enum", reflect.TypeFor[string](),
 			`{"enum": ["a", "b"], "type": "string"}`, nil,
+		},
+		{
+			"an enum without a row for its inline enum", reflect.TypeFor[Shade](),
+			`{"enum": ["dark", "light"], "type": "string"}`, nil,
+		},
+		{
+			"an enum without a row for an inline enum of other values", reflect.TypeFor[Shade](),
+			`{"enum": ["dark", "pale"], "type": "string"}`,
+			[]string{
+				"the schema at #/p has the value pale, which no constant of Shade holds: add one",
+				"the constant ShadeLight of Shade is light, which is not a value of the schema " +
+					"at #/p",
+			},
+		},
+		{
+			"an enum without a row for a string", reflect.TypeFor[Shade](), `{"type": "string"}`,
+			[]string{"its type Shade is an enum that no row maps, which holds only an inline " +
+				"enum of strings, and the schema at #/p allows a string"},
+		},
+		{
+			"an enum without a row for an enum schema", reflect.TypeFor[Shade](),
+			`{"$ref": "#/components/schemas/Color"}`,
+			[]string{"its type Shade is an enum that no row maps, which holds only an inline " +
+				"enum of strings, and the schema at #/p allows the schema Color"},
+		},
+		{
+			"an enum without a row for an inline enum of integers", reflect.TypeFor[Shade](),
+			`{"enum": [1], "type": "integer"}`,
+			[]string{"its type Shade is an enum that no row maps, which holds only an inline " +
+				"enum of strings, and the schema at #/p allows an integer"},
 		},
 		{
 			"any for one kind", reflect.TypeFor[any](), `{"type": "string", "format": "uuid"}`,

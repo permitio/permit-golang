@@ -24,6 +24,10 @@ var (
 	// secretType is models.Secret, a credential, a string that encodes as the marker.
 	secretType = reflect.TypeFor[models.Secret]()
 
+	// proxySecretType is models.ProxySecret, the credential of a proxy config: a string that
+	// encodes as the marker, or an object of them.
+	proxySecretType = reflect.TypeFor[models.ProxySecret]()
+
 	// numberType is json.Number, any JSON number.
 	numberType = reflect.TypeFor[json.Number]()
 
@@ -480,6 +484,9 @@ func (c *comparer) matchAlternative(t reflect.Type, alt alternative, at string, 
 				"schema at " + at + " allows " + describe(alt) + " of " + s.name}, nil
 		}
 		return nil, nil
+	case slices.Contains(c.pkgPaths, t.PkgPath()) && t.Name() != "" &&
+		t.Kind() == reflect.String && len(c.constants[t.Name()]) > 0:
+		return c.matchInlineEnum(t, alt, at), nil
 	case slices.Contains(c.pkgPaths, t.PkgPath()) && t.Name() != "":
 		return []string{"its type " + t.Name() + " has no row under models in model-map.yaml"},
 			nil
@@ -507,6 +514,34 @@ func (c *comparer) matchAlternative(t reflect.Type, alt alternative, at string, 
 	default:
 		return nil, nil
 	}
+}
+
+// matchInlineEnum returns the problems of t, an enum type of package models that no row maps, as
+// no schema of components.schemas describes it, against alt, an alternative of the schema that at
+// locates: such a type holds an inline enum of strings, and has a constant for each of its values,
+// and no other.
+func (c *comparer) matchInlineEnum(t reflect.Type, alt alternative, at string) []string {
+	values, _ := stringList(alt.schema["enum"])
+	if typeOf(alt.schema) != "string" || alt.name != "" || len(values) == 0 {
+		return []string{"its type " + t.Name() + " is an enum that no row maps, which holds " +
+			"only an inline enum of strings, and the schema at " + at + " allows " +
+			describe(alt)}
+	}
+	constants := c.constants[t.Name()]
+	var problems []string
+	for _, value := range values {
+		if !slices.Contains(slices.Collect(maps.Values(constants)), value) {
+			problems = append(problems, "the schema at "+at+" has the value "+value+", which "+
+				"no constant of "+t.Name()+" holds: add one")
+		}
+	}
+	for _, constant := range slices.Sorted(maps.Keys(constants)) {
+		if value := constants[constant]; !slices.Contains(values, value) {
+			problems = append(problems, "the constant "+constant+" of "+t.Name()+" is "+value+
+				", which is not a value of the schema at "+at)
+		}
+	}
+	return problems
 }
 
 // matchString returns the problems of t, a string type that package models does not map, against

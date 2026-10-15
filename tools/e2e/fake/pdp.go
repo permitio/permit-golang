@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -37,8 +38,7 @@ type pdpRoute struct {
 
 	// answer answers a request to the route, with the body of the request, unless it is nil,
 	// and the query of its URL, made with an API key of the environment of s. The fake holds
-	// f.mu. It is nil for a route that no scenario sends to the PDP container, which the fake
-	// answers only as the cloud PDP.
+	// f.mu.
 	answer func(f *Fake, s scope, body []byte, query url.Values) (int, any)
 }
 
@@ -53,7 +53,10 @@ var pdpRoutes = []pdpRoute{
 		http.MethodPost, "/allowed/all-tenants", "is_allowed_all_tenants_allowed_all_tenants_post",
 		true, (*Fake).allowedTenants,
 	},
-	{http.MethodPost, "/allowed_url", "is_allowed_url_allowed_url_post", true, nil},
+	{
+		http.MethodPost, "/allowed_url", "is_allowed_url_allowed_url_post", true,
+		(*Fake).allowedURL,
+	},
 	{
 		http.MethodPost, "/user-tenants", "Get_User_Tenants_user_tenants_post", true,
 		(*Fake).userTenants,
@@ -81,7 +84,9 @@ var pdpRoutes = []pdpRoute{
 // and instance f made before them, and the permissions of its roles, each as
 // <resource>:<action>, and of its resource roles, each an action of the resource. A role in a
 // tenant grants its permissions on the resources of the tenant; a resource role on an instance
-// grants its actions on the instance. It knows no other policy: no attributes, no conditions, no
+// grants its actions on the instance. A check of a URL is the check of the action of the first
+// mapping rule of the environment's proxy configs that matches its method and URL, on the rule's
+// resource. It knows no other policy: no attributes, no conditions, no
 // relations and no role derivations, and it lists tenants without attributes. It is an
 // approximation that proves that a scenario's calls and its seed, in the order of the seed,
 // reach a PDP, never how the PDP decides; the live legs prove that.
@@ -132,12 +137,6 @@ func (f *Fake) servePDP(kind PDPKind, w http.ResponseWriter, r *http.Request) {
 	if !ok || key.environment == "" {
 		reply(w, http.StatusUnauthorized, pdpError("the API key is not one of an environment "+
 			"that the fake knows"))
-		return
-	}
-	if rt.answer == nil {
-		f.tb.Errorf("fake: %s %s (%s): the fake PDP does not implement this route", rt.method,
-			rt.path, rt.op)
-		reply(w, http.StatusNotImplemented, pdpError("not implemented"))
 		return
 	}
 	if len(body) > 0 && !f.checkPDPBody(rt, body) {
@@ -227,6 +226,53 @@ func (f *Fake) allowedBulk(s scope, body []byte, _ url.Values) (int, any) {
 		decisions[i] = decision(f.decides(s, c.User.Key, c.Action, c.Resource))
 	}
 	return http.StatusOK, object{"allow": decisions}
+}
+
+// urlCheck is a check of the PDP of the URL of a request: whether a user may send it.
+type urlCheck struct {
+	User struct {
+		Key string `json:"key"`
+	} `json:"user"`
+	HTTPMethod string `json:"http_method"`
+	URL        string `json:"url"`
+	Tenant     string `json:"tenant"`
+}
+
+// allowedURL answers POST /allowed_url: the decision of the first mapping rule of the proxy
+// configs of the environment, in the order in which they were made, whose HTTP method is the
+// request's, in any case, and whose URL matches the request's, as urlMatches says, as a check of
+// the rule's action on the rule's resource in the tenant of the request. A URL that no rule maps
+// is denied.
+func (f *Fake) allowedURL(s scope, body []byte, _ url.Values) (int, any) {
+	var c urlCheck
+	if !f.decode(body, &c) {
+		return http.StatusUnprocessableEntity, badBody
+	}
+	for _, config := range f.objectsOf(s, "facts", "proxy_configs") {
+		rules, _ := config["mapping_rules"].([]any)
+		for _, r := range rules {
+			rule, _ := r.(object)
+			if !strings.EqualFold(text(rule, "http_method"), c.HTTPMethod) ||
+				!urlMatches(rule, c.URL) {
+				continue
+			}
+			resource := pdpResource{Type: text(rule, "resource"), Tenant: c.Tenant}
+			return http.StatusOK, decision(f.decides(s, c.User.Key, text(rule, "action"),
+				resource))
+		}
+	}
+	return http.StatusOK, decision(false)
+}
+
+// urlMatches reports whether rule, a mapping rule, matches target, the URL of a request: as a
+// regular expression of the whole URL for a rule of the URL type regex, and else as the same
+// text. A regular expression that does not compile matches nothing.
+func urlMatches(rule object, target string) bool {
+	if text(rule, "url_type") != "regex" {
+		return text(rule, "url") == target
+	}
+	re, err := regexp.Compile("^(?:" + text(rule, "url") + ")$")
+	return err == nil && re.MatchString(target)
 }
 
 // tenantDetails is a tenant as a reply of the PDP holds it.

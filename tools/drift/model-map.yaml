@@ -540,6 +540,73 @@ models:
       description: {required: false, null_policy: accepts}
       settings: {required: false, null_policy: rejects}
       active_policy_repo_id: {required: false, null_policy: rejects}
+  # A proxy config, as a create and an update send it and as the API returns it, with its
+  # mapping rules. A create reads null for a field that the schema does not require and that has
+  # no default as the field left out, as every create does, and rejects null for the fields with
+  # a default: the mapping rules, the auth mechanism and, in a rule, its headers and
+  # should_delete. An update rejects null for each field; the API answers 422 to an update
+  # without the secret, so an update always sends it. These null policies, and the 422, are not
+  # measured yet: the phase api.proxy_config of the local harness confirms them. The secret of
+  # each is a ProxySecret, which allow.yaml says why no schema maps.
+  AuthMechanism:
+    schema: AuthMechanism
+  MappingRule:
+    schema: MappingRule
+    fields:
+      url: {required: true, null_policy: rejects}
+      url_type: {required: false, null_policy: ignores}
+      http_method: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      headers: {required: false, null_policy: rejects}
+      action: {required: false, null_policy: ignores}
+      priority: {required: false, null_policy: ignores}
+  MappingRuleUpdate:
+    schema: MappingRuleUpdate
+    fields:
+      url: {required: true, null_policy: rejects}
+      url_type: {required: false, null_policy: ignores}
+      http_method: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      headers: {required: false, null_policy: rejects}
+      action: {required: false, null_policy: ignores}
+      priority: {required: false, null_policy: ignores}
+      should_delete: {required: false, null_policy: rejects}
+  Methods:
+    schema: Methods
+  ProxyConfigCreate:
+    schema: ProxyConfigCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      auth_mechanism: {required: false, null_policy: rejects}
+      secret: {required: true, null_policy: rejects}
+      mapping_rules: {required: false, null_policy: rejects}
+  ProxyConfigRead:
+    schema: ProxyConfigRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      auth_mechanism: {required: false, null_policy: n/a}
+      secret: {required: true, null_policy: n/a}
+      mapping_rules: {required: false, null_policy: n/a}
+  ProxyConfigUpdate:
+    schema: ProxyConfigUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      auth_mechanism: {required: false, null_policy: rejects}
+      secret:
+        required: false
+        null_policy: rejects
+        always_sent: >-
+          the API answers 422 to an update of a proxy config without the secret, so an update
+          always sends it, and one whose secret sets no branch is not sent
+      mapping_rules: {required: false, null_policy: rejects}
   RelationBlockRead:
     schema: RelationBlockRead
     fields:
@@ -1097,6 +1164,10 @@ models:
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property
   Optional: a field that the API accepts null for, whose null policy is accepts
+  ProxySecret: >-
+    the credential of a proxy config, one of three branches, Basic, Bearer or Headers, the schema
+    of anyOf an object of strings and two strings, which encodes as the marker of package redact
+    in place of each credential
   Secret: >-
     a credential that the API returns, the schema of a string, which encodes as the marker of
     package redact in place of the credential
@@ -1104,3 +1175,6 @@ blocks:
     one string or a list of strings, in the form that it was made or decoded in, the schema of
     anyOf a string and an array of strings
   Time: a timestamp, the schema of a string of format date-time
+  URLType: >-
+    the type of the URL of a mapping rule, an open enum of the inline enum of url_type of
+    MappingRule and MappingRuleUpdate, which no schema of components.schemas names

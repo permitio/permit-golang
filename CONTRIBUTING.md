@@ -1175,7 +1175,12 @@ They check five things:
   `date-time` a `models.Time`, a property that is a string or a list of strings a
   `models.StringOrList`, a string that holds a credential may be a `models.Secret`, and an object
   without properties `models.Attributes`, or a map of the type of its values. An enum type has a
-  constant for each value of its schema, and no other.
+  constant for each value of its schema, and no other; an enum type of an inline enum of strings,
+  which no schema of `components.schemas` describes, such as `models.URLType` of the `url_type`
+  of a mapping rule, is a row of `blocks`, and has a constant for each value of the inline enum,
+  and no other. A field of another type that no row under `models` maps, such as a
+  `models.ProxySecret`, is a finding that `allow.yaml` accepts with what the type keeps and what
+  it drops.
   A count keeps the map complete: each exported type of `models` is a row under `models`, or under
   `blocks` when no schema describes it, such as `Optional`; each row is an exported type of
   `models` or of the root package, and not a name that both export; and `modelTypes` in
@@ -1185,9 +1190,10 @@ They check five things:
   every property but those that a row leaves out, and across the values every alternative and
   every value of an enum, at each place in the value and under each alternative above it. Each decodes into the type with a strict decoder,
   which fails on a field that the type does not have, and encodes back unchanged, except that a
-  null property whose field is not an `Optional` may come back left out. With an unknown field,
-  and with an unknown value in place of each value of an enum, each still decodes with the SDK's
-  decoder.
+  null property whose field is not an `Optional` may come back left out, and a credential that a
+  `models.Secret` holds, also in a `models.ProxySecret`, comes back as the marker. With an unknown
+  field, and with an unknown value in place of each value of an enum, each still decodes with the
+  SDK's decoder.
 - **Operations.** The `RequestModel` and `ResponseModel` of each operation of the
   [registry](#operation-registry) map, through their rows, to the schemas of the operation's
   request body and of each of its replies in 200-299 that has a JSON body, in the spec that lists
@@ -1759,12 +1765,20 @@ decode, and for a request that got no complete reply.
   it in a `models.Secret`, which wraps a `redact.Secret`: it prints and encodes the marker in
   place of the credential, and its `Value` method returns it. The round trip of the drift tests
   expects the marker in its place; see [Model drift](#model-drift).
+- A credential that a request sends, such as the secret of a proxy config, a
+  `models.ProxySecret` of `models.Secret` values, is held the same way, so the model's own JSON
+  holds the marker: the method builds the body from the credentials that `Value` returns, as
+  `proxySecretBody` (`proxy_configs.go`) does, and adds each to the client's `redact.Set` with
+  `Set.Add` before it sends the request, so that an error reply whose body echoes the credential,
+  in a field or in a message, holds the marker in its place.
 - When a route's body holds a credential in a field whose name is not one of those names, list
   the field in the `SensitiveBodyFields` of the route's `rest.Op` in the
   [operation registry](#operation-registry), also when the name contains one of them, such as
-  `webhook_secret`: the transport passes them to `redact.Scrub`, which then replaces the field's
-  values in the error bodies of that route, and to `Set.AddFields`, which adds their values in a
-  reply in 200-299 to the client's `redact.Set`.
+  `webhook_secret`, or when the field holds an object of credentials, such as the `secret` of a
+  proxy config whose values are headers, which `Set.AddFields` searches by its own keys under a
+  credential name: the transport passes them to `redact.Scrub`, which then replaces the field's
+  values in the error bodies of that route, and to `Set.AddFields`, which adds their values, every
+  string inside them, in a reply in 200-299 to the client's `redact.Set`.
 - `FuzzScrub` (`internal/redact`) and `FuzzError` (the root package) check that no key reaches an
   error. `go test` runs their seeds, in `testdata/fuzz`; to search for new inputs, run one, for
   example `go test -run '^$' -fuzz '^FuzzError$' -fuzztime 1m .`, and add each input that fails
@@ -1847,7 +1861,7 @@ its own:
 | `KeyLevel` | The narrowest API key that may call it: `EnvironmentLevel`, `ProjectLevel` or `OrganizationLevel`. |
 | `DeleteSelf` | A DELETE whose path names the object it deletes, so that a 404 means the object is gone already. Not a removal whose body names what it removes. |
 | `NoRetry` | Never sent twice, not even after a 429, such as rotating an API key. |
-| `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name other than the credential names of `redact.Set.AddFields`, such as `webhook_secret`. |
+| `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name other than the credential names of `redact.Set.AddFields`, such as `webhook_secret`, or an object of credentials under one of them, such as the `secret` of a proxy config, a set of headers. |
 | `NoReplyCredentials` | Its replies in 200-299 hold no credential that the server issued, so their values do not join the client's `redact.Set`: the PDP's decisions and the PDP's lists of permissions, of authorized users, of tenants and of role assignments, whose replies hold the application's values and can echo the request. |
 | `MaxPerPage` | The largest `per_page` of a list operation, or 0. |
 | `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty; an operation of the PDP names the type of the root package that its request holds, such as `CheckRequest`, and no `ResponseModel`, as the SDK reads the reply itself: `allow` of a decision, or the entries of the permissions of a user, of the authorized users or of the tenants; a list of the PDP whose items are a type of the root package, such as `LocalRoleAssignment`, names none either, as its reply holds no type of `models`. A request that is a JSON array of the type names it after `[]`, such as `[]CheckRequest`, and so does the reply of an operation that is not a list, one without a `MaxPerPage`, when it is a JSON array of the type, such as the `[]ConditionSetRuleRead` of the create of a condition set rule. |

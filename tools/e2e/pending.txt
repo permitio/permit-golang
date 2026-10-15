@@ -8,5 +8,3 @@
 #
 # One method per line: <Type>.<Method> e2e-pending <area>, such as
 # Client.Check e2e-pending pdp-decisions. Blank lines and lines that start with # are ignored.
-
-Client.CheckURL e2e-pending pdp-decisions

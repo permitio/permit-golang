@@ -36,6 +36,9 @@ list.per-page.negative PerPage is less than zero; give 0 to leave the number of 
 path.api-key-id.scope the API key ID is scope, which names the route of the scope of the API key, not a key; pass the ID of an API key
 path.segment.dot the path parameter is . or .., which would change the route; pass the key or ID of the object
 path.segment.empty the path parameter is empty; pass the key or ID of the object
+proxy-config.auth-mechanism.mismatch the auth mechanism names another branch of the secret than the one that it sets; leave AuthMechanism empty to send the mechanism of that branch, or set the branch that it names
+proxy-config.secret.many the secret sets more than one of Basic, Bearer and Headers; set only the one of the proxy config's auth mechanism
+proxy-config.secret.none the secret holds no credential: it sets none of Basic, Bearer and Headers, or the one that it sets is empty or has an empty value; set the one of the proxy config's auth mechanism, with values that are not empty
 scope.environment.missing the operation acts on an environment, and the client's scope has none; pass WithScope(project, environment) to New
 scope.project.missing the operation acts on a project, and the client's scope has none; pass WithScope(project, environment) to New
 wait-for-sync.facts-via-api the call waits for sync, which only the PDP container does, and the client sends facts to the API; pass WithFactsViaPDP to New, or make the call without the wait

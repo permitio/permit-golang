@@ -165,5 +165,10 @@ func TestMain(m *testing.M) {
 	servers.API.Handle("PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}", mockpermit.Reply{
 		Status: http.StatusCreated, Body: replyFixture("replace_user.201.json"),
 	}, mockpermit.Reply{Body: replyFixture("replace_user.200.json")})
+	servers.API.Handle("POST /v2/facts/{proj_id}/{env_id}/proxy_configs",
+		mockpermit.Reply{Body: replyFixture("create_proxy_config.200.json")})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/proxy_configs",
+		mockpermit.Reply{Body: replyFixture("list_proxy_configs.200.json")},
+		mockpermit.Reply{Body: `[]`})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

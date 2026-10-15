@@ -118,6 +118,7 @@ var routes = []Route{
 	{"GET", "/v2/facts/{proj_id}/{env_id}/set_rules", "list_set_permissions"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/set_rules", "assign_set_permissions"},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/set_rules", "unassign_set_permissions"},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/proxy_configs", "create_proxy_config"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/tenants", "create_tenant"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants", "list_tenants"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},

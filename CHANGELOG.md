@@ -640,6 +640,53 @@ change from v1 and what to use instead.
   only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection
   too.
 
+### Proxy configs
+
+- The `ProxyConfigs` field of the client, a `*permit.ProxyConfigsService`, lists, reads,
+  creates, changes and deletes the proxy configs of the environment of the client's scope, in
+  place of v1's `ProxyConfigs`: `List` returns a page as a `*permit.Page[models.ProxyConfigRead]`
+  and `All` reads every page, 100 configs at a time; `Get` takes the key or the ID of a config, in
+  place of v1's `Get`, `GetByKey` and `GetById`; `Create` takes a `models.ProxyConfigCreate`, and
+  `Update` a `models.ProxyConfigUpdate`, each as a struct literal; `Delete` returns nil when the
+  API answers 404, as the config is gone already.
+- The secret of a proxy config is a `models.ProxySecret`, a union of three branches, one of which
+  is set, as the config's `models.AuthMechanism` names it: `Basic`, a credential of the form
+  `user:password`, and `Bearer`, a token, each a `*models.Secret`, and `Headers`, a
+  `map[string]models.Secret` of the headers that the Permit proxy adds to a request. Create and
+  Update send a secret of headers as a JSON object, which v1 could not send, and the two others
+  as a string. A reply's secret is read as its form and the config's auth mechanism say: a JSON
+  object as `Headers`, which v1 could not read, and a string as `Basic` when the auth mechanism
+  is `Basic`, and as `Bearer` otherwise.
+- The branch of the secret decides the auth mechanism: Create and Update always send one, the
+  `AuthMechanism` of the call, or, when it is empty, the mechanism of the branch that the secret
+  sets. Each of these is an error that matches `ErrInvalidConfig`, and no request is sent: a
+  secret that sets no branch, or more than one; a branch whose credential is empty, such as a
+  `Bearer` of the empty string, `Headers` without a header, or a header whose value is empty; and
+  an `AuthMechanism` of the SDK's constants that names another branch than the one that the
+  secret sets. An auth mechanism that the SDK does not know is sent as it is.
+- A `models.ProxySecret` prints `[REDACTED]` in place of each credential with `fmt` and every
+  verb, `String`, `GoString` and `MarshalJSON`, so a printed, logged or encoded config holds no
+  credential, while the request of a create or an update holds the credentials themselves. A
+  `models.ProxySecret` that sets no branch encodes as `null`, as it decodes from `null`. The
+  client adds each credential that a call sends or returns to the credentials that it keeps out
+  of its errors and its log lines, as it does its own API key, the value of each header of a
+  secret of headers too, also where the body of an error reply echoes it. It replaces each of
+  them wherever it appears in a later error or log line of the client, so a secret of headers
+  should hold only credentials: the value of a header that is not one, such as a region or a
+  version, is replaced in those too, also inside a request ID, a path or a status code.
+- An update always sends the secret, as the API answers an update without it with a 422. Create
+  and Update are sent again after a 429 only: the API adds the mapping rules of an update to
+  those that it stores, and removes one only when its `ShouldDelete` is set, so a second request
+  could add or remove a rule again. The other calls are sent again after a 500, 502, 503 or 504
+  reply or a failed connection too.
+- The routes of the proxy configs start with `/v2/facts/`, but only the API serves them: a client
+  with `WithFactsViaPDP` sends them to the API, and no call waits for sync. A key is sent as one
+  segment of the path, escaped; an empty key, `.` or `..` is an error that matches
+  `ErrInvalidConfig`, and no request is sent.
+- `models.MappingRule` and `models.MappingRuleUpdate`, which adds `ShouldDelete`, map a URL and
+  an HTTP method to a resource and an action, which `Client.CheckURL` decides on.
+  `models.AuthMechanism`, `models.Methods` and `models.URLType` are open enums.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

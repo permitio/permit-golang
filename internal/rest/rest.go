@@ -98,10 +98,11 @@ type Op struct {
 	NoRetry bool
 
 	// SensitiveBodyFields are the fields of the operation's bodies that hold a credential under a
-	// name other than the credential names of redact.Set.AddFields, such as webhook_secret; their
-	// values are replaced in the bodies of its error replies, and their values in a reply in
-	// 200-299 join the client's redact.Set. The registry keeps its own copy; callers must not
-	// change it.
+	// name other than the credential names of redact.Set.AddFields, such as webhook_secret, or an
+	// object of credentials under one of them, such as the secret of a proxy config, a set of
+	// headers; their values are replaced in the bodies of its error replies, and their values,
+	// every string inside them, in a reply in 200-299 join the client's redact.Set. The registry
+	// keeps its own copy; callers must not change it.
 	SensitiveBodyFields []string
 
 	// NoReplyCredentials says that a reply of the operation in 200-299 holds no credential that

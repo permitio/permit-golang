@@ -15,9 +15,6 @@
 api.Elements elements
 api.Elements.* elements
 api.NewElementsApi elements
-api.ProxyConfigs proxy-configs
-api.ProxyConfigs.* proxy-configs
-api.NewProxyConfigsApi proxy-configs
 api.RelationshipTuples relationship-tuples
 api.RelationshipTuples.* relationship-tuples
 api.NewRelationshipTuplesApi relationship-tuples

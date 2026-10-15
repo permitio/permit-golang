@@ -95,6 +95,11 @@ func TestOpenEnums(t *testing.T) {
 			models.ErrorCodePaginationSizeOverreached, models.ErrorCodeMismatchRelationType,
 			models.ErrorCodeConcurrentOperationDisallowed, models.ErrorCodeUnauthorized),
 		checkOpenEnum(t, models.UserStatusActive, models.UserStatusPending),
+		checkOpenEnum(t, models.AuthMechanismBearer, models.AuthMechanismBasic,
+			models.AuthMechanismHeaders),
+		checkOpenEnum(t, models.MethodsGet, models.MethodsPost, models.MethodsPut,
+			models.MethodsPatch, models.MethodsDelete, models.MethodsHead, models.MethodsOptions),
+		checkOpenEnum(t, models.URLTypeRegex),
 	}
 
 	p, err := surface.Read(".")

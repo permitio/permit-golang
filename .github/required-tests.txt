@@ -739,6 +739,10 @@ github.com/permitio/permit-golang/v2/models TestRoleListNullLeavesItAsItIs
 github.com/permitio/permit-golang/v2/models TestResourceRoleListDecodes
 github.com/permitio/permit-golang/v2/models TestResourceRoleListDecodeErrors
 github.com/permitio/permit-golang/v2/models TestResourceRoleListNullLeavesItAsItIs
+github.com/permitio/permit-golang/v2/models TestProxySecretEncodes
+github.com/permitio/permit-golang/v2/models TestProxySecretDecodes
+github.com/permitio/permit-golang/v2/models TestProxySecretPrintsNoCredential
+github.com/permitio/permit-golang/v2/models TestProxyConfigReadSecret
 
 github.com/permitio/permit-golang/v2/tools/drift TestRepositoryModelMap
 github.com/permitio/permit-golang/v2/tools/drift TestRepositoryModels
@@ -1224,6 +1228,27 @@ github.com/permitio/permit-golang/v2 TestUsersWaitForSyncMisuse
 github.com/permitio/permit-golang/v2 ExampleUsersService
 github.com/permitio/permit-golang/v2 ExampleUsersService_Sync
 
+github.com/permitio/permit-golang/v2 TestProxyConfigsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestProxyConfigsAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestProxyConfigsListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidProxyConfigListOptions
+github.com/permitio/permit-golang/v2 TestProxyConfigsUseTheScope
+github.com/permitio/permit-golang/v2 TestProxyConfigsStayOnTheAPI
+github.com/permitio/permit-golang/v2 TestProxyConfigKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteProxyConfigThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherProxyConfigCalls
+github.com/permitio/permit-golang/v2 TestProxyConfigBodies
+github.com/permitio/permit-golang/v2 TestProxyConfigSecretsRoundTrip
+github.com/permitio/permit-golang/v2 TestProxyConfigAuthMechanismOfTheSecret
+github.com/permitio/permit-golang/v2 TestInvalidProxyConfigSecrets
+github.com/permitio/permit-golang/v2 TestProxyConfigErrorsHoldNoSecret
+github.com/permitio/permit-golang/v2 TestMalformedProxyConfigReplies
+github.com/permitio/permit-golang/v2 TestProxyConfigSecretsJoinTheClientSet
+github.com/permitio/permit-golang/v2 TestProxyConfigCallsLogNoSecret
+github.com/permitio/permit-golang/v2 TestProxyConfigRetries
+github.com/permitio/permit-golang/v2 TestProxyConfigsAfterClose
+github.com/permitio/permit-golang/v2 ExampleProxyConfigsService
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1289,6 +1314,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPUserPermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAuthorizedUsers
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPLocalRoleAssignments
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPURLChecks
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAccess
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestCloudPDP
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPRoutes
@@ -1313,12 +1339,14 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycl
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/concurrent_sync_of_a_new_user
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_permissions
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/authorized_users
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenants_and_local_role_assignments
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/url_check
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/container_only_routes_on_cloud_pdp
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete

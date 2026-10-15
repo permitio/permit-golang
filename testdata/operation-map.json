@@ -153,6 +153,24 @@
     "ProjectsService.Update": [
       "update_project"
     ],
+    "ProxyConfigsService.All": [
+      "list_proxy_configs"
+    ],
+    "ProxyConfigsService.Create": [
+      "create_proxy_config"
+    ],
+    "ProxyConfigsService.Delete": [
+      "delete_proxy_config"
+    ],
+    "ProxyConfigsService.Get": [
+      "get_proxy_config"
+    ],
+    "ProxyConfigsService.List": [
+      "list_proxy_configs"
+    ],
+    "ProxyConfigsService.Update": [
+      "update_proxy_config"
+    ],
     "ResourceActionGroupsService.All": [
       "list_resource_action_groups"
     ],

@@ -2890,6 +2890,136 @@ sent; v1 sent the headers of the wait with every call through its copy. A client
 `permit.WithFactsViaPDP()` gets the same error for every call through the copy, as only the PDP
 container waits; v1 logged a warning and made the calls without the wait.
 
+<a id="M-proxy-configs-1"></a>
+### M-proxy-configs-1: ProxyConfigs becomes Client.ProxyConfigs, which acts on the environment of the scope
+
+- v1: `api.ProxyConfigs`
+- v1: `api.NewProxyConfigsApi`
+- v2: `permit.ProxyConfigsService`
+
+Call the methods of the proxy configs on the `ProxyConfigs` field of the client,
+`client.ProxyConfigs`, in place of `client.Api.ProxyConfigs`; `permit.New` builds it, so nothing
+takes the place of `api.NewProxyConfigsApi`. Each method takes a `context.Context` first, then the
+key or the ID of the config where it acts on one, and acts on the environment of the client's
+scope, as v1's methods acted on the environment of the client's context: `permit.WithScope`, or
+else the scope of the API key, which the client looks up once, as [M-scope-2](#M-scope-2) says. A
+scope without an environment, such as that of a project-level API key without `permit.WithScope`,
+is an error that matches `permit.ErrInvalidConfig`, with no request for the call. A key that holds
+a `/` or a `%` is sent escaped, as one segment of the path, and an empty key, `.` or `..` is an
+error that matches `permit.ErrInvalidConfig`, with no request. Every method returns a
+`*permit.Error`, or an error that wraps one, as [M-errors-1](#M-errors-1) says. The routes start
+with `/v2/facts/`, but only the API serves them: a client with `permit.WithFactsViaPDP` sends them
+to the API too, and none waits for sync.
+
+`models.ProxyConfigCreate`, `models.ProxyConfigUpdate`, `models.ProxyConfigRead`,
+`models.MappingRule`, `models.AuthMechanism` and `models.Methods` keep their names: build them as
+struct literals, in place of their constructors and setters. `models.ProxyConfigRead` has `ID`,
+`OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`, `OrganizationId`, `ProjectId`
+and `EnvironmentId`, and `CreatedAt` and `UpdatedAt` are `models.Time`, which embeds `time.Time`.
+`AuthMechanism` is a `models.AuthMechanism` in place of a pointer, empty to send the mechanism of
+the credential that is set, as [M-proxy-configs-4](#M-proxy-configs-4) says, with the constants
+`models.AuthMechanismBearer`, `models.AuthMechanismBasic` and `models.AuthMechanismHeaders` in
+place of `BEARER`, `BASIC` and `HEADERS`.
+
+The credential of a config, a `string` in v1, and a pointer to one in an update, is a union of
+three fields, one of which is set, as the auth mechanism of the config names it: `Basic` for a
+`user:password` credential and `Bearer` for a token, each a pointer to a type that prints a
+marker in place of the credential with `fmt`, `log/slog` and `encoding/json`, and `Headers`, a map
+of such values by the name of each header. The
+[Proxy configs section of the CHANGELOG](CHANGELOG.md#proxy-configs) names the types. Read a
+credential with the `Value` method of its value. The client keeps each credential that its calls
+send or return out of its errors and its log lines, as it does its own API key, the value of each
+header too, wherever it appears, so a set of headers should hold only credentials.
+
+In `models.MappingRule`, `URL`, `HTTPMethod` and `URLType` take the place of `Url`, `HttpMethod`
+and `UrlType`; `URLType`, `Headers` and `Action` are values in place of pointers, and `Priority`
+is an `*int` in place of an `*int32`. Nil `Headers` or `Priority`, or an empty `URLType` or
+`Action`, leaves it out of a request; an empty map of headers that is not nil sends `{}`.
+`models.UrlMatchType` and its constant `URLMatchTypeRegex` become `models.URLType` and
+`models.URLTypeRegex`, and the constants of `models.Methods` are `models.MethodsGet` to
+`models.MethodsOptions` in place of `GET` to `OPTIONS`. An update takes its rules as
+`models.MappingRuleUpdate`, which v1 did not have: it adds or changes a rule, and removes one
+only when its `ShouldDelete` is set.
+
+<a id="M-proxy-configs-2"></a>
+### M-proxy-configs-2: List returns a page, and All reads every page
+
+- v1: `api.ProxyConfigs.List`
+- v2: `permit.ProxyConfigsService.List`
+
+v1's `List(ctx, page, perPage)` failed for a `perPage` above 100 and returned the configs of one
+page as a `[]models.ProxyConfigRead`. `ProxyConfigsService.List(ctx, opts)` takes a
+`*permit.ListOptions`, nil for the first page with the API's default of 30 configs, and returns a
+`*permit.Page[models.ProxyConfigRead]`, as [M-lists-1](#M-lists-1) says.
+`ProxyConfigsService.All(ctx, opts)` returns an `iter.Seq2[models.ProxyConfigRead, error]` that
+reads every page, 100 configs at a time. v1 failed for the whole page when one config held a
+credential of headers; v2 reads every config of the page, of each auth mechanism.
+
+<a id="M-proxy-configs-3"></a>
+### M-proxy-configs-3: Get, GetByKey and GetById become Get, which reads a config of each auth mechanism
+
+- v1: `api.ProxyConfigs.Get`
+- v1: `api.ProxyConfigs.GetByKey`
+- v1: `api.ProxyConfigs.GetById`
+- v2: `permit.ProxyConfigsService.Get`
+
+`ProxyConfigsService.Get(ctx, proxyConfigKey)` takes the key or the ID of the config, in place of
+the three methods of v1: pass `id.String()` for the `uuid.UUID` of `GetById`. v1 could not read a
+config whose credential is a set of headers, as v1.3.0's documentation says; v2 reads it into
+`Headers`, and a credential that is a string into `Basic` when the auth mechanism of the config is
+`Basic`, and into `Bearer` otherwise. A config that the environment does not have is a
+`*permit.Error` that matches `permit.ErrNotFound`.
+
+<a id="M-proxy-configs-4"></a>
+### M-proxy-configs-4: Create sends a credential of headers as an object, with the mechanism of its field
+
+- v1: `api.ProxyConfigs.Create`
+- v2: `permit.ProxyConfigsService.Create`
+
+`ProxyConfigsService.Create(ctx, config)` takes the `models.ProxyConfigCreate` as a struct literal,
+in place of a value that `models.NewProxyConfigCreate` built. v1 sent the credential as a string,
+so a config whose auth mechanism is `Headers` could not be sent with its headers; v2 sends the
+headers as a JSON object, and a `Basic` or a `Bearer` credential as a string. The request always
+holds the auth mechanism: `AuthMechanism`, or, when it is empty, the mechanism of the field of
+the credential that is set, where v1's `models.NewProxyConfigCreate` set `BASIC` whatever the
+credential. Each of these is an error that matches `permit.ErrInvalidConfig`, with no request at
+all: a credential that sets none of the three fields, or more than one; a field that is empty or
+has an empty value, such as a map of headers without a header; and an `AuthMechanism` of the
+constants of `models.AuthMechanism` that names another field than the one that is set. A key that
+another config of the environment has is a `*permit.Error` that matches `permit.ErrConflict`.
+Create is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created
+the config when a request got no complete reply.
+
+<a id="M-proxy-configs-5"></a>
+### M-proxy-configs-5: Update always sends the credential, and is sent again after a 429 only
+
+- v1: `api.ProxyConfigs.Update`
+- v2: `permit.ProxyConfigsService.Update`
+
+`ProxyConfigsService.Update(ctx, proxyConfigKey, update)` takes the key or the ID of the config
+and a `models.ProxyConfigUpdate` as a struct literal, in place of a value that
+`models.NewProxyConfigUpdate` built and its setters. The API answers an update without the
+credential with a 422, so v2 always sends it, in the form of its field, with the auth mechanism,
+as Create does, where v1 sent a mechanism only when it was set. A credential or an
+`AuthMechanism` that Create rejects is an error that matches `permit.ErrInvalidConfig` for an
+update too, with no request at all; the name and the mapping rules are sent only when they are
+set. The API adds the mapping rules of an update to those that it stores, and removes a rule only
+when its `ShouldDelete` is set, so an update is sent again only after a 429, as a second request
+could add or remove a rule again.
+
+<a id="M-proxy-configs-6"></a>
+### M-proxy-configs-6: Delete of a config that is gone returns nil
+
+- v1: `api.ProxyConfigs.Delete`
+- v2: `permit.ProxyConfigsService.Delete`
+
+`ProxyConfigsService.Delete(ctx, proxyConfigKey)` returns nil when the API answers 404, as the
+config is gone already, such as when a retry follows a delete that succeeded; v1 returned the
+error. A mistyped key returns nil too, so check the key before a delete that must remove
+something. Any other error status is a `*permit.Error` with the status and the body. It is sent
+again after a 500, 502, 503 or 504 reply or a failed connection, as deleting a config twice
+leaves it deleted.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -3081,6 +3211,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.AttributeBlockRead` | `models.AttributeBlockRead` |
 | `models.AttributeType` | `models.AttributeType` |
 | `models.Attributes` | `models.Attributes` |
+| `models.AuthMechanism` | `models.AuthMechanism` |
 | `models.ConditionSetCreate` | `models.ConditionSetCreate` |
 | `models.ConditionSetRead` | `models.ConditionSetRead` |
 | `models.ConditionSetRuleCreate` | `models.ConditionSetRuleCreate` |
@@ -3101,12 +3232,17 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.EnvironmentRead` | `models.EnvironmentRead` |
 | `models.EnvironmentStats` | `models.EnvironmentStats` |
 | `models.EnvironmentUpdate` | `models.EnvironmentUpdate` |
+| `models.MappingRule` | `models.MappingRule` |
 | `models.MemberAccessLevel` | `models.MemberAccessLevel` |
 | `models.MemberAccessObj` | `models.MemberAccessObj` |
+| `models.Methods` | `models.Methods` |
 | `models.PDPConfigRead` | `models.PDPConfigRead` |
 | `models.ProjectCreate` | `models.ProjectCreate` |
 | `models.ProjectRead` | `models.ProjectRead` |
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
+| `models.ProxyConfigCreate` | `models.ProxyConfigCreate` |
+| `models.ProxyConfigRead` | `models.ProxyConfigRead` |
+| `models.ProxyConfigUpdate` | `models.ProxyConfigUpdate` |
 | `models.RelationBlockRead` | `models.RelationBlockRead` |
 | `models.RelationCreate` | `models.RelationCreate` |
 | `models.RelationRead` | `models.RelationRead` |
@@ -3138,6 +3274,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.UserRoleCreate` | `models.UserRoleCreate` |
 | `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 317 of the 384 types of v1's pkg/models.
+Not mapped yet: 311 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

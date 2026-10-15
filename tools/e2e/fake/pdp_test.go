@@ -335,9 +335,74 @@ func TestPDPLocalRoleAssignments(t *testing.T) {
 	}
 }
 
+// TestPDPURLChecks checks the URL checks of the fake PDP: the first mapping rule of the proxy
+// configs of the environment whose HTTP method, in any case, and URL match the request decides it,
+// as a check of its action on its resource in the request's tenant; a rule of the URL type regex
+// matches the whole URL with its regular expression, and one that does not compile matches
+// nothing; a URL that no rule maps, a method that no rule names and a rule without an action are
+// denied.
+func TestPDPURLChecks(t *testing.T) {
+	h := newPDPHarness(t)
+	for _, config := range []string{
+		`{"key": "docs", "name": "Docs", "secret": "t", "mapping_rules": [` +
+			`{"url": "https://app.example.com/documents", "http_method": "get", ` +
+			`"resource": "document", "action": "read"}, ` +
+			`{"url": "https://app.example.com/documents/[0-9]+", "url_type": "regex", ` +
+			`"http_method": "put", "resource": "document", "action": "write"}, ` +
+			`{"url": "https://app.example.com/drafts", "http_method": "get", ` +
+			`"resource": "document"}, ` +
+			`{"url": "(", "url_type": "regex", "http_method": "delete", ` +
+			`"resource": "document", "action": "write"}]}`,
+		`{"key": "late", "name": "Late", "secret": "t", "mapping_rules": [` +
+			`{"url": "https://app.example.com/documents", "http_method": "get", ` +
+			`"resource": "document", "action": "approve"}]}`,
+	} {
+		h.expect(http.StatusOK, http.MethodPost, "/v2/facts/proj/dev/proxy_configs", config,
+			projectKey)
+	}
+	urlCheck := func(user, method, target, tenant string) string {
+		return `{"user": {"key": "` + user + `"}, "http_method": "` + method + `", "url": "` +
+			target + `", "tenant": "` + tenant + `"}`
+	}
+	for _, tc := range []struct {
+		user, method, target, tenant string
+		allow                        bool
+	}{
+		{"u1", "GET", "https://app.example.com/documents", "t1", true},
+		{"u1", "get", "https://app.example.com/documents", "t1", true},
+		{"u1", "GET", "https://app.example.com/documents", "t2", false},
+		{"u2", "GET", "https://app.example.com/documents", "t1", false},
+		{"u3", "GET", "https://app.example.com/documents", "t2", true},
+		{"u1", "PUT", "https://app.example.com/documents/12", "t1", true},
+		{"u1", "PUT", "https://app.example.com/documents/12/x", "t1", false},
+		{"u1", "PUT", "https://x.example.com/?https://app.example.com/documents/12", "t1", false},
+		{"u1", "PUT", "https://app.example.com/documents", "t1", false},
+		{"u1", "POST", "https://app.example.com/documents", "t1", false},
+		{"u1", "GET", "https://app.example.com/drafts", "t1", false},
+		{"u1", "DELETE", "(", "t1", false},
+		{"u1", "GET", "https://app.example.com/other", "t1", false},
+	} {
+		body := urlCheck(tc.user, tc.method, tc.target, tc.tenant)
+		got := h.ask(http.MethodPost, "/allowed_url", body)
+		if want := map[string]any{"allow": tc.allow}; !reflect.DeepEqual(got, want) {
+			t.Errorf("POST /allowed_url %s answered %v, want %v", body, got, want)
+		}
+	}
+	if status, _ := h.send(h.container, http.MethodPost, "/allowed_url", `{"user": "u1"}`,
+		h.envKey); status != http.StatusUnprocessableEntity {
+		t.Errorf("POST /allowed_url of a body that does not decode answered %d, want 422", status)
+	}
+	if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0], "decoding the body") {
+		t.Errorf("the fake reported %q, want the error of the body that does not decode", errs)
+	}
+	if last := h.checked[len(h.checked)-1]; last != "is_allowed_url_allowed_url_post" {
+		t.Errorf("the last body went to the check of %s", last)
+	}
+}
+
 // TestPDPAccess checks the requests that the fake PDP refuses: without the API key of an
-// environment that its fake issued, to a route that it does not serve or implement, and with a
-// body that the check rejects or cannot check. An environment's key reads that environment only.
+// environment that its fake issued, to a route that it does not serve, and with a body that the
+// check rejects or cannot check. An environment's key reads that environment only.
 func TestPDPAccess(t *testing.T) {
 	h := newPDPHarness(t)
 	body := checkBody("u1", "read", "", "t1")
@@ -360,11 +425,6 @@ func TestPDPAccess(t *testing.T) {
 	}{
 		{"GET", "/allowed", "", 404, "no route that the fake PDP serves matches GET /allowed"},
 		{"POST", "/kong", "{}", 404, "no route that the fake PDP serves matches POST /kong"},
-		{
-			"POST", "/allowed_url", `{"x": 1}`, 501,
-			"POST /allowed_url (is_allowed_url_allowed_url_post): the fake PDP does not " +
-				"implement this route",
-		},
 		{
 			"POST", "/allowed", `{"user": {"key": "bad"}}`, 422,
 			"fake: POST /allowed (is_allowed_allowed_post): the body does not fit its schema: " +

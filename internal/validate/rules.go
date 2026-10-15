@@ -257,6 +257,40 @@ var (
 	}
 )
 
+// The rules of the secret of a proxy config and of its auth mechanism, which a create and an
+// update send. The error of such a rule names the operation and the secret, or the auth
+// mechanism, before the message.
+var (
+	// ProxyConfigAuthMechanismMismatch rejects an auth mechanism of a proxy config that this
+	// version of the SDK knows and that names another branch of the secret than the one that the
+	// secret sets, such as Basic for a secret whose Bearer is set.
+	ProxyConfigAuthMechanismMismatch = Rule{
+		ID: "proxy-config.auth-mechanism.mismatch",
+		Message: "the auth mechanism names another branch of the secret than the one that it " +
+			"sets; leave AuthMechanism empty to send the mechanism of that branch, or set the " +
+			"branch that it names",
+	}
+
+	// ProxyConfigSecretMany rejects a secret of a proxy config that sets more than one of its
+	// branches, Basic, Bearer and Headers, which the API would read as one of them.
+	ProxyConfigSecretMany = Rule{
+		ID: "proxy-config.secret.many",
+		Message: "the secret sets more than one of Basic, Bearer and Headers; set only the one " +
+			"of the proxy config's auth mechanism",
+	}
+
+	// ProxyConfigSecretNone rejects a secret of a proxy config that holds no credential: it sets
+	// none of its branches, such as the zero ProxySecret, or the branch that it sets is empty,
+	// such as a Bearer token that is the empty string, Headers without a header, or a header whose
+	// value is empty. The API requires the secret in a create and in an update.
+	ProxyConfigSecretNone = Rule{
+		ID: "proxy-config.secret.none",
+		Message: "the secret holds no credential: it sets none of Basic, Bearer and Headers, or " +
+			"the one that it sets is empty or has an empty value; set the one of the proxy " +
+			"config's auth mechanism, with values that are not empty",
+	}
+)
+
 // The rules of the scope of a call: the project and the environment that its operation acts on,
 // which the SDK checks before it sends the request. The error of such a rule names the
 // operation before the message.
@@ -348,6 +382,9 @@ var rules = []Rule{
 	PathAPIKeyIDScope,
 	PathSegmentDot,
 	PathSegmentEmpty,
+	ProxyConfigAuthMechanismMismatch,
+	ProxyConfigSecretMany,
+	ProxyConfigSecretNone,
 	ScopeEnvironmentMissing,
 	ScopeProjectMissing,
 	WaitForSyncFactsViaAPI,

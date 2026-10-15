@@ -1,0 +1,1 @@
+{"auth_mechanism":"Headers","mapping_rules":[],"secret":{"X-Api-Key":"opaque-header-value"}}

@@ -99,13 +99,18 @@ type Client struct {
 	// Users lists, reads, creates, syncs, changes and deletes the users of an environment.
 	Users *UsersService `json:"-"`
 
+	// ProxyConfigs lists, reads, creates, changes and deletes the proxy configs of the
+	// environment of the client's scope: the credentials that the Permit proxy adds to the
+	// requests that it sends on, and the mapping rules of the URLs that CheckURL checks.
+	ProxyConfigs *ProxyConfigsService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
 	timeout time.Duration
 
-	// secrets holds the API key, and the credentials that the client's calls return, which the
-	// client's errors never hold.
+	// secrets holds the API key, the credentials that the client's calls return, and those of
+	// the secrets of the proxy configs that its calls send, which the client's errors never hold.
 	secrets *redact.Set
 
 	httpClient *http.Client
@@ -200,6 +205,7 @@ func New(opts ...Option) (*Client, error) {
 	c.ConditionSets = &ConditionSetsService{client: c}
 	c.ConditionSetRules = &ConditionSetRulesService{client: c}
 	c.Users = &UsersService{facts: facts{client: c}}
+	c.ProxyConfigs = &ProxyConfigsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

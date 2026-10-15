@@ -638,6 +638,47 @@ var defaultOps = []Op{
 		KeyLevel: EnvironmentLevel, RequestModel: "ConditionSetRuleRemove",
 	},
 
+	// The proxy configs of an environment, each at the environment level, as v1 sends them too.
+	// These key levels are not measured yet: the phase api.proxy_config of the local harness
+	// confirms them. Their routes start with /v2/facts/, but the PDP container does not serve
+	// them, so they are not Facts, and none waits for sync. The list is a JSON array of at most
+	// 100 configs. A create does not do the same when sent twice, nor does a PATCH, whose
+	// mapping rules the API adds to those that it stores, and removes with should_delete; a
+	// delete leaves the config deleted. The secret of a config is a credential, which each reply
+	// holds as a string or as an object of headers: secret is listed, so that every
+	// string inside it joins the client's redaction set, and not the strings directly under it
+	// alone, as for its credential name.
+	{
+		ID: "list_proxy_configs", Method: http.MethodGet,
+		Route: "/v2/facts/{proj_id}/{env_id}/proxy_configs", Idempotent: true,
+		KeyLevel: EnvironmentLevel, SensitiveBodyFields: []string{"secret"}, MaxPerPage: 100,
+		ResponseModel: "ProxyConfigRead",
+	},
+	{
+		ID: "create_proxy_config", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/proxy_configs", KeyLevel: EnvironmentLevel,
+		SensitiveBodyFields: []string{"secret"}, RequestModel: "ProxyConfigCreate",
+		ResponseModel: "ProxyConfigRead",
+	},
+	{
+		ID: "get_proxy_config", Method: http.MethodGet,
+		Route:      "/v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, SensitiveBodyFields: []string{"secret"},
+		ResponseModel: "ProxyConfigRead",
+	},
+	{
+		ID: "update_proxy_config", Method: http.MethodPatch,
+		Route:    "/v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}",
+		KeyLevel: EnvironmentLevel, SensitiveBodyFields: []string{"secret"},
+		RequestModel: "ProxyConfigUpdate", ResponseModel: "ProxyConfigRead",
+	},
+	{
+		ID: "delete_proxy_config", Method: http.MethodDelete,
+		Route:      "/v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+		SensitiveBodyFields: []string{"secret"},
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

@@ -20,6 +20,10 @@ import (
 // Color is the enum Color.
 type Color string
 
+// Shade is an enum that no schema of components.schemas describes, as an inline enum of strings
+// is: no row maps it.
+type Shade string
+
 // Scope is Scope.
 type Scope struct {
 	OrganizationID string `json:"organization_id"`
@@ -120,6 +124,12 @@ type KeySecret struct {
 // KeyPlain holds secret in a string, which encodes the credential as it is.
 type KeyPlain struct {
 	Secret string `json:"secret"`
+}
+
+// ConfigSecret holds secret in a models.ProxySecret, which encodes as the marker in place of each
+// credential, a string or an object of them.
+type ConfigSecret struct {
+	Secret models.ProxySecret `json:"secret"`
 }
 
 // Keys holds KeySecret below other types, and KeyPlain.
@@ -441,6 +451,24 @@ func TestRoundTrip(t *testing.T) {
 			strictDecode, nil,
 		},
 		{
+			"a credential that a ProxySecret holds", reflect.TypeFor[ConfigSecret](),
+			map[string]any{"secret": "s"},
+			strictDecode, nil,
+		},
+		{
+			"the credentials of headers that a ProxySecret holds", reflect.TypeFor[ConfigSecret](),
+			map[string]any{"secret": map[string]any{"a": "s", "b": ""}},
+			strictDecode, nil,
+		},
+		{
+			"a credential of a ProxySecret where the value is another kind",
+			reflect.TypeFor[ConfigSecret](),
+			map[string]any{"secret": json.Number("1")},
+			strictDecode,
+			[]mismatch{{"", `{"secret":1} does not decode into drift.ConfigSecret: models: a ` +
+				"ProxySecret is read from a JSON string, a JSON object of strings or null"}},
+		},
+		{
 			"a credential of a Secret where the value is another kind",
 			reflect.TypeFor[KeySecret](),
 			map[string]any{"secret": json.Number("1")},
@@ -456,6 +484,16 @@ func TestRoundTrip(t *testing.T) {
 	marked := markedSecrets(reflect.TypeFor[KeySecret](), map[string]any{"secret": "s"})
 	if want := map[string]any{"secret": redact.Marker}; !reflect.DeepEqual(marked, want) {
 		t.Errorf("markedSecrets of a credential = %v, want %v", marked, want)
+	}
+	for _, tc := range []struct{ value, want any }{
+		{"s", redact.Marker},
+		{"", ""},
+		{map[string]any{"a": "s", "b": ""}, map[string]any{"a": redact.Marker, "b": ""}},
+	} {
+		got := markedSecrets(reflect.TypeFor[ConfigSecret](), map[string]any{"secret": tc.value})
+		if want := map[string]any{"secret": tc.want}; !reflect.DeepEqual(got, want) {
+			t.Errorf("markedSecrets of the ProxySecret %v = %v, want %v", tc.value, got, want)
+		}
 	}
 	withField := map[string]any{"organization_id": "o", "project_id": "p", "added_later": true}
 	if got := roundTrip(reflect.TypeFor[Scope](), withField, scope, wire.Decode); got != nil {

@@ -255,11 +255,11 @@ control-plane:
   - {op: update_project, route: "PATCH /v2/projects/{proj_id}", stage: GA, status: covered}
   - {op: delete_project, route: "DELETE /v2/projects/{proj_id}", stage: GA, status: covered}
   # Proxy Config
-  - {op: list_proxy_configs, route: "GET /v2/facts/{proj_id}/{env_id}/proxy_configs", stage: GA, status: planned}
-  - {op: create_proxy_config, route: "POST /v2/facts/{proj_id}/{env_id}/proxy_configs", stage: GA, status: planned}
-  - {op: get_proxy_config, route: "GET /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: planned}
-  - {op: update_proxy_config, route: "PATCH /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: planned}
-  - {op: delete_proxy_config, route: "DELETE /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: planned}
+  - {op: list_proxy_configs, route: "GET /v2/facts/{proj_id}/{env_id}/proxy_configs", stage: GA, status: covered}
+  - {op: create_proxy_config, route: "POST /v2/facts/{proj_id}/{env_id}/proxy_configs", stage: GA, status: covered}
+  - {op: get_proxy_config, route: "GET /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: covered}
+  - {op: update_proxy_config, route: "PATCH /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: covered}
+  - {op: delete_proxy_config, route: "DELETE /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: covered}
   # Relationship tuples
   - {op: list_relationship_tuples, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: planned}
   - {op: create_relationship_tuple, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: planned}

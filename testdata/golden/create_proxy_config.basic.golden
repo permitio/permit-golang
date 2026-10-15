@@ -1,0 +1,1 @@
+{"key":"k","name":"n","auth_mechanism":"Basic","mapping_rules":[{"url":"https://api.example.com/r","http_method":"get","resource":"r"}],"secret":"opaque-user:opaque-pass"}

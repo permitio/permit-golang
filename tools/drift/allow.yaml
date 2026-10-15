@@ -312,3 +312,36 @@ allow:
       JSON array, as the entry of the field roles of ResourceRoleList says; the SDK never sends a
       ResourceRoleList
     trigger: when the published spec gives the roles of ResourceRoleList one form
+  - key: model ProxyConfigCreate field secret
+    reason: >-
+      the published spec types the secret of a proxy config as HeadersAuth, BasicAuth or
+      BearerAuth, which are not JSON Schema types (PER-16342), and the snapshot holds them as
+      specsnap pre-fixes them, an object of strings and two strings, which only the
+      auth_mechanism of the config tells apart; the secret is a ProxySecret, which no schema
+      maps, and which holds the object as Headers and a string as Basic or Bearer, as
+      auth_mechanism names it, and no other form
+    trigger: >-
+      when the published spec gives the secret schemas that say which auth_mechanism each form
+      is for
+  - key: model ProxyConfigRead field secret
+    reason: >-
+      the published spec types the secret of a proxy config as HeadersAuth, BasicAuth or
+      BearerAuth, which are not JSON Schema types (PER-16342), and the snapshot holds them as
+      specsnap pre-fixes them, an object of strings and two strings, which only the
+      auth_mechanism of the config tells apart; the secret is a ProxySecret, which no schema
+      maps, and which holds the object as Headers and a string as Basic or Bearer, as
+      auth_mechanism names it, and no other form
+    trigger: >-
+      when the published spec gives the secret schemas that say which auth_mechanism each form
+      is for
+  - key: model ProxyConfigUpdate field secret
+    reason: >-
+      the published spec types the secret of a proxy config as HeadersAuth, BasicAuth or
+      BearerAuth, which are not JSON Schema types (PER-16342), and the snapshot holds them as
+      specsnap pre-fixes them, an object of strings and two strings, which only the
+      auth_mechanism of the config tells apart; the secret is a ProxySecret, which no schema
+      maps, and which holds the object as Headers and a string as Basic or Bearer, as
+      auth_mechanism names it, and no other form
+    trigger: >-
+      when the published spec gives the secret schemas that say which auth_mechanism each form
+      is for

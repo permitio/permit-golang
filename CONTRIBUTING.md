@@ -730,6 +730,13 @@ every mutant, which would then count as detected; mutationgate fails a run in wh
 tests fail in such a copy. Name such a test `TestRepository...`, so that the `-skip` below leaves
 it out. Live tests that need Permit are named `TestLive...` and are left out too.
 
+In such a copy, the `replace` of `tools/go.mod`, which builds the tools module with the SDK in
+`../`, points nowhere. So mutationgate writes a module file for each module: its `go.mod` with
+every `replace` by a relative directory made absolute. It builds and tests each mutant with it
+(`go -modfile`), and runs a package's tests without a mutant in a copy with it too, so a tools
+package that imports the SDK, such as `tools/drift`, is tested against the SDK in your work tree,
+which no mutant changes.
+
 Install gremlins and build mutationgate from the repository root:
 
 ```sh

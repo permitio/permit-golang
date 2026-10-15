@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"golang.org/x/mod/modfile"
 )
 
 // checkCopy runs a package's tests without a mutant in a copy of its module, made
@@ -19,8 +21,9 @@ import (
 // the module, such as one of the repository's workflows, fails there for every
 // mutant, which then counts as killed. checkCopy returns an error when the tests
 // fail in the copy, so such a run does not pass. It runs with env, gremlins'
-// environment, so the same tests are skipped and exec bounds them.
-func (r *runner) checkCopy(m goModule, pkg goPackage, env []string) error {
+// environment, so the same tests are skipped and exec bounds them, and with
+// modFile, the module file the go shim builds the mutants with.
+func (r *runner) checkCopy(m goModule, pkg goPackage, modFile string, env []string) error {
 	root, ok := r.copies[m.dir]
 	if !ok {
 		root = filepath.Join(r.dir, "copy-"+strconv.Itoa(len(r.copies)+1))
@@ -36,7 +39,7 @@ func (r *runner) checkCopy(m goModule, pkg goPackage, env []string) error {
 	if err != nil {
 		return err
 	}
-	args := []string{"test"}
+	args := []string{"test", "-modfile=" + modFile}
 	if r.opts.tags != "" {
 		args = append(args, "-tags", r.opts.tags)
 	}
@@ -48,6 +51,67 @@ func (r *runner) checkCopy(m goModule, pkg goPackage, env []string) error {
 			"(%w): %s", pkg.importPath, err, lastLines(output, 5))
 	}
 	return nil
+}
+
+// moduleFile returns the module file that go builds the module m with in a copy of
+// it, where a replacement by a relative directory, such as the tools module's
+// replacement of the SDK with ../, points nowhere. It writes the file, once for
+// each module, to the work directory.
+func (r *runner) moduleFile(m goModule) (string, error) {
+	if p, ok := r.modFiles[m.dir]; ok {
+		return p, nil
+	}
+	r.modDirs++
+	dir := filepath.Join(r.dir, "module-"+strconv.Itoa(r.modDirs))
+	p := filepath.Join(dir, "go.mod")
+	err := os.Mkdir(dir, 0o700)
+	if err == nil {
+		err = writeModuleFile(m.dir, p)
+	}
+	if err != nil {
+		return "", fmt.Errorf("writing the module file of %s for the copies of the module: %w",
+			m.path, err)
+	}
+	if r.modFiles == nil {
+		r.modFiles = map[string]string{}
+	}
+	r.modFiles[m.dir] = p
+	return p, nil
+}
+
+// writeModuleFile writes the go.mod of the module whose root is dir to dst, which
+// must end in .mod, with each replacement by a relative directory made absolute,
+// and copies the module's go.sum, when it has one, beside dst, where go -modfile
+// reads it. go resolves a relative directory from the module root, not from the
+// module file, so the copy of a module built with dst uses the directory the
+// module itself uses.
+func writeModuleFile(dir, dst string) error {
+	src := filepath.Join(dir, "go.mod")
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	f, err := modfile.Parse(src, data, nil)
+	if err != nil {
+		return err
+	}
+	for _, r := range f.Replace {
+		if r.New.Version != "" || filepath.IsAbs(r.New.Path) {
+			continue
+		}
+		// A replacement by a directory ends with the directory.
+		tokens := r.Syntax.Token
+		tokens[len(tokens)-1] = modfile.AutoQuote(filepath.Join(dir, r.New.Path))
+	}
+	//nolint:gosec // G703: dst is a file the gate names in its own work directory.
+	if err := os.WriteFile(dst, modfile.Format(f.Syntax), 0o600); err != nil {
+		return err
+	}
+	sum := filepath.Join(dir, "go.sum")
+	if _, err := os.Stat(sum); errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	return copyFile(sum, strings.TrimSuffix(dst, ".mod")+".sum", 0o600)
 }
 
 // copyModule copies the directories and regular files under src to dst, as

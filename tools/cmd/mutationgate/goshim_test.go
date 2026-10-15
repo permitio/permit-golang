@@ -49,10 +49,12 @@ func TestMutantTestRun(t *testing.T) {
 
 func TestParseGoShimArgs(t *testing.T) {
 	realGo := filepath.Join(t.TempDir(), "go")
+	modFile := filepath.Join(t.TempDir(), "go.mod")
 	opts, err := parseGoShimArgs(
 		[]string{
 			"-real-go=" + realGo,
 			"-log=/w/events.log",
+			"-modfile=" + modFile,
 			"-package=m/cmd/x",
 			"--",
 			"test",
@@ -61,14 +63,17 @@ func TestParseGoShimArgs(t *testing.T) {
 		&bytes.Buffer{},
 	)
 	if err != nil || opts.realGo != realGo || opts.logPath != "/w/events.log" ||
-		opts.pkg != "m/cmd/x" || strings.Join(opts.args, " ") != "test -v" {
+		opts.modFile != modFile || opts.pkg != "m/cmd/x" ||
+		strings.Join(opts.args, " ") != "test -v" {
 		t.Errorf("got %+v, %v", opts, err)
 	}
 	for _, args := range [][]string{
-		{"-package=m", "--", "env"},
-		{"-real-go=go", "-package=m", "--", "env"},
-		{"-real-go=" + realGo, "--", "env"},
-		{"-real-go=" + realGo, "-package=-v", "--", "env"},
+		{"-modfile=" + modFile, "-package=m", "--", "env"},
+		{"-real-go=go", "-modfile=" + modFile, "-package=m", "--", "env"},
+		{"-real-go=" + realGo, "-package=m", "--", "env"},
+		{"-real-go=" + realGo, "-modfile=go.mod", "-package=m", "--", "env"},
+		{"-real-go=" + realGo, "-modfile=" + modFile, "--", "env"},
+		{"-real-go=" + realGo, "-modfile=" + modFile, "-package=-v", "--", "env"},
 		{"-nope"},
 	} {
 		if _, err := parseGoShimArgs(args, &bytes.Buffer{}); err == nil {

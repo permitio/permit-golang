@@ -30,6 +30,14 @@ import (
 // the file's package name, or the module root, which is wrong for package main in
 // a subdirectory. gremlins runs in one package's directory at a time, so go tests
 // the package the gate names with -package instead.
+//
+// gremlins tests a mutant in a copy of the module that holds nothing above its
+// root, where a replacement by a relative directory, such as the tools module's
+// replacement of the SDK with ../, points nowhere, so a package that imports the
+// replaced module would not build and every mutant would count as not viable. go
+// builds, lists and tests a mutant with -modfile, the module file the gate wrote
+// with those directories made absolute. Every other command, which tests may run,
+// gets no -modfile.
 const commandGo = "go"
 
 // exitNotViable is the go test exit code gremlins reads as a mutant that does not
@@ -40,6 +48,8 @@ const exitNotViable = 2
 type goShimOptions struct {
 	realGo  string
 	logPath string
+	// modFile is the module file to build a mutant with, by absolute path.
+	modFile string
 	pkg     string
 	args    []string
 }
@@ -51,8 +61,10 @@ func runGoShim(args []string, stderr io.Writer) int {
 		return exitFailed
 	}
 	if buildFlags, ok := mutantTestRun(opts.args); ok {
+		modFile := "-modfile=" + opts.modFile
 		opts.args[len(opts.args)-1] = opts.pkg
-		if code, done := checkMutantBuilds(opts, buildFlags, stderr); done {
+		opts.args = slices.Insert(opts.args, 1, modFile)
+		if code, done := checkMutantBuilds(opts, append(buildFlags, modFile), stderr); done {
 			return code
 		}
 	}
@@ -68,6 +80,7 @@ func parseGoShimArgs(args []string, stderr io.Writer) (goShimOptions, error) {
 	var opts goShimOptions
 	fs.StringVar(&opts.realGo, "real-go", "", "the go command to run")
 	fs.StringVar(&opts.logPath, "log", "", "file to append events to")
+	fs.StringVar(&opts.modFile, "modfile", "", "the module file to build a mutant with")
 	fs.StringVar(&opts.pkg, "package", "", "the import path of the package a mutant is in")
 	if err := fs.Parse(args); err != nil {
 		return opts, err
@@ -76,6 +89,8 @@ func parseGoShimArgs(args []string, stderr io.Writer) (goShimOptions, error) {
 	switch {
 	case !filepath.IsAbs(opts.realGo):
 		return opts, fmt.Errorf("-real-go %q: need an absolute path", opts.realGo)
+	case !filepath.IsAbs(opts.modFile):
+		return opts, fmt.Errorf("-modfile %q: need an absolute path", opts.modFile)
 	case opts.pkg == "" || strings.HasPrefix(opts.pkg, "-"):
 		return opts, fmt.Errorf("-package %q: need an import path", opts.pkg)
 	}
@@ -141,16 +156,17 @@ func shimError(logPath, command string, stderr io.Writer, detail string) {
 }
 
 // writeGoShim writes dir/go, a script that runs the go subcommand of the
-// executable self with the real go command realGo, the event log logPath and the
-// package pkg. Each path and pkg must pass checkPlainPath.
-func writeGoShim(dir, self, realGo, logPath, pkg string) error {
+// executable self with the real go command, the event log, the module file and the
+// package of opts. self, each path and the package must pass checkPlainPath.
+func writeGoShim(dir, self string, opts goShimOptions) error {
 	script := fmt.Sprintf(
-		"#!/bin/sh\nexec '%s' %s -real-go='%s' -log='%s' -package='%s' -- \"$@\"\n",
+		"#!/bin/sh\nexec '%s' %s -real-go='%s' -log='%s' -modfile='%s' -package='%s' -- \"$@\"\n",
 		self,
 		commandGo,
-		realGo,
-		logPath,
-		pkg,
+		opts.realGo,
+		opts.logPath,
+		opts.modFile,
+		opts.pkg,
 	)
 	return execfile.WriteFile(filepath.Join(dir, commandGo), []byte(script), 0o700)
 }

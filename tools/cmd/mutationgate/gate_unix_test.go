@@ -18,6 +18,8 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/mod/modfile"
+
 	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
@@ -219,7 +221,9 @@ func newGateFixture(t *testing.T, diff string, mutants map[string][]fakeMutant) 
 	tl.repo = func() (string, string, error) { return root, headSHA, nil }
 	tl.probe = func(gateOptions) (int64, error) { g.probes++; return 1600, nil }
 	tl.gremlins = g.fake.run
-	// The copy of a module is the directory named copy-<n> above the package.
+	// The copy of a module is the directory named copy-<n> above the package, in the
+	// work directory, which also holds the module files; copyTests name them by their
+	// path in the work directory.
 	tl.goTest = func(dir string, args, env []string) (string, error) {
 		copyRoot := dir
 		for !strings.HasPrefix(filepath.Base(copyRoot), "copy-") {
@@ -232,7 +236,9 @@ func newGateFixture(t *testing.T, diff string, mutants map[string][]fakeMutant) 
 		if err != nil {
 			return "", err
 		}
-		g.copyTests = append(g.copyTests, filepath.ToSlash(rel)+" "+strings.Join(args, " ")+
+		work := filepath.Dir(copyRoot) + string(filepath.Separator)
+		g.copyTests = append(g.copyTests, filepath.ToSlash(rel)+" "+
+			strings.ReplaceAll(strings.Join(args, " "), work, "")+
 			" with "+envValue(env, "GOFLAGS"))
 		return "--- FAIL: TestRepository\nFAIL", g.copyErr
 	}
@@ -563,6 +569,17 @@ func TestRunGate(t *testing.T) {
 			wantOutput: []string{"could not do its part: x.test: cannot limit memory"},
 		},
 		{
+			name: "a go.mod the gate cannot write a module file from",
+			args: base, dirs: []string{"tools"}, diff: toolsDiff, mutants: killedEverywhere,
+			files:    map[string]string{"tools/go.mod": "module m/tools\n\nreplace m =>\n"},
+			wantExit: exitDidNotRun, wantProbes: 1,
+			wantOutput: []string{
+				"**DID NOT RUN**: writing the module file of m/tools for the copies of the " +
+					"module: ",
+				"mutationgate: DID NOT RUN\n",
+			},
+		},
+		{
 			name: "the tests fail without a mutant in a copy of the module",
 			args: base, dirs: both, diff: fixtureDiff, mutants: killedEverywhere,
 			edit:     func(g *gateFixture) { g.copyErr = errors.New("exit status 1") },
@@ -771,9 +788,14 @@ func TestRunGateRunsGremlinsOncePerPackage(t *testing.T) {
 			t.Errorf("call %d: got %+v, want %+v", i, call, w)
 		}
 	}
-	// Each package's tests ran without a mutant in a copy of its module, with the
-	// flags gremlins' test runs get; the root module was copied once.
-	wantCopies := []string{". test m", "cmd/tool test m/cmd/tool", "x test m/tools/x"}
+	// Each package's tests ran without a mutant in a copy of its module, built with
+	// its module's module file and with the flags gremlins' test runs get; the root
+	// module was copied once.
+	wantCopies := []string{
+		". test -modfile=module-1/go.mod m",
+		"cmd/tool test -modfile=module-1/go.mod m/cmd/tool",
+		"x test -modfile=module-2/go.mod m/tools/x",
+	}
 	for i, copyTest := range g.copyTests {
 		if i >= len(wantCopies) || !strings.HasPrefix(copyTest, wantCopies[i]+" with ") ||
 			!strings.Contains(copyTest, "-count=1 -skip=^TestLive -p=2 '-exec=") {
@@ -880,6 +902,62 @@ func TestRunGateGivesGremlinsTheGoShim(t *testing.T) {
 	added := goflags[strings.LastIndex(goflags, "-count=1"):]
 	if !strings.HasPrefix(added, "-count=1 -p=1 '-exec=") || strings.Contains(added, "-skip") {
 		t.Errorf("GOFLAGS %q", goflags)
+	}
+}
+
+// The go shim builds each module's mutants with the module file the gate wrote for
+// that module, once: the tools module's module file replaces the root module with
+// the repository root instead of ../, and has the module's go.sum beside it.
+func TestRunGateGivesTheGoShimAModuleFile(t *testing.T) {
+	t.Parallel()
+	g := newGateFixture(t, fixtureDiff, map[string][]fakeMutant{
+		"a.go": {{2, statusKilled}}, "cmd/tool/main.go": {{4, statusKilled}},
+		"tools/x/x.go": {{2, statusKilled}},
+	})
+	const sum = "example.com/y v1.0.0/go.mod h1:fake=\n"
+	writeFile(t, g.root, "tools/go.sum", sum)
+	shimFlag := regexp.MustCompile(`-modfile='([^']*)'`)
+	// seen are the module files of the go shims, by package, each with the
+	// replacements it holds and the go.sum beside it.
+	var seen []string
+	fake := g.tools.gremlins
+	g.tools.gremlins = func(binary, dir string, args, env []string) (int, error) {
+		bin, _, _ := strings.Cut(envValue(env, "PATH"), string(os.PathListSeparator))
+		shim, err := os.ReadFile(filepath.Join(bin, "go"))
+		if err != nil {
+			return 0, err
+		}
+		modFile := shimFlag.FindStringSubmatch(string(shim))[1]
+		data, err := os.ReadFile(modFile)
+		if err != nil {
+			return 0, err
+		}
+		f, err := modfile.Parse(modFile, data, nil)
+		if err != nil {
+			return 0, err
+		}
+		work := filepath.Dir(filepath.Dir(bin))
+		line := []string{args[len(args)-1], strings.TrimPrefix(modFile, work)}
+		for _, r := range f.Replace {
+			line = append(line, r.Old.String(), "=>", r.New.String())
+		}
+		besideSum, err := os.ReadFile(strings.TrimSuffix(modFile, ".mod") + ".sum")
+		if err == nil {
+			line = append(line, "with", string(besideSum))
+		}
+		seen = append(seen, strings.Join(line, " "))
+		return fake(binary, dir, args, env)
+	}
+	if exit, output, _ := g.run(t, []string{"-base", "main"}, ".", "tools"); exit != exitPassed {
+		t.Fatalf("exit %d\n%s", exit, output)
+	}
+	want := []string{
+		g.root + " /module-1/go.mod",
+		filepath.Join(g.root, "cmd", "tool") + " /module-1/go.mod",
+		filepath.Join(g.root, "tools", "x") + " /module-2/go.mod m => " + g.root + " with " + sum,
+	}
+	if !slices.Equal(seen, want) {
+		t.Errorf("module files:\n%q\nwant:\n%q", seen, want)
 	}
 }
 

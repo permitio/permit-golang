@@ -27,6 +27,14 @@ var fixturePackages = map[string][]goPackage{
 	"extra": {{importPath: "m/extra", files: []string{"e.go"}}},
 }
 
+// fixtureModFiles are the go.mod files of the fixture's modules. The tools module
+// replaces the root module with ../, as the repository's tools module does.
+var fixtureModFiles = map[string]string{
+	"go.mod":       "module m\n\ngo 1.21\n",
+	"tools/go.mod": "module m/tools\n\ngo 1.21\n\nrequire m v0.0.0\n\nreplace m => ../\n",
+	"extra/go.mod": "module m/extra\n\ngo 1.21\n",
+}
+
 // fiveLines is a Go file each of whose five lines holds code in a function body,
 // which the gate mutates when it changes.
 const fiveLines = "package x; func f() int { n := 1\n\tn += 2\n\tn *= 3\n\tn -= 4\n\treturn n }\n"
@@ -60,6 +68,9 @@ func fixtureRepository(t *testing.T, diff string) (string, tools) {
 	t.Helper()
 	root := t.TempDir()
 	writeRepository(t, root, fixtureFiles)
+	for name, content := range fixtureModFiles {
+		writeFile(t, root, name, content)
+	}
 	return root, fixtureTools(root, diff)
 }
 

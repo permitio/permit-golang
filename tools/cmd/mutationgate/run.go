@@ -20,6 +20,11 @@ type runner struct {
 	runs   int
 	// copies are the copies of the modules that checkCopy made, by module root.
 	copies map[string]string
+	// modFiles are the module files that moduleFile wrote, by module root.
+	modFiles map[string]string
+	// modDirs counts the directories moduleFile made, including those of module
+	// files it failed to write, so each attempt gets a directory of its own.
+	modDirs int
 }
 
 // unitResult is what gremlins' runs found in one unit.
@@ -161,14 +166,20 @@ func (r *runner) run(p plan, u unit, lines map[string][]lineRange, dryRun bool) 
 		res.failure = err
 		return res
 	}
-	w, err := newWorkFiles(dir, r.tools, u.pkg.importPath, scopeDiff(lines))
+	mod := p.modules[u.module].module
+	modFile, err := r.moduleFile(mod)
+	if err != nil {
+		res.failure = err
+		return res
+	}
+	w, err := newWorkFiles(dir, r.tools, u.pkg.importPath, modFile, scopeDiff(lines))
 	if err != nil {
 		res.failure = err
 		return res
 	}
 	env := gremlinsEnv(os.Environ(), r.tools.self, r.opts, w)
 	args := buildGremlinsArgs(r.opts, dryRun, w, u.pkg.dir, u.exclude)
-	moduleDir := p.modules[u.module].module.dir
+	moduleDir := mod.dir
 	_, _ = fmt.Fprintf(r.stdout, "mutationgate: in %s: %s %s\n", moduleDir, r.opts.gremlins,
 		strings.Join(args, " "))
 	start := time.Now()
@@ -202,7 +213,7 @@ func (r *runner) run(p plan, u unit, lines map[string][]lineRange, dryRun bool) 
 		detected = detected || m.status == statusKilled || m.status == statusTimedOut
 	}
 	if detected {
-		res.failure = r.checkCopy(p.modules[u.module].module, u.pkg, env)
+		res.failure = r.checkCopy(mod, u.pkg, modFile, env)
 	}
 	return res
 }
@@ -218,8 +229,11 @@ type workFiles struct {
 }
 
 // newWorkFiles creates gremlins' empty config file, the diff the git shim gives
-// gremlins, and the shims in dir.
-func newWorkFiles(dir string, t tools, importPath string, diff []byte) (workFiles, error) {
+// gremlins, and the shims in dir. The go shim tests the package importPath, built
+// with the module file modFile.
+func newWorkFiles(dir string, t tools, importPath, modFile string, diff []byte) (
+	workFiles, error,
+) {
 	w := workFiles{
 		results: filepath.Join(dir, "results.json"),
 		events:  filepath.Join(dir, "events.log"),
@@ -239,7 +253,8 @@ func newWorkFiles(dir string, t tools, importPath string, diff []byte) (workFile
 	if err := os.Mkdir(w.bin, 0o700); err != nil {
 		return w, err
 	}
-	if err := writeGoShim(w.bin, t.self, t.goPath, w.events, importPath); err != nil {
+	shim := goShimOptions{realGo: t.goPath, logPath: w.events, modFile: modFile, pkg: importPath}
+	if err := writeGoShim(w.bin, t.self, shim); err != nil {
 		return w, err
 	}
 	return w, writeGitShim(w.bin, t.self, t.gitPath, w.events, w.diff)

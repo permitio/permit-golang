@@ -64,6 +64,15 @@
 //     as killed. When a package has detected mutants, mutationgate runs its tests
 //     without a mutant in such a copy, and the run does not pass when they fail
 //     there. Name such tests TestRepository... and skip them with -skip.
+//   - In that copy, a replacement by a relative directory, such as the tools
+//     module's replacement of the SDK with ../, points nowhere, so a package that
+//     imports the replaced module, such as tools/drift, does not build and each of
+//     its mutants would count as not viable. mutationgate writes a module file for
+//     each module: its go.mod with those directories made absolute. Its go
+//     subcommand builds and tests each mutant with that file (go -modfile), and
+//     mutationgate runs a package's tests without a mutant in a copy with it too,
+//     so such a package is tested against the replaced module as it is in the work
+//     tree, which no mutant changes.
 //
 // With -max-mutants, at most that many mutants run in all the directories, or the
 // mutants of the sample's first line when that line alone holds more. gremlins
@@ -114,11 +123,12 @@
 //	   module, a changed Go file is in a module that none of the directories is in,
 //	   a Go file to mutate does not parse, the memory limit is not enforced,
 //	   gremlins failed, a mutant was left unrun or on other lines than the gate
-//	   chose, exec or the shims could not do their part, a package's tests fail
+//	   chose, exec or the shims could not do their part, the module file of a
+//	   module cannot be written from its go.mod and go.sum, a package's tests fail
 //	   without a mutant in a copy of its module, Go lines changed and no mutant on
 //	   them ran, or with -all a directory holds no code that Go's coverage counts to
-//	   mutate, none of a module's mutants ran, or no mutant ran in any module; 2 wins
-//	   over 1
+//	   mutate, none of a module's mutants ran, or no mutant ran in any module; 2
+//	   wins over 1
 package main
 
 import (

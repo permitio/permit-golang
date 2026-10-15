@@ -24,6 +24,7 @@ github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestRunGate
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestRunGateRunsGremlinsOncePerPackage
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestRunGateSamples
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestRunGateGivesGremlinsTheGoShim
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestRunGateGivesTheGoShimAModuleFile
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestEvaluate
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestFinishAll
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestPlanRunChangedLines
@@ -32,8 +33,12 @@ github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestScopeDiff
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestChooseSampleIsTheSameForACommit
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestChooseSampleKeepsToTheBudget
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestCheckCopy
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestCheckCopyOfAModuleThatReplacesItsParent
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestModuleFileAfterAFailedOne
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestWriteModuleFile
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestGitShim
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestGoShimTestsAMutantThatCompiles
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestGoShimTestsMutantsOfAModuleThatReplacesItsParent
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestGoShimReportsANonCompilingMutant
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestSuperviseTestStops
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestProbeMemoryLimit

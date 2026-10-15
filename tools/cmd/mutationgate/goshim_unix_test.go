@@ -99,13 +99,27 @@ func lookPath(t *testing.T, name string) string {
 	return p
 }
 
-// goShimRun runs the go shim for the package pkg.
-func goShimRun(t *testing.T, dir, pkg string, args ...string) shimResult {
+// goShimRun runs the go shim for the package pkg, which it builds with the module
+// file modFile.
+func goShimRun(t *testing.T, dir, modFile, pkg string, args ...string) shimResult {
 	t.Helper()
 	realGo := lookPath(t, "go")
 	return runShim(t, dir, commandGo, func(bin, self, logPath string) error {
-		return writeGoShim(bin, self, realGo, logPath, pkg)
+		return writeGoShim(bin, self, goShimOptions{
+			realGo: realGo, logPath: logPath, modFile: modFile, pkg: pkg,
+		})
 	}, args...)
+}
+
+// moduleFileOf writes the module file the gate builds the module whose root is dir
+// with, and returns its path.
+func moduleFileOf(t *testing.T, dir string) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "go.mod")
+	if err := writeModuleFile(dir, p); err != nil {
+		t.Fatal(err)
+	}
+	return p
 }
 
 // mutantRunArgs is gremlins' go test of a mutant: a package in a subdirectory
@@ -118,15 +132,63 @@ func TestGoShimTestsAMutantThatCompiles(t *testing.T) {
 		t.Run(pkg, func(t *testing.T) {
 			t.Parallel()
 			dir := scratchModule(t, `return "hello, " + name + "!"`)
-			r := goShimRun(t, dir, pkg, mutantRunArgs...)
+			r := goShimRun(t, dir, moduleFileOf(t, dir), pkg, mutantRunArgs...)
 			if r.exit != 0 || !strings.Contains(r.output, "ok  \t"+pkg) || r.log != "" {
 				t.Errorf("exit %d, log %q, output:\n%s", r.exit, r.log, r.output)
 			}
 			dir = scratchModule(t, `return "hello, " + name + "?"`)
-			r = goShimRun(t, dir, pkg, mutantRunArgs...)
+			r = goShimRun(t, dir, moduleFileOf(t, dir), pkg, mutantRunArgs...)
 			if r.exit != 1 || !strings.Contains(r.output, "FAIL\t"+pkg) || r.log != "" {
 				t.Errorf("a mutant the test detects: exit %d, log %q, output:\n%s", r.exit,
 					r.log, r.output)
+			}
+		})
+	}
+}
+
+// gremlins tests a mutant in a copy of its module, where the inner module's
+// replacement of the outer one with ../ points nowhere. The shim builds the mutant
+// with the module file the gate wrote, so its tests run against the outer module
+// and the mutant is killed or lives, and never counts as not viable.
+func TestGoShimTestsMutantsOfAModuleThatReplacesItsParent(t *testing.T) {
+	t.Parallel()
+	inner := replacingModules(t)
+	r := runner{dir: t.TempDir()}
+	modFile, err := r.moduleFile(inner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg := inner.pkgs[0].importPath
+	for _, tt := range []struct {
+		name, from, to string
+		wantExit       int
+		wantOutput     string
+	}{
+		{"killed", `name == ""`, `name != ""`, 1, "FAIL\t" + pkg},
+		{"lived", `"world"`, `"there"`, 0, "ok  \t" + pkg},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			copyRoot := filepath.Join(t.TempDir(), "wd")
+			if err := copyModule(inner.dir, copyRoot); err != nil {
+				t.Fatal(err)
+			}
+			file := filepath.Join(copyRoot, "greet", "greet.go")
+			data, err := os.ReadFile(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mutant := strings.Replace(string(data), tt.from, tt.to, 1)
+			if mutant == string(data) {
+				t.Fatalf("greet.go holds no %s", tt.from)
+			}
+			writeFile(t, copyRoot, "greet/greet.go", mutant)
+			got := goShimRun(t, filepath.Join(copyRoot, "greet"), modFile, pkg,
+				"test", "-timeout", "1m", "-failfast", pkg)
+			if got.exit != tt.wantExit || !strings.Contains(got.output, tt.wantOutput) ||
+				got.log != "" {
+				t.Errorf("exit %d, want %d; log %q, output:\n%s", got.exit, tt.wantExit, got.log,
+					got.output)
 			}
 		})
 	}
@@ -137,7 +199,7 @@ func TestGoShimTestsAMutantThatCompiles(t *testing.T) {
 func TestGoShimReportsANonCompilingMutant(t *testing.T) {
 	t.Parallel()
 	dir := scratchModule(t, `return "hello, " - name + "!"`)
-	r := goShimRun(t, dir, "example.com/m/cmd/hello", mutantRunArgs...)
+	r := goShimRun(t, dir, moduleFileOf(t, dir), "example.com/m/cmd/hello", mutantRunArgs...)
 	if r.exit != exitNotViable ||
 		!strings.Contains(r.output, "does not compile with this mutant") ||
 		r.log != "" {
@@ -148,7 +210,7 @@ func TestGoShimReportsANonCompilingMutant(t *testing.T) {
 func TestGoShimFailsWhenThePackageCannotLoad(t *testing.T) {
 	t.Parallel()
 	dir := scratchModule(t, `return "hello, " + name + "!"`)
-	r := goShimRun(t, dir, "example.com/m/missing", mutantRunArgs...)
+	r := goShimRun(t, dir, moduleFileOf(t, dir), "example.com/m/missing", mutantRunArgs...)
 	want := "error\tgo\t" +
 		"go build example.com/m/missing failed, and go list cannot load the package"
 	if r.exit != exitFailed || !strings.HasPrefix(r.log, want) {
@@ -156,14 +218,17 @@ func TestGoShimFailsWhenThePackageCannotLoad(t *testing.T) {
 	}
 }
 
+// Other commands, which tests may run, get no -modfile: the module file here does
+// not exist, which a command given it would fail on.
 func TestGoShimRunsOtherCommandsAsIs(t *testing.T) {
 	t.Parallel()
 	dir := scratchModule(t, `return "hello, " - name + "!"`)
-	r := goShimRun(t, dir, "example.com/m/greet", "env", "GOOS")
+	missing := filepath.Join(t.TempDir(), "missing.mod")
+	r := goShimRun(t, dir, missing, "example.com/m/greet", "env", "GOOS")
 	if r.exit != 0 || strings.TrimSpace(r.output) != runtime.GOOS || r.log != "" {
 		t.Errorf("exit %d, log %q, output:\n%s", r.exit, r.log, r.output)
 	}
-	r = goShimRun(t, dir, "example.com/m/greet", "test", "-count=1", "./...")
+	r = goShimRun(t, dir, missing, "example.com/m/greet", "test", "-count=1", "./...")
 	if r.exit != 1 || !strings.Contains(r.output, "[build failed]") {
 		t.Errorf("a go test that is not a mutant run: exit %d, output:\n%s", r.exit, r.output)
 	}

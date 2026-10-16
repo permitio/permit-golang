@@ -2,15 +2,20 @@
 # the API does, and the SDK follows the API, because the spec lists an optional property that the
 # API reads elsewhere, and the SDK leaves it out, because a reply fixture holds a value of an
 # enum that the spec does not list, as the API may add one later, to check that the SDK reads
-# it, or because the SDK reads a property whose anyOf lists several forms into one Go type, with
-# a reason that names what the type keeps and what it drops. The section Model drift of
-# CONTRIBUTING.md says when to add an entry.
+# it, because the SDK reads a property whose anyOf lists several forms into one Go type, with
+# a reason that names what the type keeps and what it drops, or because an operation sends no
+# JSON request body that the spec gives it, or reads no model of package models from a reply in
+# 200-299 with a JSON body, such as a reply without fields, with a reason that says why. The
+# section Model drift of CONTRIBUTING.md says when to add an entry.
 #
 # key: the key of the finding, as the failing test prints it before the colon, such as
-#   "model UserRead field email", "operation get_user response" or
-#   "reply get_user.200.json#/email".
-# reason: what the API does that the spec does not say, such as "the API returns email, which
-#   the published spec does not list".
+#   "model UserRead field email", "operation get_user response",
+#   "operation bulk_create_users response without model" or "reply get_user.200.json#/email".
+#   An operation that names no model for a body has a finding under a key of its own, which ends
+#   in "without model", so that its entry accepts no model that the operation names later.
+# reason: why the finding is accepted, such as what the API does that the spec does not say
+#   ("the API returns email, which the published spec does not list"), or why the SDK reads no
+#   model from a reply.
 # trigger: when the entry can go, such as "when the published spec lists email".
 #
 # An entry that accepts no finding fails as stale: remove it.
@@ -354,6 +359,150 @@ allow:
       in either list form, and ListDetailed reads the detailed form from the route of the
       detailed list
     trigger: when the published spec drops the detailed forms from the reply to the list
+  - key: operation unassign_role response without model
+    reason: >-
+      the published spec lists a 204 without a body for the unassignment of a role, and a 200 with
+      the removed role assignment for the deprecated query parameter return_deleted, which the SDK
+      never sends, so Unassign reads no body from the reply and the operation has no ResponseModel
+    trigger: when the published spec drops the 200 reply of the unassignment of a role
+  - key: operation unassign_role_from_user response without model
+    reason: >-
+      the published spec lists a 204 without a body for the removal of a role from a user, and a
+      200 with the removed role assignment for the deprecated query parameter return_deleted,
+      which the SDK never sends, so UnassignRole reads no body from the reply and the operation has
+      no ResponseModel
+    trigger: when the published spec drops the 200 reply of the removal of a role from a user
+  - key: operation bulk_create_users response without model
+    reason: >-
+      the reply to a bulk create of users is UserCreateBulkOperationResult, a JSON object that the
+      published spec gives no field, so BulkCreate reads no body from it and the operation has no
+      ResponseModel
+    trigger: when the published spec gives the reply to a bulk create of users a field
+  - key: operation bulk_replace_users response without model
+    reason: >-
+      the reply to a bulk replace of users is UserReplaceBulkOperationResult, a JSON object that
+      the published spec gives no field, so BulkReplace reads no body from it and the operation has
+      no ResponseModel
+    trigger: when the published spec gives the reply to a bulk replace of users a field
+  - key: operation bulk_delete_users response without model
+    reason: >-
+      the reply to a bulk delete of users is UserDeleteBulkOperationResult, a JSON object that the
+      published spec gives no field, so BulkDelete reads no body from it and the operation has no
+      ResponseModel
+    trigger: when the published spec gives the reply to a bulk delete of users a field
+  - key: operation bulk_create_tenants response without model
+    reason: >-
+      the reply to a bulk create of tenants is TenantCreateBulkOperationResult, a JSON object that
+      the published spec gives no field, so BulkCreate reads no body from it and the operation has
+      no ResponseModel
+    trigger: when the published spec gives the reply to a bulk create of tenants a field
+  - key: operation bulk_delete_tenants response without model
+    reason: >-
+      the reply to a bulk delete of tenants is TenantDeleteBulkOperationResult, a JSON object that
+      the published spec gives no field, so BulkDelete reads no body from it and the operation has
+      no ResponseModel
+    trigger: when the published spec gives the reply to a bulk delete of tenants a field
+  - key: operation bulk_replace_resource_instances response without model
+    reason: >-
+      the reply to a bulk replace of resource instances is
+      ResourceInstanceCreateBulkOperationResult, a JSON object that the published spec gives no
+      field, so BulkReplace reads no body from it and the operation has no ResponseModel
+    trigger: when the published spec gives the reply to a bulk replace of resource instances a field
+  - key: operation bulk_delete_resource_instances response without model
+    reason: >-
+      the reply to a bulk delete of resource instances is
+      ResourceInstanceDeleteBulkOperationResult, a JSON object that the published spec gives no
+      field, so BulkDelete reads no body from it and the operation has no ResponseModel
+    trigger: when the published spec gives the reply to a bulk delete of resource instances a field
+  - key: operation bulk_create_relationship_tuples response without model
+    reason: >-
+      the reply to a bulk create of relationship tuples is
+      RelationshipTupleCreateBulkOperationResult, a JSON object that the published spec gives no
+      field, so BulkCreate reads no body from it and the operation has no ResponseModel
+    trigger: >-
+      when the published spec gives the reply to a bulk create of relationship tuples a field
+  - key: operation bulk_delete_relationship_tuples response without model
+    reason: >-
+      the reply to a bulk delete of relationship tuples is
+      RelationshipTupleDeleteBulkOperationResult, a JSON object that the published spec gives no
+      field, so BulkDelete reads no body from it and the operation has no ResponseModel
+    trigger: >-
+      when the published spec gives the reply to a bulk delete of relationship tuples a field
+  - key: operation is_allowed_allowed_post response without model
+    reason: >-
+      the SDK reads the allow of a decision itself, as a strict boolean, and no type of package
+      models holds the reply, so the operation has no ResponseModel; the reply fixtures of the
+      wire tests are checked against the specs
+    trigger: when a type of package models holds the reply of a decision
+  - key: operation is_allowed_allowed_post@pdp-cloud response without model
+    reason: >-
+      the SDK reads the allow of a decision itself, as a strict boolean, and no type of package
+      models holds the reply, so the operation has no ResponseModel; the reply fixtures of the
+      wire tests are checked against the specs
+    trigger: when a type of package models holds the reply of a decision
+  - key: operation is_allowed_bulk_allowed_bulk_post response without model
+    reason: >-
+      the SDK reads the allow of each decision of a bulk check itself, as a strict boolean, and no
+      type of package models holds the reply, so the operation has no ResponseModel; the reply
+      fixtures of the wire tests are checked against the specs
+    trigger: when a type of package models holds the reply of a bulk check
+  - key: operation is_allowed_bulk_allowed_bulk_post@pdp-cloud response without model
+    reason: >-
+      the SDK reads the allow of each decision of a bulk check itself, as a strict boolean, and no
+      type of package models holds the reply, so the operation has no ResponseModel; the reply
+      fixtures of the wire tests are checked against the specs
+    trigger: when a type of package models holds the reply of a bulk check
+  - key: operation is_allowed_url_allowed_url_post response without model
+    reason: >-
+      the SDK reads the allow of the check of a URL itself, as a strict boolean, and no type of
+      package models holds the reply, so the operation has no ResponseModel; the reply fixtures of
+      the wire tests are checked against the spec of the PDP container
+    trigger: when a type of package models holds the reply of the check of a URL
+  - key: operation is_allowed_all_tenants_allowed_all_tenants_post response without model
+    reason: >-
+      the SDK reads the tenants in which a check is allowed itself, strictly, into TenantDetails of
+      the root package, and a ResponseModel names a type of package models, so the operation has
+      none; the reply fixtures of the wire tests are checked against the spec of the PDP container
+    trigger: when a type of package models holds the reply of the check in every tenant
+  - key: operation Get_User_Permissions_user_permissions_post response without model
+    reason: >-
+      the reply is a JSON object of the permissions of a user by object, whose values
+      ObjectPermissions of the root package holds; the SDK reads the reply itself, and a
+      ResponseModel names a type of package models, so the operation has none; the drift tests
+      compare ObjectPermissions with the schema of its row
+    trigger: when a type of package models holds the reply of the permissions of a user
+  - key: operation Get_User_Permissions_user_permissions_post@pdp-cloud response without model
+    reason: >-
+      the reply is a JSON object of the permissions of a user by object, whose values
+      ObjectPermissions of the root package holds; the SDK reads the reply itself, and a
+      ResponseModel names a type of package models, so the operation has none; the drift tests
+      compare ObjectPermissions with the schema of its row
+    trigger: when a type of package models holds the reply of the permissions of a user
+  - key: operation authorized_users_authorized_users_post response without model
+    reason: >-
+      the reply is AuthorizedUsersResult of the root package, which the SDK reads itself, and a
+      ResponseModel names a type of package models, so the operation has none; the drift tests
+      compare AuthorizedUsersResult with the schema of its row
+    trigger: when a type of package models holds the reply of the authorized users
+  - key: operation authorized_users_authorized_users_post@pdp-cloud response without model
+    reason: >-
+      the reply is AuthorizedUsersResult of the root package, which the SDK reads itself, and a
+      ResponseModel names a type of package models, so the operation has none; the drift tests
+      compare AuthorizedUsersResult with the schema of its row
+    trigger: when a type of package models holds the reply of the authorized users
+  - key: operation Get_User_Tenants_user_tenants_post response without model
+    reason: >-
+      the reply is a JSON array of the tenants of a user, each TenantDetails of the root package,
+      which the SDK reads itself, and a ResponseModel names a type of package models, so the
+      operation has none; the drift tests compare TenantDetails with the schema of its row
+    trigger: when a type of package models holds the reply of the tenants of a user
+  - key: operation list_role_assignments_local_role_assignments_get response without model
+    reason: >-
+      the reply is a JSON array of the role assignments that the PDP container holds, each
+      LocalRoleAssignment of the root package, and a ResponseModel names a type of package models,
+      as the error of a malformed reply names it, so the operation has none; the drift tests
+      compare LocalRoleAssignment with the schema of its row
+    trigger: when a type of package models holds the role assignments of the PDP container
   - key: model UserObj field roles
     reason: >-
       the API's documentation hides the roles of the user of an audit log, the relationship

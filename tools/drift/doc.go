@@ -4,11 +4,14 @@
 // describe it too, with a required flag and a null policy for each field of a struct; the tests
 // compare each type with each of its schemas in both directions, round-trip the maximal values of
 // each schema through the type with a strict decoder, compare the RequestModel and ResponseModel
-// of each operation of the registry with its request and reply schemas, and validate each reply
-// fixture in the root's testdata/replies against its reply schema, in the spec that lists the
-// operation and in each other spec that lists its route. allow.yaml accepts the findings that
-// come from known defects of the specs, each with a reason and a trigger, and an entry that
-// accepts nothing fails. The tests of waits_test.go check the routes on which the PDP container
+// of each operation of the registry with its request and reply schemas, find each JSON request
+// body and each reply in 200-299 with a JSON body that an operation names no model for, under a
+// key of its own, such as "operation bulk_create_users response without model", and validate
+// each reply fixture in the root's testdata/replies against its reply schema, in the spec that
+// lists the operation and in each other spec that lists its route. allow.yaml accepts
+// the findings that come from known defects of the specs, or from a body that the SDK leaves out
+// or does not read on purpose, each with a reason and a trigger, and an entry that accepts
+// nothing fails. The tests of waits_test.go check the routes on which the PDP container
 // waits for sync, which the spec of the container lists, against the root's doc.go, the registry
 // and coverage.yaml.
 //

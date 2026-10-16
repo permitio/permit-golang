@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	"github.com/permitio/permit-golang/v2/internal/rest"
+	"github.com/permitio/permit-golang/v2/internal/testkit/faketb"
 )
 
 // opsComparer returns the comparer of the operation tests: fixtureComparer with rows for the
 // schemas of the fixture spec's operations, and a spec, pdp-cloud, whose operations the tests
-// break, with a bulk route whose request is an array.
+// break, with a bulk route whose request is an array, a reply of status 299, a reply behind a
+// $ref, and request bodies of another type than JSON.
 func opsComparer(t *testing.T) *comparer {
 	t.Helper()
 	c := fixtureComparer(t)
@@ -22,6 +24,8 @@ func opsComparer(t *testing.T) *comparer {
 		"components": {
 			"requestBodies": {"Query": {"content": {"application/json": {"schema":
 				{"$ref": "#/components/schemas/Scope"}}}, "required": true}},
+			"responses": {"Scope": {"content": {"application/json": {"schema":
+				{"$ref": "#/components/schemas/Scope"}}}}},
 			"schemas": {"Scope": {"type": "object"}}
 		},
 		"paths": {
@@ -35,8 +39,22 @@ func opsComparer(t *testing.T) *comparer {
 					"items": {"$ref": "#/components/schemas/Scope"}}}}, "required": true},
 				"responses": {"200": {"content": {"application/json": {"schema": {"type": "array",
 					"items": {"$ref": "#/components/schemas/Scope"}}}}}}}},
+			"/late": {"post": {"operationId": "accept_late",
+				"responses": {"299": {"content": {"application/json": {"schema":
+					{"$ref": "#/components/schemas/Scope"}}}}}}},
 			"/lost": {"post": {"operationId": "lost_body",
-				"requestBody": {"$ref": "#/components/requestBodies/Gone"}}}
+				"requestBody": {"$ref": "#/components/requestBodies/Gone"}}},
+			"/lost/reply": {"get": {"operationId": "lost_reply",
+				"responses": {"200": {"$ref": "#/components/responses/Gone"}}}},
+			"/scope": {"get": {"operationId": "get_scope",
+				"responses": {"200": {"$ref": "#/components/responses/Scope"}}}},
+			"/upload": {"post": {"operationId": "upload",
+				"requestBody": {"content": {"multipart/form-data": {"schema": {"type": "object"}}}},
+				"responses": {"204": {}}}},
+			"/upload/required": {"post": {"operationId": "upload_required",
+				"requestBody": {"content": {"multipart/form-data": {"schema": {"type": "object"}}},
+					"required": true},
+				"responses": {"204": {}}}}
 		}
 	}`)
 	c.specs["pdp-cloud"] = &spec{name: "pdp-cloud", doc: cloud}
@@ -44,6 +62,10 @@ func opsComparer(t *testing.T) *comparer {
 }
 
 func TestOperation(t *testing.T) {
+	// isAllowedReply is the finding of is_allowed without a ResponseModel, whose reply is an
+	// inline schema, which no model holds.
+	isAllowedReply := "operation is_allowed response without model: its 200 reply: the spec " +
+		"gives it a JSON body, and the operation has no ResponseModel"
 	for _, tc := range []struct {
 		name string
 		op   rest.Op
@@ -91,14 +113,55 @@ func TestOperation(t *testing.T) {
 			rest.Op{ID: "create_env", RequestModel: "Scope", ResponseModel: "EnvRead"},
 			nil,
 		},
-		{"a body that the spec does not require, left out", rest.Op{ID: "create_env"}, nil},
-		{"a required body left out", rest.Op{ID: "update_env"}, []string{
-			"operation update_env request: the spec requires a request body, and the operation " +
-				"has no RequestModel",
+		{
+			"a JSON body that the spec does not require, left out",
+			rest.Op{ID: "create_env", ResponseModel: "EnvRead"},
+			[]string{
+				"operation create_env request without model: the spec gives the operation a JSON " +
+					"request body, which it does not require, and the operation has no " +
+					"RequestModel",
+			},
+		},
+		{"a reply left out", rest.Op{ID: "create_env", RequestModel: "Scope"}, []string{
+			"operation create_env response without model: its 201 reply: the spec gives it a " +
+				"JSON body, and the operation has no ResponseModel",
+		}},
+		{"both bodies left out", rest.Op{ID: "create_env"}, []string{
+			"operation create_env request without model: the spec gives the operation a JSON " +
+				"request body, which it does not require, and the operation has no RequestModel",
+			"operation create_env response without model: its 201 reply: the spec gives it a " +
+				"JSON body, and the operation has no ResponseModel",
+		}},
+		{"each reply with a JSON body left out", rest.Op{ID: "get_thing"}, []string{
+			"operation get_thing response without model: its 200 reply: the spec gives it a " +
+				"JSON body, and the operation has no ResponseModel",
+			"operation get_thing response without model: its 202 reply: the spec gives it a " +
+				"JSON body, and the operation has no ResponseModel",
+		}},
+		{"a reply of status 299 left out", rest.Op{ID: "accept_late"}, []string{
+			"operation accept_late response without model: its 299 reply: the spec gives it a " +
+				"JSON body, and the operation has no ResponseModel",
+		}},
+		{"a reply behind a $ref, left out", rest.Op{ID: "get_scope"}, []string{
+			"operation get_scope response without model: its 200 reply: the spec gives it a " +
+				"JSON body, and the operation has no ResponseModel",
+		}},
+		{"a reply behind a $ref", rest.Op{ID: "get_scope", ResponseModel: "RemoteScope"}, nil},
+		{"a body of another type that the spec does not require, left out", rest.Op{
+			ID: "upload",
+		}, nil},
+		{"a required body of another type, left out", rest.Op{ID: "upload_required"}, []string{
+			"operation upload_required request without model: the spec requires a request body, " +
+				"and the operation has no RequestModel",
+		}},
+		{"an operation without bodies, without models", rest.Op{ID: "delete_env"}, nil},
+		{"a required body left out", rest.Op{ID: "update_env", ResponseModel: "EnvRead"}, []string{
+			"operation update_env request without model: the spec requires a request body, and " +
+				"the operation has no RequestModel",
 		}},
 		{
 			"a request of another model",
-			rest.Op{ID: "update_env", RequestModel: "EnvRead"},
+			rest.Op{ID: "update_env", RequestModel: "EnvRead", ResponseModel: "EnvRead"},
 			[]string{
 				"operation update_env request: the model EnvRead maps to the schema EnvRead of " +
 					"control-plane, and the body holds ThingUpdate of control-plane",
@@ -115,11 +178,14 @@ func TestOperation(t *testing.T) {
 		{
 			"a request of one alternative",
 			rest.Op{ID: "create_thing", RequestModel: "Scope"},
-			nil,
+			[]string{
+				"operation create_thing response without model: its 200 reply: the spec gives it " +
+					"a JSON body, and the operation has no ResponseModel",
+			},
 		},
 		{
 			"a reply of one alternative",
-			rest.Op{ID: "create_thing", ResponseModel: "Thing"},
+			rest.Op{ID: "create_thing", RequestModel: "Scope", ResponseModel: "Thing"},
 			[]string{
 				"operation create_thing response: its 200 reply: the model Thing maps to the " +
 					"schema Thing of control-plane, and the body holds Thing, or Scope of " +
@@ -151,7 +217,7 @@ func TestOperation(t *testing.T) {
 		}},
 		{
 			"a model of another spec",
-			rest.Op{ID: "create_env", RequestModel: "RemoteScope"},
+			rest.Op{ID: "create_env", RequestModel: "RemoteScope", ResponseModel: "EnvRead"},
 			[]string{
 				"operation create_env request: the model RemoteScope maps to the schema Scope " +
 					"of pdp-cloud, and the body holds Scope of control-plane",
@@ -160,20 +226,24 @@ func TestOperation(t *testing.T) {
 		{
 			"a request body behind a $ref",
 			rest.Op{ID: "is_allowed", RequestModel: "RemoteScope"},
-			nil,
+			[]string{isAllowedReply},
 		},
 		{"a request body behind a $ref, left out", rest.Op{ID: "is_allowed"}, []string{
-			"operation is_allowed request: the spec requires a request body, and the operation " +
-				"has no RequestModel",
+			"operation is_allowed request without model: the spec requires a request body, and " +
+				"the operation has no RequestModel",
+			isAllowedReply,
 		}},
 		{
 			"a request of an array of its model, as a bulk route takes",
-			rest.Op{ID: "is_allowed_bulk", RequestModel: "[]RemoteScope"},
+			rest.Op{
+				ID: "is_allowed_bulk", RequestModel: "[]RemoteScope",
+				ResponseModel: "[]RemoteScope",
+			},
 			nil,
 		},
 		{
 			"a request of an array of another model",
-			rest.Op{ID: "is_allowed_bulk", RequestModel: "[]Scope"},
+			rest.Op{ID: "is_allowed_bulk", RequestModel: "[]Scope", ResponseModel: "[]RemoteScope"},
 			[]string{
 				"operation is_allowed_bulk request: the model Scope maps to the schema Scope of " +
 					"control-plane, and the body holds an array of Scope of pdp-cloud; the " +
@@ -182,7 +252,9 @@ func TestOperation(t *testing.T) {
 		},
 		{
 			"a request of one model, where the spec takes an array",
-			rest.Op{ID: "is_allowed_bulk", RequestModel: "RemoteScope"},
+			rest.Op{
+				ID: "is_allowed_bulk", RequestModel: "RemoteScope", ResponseModel: "[]RemoteScope",
+			},
 			[]string{
 				"operation is_allowed_bulk request: the model RemoteScope maps to the schema " +
 					"Scope of pdp-cloud, and the body holds an array of Scope of pdp-cloud",
@@ -195,6 +267,7 @@ func TestOperation(t *testing.T) {
 				"operation is_allowed request: the model RemoteScope maps to the schema Scope of " +
 					"pdp-cloud, and the body holds Scope of pdp-cloud; the RequestModel " +
 					"[]RemoteScope is a JSON array of the model",
+				isAllowedReply,
 			},
 		},
 		{
@@ -310,13 +383,22 @@ func TestOperationOfASharedRoute(t *testing.T) {
 		op   rest.Op
 		want []string
 	}{
-		{"a model of both specs", rest.Op{ID: "check", RequestModel: "Check"}, nil},
+		{"a model of both specs, without the reply's", rest.Op{
+			ID: "check", RequestModel: "Check",
+		}, []string{
+			"operation check response without model: its 200 reply: the spec gives it a JSON " +
+				"body, and the operation has no ResponseModel",
+			"operation check@pdp-cloud response without model: its 200 reply: the spec gives it " +
+				"a JSON body, and the operation has no ResponseModel",
+		}},
 		{
 			"a reply of both specs",
 			rest.Op{ID: "check", RequestModel: "Check", ResponseModel: "Result"},
 			nil,
 		},
-		{"a model of one spec", rest.Op{ID: "check", RequestModel: "ContainerCheck"}, []string{
+		{"a model of one spec", rest.Op{
+			ID: "check", RequestModel: "ContainerCheck", ResponseModel: "Result",
+		}, []string{
 			"operation check@pdp-cloud request: the model ContainerCheck maps to the schema " +
 				"Query of pdp-container, and the body holds AllowedQuery of pdp-cloud",
 		}},
@@ -349,6 +431,91 @@ func TestOperationOfASharedRoute(t *testing.T) {
 	}
 }
 
+// TestOperationsWithoutModels checks the report of the operations of a registry that leave out a
+// model: an operation without a RequestModel for the JSON request body that the spec gives it,
+// which it does not require, or without a ResponseModel for its reply in 200-299 with a JSON body,
+// fails unless allow.yaml accepts the finding, as it does for an operation that sends no body or
+// reads no model from its reply on purpose; an entry for an operation that names its models
+// accepts nothing, so it fails as stale; and an entry that accepts a model left out does not
+// accept a model of another schema that the operation names later.
+func TestOperationsWithoutModels(t *testing.T) {
+	r := &repository{comparer: *opsComparer(t)}
+	operations := func(registry ...rest.Op) []finding {
+		t.Helper()
+		var found []finding
+		for _, op := range registry {
+			more, err := r.operation(op)
+			if err != nil {
+				t.Fatal(err)
+			}
+			found = append(found, more...)
+		}
+		return found
+	}
+	found := operations(
+		rest.Op{ID: "create_env", ResponseModel: "EnvRead"},
+		rest.Op{ID: "update_env", RequestModel: "ThingUpdate"},
+		rest.Op{ID: "delete_env"},
+		rest.Op{ID: "get_env", ResponseModel: "EnvReadWithEmailConfig"},
+	)
+	request := "operation create_env request without model: the spec gives the operation a JSON " +
+		"request body, which it does not require, and the operation has no RequestModel"
+	reply := "operation update_env response without model: its 200 reply: the spec gives it a " +
+		"JSON body, and the operation has no ResponseModel"
+	both := []string{
+		"operation create_env request without model", "operation update_env response without model",
+	}
+	tb := faketb.New(t)
+	for _, tc := range []struct {
+		name  string
+		allow []string
+		want  []string
+	}{
+		{"without entries", nil, []string{request, reply}},
+		{"with an entry for the request", both[:1], []string{reply}},
+		{"with an entry for the reply", both[1:], []string{request}},
+		{"with an entry for each", both, nil},
+		{
+			"with an entry for an operation that names its models",
+			append(slices.Clone(both), "operation get_env response without model"),
+			[]string{`allow.yaml: the entry "operation get_env response without model" accepts ` +
+				"no finding: remove it"},
+		},
+	} {
+		r.allow = nil
+		for _, key := range tc.allow {
+			r.allow = append(r.allow, allowEntry{Key: key, Reason: "on purpose", Trigger: "never"})
+		}
+		r.report(tb, "operation ", found, nil)
+		if got := tb.Take(); !slices.Equal(got, tc.want) {
+			t.Errorf("%s: report fails with\n%s\nwant\n%s", tc.name, strings.Join(got, "\n"),
+				strings.Join(tc.want, "\n"))
+		}
+	}
+	r.allow = nil
+	for _, f := range found {
+		r.allow = append(r.allow, allowEntry{Key: f.key, Reason: "on purpose", Trigger: "never"})
+	}
+	r.report(tb, "operation ", operations(
+		rest.Op{ID: "create_env", RequestModel: "ThingUpdate", ResponseModel: "EnvRead"},
+		rest.Op{ID: "update_env", RequestModel: "ThingUpdate", ResponseModel: "Scope"},
+	), nil)
+	want := []string{
+		"operation create_env request: the model ThingUpdate maps to the schema ThingUpdate of " +
+			"control-plane, and the body holds Scope of control-plane",
+		"operation update_env response: its 200 reply: the model Scope maps to the schema Scope " +
+			"of control-plane, and the body holds EnvRead of control-plane",
+		`allow.yaml: the entry "operation create_env request without model" accepts no finding: ` +
+			"remove it",
+		`allow.yaml: the entry "operation update_env response without model" accepts no ` +
+			"finding: remove it",
+	}
+	if got := tb.Take(); !slices.Equal(got, want) {
+		t.Errorf("with the entries for the models left out, against models of other schemas: "+
+			"report fails with\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 func TestOperationDidNotRun(t *testing.T) {
 	c := opsComparer(t)
 	c.rows["Odd"] = modelRow{Schema: "Odd"}
@@ -360,6 +527,8 @@ func TestOperationDidNotRun(t *testing.T) {
 			`"not" is not one the walker implements`},
 		{rest.Op{ID: "lost_body", RequestModel: "Scope"}, "#/components/requestBodies/Gone: " +
 			"the $ref points at nothing in the spec"},
+		{rest.Op{ID: "lost_reply"}, "#/components/responses/Gone: the $ref points at nothing " +
+			"in the spec"},
 	} {
 		_, err := c.operation(tc.op)
 		if !isUnsupported(err) || !strings.HasPrefix(err.Error(), tc.want) {

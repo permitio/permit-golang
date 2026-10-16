@@ -1207,7 +1207,13 @@ They check five things:
   instead; and in the reply of a list, an operation with a `MaxPerPage`, when it is an array or a
   paginated envelope of it instead. So a Get whose model is smaller than the schema that the API
   returns, such as an environment without its email configuration, fails, and so does an operation
-  that sends one model where the spec takes an array, or an array where it takes one.
+  that sends one model where the spec takes an array, or an array where it takes one. An operation
+  without a `RequestModel` fails when the spec gives it a JSON request body, required or not, and
+  one without a `ResponseModel` fails for each of its replies in 200-299 with a JSON body, unless
+  `allow.yaml` accepts the finding, as it does for an operation that sends no body or reads no
+  model of `models` from its reply on purpose. These findings have keys of their own, such as
+  `operation bulk_create_users response without model`, so that an entry for one accepts no model
+  that the operation names later.
 - **Reply fixtures.** Each file in `testdata/replies` is the body of a reply that the wire tests
   serve, named `<operationId>.<status>[.<variant>].json`, such as `get_user.200.json` or
   `list_users.200.page.json`, with a variant of lower-case letters, digits and hyphens. The tests
@@ -1296,15 +1302,20 @@ as it does when the spec lists an optional property that the API reads elsewhere
 leaves out, such as the `sdk` of a check, as the PDP reads the SDK from a header, when a reply
 fixture holds a value of an enum that the spec does not list, such as the attribute type
 `geo_point` of `list_resource_attributes.200.unknown-type.json`, to check that the SDK reads a
-value that the API adds later, and when the SDK reads a property whose anyOf lists several forms
+value that the API adds later, when the SDK reads a property whose anyOf lists several forms
 into one Go type, such as the `roles` of `RoleList`, with a reason that names what the type keeps
-and what it drops. A failing test prints each finding after its key, such as
+and what it drops, and when an operation sends no JSON request body that the spec gives it, or
+reads no model of `models` from a reply that has a JSON body, such as the reply without fields of
+a bulk create of users or a decision of the PDP, whose `allow` the SDK reads itself, with a reason
+that says why. A failing test prints each finding after its key, such as
 `model UserRead field email`, `round trip UserRead#/email` (`#` alone when a value does not decode),
-`operation get_user response` or `reply get_user.200.json#/email`. A finding against a schema of
+`operation get_user response`, `operation bulk_create_users response without model` or
+`reply get_user.200.json#/email`. A finding against a schema of
 `also`, or against the operation of another spec with the same route, names the spec after `@`,
 such as `model User@pdp-cloud field email` or `reply is_allowed_allowed_post.200.json@pdp-cloud`.
-An entry gives the key, the `reason`, what the API does that the spec does not say, and the
-`trigger`, when the entry can go, such as when the published spec lists the field:
+An entry gives the key, the `reason`, why the finding is accepted, such as what the API does that
+the spec does not say, or why the SDK reads no model from a reply, and the `trigger`, when the
+entry can go, such as when the published spec lists the field:
 
 ```yaml
 allow:
@@ -1866,7 +1877,7 @@ its own:
 | `SensitiveBodyFields` | Fields of its bodies that hold a credential under a name other than the credential names of `redact.Set.AddFields`, such as `webhook_secret`, or an object of credentials under one of them, such as the `secret` of a proxy config, a set of headers. |
 | `NoReplyCredentials` | Its replies in 200-299 hold no credential that the server issued, so their values do not join the client's `redact.Set`: the PDP's decisions and the PDP's lists of permissions, of authorized users, of tenants and of role assignments, whose replies hold the application's values and can echo the request. |
 | `MaxPerPage` | The largest `per_page` of a list operation, or 0. |
-| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty; an operation of the PDP names the type of the root package that its request holds, such as `CheckRequest`, and no `ResponseModel`, as the SDK reads the reply itself: `allow` of a decision, or the entries of the permissions of a user, of the authorized users or of the tenants; a list of the PDP whose items are a type of the root package, such as `LocalRoleAssignment`, names none either, as its reply holds no type of `models`. A request that is a JSON array of the type names it after `[]`, such as `[]CheckRequest`, and so does the reply of an operation that is not a list, one without a `MaxPerPage`, when it is a JSON array of the type, such as the `[]ConditionSetRuleRead` of the create of a condition set rule. |
+| `RequestModel`, `ResponseModel` | The names of the types of `models` that its request and reply bodies hold, or empty; an operation of the PDP names the type of the root package that its request holds, such as `CheckRequest`, and no `ResponseModel`, as the SDK reads the reply itself: `allow` of a decision, or the entries of the permissions of a user, of the authorized users or of the tenants; a list of the PDP whose items are a type of the root package, such as `LocalRoleAssignment`, names none either, as its reply holds no type of `models`. A request that is a JSON array of the type names it after `[]`, such as `[]CheckRequest`, and so does the reply of an operation that is not a list, one without a `MaxPerPage`, when it is a JSON array of the type, such as the `[]ConditionSetRuleRead` of the create of a condition set rule. An empty one for a body that the spec gives as JSON needs an entry in `tools/drift/allow.yaml` that says why; see [Model drift](#model-drift). |
 
 A `*permit.Client` holds the registry, `rest.Default()`. The registry fails on an operation that
 is not valid, such as one without a key level, `DeleteSelf` on another method than DELETE,

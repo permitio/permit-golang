@@ -18,8 +18,12 @@ import (
 // model when it is the model's schema; for a RequestModel or a ResponseModel of [] and a name, a
 // body that is a JSON array, such as the request of a bulk route, when it is an array of the
 // model instead; and in the reply of a list, an operation with a MaxPerPage, when it is an array
-// or a paginated envelope of it instead. Its error is an *unsupportedError when a schema holds
-// what the walker does not implement.
+// or a paginated envelope of it instead. An operation without a RequestModel has a finding when
+// the spec gives it a JSON request body, required or not, and one without a ResponseModel a
+// finding for each of those replies, which allow.yaml accepts for an operation that sends no body
+// or reads no model from its reply on purpose. These findings have keys of their own, which end
+// in "without model", so that such an entry accepts no model that the operation names later. Its
+// error is an *unsupportedError when a schema holds what the walker does not implement.
 func (c *comparer) operation(op rest.Op) ([]finding, error) {
 	var missing []finding
 	request, _ := requestModel(op)
@@ -66,9 +70,12 @@ func label(op rest.Op, o specOperation) string {
 	return op.ID + "@" + o.spec.name
 }
 
-// request returns the findings of the RequestModel of op against the request body of o.
+// request returns the findings of the RequestModel of op against the request body of o; an
+// operation without a RequestModel has a finding when o requires a body or has a JSON one, under
+// a key of its own.
 func (c *comparer) request(op rest.Op, o specOperation) ([]finding, error) {
 	key := "operation " + label(op, o) + " request"
+	missing := key + " without model"
 	at := o.at + "/requestBody"
 	body, _ := o.node["requestBody"].(map[string]any)
 	if ref, ok := body["$ref"].(string); ok {
@@ -82,8 +89,11 @@ func (c *comparer) request(op rest.Op, o specOperation) ([]finding, error) {
 	schema, at, hasJSON := jsonBody(body, at)
 	switch {
 	case op.RequestModel == "" && body["required"] == true:
-		return []finding{{key, "the spec requires a request body, and the operation has no " +
-			"RequestModel"}}, nil
+		return []finding{{missing, "the spec requires a request body, and the operation has " +
+			"no RequestModel"}}, nil
+	case op.RequestModel == "" && hasJSON:
+		return []finding{{missing, "the spec gives the operation a JSON request body, which it " +
+			"does not require, and the operation has no RequestModel"}}, nil
 	case op.RequestModel == "":
 		return nil, nil
 	case !hasJSON:
@@ -96,41 +106,82 @@ func (c *comparer) request(op rest.Op, o specOperation) ([]finding, error) {
 }
 
 // response returns the findings of the ResponseModel of op against each reply of o in 200-299
-// with a JSON body.
+// with a JSON body; an operation without a ResponseModel has a finding for each such reply, under
+// a key of its own.
 func (c *comparer) response(op rest.Op, o specOperation) ([]finding, error) {
-	if op.ResponseModel == "" {
-		return nil, nil
-	}
 	key := "operation " + label(op, o) + " response"
+	replies, err := jsonReplies(o)
+	if err != nil {
+		return nil, err
+	}
+	var found []finding
+	if op.ResponseModel == "" {
+		for _, r := range replies {
+			found = append(found, finding{key + " without model", "its " + r.status + " reply: " +
+				"the spec gives it a JSON body, and the operation has no ResponseModel"})
+		}
+		return found, nil
+	}
+	if len(replies) == 0 {
+		return []finding{{key, "its ResponseModel is " + op.ResponseModel + ", and no reply of " +
+			"the operation in 200-299 has a JSON body in the spec"}}, nil
+	}
 	model, array := responseModel(op)
 	check := bodyCheck{
 		model: model, key: key, every: true, list: op.MaxPerPage > 0, array: array,
 		field: "ResponseModel",
 	}
-	responses, _ := o.node["responses"].(map[string]any)
-	var found []finding
-	replies := 0
-	for _, status := range slices.Sorted(maps.Keys(responses)) {
-		code, err := strconv.Atoi(status)
-		reply, _ := responses[status].(map[string]any)
-		schema, at, hasJSON := jsonBody(reply, o.at+"/responses/"+status)
-		if err != nil || code < 200 || code > 299 || !hasJSON {
-			continue
-		}
-		replies++
-		more, err := c.body(check, schema, at, o.spec)
+	for _, r := range replies {
+		more, err := c.body(check, r.schema, r.at, o.spec)
 		if err != nil {
 			return nil, err
 		}
 		for _, f := range more {
-			found = append(found, finding{f.key, "its " + status + " reply: " + f.text})
+			found = append(found, finding{f.key, "its " + r.status + " reply: " + f.text})
 		}
 	}
-	if replies == 0 {
-		found = append(found, finding{key, "its ResponseModel is " + op.ResponseModel + ", and " +
-			"no reply of the operation in 200-299 has a JSON body in the spec"})
-	}
 	return found, nil
+}
+
+// jsonReply is a reply of an operation in 200-299 with a JSON body.
+type jsonReply struct {
+	// status is its status code, such as 200.
+	status string
+
+	// schema is the schema of its JSON body.
+	schema any
+
+	// at is where schema is in the spec, as a $ref to it.
+	at string
+}
+
+// jsonReplies returns the replies of o in 200-299 with a JSON body, in the order of their
+// statuses; a reply that is a $ref, such as to components.responses, is the reply it points at.
+// Its error is an *unsupportedError when such a $ref points outside the spec or at nothing in it.
+func jsonReplies(o specOperation) ([]jsonReply, error) {
+	responses, _ := o.node["responses"].(map[string]any)
+	var replies []jsonReply
+	for _, status := range slices.Sorted(maps.Keys(responses)) {
+		code, err := strconv.Atoi(status)
+		if err != nil || code < 200 || code > 299 {
+			continue
+		}
+		at := o.at + "/responses/" + status
+		reply, _ := responses[status].(map[string]any)
+		if ref, ok := reply["$ref"].(string); ok {
+			target, _, err := o.spec.resolve(ref)
+			if err != nil {
+				return nil, err
+			}
+			reply, _ = target.(map[string]any)
+			at = ref
+		}
+		schema, at, hasJSON := jsonBody(reply, at)
+		if hasJSON {
+			replies = append(replies, jsonReply{status: status, schema: schema, at: at})
+		}
+	}
+	return replies, nil
 }
 
 // bodyCheck is what body checks a body for.

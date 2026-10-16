@@ -898,6 +898,7 @@ github.com/permitio/permit-golang/v2/tools/drift TestCompareModelOfTwoSpecs
 github.com/permitio/permit-golang/v2/tools/drift TestLeftOutOf
 github.com/permitio/permit-golang/v2/tools/drift TestMaximalLeavesOut
 github.com/permitio/permit-golang/v2/tools/drift TestOperationOfASharedRoute
+github.com/permitio/permit-golang/v2/tools/drift TestOperationsWithoutModels
 github.com/permitio/permit-golang/v2/tools/drift TestReplyFindingsOfASharedRoute
 
 github.com/permitio/permit-golang/v2 TestUserPermissionsBodies

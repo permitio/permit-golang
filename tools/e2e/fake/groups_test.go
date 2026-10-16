@@ -53,9 +53,9 @@ func TestGroups(t *testing.T) {
 	second := `{"group_instance_key":"g2","group_resource_type_key":"team","group_tenant":"t2",` +
 		`"id":"` + text(g2, "id") + `"}`
 	h.expectGroupPage(groups+"/direct", `[{"group_instance_key":"g1","group_resource_type_key":`+
-		`"group","group_tenant":"t1","id":"`+id+`"},`+second+`]`, 2, 1)
-	h.expectGroupPage(groups+"/direct?tenant=t2&per_page=1", `[`+second+`]`, 1, 1)
-	h.expectGroupPage(groups+"/direct?per_page=1&page=2", `[`+second+`]`, 2, 2)
+		`"group","group_tenant":"t1","id":"`+id+`"},`+second+`]`, 2)
+	h.expectGroupPage(groups+"/direct?tenant=t2&per_page=1", `[`+second+`]`, 1)
+	h.expectGroupPage(groups+"/direct?per_page=1&page=2", `[`+second+`]`, 2)
 	users := groups + "/g1/users"
 	assigned := h.expect(200, "PUT", users+"/alice", `{"tenant": "t1"}`, projectKey)
 	if got := assigned["users"]; !reflect.DeepEqual(got, []any{alice["id"]}) {
@@ -66,7 +66,7 @@ func TestGroups(t *testing.T) {
 	if got := assigned["users"]; !reflect.DeepEqual(got, []any{alice["id"], bobID}) {
 		t.Errorf("the assignment of bob by IDs answered the users %v, want alice and bob", got)
 	}
-	h.expectGroupPage(users+"?per_page=1&page=2", `[{"id":"`+bobID+`","key":"bob"}]`, 2, 2)
+	h.expectGroupPage(users+"?per_page=1&page=2", `[{"id":"`+bobID+`","key":"bob"}]`, 2)
 	for path, message := range map[string]string{
 		users + "/carol":         "no user carol",
 		groups + "/g3/users/bob": "no group g3",
@@ -82,7 +82,7 @@ func TestGroups(t *testing.T) {
 		t.Errorf("a second removal of alice answered %v", again)
 	}
 	h.expect(204, "DELETE", "/v2/facts/proj/dev/users/bob", "", projectKey)
-	h.expectGroupPage(users, `[]`, 0, 0)
+	h.expectGroupPage(users, `[]`, 0)
 	for _, r := range []struct{ method, path, body string }{
 		{"GET", groups + "/direct?resource=group", ""},
 		{"GET", groups + "/direct?search=g", ""},
@@ -140,7 +140,7 @@ func TestGroupRolesAndNesting(t *testing.T) {
 	}
 	h.expectGroupPage(groups+"/g1/roles", `[{"key":"editor","resource":{"id":"`+text(doc, "id")+
 		`","key":"document"},"resource_instance":{"id":"`+text(instance, "id")+
-		`","key":"doc-1"}}]`, 1, 1)
+		`","key":"doc-1"}}]`, 1)
 	byIDs := `{"role": "editor", "resource": "` + text(doc, "id") + `", "resource_instance": ` +
 		`"document:doc-1", "tenant": "t1"}`
 	h.expect(501, "POST", groups+"/g1/roles", byIDs, projectKey)
@@ -174,7 +174,7 @@ func TestGroupRolesAndNesting(t *testing.T) {
 		"the group g1 does not hold the role editor" {
 		t.Errorf("a second removal of editor answered %v", again)
 	}
-	h.expectGroupPage(groups+"/g1/roles", `[]`, 0, 0)
+	h.expectGroupPage(groups+"/g1/roles", `[]`, 0)
 
 	g1 := h.expect(200, "GET", groups+"/direct/g1", "", projectKey)
 	g2 := h.expect(200, "GET", groups+"/direct/g2", "", projectKey)
@@ -184,9 +184,9 @@ func TestGroupRolesAndNesting(t *testing.T) {
 	}
 	h.expect(200, "PUT", groups+"/g1/assign_group", `{"group_instance_key": "group:g2"}`,
 		projectKey)
-	h.expectGroupPage(groups+"/g1/children", `[`+schema(g2, "g2")+`]`, 1, 1)
-	h.expectGroupPage(groups+"/g2/parents", `[`+schema(g1, "g1")+`]`, 1, 1)
-	h.expectGroupPage(groups+"/g2/children", `[]`, 0, 0)
+	h.expectGroupPage(groups+"/g1/children", `[`+schema(g2, "g2")+`]`, 1)
+	h.expectGroupPage(groups+"/g2/parents", `[`+schema(g1, "g1")+`]`, 1)
+	h.expectGroupPage(groups+"/g2/children", `[]`, 0)
 	if body := h.expect(404, "PUT", groups+"/g1/assign_group", `{"group_instance_key": "g2"}`,
 		projectKey); body["message"] != "no group g2" {
 		t.Errorf("an assignment of g2 by its key alone answered %v", body)
@@ -206,13 +206,14 @@ func TestGroupRolesAndNesting(t *testing.T) {
 		"the group g1 does not hold the group group:g2" {
 		t.Errorf("a second removal of g2 answered %v", again)
 	}
-	h.expectGroupPage(groups+"/g1/children", `[]`, 0, 0)
-	h.expectGroupPage(groups+"/g2/parents", `[]`, 0, 0)
+	h.expectGroupPage(groups+"/g1/children", `[]`, 0)
+	h.expectGroupPage(groups+"/g2/parents", `[]`, 0)
 }
 
 // expectGroupPage sends GET to path and fails the test unless the reply is the paginated object
-// whose data is the JSON text data, of total items on pages pages.
-func (h *harness) expectGroupPage(path, data string, total, pages float64) {
+// whose data is the JSON text data, of total items, with the number of the items of data in
+// page_count, as the Permit API sends it.
+func (h *harness) expectGroupPage(path, data string, total float64) {
 	h.t.Helper()
 	got := h.expect(200, "GET", path, "", projectKey)
 	var want []any
@@ -220,9 +221,9 @@ func (h *harness) expectGroupPage(path, data string, total, pages float64) {
 		h.t.Fatal(err)
 	}
 	if !reflect.DeepEqual(want, got["data"]) || got["total_count"] != total ||
-		got["page_count"] != pages {
-		h.t.Errorf("GET %s answered %v; want the data %v, %v in total on %v pages", path, got,
-			want, total, pages)
+		got["page_count"] != float64(len(want)) {
+		h.t.Errorf("GET %s answered %v; want the data %v, %v in total, %d on the page", path,
+			got, want, total, len(want))
 	}
 }
 

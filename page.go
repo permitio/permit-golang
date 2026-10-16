@@ -107,7 +107,7 @@ func listOptions(opts *ListOptions) ListOptions {
 }
 
 // Page is one page of a list, as a List method returns it: its items, the page and the number of
-// items that the call asked for, and the counts of the whole list that the reply reports.
+// items that the call asked for, and the counts that the reply reports.
 type Page[T any] struct {
 	// Data holds the items of the page, in the order of the reply. It is empty, not nil, for a
 	// page without items, such as one after the last page.
@@ -124,7 +124,8 @@ type Page[T any] struct {
 	// it, such as a reply that is a JSON array.
 	TotalCount *int
 
-	// PageCount is the number of pages, or nil when the reply does not report it.
+	// PageCount is the page_count of the reply as the API sends it, or nil when the reply has
+	// none. The SDK does not use it to tell where a list ends.
 	PageCount *int
 }
 
@@ -172,12 +173,16 @@ func listPage[T any](ctx context.Context, c *Client, r request, shape listShape,
 // all returns an iterator over the items of every page of the list that r requests, whose
 // replies have shape, from the page of opts on, or the first. Each page asks for the PerPage of
 // opts, or else for the MaxPerPage of the operation of r; an operation that the client's registry
-// does not hold fails at the first page. The iterator stops after a page without items, or after
-// the page whose number is the page_count that its reply reports; never after a page with fewer
-// items than it asked for, as the API may give fewer than that on every page. It relies on the
-// route to honour page: a route that answered every page with the same items would be read until
-// a call fails or ctx ends. It asks for the next page only when the loop wants an item past the
-// last item of a page, so a loop that stops early sends no other request.
+// does not hold fails at the first page. The iterator stops after a page without items, or, when
+// the loop started at the first page, after the page whose reply reports a total_count equal to
+// the number of items that the loop has read up to the end of that page. A loop that started at
+// a later page cannot tell how many items the pages before it hold, so it reads on to the page
+// without items, as does a loop whose reply reports a total_count below the items read. It never
+// stops because a page holds fewer items than it asked for, as the API may give fewer than that
+// on every page, nor because of a page_count. It relies on the route to honour page: a route that
+// answered every page with the same items could be read until a call fails or ctx ends. It asks
+// for the next page only when the loop wants an item past the last item of a page, so a loop
+// that stops early sends no other request.
 //
 // Each page is a call of listPage under ctx, with its own timeout, retries and Debug lines. When
 // a call fails, such as when ctx ends, the iterator yields its error once, with the zero T, and
@@ -191,6 +196,7 @@ func all[T any](ctx context.Context, c *Client, r request, shape listShape,
 			Page:    cmp.Or(opts.Page, 1),
 			PerPage: cmp.Or(opts.PerPage, op.MaxPerPage),
 		}
+		fromFirst, read := next.Page == 1, 0
 		for {
 			page, err := listPage[T](ctx, c, r, shape, next)
 			if err != nil {
@@ -203,7 +209,11 @@ func all[T any](ctx context.Context, c *Client, r request, shape listShape,
 					return
 				}
 			}
-			if len(page.Data) == 0 || page.PageCount != nil && next.Page >= *page.PageCount {
+			if len(page.Data) == 0 {
+				return
+			}
+			read += len(page.Data)
+			if fromFirst && page.TotalCount != nil && *page.TotalCount == read {
 				return
 			}
 			next.Page++

@@ -103,9 +103,10 @@ func TestSyncSendsOnePUT(t *testing.T) {
 }
 
 // TestUsersAllReadsEveryPage checks that UsersService.All reads the 31 users of a list, in order,
-// asking for each page in turn: at a per_page of 30, two paginated objects without a page_count
+// asking for each page in turn: at a per_page of 30, two paginated objects without a total_count
 // and the empty page after them; at the default per_page of 100, one page of 31 and the empty
-// page after it; and pages up to the page_count that they report, without the page after it.
+// page after it; and pages up to the one whose users reach the total_count of its reply, without
+// the page after it. Each page reports the page_count of the API, the number of users on it.
 func TestUsersAllReadsEveryPage(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -118,20 +119,18 @@ func TestUsersAllReadsEveryPage(t *testing.T) {
 			name:    "per_page 30",
 			opts:    &UsersListOptions{ListOptions: ListOptions{PerPage: 30}},
 			pages:   [][]models.UserRead{usersOf(0, 30), usersOf(30, 31), {}},
-			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30", "page=3&per_page=30"},
 		},
 		{
 			name:    "the default per_page",
 			pages:   [][]models.UserRead{usersOf(0, 31), {}},
-			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=100", "page=2&per_page=100"},
 		},
 		{
-			name:    "a page_count",
+			name:    "a total_count",
 			opts:    &UsersListOptions{ListOptions: ListOptions{PerPage: 30}},
 			pages:   [][]models.UserRead{usersOf(0, 30), usersOf(30, 31)},
-			counts:  `,"total_count":31,"page_count":2`,
+			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
 		},
 	} {
@@ -139,7 +138,8 @@ func TestUsersAllReadsEveryPage(t *testing.T) {
 			api := mockpermit.NewAPI(t)
 			var replies []mockpermit.Reply
 			for _, page := range tc.pages {
-				replies = append(replies, pageOf(t, page, tc.counts))
+				pageCount := `,"page_count":` + strconv.Itoa(len(page))
+				replies = append(replies, pageOf(t, page, tc.counts+pageCount))
 			}
 			api.Handle(listUsersRoute, replies...)
 			items, errs := collect(t, userClient(t, api).Users.All(t.Context(), tc.opts))

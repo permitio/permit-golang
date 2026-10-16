@@ -1014,10 +1014,13 @@ change from v1 and what to use instead.
   error that matches `ErrInvalidConfig`, and no request is sent.
 - An `All` method reads every page and returns an `iter.Seq2[T, error]` of the items, for a
   `range` loop. It asks for the largest page that the route accepts, unless `PerPage` is set,
-  and starts at `Page`. It stops after a page without items, or after the last page when the
-  reply reports `page_count`, and never after a page with fewer items than it asked for. A
-  request that fails ends the loop with its error, yielded once. A loop that stops early sends no
-  other request. Each page is a call of its own, with its own timeout and retries.
+  and starts at `Page`. It reads until a page has no items, or, when it started at the first
+  page, until the `total_count` of a reply is reached, and never stops because a page holds fewer
+  items than it asked for. A request that fails ends the loop with its error, yielded once. A
+  loop that stops early sends no other request. Each page is a call of its own, with its own
+  timeout and retries.
+- `Page.PageCount` holds the `page_count` of the reply as the API sends it; the SDK does not use
+  it to tell where a list ends.
 - The client sends `per_page` as given, with no limit of its own, also above the route's limit,
   which differs from route to route.
 

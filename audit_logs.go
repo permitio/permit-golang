@@ -168,14 +168,15 @@ func (s *AuditLogsService) List(ctx context.Context, opts *AuditLogsListOptions,
 // All returns an iterator over the audit logs of the environment that match each filter of opts,
 // for a range loop. It reads the pages in turn, as [AuditLogsService.List] reads one, from the
 // page of opts.Page on, or the first, each of opts.PerPage audit logs, or else of 100, the most
-// that the API gives on a page. It stops after the last page that the replies count, or after the
-// first page without audit logs, and never after a page with fewer audit logs than it asked for.
-// It asks for the next page only when the loop wants an audit log past the last of a page, so a
-// loop that stops early sends no other request. It reads opts when it is called: a later change
-// to opts does not change the iterator. Each loop over the iterator reads the audit logs again,
-// from the first page that opts asks for. The pages are requests of their own, so a decision
-// stored during a loop can move the others from one page to the next. The API reads at most the
-// first 10000 audit logs of a list, as List says.
+// that the API gives on a page. It stops after the first page without audit logs, or, when the loop
+// started at the first page, after the page that the total_count of its reply shows to be the last,
+// and never because a page holds fewer audit logs than it asked for. It asks for the next page only
+// when the loop wants an audit log past the last of a page, so a loop that stops early sends no
+// other request. It reads opts when it is called: a later change to opts does not change the
+// iterator. Each loop over the iterator reads the audit logs again, from the first page that opts
+// asks for. The pages are requests of their own, so a decision stored during a loop can move the
+// others from one page to the next. The API reads at most the first 10000 audit logs of a list, as
+// List says: past them, the loop ends with the 400 error that List returns for such a page.
 //
 // All is sent with an environment-level API key, or with a key of a wider level and
 // [WithScope], as List is; each loop gets the scope as List does before its first page. Each

@@ -195,7 +195,7 @@ func apiKeyCases() []wireCase {
 			Reply: mockpermit.Reply{Body: replyFixture("list_api_keys.200.json")},
 			WantResult: &permit.Page[models.APIKeyRead]{
 				Data: listedAPIKeys(), Page: 2, PerPage: 10, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    listErr,

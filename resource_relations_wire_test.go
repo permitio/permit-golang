@@ -129,7 +129,7 @@ func relationCases() []wireCase {
 			Reply: mockpermit.Reply{Body: replyFixture("list_resource_relations.200.json")},
 			WantResult: &permit.Page[models.RelationRead]{
 				Data: listedRelations(), Page: 1, PerPage: 10, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    listErr,

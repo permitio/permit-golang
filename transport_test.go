@@ -167,12 +167,12 @@ func TestDoDecodesAnObject(t *testing.T) {
 func TestDoListDecodesEachShape(t *testing.T) {
 	const (
 		array = `[{"key":"a"},{"key":"b"}]`
-		page  = `{"data":[{"key":"a"},{"key":"b"}],"total_count":7,"page_count":4}`
+		page  = `{"data":[{"key":"a"},{"key":"b"}],"total_count":7,"page_count":2}`
 	)
 	items := []testObject{{Key: "a"}, {Key: "b"}}
-	seven, four := 7, 4
+	seven, two := 7, 2
 	fromArray := wire.List[testObject]{Data: items}
-	fromPage := wire.List[testObject]{Data: items, TotalCount: &seven, PageCount: &four}
+	fromPage := wire.List[testObject]{Data: items, TotalCount: &seven, PageCount: &two}
 	for _, tc := range []struct {
 		name  string
 		shape listShape

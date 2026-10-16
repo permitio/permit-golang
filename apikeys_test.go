@@ -61,10 +61,11 @@ func apiKeysOf(from, to int) []models.APIKeyRead {
 }
 
 // TestAPIKeysAllReadsEveryPage checks that APIKeysService.All reads the 31 keys of a list, in
-// order, asking for each page in turn: up to the last page that the replies count, at a per_page
-// of 30 and at the default per_page of 100, the most that the API gives on a page; up to the
-// empty page when the replies do not count the pages; and from page 2 on, when the options start
-// there, with the filters of the options in each request.
+// order, asking for each page in turn: up to the page whose keys reach the total_count of its
+// reply, at a per_page of 30 and at the default per_page of 100, the most that the API gives on a
+// page; up to the empty page when the replies do not report total_count; and from page 2 on, when
+// the options start there, with the filters of the options in each request, up to the empty page
+// after it, as a loop that starts after the first page does not stop at the total_count.
 func TestAPIKeysAllReadsEveryPage(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -77,8 +78,8 @@ func TestAPIKeysAllReadsEveryPage(t *testing.T) {
 			name: "per_page 30",
 			opts: &APIKeysListOptions{ListOptions: ListOptions{PerPage: 30}},
 			replies: []mockpermit.Reply{
-				pageOf(t, apiKeysOf(0, 30), `,"total_count":31,"page_count":2`),
-				pageOf(t, apiKeysOf(30, 31), `,"total_count":31,"page_count":2`),
+				pageOf(t, apiKeysOf(0, 30), `,"total_count":31,"page_count":30`),
+				pageOf(t, apiKeysOf(30, 31), `,"total_count":31,"page_count":1`),
 			},
 			want:    apiKeysOf(0, 31),
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
@@ -86,18 +87,18 @@ func TestAPIKeysAllReadsEveryPage(t *testing.T) {
 		{
 			name: "the default per_page",
 			replies: []mockpermit.Reply{
-				pageOf(t, apiKeysOf(0, 31), `,"total_count":31,"page_count":1`),
+				pageOf(t, apiKeysOf(0, 31), `,"total_count":31,"page_count":31`),
 			},
 			want:    apiKeysOf(0, 31),
 			queries: []string{"page=1&per_page=100"},
 		},
 		{
-			name: "pages without page_count",
+			name: "pages without total_count",
 			opts: &APIKeysListOptions{ListOptions: ListOptions{PerPage: 30}},
 			replies: []mockpermit.Reply{
-				pageOf(t, apiKeysOf(0, 30), `,"total_count":31`),
-				pageOf(t, apiKeysOf(30, 31), `,"total_count":31`),
-				pageOf(t, apiKeysOf(0, 0), `,"total_count":31`),
+				pageOf(t, apiKeysOf(0, 30), `,"page_count":30`),
+				pageOf(t, apiKeysOf(30, 31), `,"page_count":1`),
+				pageOf(t, apiKeysOf(0, 0), `,"page_count":0`),
 			},
 			want: apiKeysOf(0, 31),
 			queries: []string{
@@ -111,11 +112,13 @@ func TestAPIKeysAllReadsEveryPage(t *testing.T) {
 				ObjectType:  models.MemberAccessObjProject, Project: "my-project",
 			},
 			replies: []mockpermit.Reply{
-				pageOf(t, apiKeysOf(30, 31), `,"total_count":31,"page_count":2`),
+				pageOf(t, apiKeysOf(30, 31), `,"total_count":31,"page_count":1`),
+				pageOf(t, apiKeysOf(0, 0), `,"total_count":31,"page_count":0`),
 			},
 			want: apiKeysOf(30, 31),
 			queries: []string{
 				"object_type=project&page=2&per_page=30&proj_id=my-project",
+				"object_type=project&page=3&per_page=30&proj_id=my-project",
 			},
 		},
 	} {
@@ -216,11 +219,11 @@ func TestAPIKeysListReturnsAPage(t *testing.T) {
 			opts: &APIKeysListOptions{
 				ListOptions: ListOptions{Page: 3, PerPage: 30}, ObjectType: "added_later",
 			},
-			reply: pageOf(t, []models.APIKeyRead{}, `,"total_count":31,"page_count":2`),
+			reply: pageOf(t, []models.APIKeyRead{}, `,"total_count":31,"page_count":0`),
 			query: "object_type=added_later&page=3&per_page=30",
 			want: &Page[models.APIKeyRead]{
 				Data: []models.APIKeyRead{}, Page: 3, PerPage: 30, TotalCount: new(31),
-				PageCount: new(2),
+				PageCount: new(0),
 			},
 		},
 	} {

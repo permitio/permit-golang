@@ -67,13 +67,14 @@ func goldTier() []AttributeFilter {
 }
 
 // rolesReply returns a reply that holds items: a JSON array without counts, and the paginated
-// object with the members of counts, such as `,"total_count":2`, with them.
+// object with the members of counts, such as `,"total_count":2`, and the page_count that the API
+// sends, the number of items, with them.
 func rolesReply(t *testing.T, items []models.RoleRead, counts string) mockpermit.Reply {
 	t.Helper()
 	if counts == "" {
 		return arrayOf(t, items)
 	}
-	return pageOf(t, items, counts)
+	return pageOf(t, items, counts+`,"page_count":`+strconv.Itoa(len(items)))
 }
 
 // roleCall is a call of a method of the roles, with the ID of its operation, its route and a
@@ -208,7 +209,7 @@ func TestRoleAttributesOfAnyType(t *testing.T) {
 			},
 		},
 		{
-			"All", listRolesRoute, `{"data":[` + body + `],"page_count":1}`,
+			"All", listRolesRoute, `{"data":[` + body + `],"total_count":1,"page_count":1}`,
 			func(ctx context.Context, c *Client) ([]models.RoleRead, error) {
 				items, errs := collect(t, c.Roles.All(ctx, nil))
 				return items, errors.Join(errs...)
@@ -275,8 +276,8 @@ func TestRoleAttributesOfAnyType(t *testing.T) {
 // TestRolesAllReadsEveryPage checks that RolesService.All reads the 31 roles of a list, in
 // order, asking for each page in turn with the attribute filters of the options: at a per_page of
 // 30, two pages of roles and the empty page after them; at the default per_page of 100, the most
-// that the API gives on a page, one page of 31 and the empty page after it; and up to the last
-// page that paginated replies count, without the empty page after it.
+// that the API gives on a page, one page of 31 and the empty page after it; and up to the page
+// whose roles reach the total_count of its paginated reply, without the empty page after it.
 func TestRolesAllReadsEveryPage(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -304,7 +305,7 @@ func TestRolesAllReadsEveryPage(t *testing.T) {
 			name:    "paginated replies",
 			opts:    &RolesListOptions{ListOptions: ListOptions{PerPage: 30}},
 			pages:   [][]models.RoleRead{rolesOf(0, 30), rolesOf(30, 31)},
-			counts:  `,"total_count":31,"page_count":2`,
+			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
 		},
 	} {
@@ -405,11 +406,11 @@ func TestRolesListReturnsAPage(t *testing.T) {
 		{
 			name:  "a paginated reply after the last page",
 			opts:  &RolesListOptions{ListOptions: ListOptions{Page: 3, PerPage: 30}},
-			items: []models.RoleRead{}, counts: `,"total_count":31,"page_count":2`,
+			items: []models.RoleRead{}, counts: `,"total_count":31`,
 			query: "page=3&per_page=30",
 			want: &Page[models.RoleRead]{
 				Data: []models.RoleRead{}, Page: 3, PerPage: 30, TotalCount: new(31),
-				PageCount: new(2),
+				PageCount: new(0),
 			},
 		},
 	} {
@@ -952,7 +953,7 @@ func TestRoleRelativesReadBothForms(t *testing.T) {
 		want  []models.RoleRead
 	}{
 		{"an array", `{"roles":` + array + `}`, roles},
-		{"a page", `{"roles":{"data":` + array + `,"total_count":3,"page_count":1}}`, roles},
+		{"a page", `{"roles":{"data":` + array + `,"total_count":3,"page_count":3}}`, roles},
 		{"a page without counts", `{"roles":{"data":` + array + `}}`, roles},
 		{"an empty array", `{"roles":[]}`, []models.RoleRead{}},
 		{"an empty page", `{"roles":{"data":[],"total_count":0}}`, []models.RoleRead{}},

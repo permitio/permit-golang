@@ -108,7 +108,7 @@ func TestRoleAssignmentListsReturnAnEmptyPage(t *testing.T) {
 // assignments of a list, in order, asking for each page in turn at the default per_page of
 // 1000, the largest that the route accepts: All, whose replies are JSON arrays, asks for the
 // pages of 1000 and of 1 and for the empty page after them, and AllDetailed, whose paginated
-// replies report a page_count of 2, for the two pages alone. It checks a per_page of 30 too.
+// replies report a total_count of 1001, for the two pages alone. It checks a per_page of 30 too.
 func TestRoleAssignmentsAllReadsEveryPage(t *testing.T) {
 	array := func(t *testing.T, from, to int) mockpermit.Reply {
 		t.Helper()
@@ -130,9 +130,9 @@ func TestRoleAssignmentsAllReadsEveryPage(t *testing.T) {
 	})
 	t.Run("AllDetailed at the default per_page", func(t *testing.T) {
 		api := mockpermit.NewAPI(t)
-		counts := `,"total_count":1001,"page_count":2`
-		api.Handle(listDetailedRoute, pageOf(t, detailedOf(0, 1000), counts),
-			pageOf(t, detailedOf(1000, 1001), counts))
+		api.Handle(listDetailedRoute,
+			pageOf(t, detailedOf(0, 1000), `,"total_count":1001,"page_count":1000`),
+			pageOf(t, detailedOf(1000, 1001), `,"total_count":1001,"page_count":1`))
 		items, errs := collect(t, userClient(t, api).RoleAssignments.AllDetailed(t.Context(), nil))
 		if diff := cmp.Diff(detailedOf(0, 1001), items); diff != "" || errs != nil {
 			t.Errorf("AllDetailed yielded the errors %v and role assignments that differ "+

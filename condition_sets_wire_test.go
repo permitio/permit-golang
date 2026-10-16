@@ -178,7 +178,7 @@ func conditionSetCases() []wireCase {
 			Reply: mockpermit.Reply{Body: replyFixture("list_condition_sets.200.page.json")},
 			WantResult: &permit.Page[models.ConditionSetRead]{
 				Data: listedConditionSets(), Page: 2, PerPage: 10, TotalCount: new(3),
-				PageCount: new(1),
+				PageCount: new(3),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    listErr,

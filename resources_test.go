@@ -98,7 +98,8 @@ var resourceCalls = []struct {
 // list, in order, asking for each page in turn with the search of the options: at a per_page of
 // 30, two pages of resources and the empty page after them; at the default per_page of 100, the
 // most that the API gives on a page, one page of 31 and the empty page after it; and up to the
-// last page that paginated replies count, without the empty page after it.
+// page whose resources reach the total_count of its paginated reply, without the empty page
+// after it.
 func TestResourcesAllReadsEveryPage(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -123,7 +124,7 @@ func TestResourcesAllReadsEveryPage(t *testing.T) {
 			name:    "paginated replies",
 			opts:    &ResourcesListOptions{ListOptions: ListOptions{PerPage: 30}, Search: "a b"},
 			pages:   [][]models.ResourceRead{resourcesOf(0, 30), resourcesOf(30, 31)},
-			counts:  `,"total_count":31,"page_count":2`,
+			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=30&search=a+b", "page=2&per_page=30&search=a+b"},
 		},
 	} {
@@ -147,13 +148,14 @@ func TestResourcesAllReadsEveryPage(t *testing.T) {
 }
 
 // resourcesReply returns a reply that holds items: a JSON array without counts, and the
-// paginated object with the members of counts, such as `,"total_count":2`, with them.
+// paginated object with the members of counts, such as `,"total_count":2`, and the page_count
+// that the API sends, the number of items, with them.
 func resourcesReply(t *testing.T, items []models.ResourceRead, counts string) mockpermit.Reply {
 	t.Helper()
 	if counts == "" {
 		return arrayOf(t, items)
 	}
-	return pageOf(t, items, counts)
+	return pageOf(t, items, counts+`,"page_count":`+strconv.Itoa(len(items)))
 }
 
 // TestResourcesAllYieldsAnErrorOnce checks that a page that fails ends the iterator with its
@@ -235,11 +237,11 @@ func TestResourcesListReturnsAPage(t *testing.T) {
 		{
 			name:  "a paginated reply after the last page",
 			opts:  &ResourcesListOptions{ListOptions: ListOptions{Page: 3, PerPage: 30}},
-			items: []models.ResourceRead{}, counts: `,"total_count":31,"page_count":2`,
+			items: []models.ResourceRead{}, counts: `,"total_count":31`,
 			query: "page=3&per_page=30",
 			want: &Page[models.ResourceRead]{
 				Data: []models.ResourceRead{}, Page: 3, PerPage: 30, TotalCount: new(31),
-				PageCount: new(2),
+				PageCount: new(0),
 			},
 		},
 	} {

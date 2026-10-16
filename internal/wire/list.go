@@ -12,7 +12,7 @@ type List[T any] struct {
 	// the reply does not report it, such as a bare array.
 	TotalCount *int
 
-	// PageCount is the envelope's page_count, the number of pages, or nil when the reply does
+	// PageCount is the envelope's page_count as the reply sends it, or nil when the reply does
 	// not report it.
 	PageCount *int
 }

@@ -166,13 +166,14 @@ func (s *ResourceInstancesService) List(ctx context.Context, opts *ResourceInsta
 // All returns an iterator over the resource instances of the environment that match each filter
 // of opts, for a range loop. It reads the pages in turn, as [ResourceInstancesService.List] reads
 // one, from the page of opts.Page on, or the first, each of opts.PerPage instances, or else of
-// 100, the most that the API gives on a page. It stops after the last page that the replies
-// count, or after the first page without instances, and never after a page with fewer instances
-// than it asked for. It asks for the next page only when the loop wants an instance past the last
-// of a page, so a loop that stops early sends no other request. It reads opts when it is called: a
-// later change to opts does not change the iterator. Each loop over the iterator reads the
-// instances again, from the first page that opts asks for. The pages are requests of their own,
-// so an instance created or deleted during a loop can move the others from one page to the next.
+// 100, the most that the API gives on a page. It stops after the first page without instances, or,
+// when the loop started at the first page, after the page that the total_count of its reply shows
+// to be the last, and never because a page holds fewer instances than it asked for. It asks for the
+// next page only when the loop wants an instance past the last of a page, so a loop that stops
+// early sends no other request. It reads opts when it is called: a later change to opts does not
+// change the iterator. Each loop over the iterator reads the instances again, from the first page
+// that opts asks for. The pages are requests of their own, so an instance created or deleted during
+// a loop can move the others from one page to the next.
 //
 // All needs an environment-level API key, or higher, and the scope of an environment, as List
 // does; each loop gets the scope before its first page. Each page is a call of its own, with its
@@ -227,10 +228,11 @@ func (s *ResourceInstancesService) ListDetailed(ctx context.Context,
 // relationship tuples, that match each filter of opts, for a range loop. It reads the pages in
 // turn, as [ResourceInstancesService.ListDetailed] reads one, as [ResourceInstancesService.All]
 // reads those of List: from the page of opts.Page on, or the first, each of opts.PerPage
-// instances, or else of 100; it stops after the last page that the replies count, or after the
-// first page without instances; and it asks for the next page only when the loop wants an
-// instance past the last of a page. It reads opts when it is called, and each loop reads the
-// instances again, from the first page that opts asks for.
+// instances, or else of 100; it stops after the first page without instances, or, when the loop
+// started at the first page, after the page that the total_count of its reply shows to be the last;
+// and it asks for the next page only when the loop wants an instance past the last of a page. It
+// reads opts when it is called, and each loop reads the instances again, from the first page that
+// opts asks for.
 //
 // AllDetailed needs an environment-level API key, or higher, and the scope of an environment, as
 // ListDetailed does; each loop gets the scope before its first page. Each page is a call of its

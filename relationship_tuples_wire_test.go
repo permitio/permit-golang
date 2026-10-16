@@ -183,7 +183,7 @@ func relationshipTupleCases() []wireCase {
 				Body: replyFixture("list_relationship_tuples.200.page.json"),
 			},
 			WantResult: &permit.Page[models.RelationshipTupleRead]{
-				Data: listedTuples()[:1], Page: 1, TotalCount: new(3), PageCount: new(3),
+				Data: listedTuples()[:1], Page: 1, TotalCount: new(3), PageCount: new(1),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusForbidden, Body: tupleForbiddenBody},
 			WantErr:    forbidden("list_relationship_tuples", http.MethodGet, tuples),
@@ -221,7 +221,7 @@ func relationshipTupleCases() []wireCase {
 			},
 			WantResult: &permit.Page[models.RelationshipTupleDetailedRead]{
 				Data: detailedTuples(), Page: 2, PerPage: 100, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{
 				Status: http.StatusUnprocessableEntity, Body: tuplePerPageBody,

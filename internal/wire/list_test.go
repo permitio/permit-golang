@@ -42,7 +42,7 @@ func TestDecodeListBothShapes(t *testing.T) {
 	}{
 		{"bare-array.json", List[listItem]{Data: fixtureItems}},
 		{"envelope.json", List[listItem]{
-			Data: fixtureItems, TotalCount: new(3), PageCount: new(1),
+			Data: fixtureItems, TotalCount: new(3), PageCount: new(3),
 		}},
 	} {
 		t.Run(tc.fixture, func(t *testing.T) {

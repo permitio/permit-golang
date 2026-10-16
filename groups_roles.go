@@ -137,13 +137,14 @@ func (s *GroupsService) ListRoles(ctx context.Context, groupInstanceKey string,
 // AllRoles returns an iterator over the roles assigned to the group of the instance key
 // groupInstanceKey, for a range loop. It reads the pages in turn, as [GroupsService.ListRoles]
 // reads one, from the page of opts.Page on, or the first, each of opts.PerPage roles, or else of
-// 100, the most that the API gives on a page. It stops after the last page that the replies
-// count, or after the first page without roles, and never after a page with fewer roles than it
-// asked for. It asks for the next page only when the loop wants a role past the last of a page,
-// so a loop that stops early sends no other request. It reads opts when it is called: a later
-// change to opts does not change the iterator. Each loop over the iterator reads the roles again,
-// from the first page that opts asks for. The pages are requests of their own, so a role assigned
-// to the group or removed from it during a loop can move the others from one page to the next.
+// 100, the most that the API gives on a page. It stops after the first page without roles, or, when
+// the loop started at the first page, after the page that the total_count of its reply shows to be
+// the last, and never because a page holds fewer roles than it asked for. It asks for the next page
+// only when the loop wants a role past the last of a page, so a loop that stops early sends no
+// other request. It reads opts when it is called: a later change to opts does not change the
+// iterator. Each loop over the iterator reads the roles again, from the first page that opts asks
+// for. The pages are requests of their own, so a role assigned to the group or removed from it
+// during a loop can move the others from one page to the next.
 //
 // AllRoles is sent with an environment-level API key, or with a key of a wider level and
 // [WithScope], as ListRoles is; each loop gets the scope as ListRoles does before its first page.
@@ -283,13 +284,14 @@ func (s *GroupsService) ListChildren(ctx context.Context, groupInstanceKey strin
 // AllChildren returns an iterator over the child groups of the group of the instance key
 // groupInstanceKey, for a range loop. It reads the pages in turn, as [GroupsService.ListChildren]
 // reads one, from the page of opts.Page on, or the first, each of opts.PerPage groups, or else of
-// 100, the most that the API gives on a page. It stops after the last page that the replies
-// count, or after the first page without groups, and never after a page with fewer groups than it
-// asked for. It asks for the next page only when the loop wants a group past the last of a page,
-// so a loop that stops early sends no other request. It reads opts when it is called: a later
-// change to opts does not change the iterator. Each loop over the iterator reads the groups
-// again, from the first page that opts asks for. The pages are requests of their own, so a group
-// assigned or removed during a loop can move the others from one page to the next.
+// 100, the most that the API gives on a page. It stops after the first page without groups, or,
+// when the loop started at the first page, after the page that the total_count of its reply shows
+// to be the last, and never because a page holds fewer groups than it asked for. It asks for the
+// next page only when the loop wants a group past the last of a page, so a loop that stops early
+// sends no other request. It reads opts when it is called: a later change to opts does not change
+// the iterator. Each loop over the iterator reads the groups again, from the first page that opts
+// asks for. The pages are requests of their own, so a group assigned or removed during a loop can
+// move the others from one page to the next.
 //
 // AllChildren is sent with an environment-level API key, or with a key of a wider level and
 // [WithScope], as ListChildren is; each loop gets the scope as ListChildren does before its first
@@ -345,13 +347,14 @@ func (s *GroupsService) ListParents(ctx context.Context, groupInstanceKey string
 // AllParents returns an iterator over the parent groups of the group of the instance key
 // groupInstanceKey, for a range loop. It reads the pages in turn, as [GroupsService.ListParents]
 // reads one, from the page of opts.Page on, or the first, each of opts.PerPage groups, or else of
-// 100, the most that the API gives on a page. It stops after the last page that the replies
-// count, or after the first page without groups, and never after a page with fewer groups than it
-// asked for. It asks for the next page only when the loop wants a group past the last of a page,
-// so a loop that stops early sends no other request. It reads opts when it is called: a later
-// change to opts does not change the iterator. Each loop over the iterator reads the groups
-// again, from the first page that opts asks for. The pages are requests of their own, so a group
-// assigned or removed during a loop can move the others from one page to the next.
+// 100, the most that the API gives on a page. It stops after the first page without groups, or,
+// when the loop started at the first page, after the page that the total_count of its reply shows
+// to be the last, and never because a page holds fewer groups than it asked for. It asks for the
+// next page only when the loop wants a group past the last of a page, so a loop that stops early
+// sends no other request. It reads opts when it is called: a later change to opts does not change
+// the iterator. Each loop over the iterator reads the groups again, from the first page that opts
+// asks for. The pages are requests of their own, so a group assigned or removed during a loop can
+// move the others from one page to the next.
 //
 // AllParents is sent with an environment-level API key, or with a key of a wider level and
 // [WithScope], as ListParents is; each loop gets the scope as ListParents does before its first

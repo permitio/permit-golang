@@ -136,7 +136,7 @@ func groupRoleCases() []wireCase {
 			Reply: mockpermit.Reply{Body: replyFixture("list_group_roles.200.json")},
 			WantResult: &permit.Page[models.GroupRoleReadSchema]{
 				Data: listedGroupRoles(), Page: 2, PerPage: 2, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: groupNotFoundBody},
 			WantErr:    notFound("list_group_roles", http.MethodGet, rolesRoute),
@@ -211,7 +211,7 @@ func groupRoleCases() []wireCase {
 			Reply: mockpermit.Reply{Body: replyFixture("list_group_children.200.json")},
 			WantResult: &permit.Page[models.GroupReadSchema]{
 				Data: listedGroupChildren(), Page: 1, PerPage: 10, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    perPage,

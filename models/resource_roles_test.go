@@ -33,7 +33,7 @@ func TestResourceRoleListDecodes(t *testing.T) {
 		want []models.ResourceRoleRead
 	}{
 		{"an array", `{"roles":` + array + `}`, roles},
-		{"a page", `{"roles":{"data":` + array + `,"total_count":2,"page_count":1}}`, roles},
+		{"a page", `{"roles":{"data":` + array + `,"total_count":2,"page_count":2}}`, roles},
 		{"a page without counts", `{"roles":{"data":` + array + `}}`, roles},
 		{"another field", `{"next":1,"roles":` + array + `}`, roles},
 		{"an empty array", `{"roles":[]}`, []models.ResourceRoleRead{}},

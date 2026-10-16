@@ -116,7 +116,7 @@ func TestRelationshipTupleListsReturnAnEmptyPage(t *testing.T) {
 // relationship tuples of a list, in order, asking for each page in turn at the default per_page
 // of 100, the largest that the routes accept: All, whose replies are JSON arrays, asks for the
 // pages of 100 and of 1 and for the empty page after them, and AllDetailed, whose paginated
-// replies report a page_count of 2, for the two pages alone.
+// replies report a total_count of 101, for the two pages alone.
 func TestRelationshipTuplesAllReadsEveryPage(t *testing.T) {
 	hundred := []string{"page=1&per_page=100", "page=2&per_page=100", "page=3&per_page=100"}
 	t.Run("All", func(t *testing.T) {
@@ -134,9 +134,9 @@ func TestRelationshipTuplesAllReadsEveryPage(t *testing.T) {
 	})
 	t.Run("AllDetailed", func(t *testing.T) {
 		api := mockpermit.NewAPI(t)
-		counts := `,"total_count":101,"page_count":2`
-		api.Handle(listDetailedTuplesRoute, pageOf(t, detailedTuplesOf(0, 100), counts),
-			pageOf(t, detailedTuplesOf(100, 101), counts))
+		api.Handle(listDetailedTuplesRoute,
+			pageOf(t, detailedTuplesOf(0, 100), `,"total_count":101,"page_count":100`),
+			pageOf(t, detailedTuplesOf(100, 101), `,"total_count":101,"page_count":1`))
 		items, errs := collect(t,
 			userClient(t, api).RelationshipTuples.AllDetailed(t.Context(), nil))
 		if diff := cmp.Diff(detailedTuplesOf(0, 101), items); diff != "" || errs != nil {

@@ -121,7 +121,7 @@ func groupCases() []wireCase {
 			},
 			Reply: mockpermit.Reply{Body: replyFixture("list_direct_group.200.json")},
 			WantResult: &permit.Page[models.GroupReadSchema]{
-				Data: listedGroups(), Page: 1, PerPage: 10, TotalCount: new(2), PageCount: new(1),
+				Data: listedGroups(), Page: 1, PerPage: 10, TotalCount: new(2), PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    listErr,
@@ -206,7 +206,7 @@ func groupCases() []wireCase {
 			Reply: mockpermit.Reply{Body: replyFixture("list_group_users.200.json")},
 			WantResult: &permit.Page[models.GroupUserReadSchema]{
 				Data: listedGroupUsers(), Page: 2, PerPage: 2, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: groupNotFoundBody},
 			WantErr:    notFound("list_group_users", http.MethodGet, usersRoute),

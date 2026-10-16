@@ -208,7 +208,7 @@ func roleAssignmentCases() []wireCase {
 			Request: wireRequest{RawPath: "/v2/facts/p/e/role_assignments"},
 			Reply:   mockpermit.Reply{Body: replyFixture("list_role_assignments.200.page.json")},
 			WantResult: &permit.Page[models.RoleAssignmentRead]{
-				Data: listedAssignments()[:1], Page: 1, TotalCount: new(3), PageCount: new(3),
+				Data: listedAssignments()[:1], Page: 1, TotalCount: new(3), PageCount: new(1),
 			},
 			ErrorReply: mockpermit.Reply{
 				Status: http.StatusForbidden, Body: roleAssignmentForbiddenBody,
@@ -249,7 +249,7 @@ func roleAssignmentCases() []wireCase {
 			},
 			WantResult: &permit.Page[models.RoleAssignmentDetailedRead]{
 				Data: detailedAssignments(), Page: 2, PerPage: 1000, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{
 				Status: http.StatusUnprocessableEntity, Body: roleAssignmentPerPageBody,

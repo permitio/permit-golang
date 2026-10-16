@@ -329,9 +329,11 @@ func groupIteratorErrors(t *testing.T, c *Client, opts *ListOptions) map[string]
 }
 
 // checkGroupPagesReadToTheEnd checks that the iterator of p reads 31 items, in order, asking for
-// each page in turn: up to the last page that the replies count, at a per_page of 30 and at the
-// default per_page of 100, the most that the API gives on a page; up to the empty page when the
-// replies do not count the pages; and from page 2 on, when the options start there.
+// each page in turn: up to the page whose items reach the total_count of its reply, at a
+// per_page of 30 and at the default per_page of 100, the most that the API gives on a page; up to
+// the empty page when the replies do not report total_count; and from page 2 on, when the options
+// start there, up to the empty page after it, as a loop that starts after the first page does not
+// stop at the total_count.
 func checkGroupPagesReadToTheEnd[T any](t *testing.T, p groupPages[T]) {
 	t.Helper()
 	for _, tc := range []struct {
@@ -344,8 +346,8 @@ func checkGroupPagesReadToTheEnd[T any](t *testing.T, p groupPages[T]) {
 		{
 			name: "per_page 30", opts: &ListOptions{PerPage: 30},
 			replies: []mockpermit.Reply{
-				pageOf(t, p.items(0, 30), `,"total_count":31,"page_count":2`),
-				pageOf(t, p.items(30, 31), `,"total_count":31,"page_count":2`),
+				pageOf(t, p.items(0, 30), `,"total_count":31,"page_count":30`),
+				pageOf(t, p.items(30, 31), `,"total_count":31,"page_count":1`),
 			},
 			want:    p.items(0, 31),
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
@@ -353,17 +355,17 @@ func checkGroupPagesReadToTheEnd[T any](t *testing.T, p groupPages[T]) {
 		{
 			name: "the default per_page",
 			replies: []mockpermit.Reply{
-				pageOf(t, p.items(0, 31), `,"total_count":31,"page_count":1`),
+				pageOf(t, p.items(0, 31), `,"total_count":31,"page_count":31`),
 			},
 			want:    p.items(0, 31),
 			queries: []string{"page=1&per_page=100"},
 		},
 		{
-			name: "pages without page_count", opts: &ListOptions{PerPage: 30},
+			name: "pages without total_count", opts: &ListOptions{PerPage: 30},
 			replies: []mockpermit.Reply{
-				pageOf(t, p.items(0, 30), `,"total_count":31`),
-				pageOf(t, p.items(30, 31), `,"total_count":31`),
-				pageOf(t, p.items(0, 0), `,"total_count":31`),
+				pageOf(t, p.items(0, 30), `,"page_count":30`),
+				pageOf(t, p.items(30, 31), `,"page_count":1`),
+				pageOf(t, p.items(0, 0), `,"page_count":0`),
 			},
 			want: p.items(0, 31),
 			queries: []string{
@@ -373,10 +375,11 @@ func checkGroupPagesReadToTheEnd[T any](t *testing.T, p groupPages[T]) {
 		{
 			name: "from page 2", opts: &ListOptions{Page: 2, PerPage: 30},
 			replies: []mockpermit.Reply{
-				pageOf(t, p.items(30, 31), `,"total_count":31,"page_count":2`),
+				pageOf(t, p.items(30, 31), `,"total_count":31,"page_count":1`),
+				pageOf(t, p.items(0, 0), `,"total_count":31,"page_count":0`),
 			},
 			want:    p.items(30, 31),
-			queries: []string{"page=2&per_page=30"},
+			queries: []string{"page=2&per_page=30", "page=3&per_page=30"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -422,24 +425,27 @@ func TestGroupRelativesAllReadEveryPage(t *testing.T) {
 
 // TestGroupUsersListReadsEachPage checks that ListUsers reads the page that it asks for, page 1
 // and then page 2 of a group of 31 users at a per_page of 30, each with the users of the reply in
-// its order and the counts of the reply.
+// its order and the counts of the reply: the total_count of the group, and the page_count as the
+// reply sends it, the number of users on the page.
 func TestGroupUsersListReadsEachPage(t *testing.T) {
 	api := mockpermit.NewAPI(t)
 	api.Handle(listGroupUsersRoute,
-		pageOf(t, groupUsersOf(0, 30), `,"total_count":31,"page_count":2`),
-		pageOf(t, groupUsersOf(30, 31), `,"total_count":31,"page_count":2`))
+		pageOf(t, groupUsersOf(0, 30), `,"total_count":31,"page_count":30`),
+		pageOf(t, groupUsersOf(30, 31), `,"total_count":31,"page_count":1`))
 	c := resourceClient(t, api)
 	var got []models.GroupUserReadSchema
-	for page := 1; page <= 2; page++ {
+	for i, pageCount := range []int{30, 1} {
+		page := i + 1
 		p, err := c.Groups.ListUsers(t.Context(), "engineering",
 			&ListOptions{Page: page, PerPage: 30})
 		if err != nil {
 			t.Fatalf("ListUsers of page %d returned %v", page, err)
 		}
 		if p.Page != page || p.PerPage != 30 || p.TotalCount == nil || *p.TotalCount != 31 ||
-			p.PageCount == nil || *p.PageCount != 2 {
+			p.PageCount == nil || *p.PageCount != pageCount {
 			t.Errorf("ListUsers of page %d returned the page %d of %d with the counts %v and "+
-				"%v, want 31 users on 2 pages", page, p.Page, p.PerPage, p.TotalCount, p.PageCount)
+				"%v, want 31 users and a page_count of %d", page, p.Page, p.PerPage,
+				p.TotalCount, p.PageCount, pageCount)
 		}
 		got = append(got, p.Data...)
 	}
@@ -604,9 +610,9 @@ func TestGroupsListReturnsAPage(t *testing.T) {
 	}{
 		{
 			name:  "nil options",
-			reply: pageOf(t, groupsOf(0, 2), `,"total_count":2,"page_count":1`),
+			reply: pageOf(t, groupsOf(0, 2), `,"total_count":2,"page_count":2`),
 			want: &Page[models.GroupReadSchema]{
-				Data: groupsOf(0, 2), Page: 1, TotalCount: new(2), PageCount: new(1),
+				Data: groupsOf(0, 2), Page: 1, TotalCount: new(2), PageCount: new(2),
 			},
 		},
 		{
@@ -621,11 +627,11 @@ func TestGroupsListReturnsAPage(t *testing.T) {
 		{
 			name:  "a page after the last",
 			opts:  &GroupsListOptions{ListOptions: ListOptions{Page: 3, PerPage: 30}},
-			reply: pageOf(t, []models.GroupReadSchema{}, `,"total_count":31,"page_count":2`),
+			reply: pageOf(t, []models.GroupReadSchema{}, `,"total_count":31,"page_count":0`),
 			query: "page=3&per_page=30",
 			want: &Page[models.GroupReadSchema]{
 				Data: []models.GroupReadSchema{}, Page: 3, PerPage: 30, TotalCount: new(31),
-				PageCount: new(2),
+				PageCount: new(0),
 			},
 		},
 		{

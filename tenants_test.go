@@ -94,13 +94,15 @@ func TestTenantsListReturnsTheError(t *testing.T) {
 // TestTenantsAllReadsEveryPage checks that TenantsService.All reads the 31 tenants of a list, in
 // order, asking for each page in turn: at a per_page of 30, two pages of JSON arrays and the empty
 // page after them; at the default per_page of 100, one page of 31 and the empty page after it;
-// and paginated objects up to the page_count that they report, without the page after it.
+// and paginated objects up to the one whose tenants reach the total_count of its reply, without
+// the page after it.
 func TestTenantsAllReadsEveryPage(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		opts *TenantsListOptions
 		// pages are the tenants of each reply, a JSON array, or the paginated object with
-		// counts after its data when counts is not empty.
+		// counts after its data, and the page_count of the API, the number of tenants on the
+		// page, when counts is not empty.
 		pages   [][]models.TenantRead
 		counts  string
 		queries []string
@@ -117,10 +119,10 @@ func TestTenantsAllReadsEveryPage(t *testing.T) {
 			queries: []string{"page=1&per_page=100", "page=2&per_page=100"},
 		},
 		{
-			name:    "paginated objects with a page_count",
+			name:    "paginated objects with a total_count",
 			opts:    &TenantsListOptions{ListOptions: ListOptions{PerPage: 30}},
 			pages:   [][]models.TenantRead{tenantsOf(0, 30), tenantsOf(30, 31)},
-			counts:  `,"total_count":31,"page_count":2`,
+			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
 		},
 	} {
@@ -130,7 +132,7 @@ func TestTenantsAllReadsEveryPage(t *testing.T) {
 			for _, page := range tc.pages {
 				reply := arrayOf(t, page)
 				if tc.counts != "" {
-					reply = pageOf(t, page, tc.counts)
+					reply = pageOf(t, page, tc.counts+`,"page_count":`+strconv.Itoa(len(page)))
 				}
 				replies = append(replies, reply)
 			}
@@ -938,9 +940,10 @@ func TestTenantsWaitForSyncMisuse(t *testing.T) {
 
 // TestTenantUsersAllReadsEveryPage checks that TenantsService.AllUsers reads the 31 users of a
 // tenant, in order, asking for each page in turn, under the path of the tenant: at a per_page of
-// 30, two paginated objects without a page_count and the empty page after them; at the default
-// per_page of 100, one page of 31 and the empty page after it; and pages up to the page_count that
-// they report, without the page after it.
+// 30, two paginated objects without a total_count and the empty page after them; at the default
+// per_page of 100, one page of 31 and the empty page after it; and pages up to the one whose
+// users reach the total_count of its reply, without the page after it. Each page reports the
+// page_count of the API, the number of users on it.
 func TestTenantUsersAllReadsEveryPage(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -953,20 +956,18 @@ func TestTenantUsersAllReadsEveryPage(t *testing.T) {
 			name:    "per_page 30",
 			opts:    &TenantUsersListOptions{ListOptions: ListOptions{PerPage: 30}},
 			pages:   [][]models.UserRead{usersOf(0, 30), usersOf(30, 31), {}},
-			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30", "page=3&per_page=30"},
 		},
 		{
 			name:    "the default per_page",
 			pages:   [][]models.UserRead{usersOf(0, 31), {}},
-			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=100", "page=2&per_page=100"},
 		},
 		{
-			name:    "a page_count",
+			name:    "a total_count",
 			opts:    &TenantUsersListOptions{ListOptions: ListOptions{PerPage: 30}},
 			pages:   [][]models.UserRead{usersOf(0, 30), usersOf(30, 31)},
-			counts:  `,"total_count":31,"page_count":2`,
+			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
 		},
 	} {
@@ -974,7 +975,8 @@ func TestTenantUsersAllReadsEveryPage(t *testing.T) {
 			api := mockpermit.NewAPI(t)
 			var replies []mockpermit.Reply
 			for _, page := range tc.pages {
-				replies = append(replies, pageOf(t, page, tc.counts))
+				pageCount := `,"page_count":` + strconv.Itoa(len(page))
+				replies = append(replies, pageOf(t, page, tc.counts+pageCount))
 			}
 			api.Handle(listTenantUsersRoute, replies...)
 			seq := tenantClient(t, api).Tenants.AllUsers(t.Context(), "tenant-a", tc.opts)

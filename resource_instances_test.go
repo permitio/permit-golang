@@ -121,9 +121,11 @@ func instanceKeysOf(from, to int) []string {
 
 // TestResourceInstancesAllReadsEveryPage checks that All and AllDetailed read the 31 instances of
 // a list, in order, asking for each page in turn: at a per_page of 30, two paginated objects
-// without a page_count and the empty page after them; at the default per_page of 100, one page
-// of 31 and the empty page after it; and pages up to the page_count that they report, without
-// the page after it. All also reads the pages of JSON arrays, up to the first empty one.
+// without a total_count and the empty page after them; at the default per_page of 100, one page
+// of 31 and the empty page after it; and pages up to the one whose instances reach the
+// total_count of its reply, without the page after it. Each paginated object reports the
+// page_count of the API, the number of instances on the page. All also reads the pages of JSON
+// arrays, up to the first empty one.
 func TestResourceInstancesAllReadsEveryPage(t *testing.T) {
 	perPage30 := &ResourceInstancesListOptions{ListOptions: ListOptions{PerPage: 30}}
 	untilEmpty := []string{"page=1&per_page=30", "page=2&per_page=30", "page=3&per_page=30"}
@@ -137,17 +139,17 @@ func TestResourceInstancesAllReadsEveryPage(t *testing.T) {
 		}{
 			{
 				name: "per_page 30", opts: perPage30, queries: untilEmpty,
-				counts: `,"total_count":31`, bounds: []int{0, 30, 31, 31},
+				bounds: []int{0, 30, 31, 31},
 			},
 			{
 				name:    "the default per_page",
 				queries: []string{"page=1&per_page=100", "page=2&per_page=100"},
-				counts:  `,"total_count":31`, bounds: []int{0, 31, 31},
+				bounds:  []int{0, 31, 31},
 			},
 			{
-				name: "a page_count", opts: perPage30,
+				name: "a total_count", opts: perPage30,
 				queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
-				counts:  `,"total_count":31,"page_count":2`, bounds: []int{0, 30, 31},
+				counts:  `,"total_count":31`, bounds: []int{0, 30, 31},
 			},
 		} {
 			t.Run(list.name+"/"+tc.name, func(t *testing.T) {
@@ -183,13 +185,15 @@ func TestResourceInstancesAllReadsEveryPage(t *testing.T) {
 }
 
 // instancePagesOf returns a paginated reply for each pair of bounds, the instances i<from> to
-// i<to-1>, each with counts, as pageOf builds it.
+// i<to-1>, each with counts and the page_count that the API sends, the number of instances on
+// the page, as pageOf builds it.
 func instancePagesOf(t *testing.T, counts string, bounds ...int) []mockpermit.Reply {
 	t.Helper()
 	var replies []mockpermit.Reply
 	for i := 0; i+1 < len(bounds); i++ {
+		pageCount := `,"page_count":` + strconv.Itoa(bounds[i+1]-bounds[i])
 		replies = append(replies,
-			pageOf(t, instancesOf(bounds[i], bounds[i+1]), counts))
+			pageOf(t, instancesOf(bounds[i], bounds[i+1]), counts+pageCount))
 	}
 	return replies
 }

@@ -807,7 +807,7 @@ func TestResourceRoleRelativesReadBothForms(t *testing.T) {
 		want  []models.ResourceRoleRead
 	}{
 		{"an array", `{"roles":` + array + `}`, roles},
-		{"a page", `{"roles":{"data":` + array + `,"total_count":3,"page_count":1}}`, roles},
+		{"a page", `{"roles":{"data":` + array + `,"total_count":3,"page_count":3}}`, roles},
 		{"a page without counts", `{"roles":{"data":` + array + `}}`, roles},
 		{"an empty array", `{"roles":[]}`, []models.ResourceRoleRead{}},
 		{"an empty page", `{"roles":{"data":[],"total_count":0}}`, []models.ResourceRoleRead{}},

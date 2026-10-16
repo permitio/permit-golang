@@ -129,13 +129,14 @@ func (s *GroupsService) List(ctx context.Context, opts *GroupsListOptions,
 // All returns an iterator over the groups of the environment that match each filter of opts, for
 // a range loop. It reads the pages in turn, as [GroupsService.List] reads one, from the page of
 // opts.Page on, or the first, each of opts.PerPage groups, or else of 100, the most that the API
-// gives on a page. It stops after the last page that the replies count, or after the first page
-// without groups, and never after a page with fewer groups than it asked for. It asks for the
-// next page only when the loop wants a group past the last of a page, so a loop that stops early
-// sends no other request. It reads opts when it is called: a later change to opts does not change
-// the iterator. Each loop over the iterator reads the groups again, from the first page that opts
-// asks for. The pages are requests of their own, so a group created or deleted during a loop can
-// move the others from one page to the next.
+// gives on a page. It stops after the first page without groups, or, when the loop started at the
+// first page, after the page that the total_count of its reply shows to be the last, and never
+// because a page holds fewer groups than it asked for. It asks for the next page only when the loop
+// wants a group past the last of a page, so a loop that stops early sends no other request. It
+// reads opts when it is called: a later change to opts does not change the iterator. Each loop over
+// the iterator reads the groups again, from the first page that opts asks for. The pages are
+// requests of their own, so a group created or deleted during a loop can move the others from one
+// page to the next.
 //
 // All is sent with an environment-level API key, or with a key of a wider level and
 // [WithScope], as List is; each loop gets the scope as List does before its first page. Each
@@ -283,13 +284,14 @@ func (s *GroupsService) ListUsers(ctx context.Context, groupInstanceKey string,
 // AllUsers returns an iterator over the users in the group of the instance key groupInstanceKey,
 // for a range loop. It reads the pages in turn, as [GroupsService.ListUsers] reads one, from the
 // page of opts.Page on, or the first, each of opts.PerPage users, or else of 100, the most that
-// the API gives on a page. It stops after the last page that the replies count, or after the
-// first page without users, and never after a page with fewer users than it asked for. It asks
-// for the next page only when the loop wants a user past the last of a page, so a loop that stops
-// early sends no other request. It reads opts when it is called: a later change to opts does not
-// change the iterator. Each loop over the iterator reads the users again, from the first page that
-// opts asks for. The pages are requests of their own, so a user assigned to the group or removed
-// from it during a loop can move the others from one page to the next.
+// the API gives on a page. It stops after the first page without users, or, when the loop started
+// at the first page, after the page that the total_count of its reply shows to be the last, and
+// never because a page holds fewer users than it asked for. It asks for the next page only when the
+// loop wants a user past the last of a page, so a loop that stops early sends no other request. It
+// reads opts when it is called: a later change to opts does not change the iterator. Each loop over
+// the iterator reads the users again, from the first page that opts asks for. The pages are
+// requests of their own, so a user assigned to the group or removed from it during a loop can move
+// the others from one page to the next.
 //
 // AllUsers is sent with an environment-level API key, or with a key of a wider level and
 // [WithScope], as ListUsers is; each loop gets the scope as ListUsers does before its first page.

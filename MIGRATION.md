@@ -2029,8 +2029,9 @@ reply in `TotalCount` and `PageCount`, as [M-lists-1](#M-lists-1) says. v2 reads
 page or the API's default number, returns an error that matches `permit.ErrInvalidConfig` for a
 number below 0, with no request for the list, and sends any number above 0 as given; the API
 answers above 100 with an error. `ResourceRelationsService.All(ctx, resourceKey, opts)` returns
-an `iter.Seq2[models.RelationRead, error]` that reads every page, 100 relations at a time, up to
-the last page that the replies count:
+an `iter.Seq2[models.RelationRead, error]` that reads every page, 100 relations at a time, until
+a page has no relations or, when it started at the first page, the `total_count` of a reply is
+reached:
 
 ```go
 for relation, err := range client.ResourceRelations.All(ctx, "document", nil) {

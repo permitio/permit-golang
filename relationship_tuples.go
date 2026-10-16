@@ -166,14 +166,15 @@ func (s *RelationshipTuplesService) List(ctx context.Context,
 // of opts, for a range loop. It reads the pages in turn, as [RelationshipTuplesService.List] reads
 // one, from the page of opts.Page on, or the first, each of opts.PerPage relationship tuples, or
 // else of 100, the most that the API gives on a page, so that 101 relationship tuples take two
-// pages, and the empty page after them when the replies do not count the pages. It stops after
-// the last page that the replies count, or after the first page without relationship tuples, and
-// never after a page with fewer relationship tuples than it asked for. It asks for the next page
-// only when the loop wants a relationship tuple past the last of a page, so a loop that stops
-// early sends no other request. It reads opts when it is called: a later change to opts does not
-// change the iterator. Each loop over the iterator reads the relationship tuples again, from the
-// first page that opts asks for. The pages are requests of their own, so a relationship tuple
-// created or deleted during a loop can move the others from one page to the next.
+// pages, and the empty page after them when the replies do not report a total_count. It stops after
+// the first page without relationship tuples, or, when the loop started at the first page, after
+// the page that the total_count of its reply shows to be the last, and never because a page holds
+// fewer relationship tuples than it asked for. It asks for the next page only when the loop wants a
+// relationship tuple past the last of a page, so a loop that stops early sends no other request. It
+// reads opts when it is called: a later change to opts does not change the iterator. Each loop over
+// the iterator reads the relationship tuples again, from the first page that opts asks for. The
+// pages are requests of their own, so a relationship tuple created or deleted during a loop can
+// move the others from one page to the next.
 //
 // All needs an environment-level API key, or higher, and the scope of an environment, as List
 // does; each loop gets the scope before its first page. Each page is a call of its own, with its
@@ -230,12 +231,12 @@ func (s *RelationshipTuplesService) ListDetailed(ctx context.Context,
 // filter of opts, from the detailed list, for a range loop. It reads the pages in turn, as
 // [RelationshipTuplesService.ListDetailed] reads one, as All does: from the page of opts.Page on,
 // or the first, each of opts.PerPage relationship tuples, or else of 100, the most that the API
-// gives on a page. It stops after the last page that the replies count, so that 101 relationship
-// tuples take two pages, or after the first page without relationship tuples, and never after a
-// page with fewer relationship tuples than it asked for. It asks for the next page only when the
-// loop wants a relationship tuple past the last of a page, so a loop that stops early sends no
-// other request. It reads opts when it is called, and each loop over the iterator reads the
-// relationship tuples again, as All does.
+// gives on a page. It stops after the first page without relationship tuples, or, when the loop
+// started at the first page, after the page that the total_count of its reply shows to be the last,
+// so that 101 relationship tuples take two pages, and never because a page holds fewer relationship
+// tuples than it asked for. It asks for the next page only when the loop wants a relationship tuple
+// past the last of a page, so a loop that stops early sends no other request. It reads opts when it
+// is called, and each loop over the iterator reads the relationship tuples again, as All does.
 //
 // AllDetailed needs an environment-level API key, or higher, and the scope of an environment, as
 // ListDetailed does; each loop gets the scope before its first page. Each page is a call of its

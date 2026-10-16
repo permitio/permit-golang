@@ -514,8 +514,9 @@ func TestPages(t *testing.T) {
 // names, answers the paginated object of the Permit API: the page of page and per_page of the
 // relations in data, the first page of 30 also without either, an empty data, not null, after
 // the last page and for a resource without relations, the number of the relations in
-// total_count, and the number of pages of per_page of them in page_count. A list that Paged does
-// not name, that of the roles, answers a JSON array, as every list of a fake without Paged does.
+// total_count, and the number of the relations on the page in page_count, as the Permit API sends
+// it. A list that Paged does not name, that of the roles, answers a JSON array, as every list of a
+// fake without Paged does.
 func TestPagedLists(t *testing.T) {
 	h := newHarness(t)
 	h.createEnv("dev")
@@ -529,16 +530,15 @@ func TestPagedLists(t *testing.T) {
 		keys = append(keys, key)
 	}
 	for _, tc := range []struct {
-		query        string
-		want         []any
-		pages, total float64
+		query string
+		want  []any
 	}{
-		{"", keys[:30], 2, 31},
-		{"?page=2", keys[30:], 2, 31},
-		{"?page=2&per_page=30", keys[30:], 2, 31},
-		{"?page=3&per_page=30", []any{}, 2, 31},
-		{"?per_page=100", keys, 1, 31},
-		{"?page=16&per_page=2", keys[30:], 16, 31},
+		{"", keys[:30]},
+		{"?page=2", keys[30:]},
+		{"?page=2&per_page=30", keys[30:]},
+		{"?page=3&per_page=30", []any{}},
+		{"?per_page=100", keys},
+		{"?page=16&per_page=2", keys[30:]},
 	} {
 		page := h.expect(200, "GET", relations+tc.query, "", projectKey)
 		data, ok := page["data"].([]any)
@@ -547,10 +547,10 @@ func TestPagedLists(t *testing.T) {
 			o, _ := r.(map[string]any)
 			got = append(got, o["key"])
 		}
-		if !ok || !slices.Equal(got, tc.want) || page["total_count"] != tc.total ||
-			page["page_count"] != tc.pages || len(page) != 3 {
-			t.Errorf("GET %s%s answered %v, want the relations %v, the total count %v and "+
-				"the page count %v", relations, tc.query, page, tc.want, tc.total, tc.pages)
+		if !ok || !slices.Equal(got, tc.want) || page["total_count"] != 31.0 ||
+			page["page_count"] != float64(len(tc.want)) || len(page) != 3 {
+			t.Errorf("GET %s%s answered %v, want the relations %v, the total count 31 and "+
+				"the page count %d", relations, tc.query, page, tc.want, len(tc.want))
 		}
 	}
 	h.expect(200, "POST", "/v2/schema/proj/dev/resources", `{"key": "folder"}`, projectKey)
@@ -753,8 +753,9 @@ func TestResourceInstances(t *testing.T) {
 
 // TestDetailedResourceInstances checks the detailed list of the resource instances: the paginated
 // object of the instances of the environment, in the order in which they were created, on the
-// page of page and per_page, with the counts of every instance, each instance with an empty list
-// of relationships, and the instances that the fake stores without them.
+// page of page and per_page, with the count of every instance and the page_count of the page,
+// each instance with an empty list of relationships, and the instances that the fake stores
+// without them.
 func TestDetailedResourceInstances(t *testing.T) {
 	h := newHarness(t)
 	h.createEnv("dev")
@@ -772,9 +773,9 @@ func TestDetailedResourceInstances(t *testing.T) {
 		}
 		relationships, ok := instance["relationships"].([]any)
 		if instance["key"] != want || !ok || len(relationships) != 0 ||
-			got["total_count"] != 2.0 || got["page_count"] != 2.0 {
+			got["total_count"] != 2.0 || got["page_count"] != 1.0 {
 			t.Errorf("page %s of the detailed list is %v, want the instance %s with no "+
-				"relationship, of 2 instances on 2 pages", page, got, want)
+				"relationship, the one instance of the page of 2 instances", page, got, want)
 		}
 	}
 	if got := h.expect(200, "GET", instances+"/document:a", "", projectKey); got["relationships"] !=
@@ -959,7 +960,7 @@ func TestRoleAssignmentLists(t *testing.T) {
 	}
 	page := h.expect(200, "GET", assignments+"/detailed?user=alice&user=bob", "", projectKey)
 	items, _ := page["data"].([]any)
-	if len(items) != 3 || page["total_count"] != 3.0 || page["page_count"] != 1.0 {
+	if len(items) != 3 || page["total_count"] != 3.0 || page["page_count"] != 3.0 {
 		t.Fatalf("the detailed list answered %v, want the page of the three role assignments",
 			page)
 	}

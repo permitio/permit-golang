@@ -102,8 +102,10 @@ func queries(server *mockpermit.Server) []string {
 
 // TestAllReadsEveryPage checks that all reads the 31 items of a list on a route whose largest
 // page holds 30, asking for each page in turn with that per_page and nothing else in the query:
-// up to the first empty page when the replies do not report page_count, a bare array or a
-// paginated object, and up to the last page when they do.
+// up to the first empty page when the replies do not report total_count, a bare array or a
+// paginated object with a page_count or with a total_count on its first page alone, and up to
+// the page whose items reach the total_count of its reply when they do, without the empty page
+// after it.
 func TestAllReadsEveryPage(t *testing.T) {
 	untilEmpty := []string{"page=1&per_page=30", "page=2&per_page=30", "page=3&per_page=30"}
 	for _, tc := range []struct {
@@ -119,7 +121,16 @@ func TestAllReadsEveryPage(t *testing.T) {
 			want: untilEmpty,
 		},
 		{
-			name: "pages without page_count",
+			name: "pages without total_count",
+			replies: []mockpermit.Reply{
+				pageOf(t, objects(0, 30), `,"page_count":30`),
+				pageOf(t, objects(30, 31), `,"page_count":1`),
+				pageOf(t, objects(0, 0), `,"page_count":0`),
+			},
+			want: untilEmpty,
+		},
+		{
+			name: "a total_count on the first page alone",
 			replies: []mockpermit.Reply{
 				pageOf(t, objects(0, 30), `,"total_count":31`), pageOf(t, objects(30, 31), ""),
 				pageOf(t, objects(0, 0), ""),
@@ -127,10 +138,10 @@ func TestAllReadsEveryPage(t *testing.T) {
 			want: untilEmpty,
 		},
 		{
-			name: "pages with page_count",
+			name: "pages with total_count",
 			replies: []mockpermit.Reply{
-				pageOf(t, objects(0, 30), `,"total_count":31,"page_count":2`),
-				pageOf(t, objects(30, 31), `,"total_count":31,"page_count":2`),
+				pageOf(t, objects(0, 30), `,"total_count":31,"page_count":30`),
+				pageOf(t, objects(30, 31), `,"total_count":31,"page_count":1`),
 			},
 			want: []string{"page=1&per_page=30", "page=2&per_page=30"},
 		},
@@ -146,6 +157,148 @@ func TestAllReadsEveryPage(t *testing.T) {
 					errs, diff)
 			}
 			if diff := cmp.Diff(tc.want, queries(api)); diff != "" {
+				t.Errorf("the queries differ (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestAllReadsPastThePageCount checks that a page_count below the number of the page does not
+// end the list, as the page_count of the API's reply is the number of items on the page: all
+// reads the 7 items of a list at a per_page of 2, whose full pages report a page_count of 2, up
+// to the page whose items reach the total_count of its reply when the replies report one, and
+// up to the empty page when they do not.
+func TestAllReadsPastThePageCount(t *testing.T) {
+	var counted, uncounted []mockpermit.Reply
+	for from := 0; from < 7; from += 2 {
+		items := objects(from, min(from+2, 7))
+		pageCount := `,"page_count":` + strconv.Itoa(len(items))
+		counted = append(counted, pageOf(t, items, `,"total_count":7`+pageCount))
+		uncounted = append(uncounted, pageOf(t, items, pageCount))
+	}
+	uncounted = append(uncounted, pageOf(t, objects(0, 0), `,"page_count":0`))
+	for _, tc := range []struct {
+		name    string
+		replies []mockpermit.Reply
+	}{
+		{"with total_count", counted},
+		{"without total_count", uncounted},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			api := mockpermit.NewAPI(t)
+			api.Handle(route(opPaged), tc.replies...)
+			items, errs := collect(t, all[testObject](t.Context(), pageClient(t, api), paged,
+				arrayOrPageShape, ListOptions{PerPage: 2}))
+			if diff := cmp.Diff(objects(0, 7), items); diff != "" || errs != nil {
+				t.Errorf("all yielded the errors %v and items that differ (-want +got):\n%s",
+					errs, diff)
+			}
+			var want []string
+			for page := 1; page <= len(tc.replies); page++ {
+				want = append(want, "page="+strconv.Itoa(page)+"&per_page=2")
+			}
+			if diff := cmp.Diff(want, queries(api)); diff != "" {
+				t.Errorf("the queries differ (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestAllStopsAtTheTotalCount checks that all, when the loop started at the first page, stops
+// after the page whose reply reports a total_count equal to the number of items read up to the
+// end of that page, and not before: it reads past pages with fewer items than it asked for, reads
+// on when the total_count of a later reply grows, and reads on to the empty page after replies
+// whose total_count, 0, is below the items read. From a later page, which does not tell how many
+// items the pages before it hold, it reads on to the empty page whatever the total_count: from
+// page 3 and from the last page of 7 items at a per_page of 2, from page 2 of a list whose first
+// page holds fewer items than page 2, and from page 2 with a total_count that the items from page
+// 2 on reach.
+func TestAllStopsAtTheTotalCount(t *testing.T) {
+	counted := func(from, to int, total string) mockpermit.Reply {
+		return pageOf(t, objects(from, to), `,"total_count":`+total+`,"page_count":`+
+			strconv.Itoa(to-from))
+	}
+	for _, tc := range []struct {
+		name    string
+		opts    ListOptions
+		replies []mockpermit.Reply
+		want    []testObject
+		queries []string
+	}{
+		{
+			name: "from page 3",
+			opts: ListOptions{Page: 3, PerPage: 2},
+			replies: []mockpermit.Reply{
+				counted(4, 6, "7"), counted(6, 7, "7"), counted(0, 0, "7"),
+			},
+			want:    objects(4, 7),
+			queries: []string{"page=3&per_page=2", "page=4&per_page=2", "page=5&per_page=2"},
+		},
+		{
+			name:    "from the last page",
+			opts:    ListOptions{Page: 4, PerPage: 2},
+			replies: []mockpermit.Reply{counted(6, 7, "7"), counted(0, 0, "7")},
+			want:    objects(6, 7),
+			queries: []string{"page=4&per_page=2", "page=5&per_page=2"},
+		},
+		{
+			name: "from page 2 of a list whose first page holds fewer items",
+			opts: ListOptions{Page: 2, PerPage: 2},
+			replies: []mockpermit.Reply{
+				counted(1, 3, "8"), counted(3, 5, "8"), counted(5, 7, "8"), counted(7, 8, "8"),
+				counted(0, 0, "8"),
+			},
+			want: objects(1, 8),
+			queries: []string{
+				"page=2&per_page=2", "page=3&per_page=2", "page=4&per_page=2",
+				"page=5&per_page=2", "page=6&per_page=2",
+			},
+		},
+		{
+			name:    "from page 2 with a total_count that the items from page 2 on reach",
+			opts:    ListOptions{Page: 2, PerPage: 2},
+			replies: []mockpermit.Reply{counted(2, 4, "2"), counted(0, 0, "2")},
+			want:    objects(2, 4),
+			queries: []string{"page=2&per_page=2", "page=3&per_page=2"},
+		},
+		{
+			name: "pages with fewer items than it asked for",
+			opts: ListOptions{PerPage: 100},
+			replies: []mockpermit.Reply{
+				counted(0, 10, "25"), counted(10, 20, "25"), counted(20, 25, "25"),
+			},
+			want: objects(0, 25),
+			queries: []string{
+				"page=1&per_page=100", "page=2&per_page=100", "page=3&per_page=100",
+			},
+		},
+		{
+			name:    "a total_count that grows",
+			opts:    ListOptions{PerPage: 2},
+			replies: []mockpermit.Reply{counted(0, 2, "4"), counted(2, 4, "5"), counted(4, 5, "5")},
+			want:    objects(0, 5),
+			queries: []string{"page=1&per_page=2", "page=2&per_page=2", "page=3&per_page=2"},
+		},
+		{
+			name: "a total_count below the items read",
+			opts: ListOptions{PerPage: 2},
+			replies: []mockpermit.Reply{
+				counted(0, 2, "0"), counted(2, 4, "0"), counted(0, 0, "0"),
+			},
+			want:    objects(0, 4),
+			queries: []string{"page=1&per_page=2", "page=2&per_page=2", "page=3&per_page=2"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			api := mockpermit.NewAPI(t)
+			api.Handle(route(opPaged), tc.replies...)
+			items, errs := collect(t, all[testObject](t.Context(), pageClient(t, api), paged,
+				arrayOrPageShape, tc.opts))
+			if diff := cmp.Diff(tc.want, items); diff != "" || errs != nil {
+				t.Errorf("all yielded the errors %v and items that differ (-want +got):\n%s",
+					errs, diff)
+			}
+			if diff := cmp.Diff(tc.queries, queries(api)); diff != "" {
 				t.Errorf("the queries differ (-want +got):\n%s", diff)
 			}
 		})
@@ -216,7 +369,7 @@ func TestAllYieldsAnErrorOnce(t *testing.T) {
 		},
 		{
 			name:  "an object without data",
-			reply: mockpermit.Reply{Body: `{"total_count":31,"page_count":2}`},
+			reply: mockpermit.Reply{Body: `{"total_count":31,"page_count":0}`},
 			want: "permit: test_paged: GET /__test/paged: status 200: the reply is not a valid " +
 				"list of models.TestObject",
 		},

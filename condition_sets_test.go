@@ -58,13 +58,14 @@ func setsOf(from, to int) []models.ConditionSetRead {
 }
 
 // setsReply returns a reply that holds items: a JSON array without counts, and the paginated
-// object with the members of counts, such as `,"total_count":2`, with them.
+// object with the members of counts, such as `,"total_count":2`, and the page_count that the API
+// sends, the number of items, with them.
 func setsReply(t *testing.T, items []models.ConditionSetRead, counts string) mockpermit.Reply {
 	t.Helper()
 	if counts == "" {
 		return arrayOf(t, items)
 	}
-	return pageOf(t, items, counts)
+	return pageOf(t, items, counts+`,"page_count":`+strconv.Itoa(len(items)))
 }
 
 // conditionSetCall is a call of a method of the condition sets, with the ID of its operation,
@@ -185,8 +186,8 @@ func firstError[T any](seq iter.Seq2[T, error]) error {
 // the paginated object, each with three sets, in the order of the reply, with the counts of the
 // paginated object alone; and that an empty array and an empty paginated object give a page
 // without sets, whose list is empty and not nil, and an iterator that yields no set. All asks for
-// the page after a JSON array of three sets, and not after the last page that a paginated object
-// counts.
+// the page after a JSON array of three sets, and not after a paginated object whose three sets
+// reach its total_count.
 func TestConditionSetsListReadsBothForms(t *testing.T) {
 	three := setsOf(0, 3)
 	empty := mockpermit.Reply{Body: `[]`}
@@ -202,9 +203,9 @@ func TestConditionSetsListReadsBothForms(t *testing.T) {
 		},
 		{
 			name:  "the paginated object",
-			reply: pageOf(t, three, `,"total_count":3,"page_count":1`),
+			reply: pageOf(t, three, `,"total_count":3,"page_count":3`),
 			want: &Page[models.ConditionSetRead]{
-				Data: three, Page: 1, TotalCount: new(3), PageCount: new(1),
+				Data: three, Page: 1, TotalCount: new(3), PageCount: new(3),
 			},
 		},
 		{
@@ -246,8 +247,8 @@ func TestConditionSetsListReadsBothForms(t *testing.T) {
 // order, asking for each page in turn with the filters of its options: at a per_page of 30, two
 // pages of sets and the empty page after them; at the default per_page of 100, the most that the
 // API gives on a page, one page of 31 and the empty page after it; and, when the replies are
-// paginated objects that count two pages, the two pages alone. AncestorsAll and DescendantsAll
-// read the 31 ancestors or descendants of a set in the same way, from JSON arrays.
+// paginated objects whose total_count the two pages reach, the two pages alone. AncestorsAll and
+// DescendantsAll read the 31 ancestors or descendants of a set in the same way, from JSON arrays.
 func TestConditionSetsAllReadsEveryPage(t *testing.T) {
 	type allCall func(c *Client) iter.Seq2[models.ConditionSetRead, error]
 	for _, tc := range []struct {
@@ -286,7 +287,7 @@ func TestConditionSetsAllReadsEveryPage(t *testing.T) {
 					&ConditionSetsListOptions{ListOptions: ListOptions{PerPage: 30}})
 			},
 			pages:   [][]models.ConditionSetRead{setsOf(0, 30), setsOf(30, 31)},
-			counts:  `,"total_count":31,"page_count":2`,
+			counts:  `,"total_count":31`,
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
 		},
 		{

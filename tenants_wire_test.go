@@ -136,7 +136,7 @@ func tenantCases() []wireCase {
 				Data: []models.TenantRead{tenantAt("tenant-a", tenantAID, "Tenant A",
 					"2026-10-14T09:30:00Z",
 					models.Attributes{"tier": "gold", "seats": json.Number("10")})},
-				Page: 2, PerPage: 1, TotalCount: new(11), PageCount: new(11),
+				Page: 2, PerPage: 1, TotalCount: new(11), PageCount: new(1),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    listErr,
@@ -280,7 +280,7 @@ func tenantUserCases(forbidden func(op, method, route string) *permit.Error) []w
 			},
 			Reply: mockpermit.Reply{Body: replyFixture("list_tenant_users.200.json")},
 			WantResult: &permit.Page[models.UserRead]{
-				Data: tenantUsers(), Page: 2, PerPage: 1, TotalCount: new(2), PageCount: new(1),
+				Data: tenantUsers(), Page: 2, PerPage: 1, TotalCount: new(2), PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    listErr,

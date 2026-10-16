@@ -160,14 +160,15 @@ func (s *RoleAssignmentsService) List(ctx context.Context, opts *RoleAssignments
 // of opts, for a range loop. It reads the pages in turn, as [RoleAssignmentsService.List] reads
 // one, from the page of opts.Page on, or the first, each of opts.PerPage role assignments, or
 // else of 1000, the most that the API gives on a page, so that 1001 role assignments take two
-// pages, and the empty page after them when the replies do not count the pages. It stops after
-// the last page that the replies count, or after the first page without role assignments, and
-// never after a page with fewer role assignments than it asked for. It asks for the next page
-// only when the loop wants a role assignment past the last of a page, so a loop that stops early
-// sends no other request. It reads opts when it is called: a later change to opts does not change
-// the iterator. Each loop over the iterator reads the role assignments again, from the first page
-// that opts asks for. The pages are requests of their own, so a role assignment made or removed
-// during a loop can move the others from one page to the next.
+// pages, and the empty page after them when the replies do not report a total_count. It stops after
+// the first page without role assignments, or, when the loop started at the first page, after the
+// page that the total_count of its reply shows to be the last, and never because a page holds fewer
+// role assignments than it asked for. It asks for the next page only when the loop wants a role
+// assignment past the last of a page, so a loop that stops early sends no other request. It reads
+// opts when it is called: a later change to opts does not change the iterator. Each loop over the
+// iterator reads the role assignments again, from the first page that opts asks for. The pages are
+// requests of their own, so a role assignment made or removed during a loop can move the others
+// from one page to the next.
 //
 // All needs an environment-level API key, or higher, and the scope of an environment, as List
 // does; each loop gets the scope before its first page. Each page is a call of its own, with its
@@ -223,12 +224,13 @@ func (s *RoleAssignmentsService) ListDetailed(ctx context.Context,
 // filter of opts, with their user, their role, their tenant and their resource instance as
 // objects, for a range loop. It reads the pages in turn, as [RoleAssignmentsService.ListDetailed]
 // reads one, as All does: from the page of opts.Page on, or the first, each of opts.PerPage role
-// assignments, or else of 1000, the most that the API gives on a page. It stops after the last
-// page that the replies count, so that 1001 role assignments take two pages, or after the first
-// page without role assignments, and never after a page with fewer role assignments than it
-// asked for. It asks for the next page only when the loop wants a role assignment past the last
-// of a page, so a loop that stops early sends no other request. It reads opts when it is called,
-// and each loop over the iterator reads the role assignments again, as All does.
+// assignments, or else of 1000, the most that the API gives on a page. It stops after the first
+// page without role assignments, or, when the loop started at the first page, after the page that
+// the total_count of its reply shows to be the last, so that 1001 role assignments take two pages,
+// and never because a page holds fewer role assignments than it asked for. It asks for the next
+// page only when the loop wants a role assignment past the last of a page, so a loop that stops
+// early sends no other request. It reads opts when it is called, and each loop over the iterator
+// reads the role assignments again, as All does.
 //
 // AllDetailed needs an environment-level API key, or higher, and the scope of an environment, as
 // ListDetailed does; each loop gets the scope before its first page. Each page is a call of its

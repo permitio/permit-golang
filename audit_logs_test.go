@@ -148,16 +148,16 @@ func auditLogSortedQuery(query string) string {
 // TestAuditLogsAllReadsEveryPage checks that All reads the 31 audit logs of a list, in order,
 // asking for each page in turn with the filters of the options in each request: up to the empty
 // page at a per_page of 30, and at the default per_page of 100, the most that the API gives on a
-// page; up to the last page that the replies count; and from page 2 on, when the options start
-// there.
+// page; up to the page whose audit logs reach the total_count of its reply; and from page 2 on,
+// when the options start there.
 func TestAuditLogsAllReadsEveryPage(t *testing.T) {
 	all, every := auditLogsOf(t, 0, 31)
 	first, firstPage := auditLogsOf(t, 0, 30)
 	_, secondPage := auditLogsOf(t, 30, 31)
 	_, empty := auditLogsOf(t, 0, 0)
 	counted := []mockpermit.Reply{
-		pageOf(t, first, `,"total_count":31,"pagination_count":31,"page_count":2`),
-		pageOf(t, all[30:], `,"total_count":31,"pagination_count":31,"page_count":2`),
+		pageOf(t, first, `,"total_count":31,"pagination_count":31,"page_count":30`),
+		pageOf(t, all[30:], `,"total_count":31,"pagination_count":31,"page_count":1`),
 	}
 	for _, tc := range []struct {
 		name    string
@@ -180,7 +180,7 @@ func TestAuditLogsAllReadsEveryPage(t *testing.T) {
 			queries: []string{"page=1&per_page=100", "page=2&per_page=100"},
 		},
 		{
-			name:  "the pages that the replies count",
+			name:  "up to the total_count",
 			opts:  &AuditLogsListOptions{ListOptions: ListOptions{PerPage: 30}},
 			pages: counted, want: all,
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},

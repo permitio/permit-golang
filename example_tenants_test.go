@@ -38,7 +38,7 @@ func ExampleTenantsService() {
 	for _, tenant := range page.Data {
 		fmt.Println(tenant.Key, "-", tenant.Name, "-", tenant.Attributes["tier"])
 	}
-	fmt.Println("pages:", *page.PageCount)
+	fmt.Println("tenants:", *page.TotalCount)
 
 	tenant, err := client.Tenants.Get(ctx, "tenant-a")
 	if errors.Is(err, permit.ErrNotFound) {
@@ -52,7 +52,7 @@ func ExampleTenantsService() {
 	fmt.Println("seats:", tenant.Attributes["seats"])
 	// Output:
 	// tenant-a - Tenant A - gold
-	// pages: 11
+	// tenants: 11
 	// seats: 9007199254740993
 }
 

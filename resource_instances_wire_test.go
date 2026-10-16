@@ -187,7 +187,7 @@ func resourceInstanceCases() []wireCase {
 			Reply: mockpermit.Reply{Body: replyFixture("list_resource_instances.200.page.json")},
 			WantResult: &permit.Page[models.ResourceInstanceRead]{
 				Data: listedInstances(), Page: 2, PerPage: 1, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    perPage("list_resource_instances", instances),
@@ -238,7 +238,7 @@ func resourceInstanceCases() []wireCase {
 			},
 			WantResult: &permit.Page[models.ResourceInstanceDetailedRead]{
 				Data: detailedInstances(), Page: 2, PerPage: 1, TotalCount: new(2),
-				PageCount: new(1),
+				PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    perPage("list_resource_instances_detailed", detailed),

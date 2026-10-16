@@ -169,7 +169,7 @@ func userCases() []wireCase {
 			},
 			Reply: mockpermit.Reply{Body: replyFixture("list_users.200.json")},
 			WantResult: &permit.Page[models.UserRead]{
-				Data: listedUsers(), Page: 2, PerPage: 1, TotalCount: new(2), PageCount: new(1),
+				Data: listedUsers(), Page: 2, PerPage: 1, TotalCount: new(2), PageCount: new(2),
 			},
 			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
 			WantErr:    listErr,

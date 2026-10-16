@@ -125,13 +125,14 @@ func (s *RolesService) List(ctx context.Context, opts *RolesListOptions,
 // All returns an iterator over the roles of the environment that match the attribute filters of
 // opts, for a range loop. It reads the pages in turn, as [RolesService.List] reads one, from the
 // page of opts.Page on, or the first, each of opts.PerPage roles, or else of 100, the most that
-// the API gives on a page. It stops after the last page that the replies count, or after the
-// first page without roles, and never after a page with fewer roles than it asked for. It asks
-// for the next page only when the loop wants a role past the last of a page, so a loop that
-// stops early sends no other request. It reads opts when it is called: a later change to opts
-// does not change the iterator. Each loop over the iterator reads the roles again, from the first
-// page that opts asks for. The pages are requests of their own, so a role created or deleted
-// during a loop can move the others from one page to the next.
+// the API gives on a page. It stops after the first page without roles, or, when the loop started
+// at the first page, after the page that the total_count of its reply shows to be the last, and
+// never because a page holds fewer roles than it asked for. It asks for the next page only when the
+// loop wants a role past the last of a page, so a loop that stops early sends no other request. It
+// reads opts when it is called: a later change to opts does not change the iterator. Each loop over
+// the iterator reads the roles again, from the first page that opts asks for. The pages are
+// requests of their own, so a role created or deleted during a loop can move the others from one
+// page to the next.
 //
 // All is sent with an environment-level API key, or with a key of a wider level and
 // [WithScope], as List is; each loop gets the scope as List does before its first page. Each

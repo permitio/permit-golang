@@ -797,6 +797,8 @@ github.com/permitio/permit-golang/v2/tools/drift TestKindAndJSONEqual
 
 github.com/permitio/permit-golang/v2/internal/wire TestQueryClone
 github.com/permitio/permit-golang/v2 TestAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestAllReadsPastThePageCount
+github.com/permitio/permit-golang/v2 TestAllStopsAtTheTotalCount
 github.com/permitio/permit-golang/v2 TestAllStartsWhereTheOptionsSay
 github.com/permitio/permit-golang/v2 TestAllReadsPastAShortPage
 github.com/permitio/permit-golang/v2 TestAllYieldsAnErrorOnce

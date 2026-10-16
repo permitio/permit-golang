@@ -276,19 +276,16 @@ func listed(objects []object, query url.Values) []object {
 // query, on a route that answers no JSON array: in data, the objects that match each attribute
 // filter of query, as matches says, in the order in which they were created, on the page of page
 // and per_page, the first page of 30 by default, also when query holds neither; in total_count,
-// the number of the objects that match; and in page_count, the number of pages of per_page of
-// them.
+// the number of the objects that match; and in page_count, as the Permit API sends it, the
+// number of the objects in data.
 func envelope(objects []object, query url.Values) object {
 	matching := slices.DeleteFunc(append([]object{}, objects...), func(o object) bool {
 		return !matches(o, query)
 	})
 	page, perPage := positive(query, "page", 1), positive(query, "per_page", defaultPerPage)
 	start := min((page-1)*perPage, len(matching))
-	return object{
-		"data":        matching[start:min(start+perPage, len(matching))],
-		"total_count": len(matching),
-		"page_count":  (len(matching) + perPage - 1) / perPage,
-	}
+	data := matching[start:min(start+perPage, len(matching))]
+	return object{"data": data, "total_count": len(matching), "page_count": len(data)}
 }
 
 // matches reports whether the attributes of o match each attribute filter of query, a parameter

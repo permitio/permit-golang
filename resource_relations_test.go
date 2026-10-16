@@ -105,10 +105,11 @@ var resourceCallsOfRelations = []struct {
 }
 
 // TestResourceRelationsAllReadsEveryPage checks that All reads the 31 relations of a resource, in
-// order, asking for each page in turn: up to the last page that the replies count, at a per_page
-// of 30 and at the default per_page of 100, the most that the API gives on a page; up to the
-// empty page when the replies do not count the pages; and from page 2 on, when the options start
-// there.
+// order, asking for each page in turn: up to the page whose relations reach the total_count of
+// its reply, at a per_page of 30 and at the default per_page of 100, the most that the API gives
+// on a page; up to the empty page when the replies do not report total_count; and from page 2 on,
+// when the options start there, up to the empty page after it, as a loop that starts after the
+// first page does not stop at the total_count.
 func TestResourceRelationsAllReadsEveryPage(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -120,8 +121,8 @@ func TestResourceRelationsAllReadsEveryPage(t *testing.T) {
 		{
 			name: "per_page 30", opts: &ListOptions{PerPage: 30},
 			replies: []mockpermit.Reply{
-				pageOf(t, relationsOf(0, 30), `,"total_count":31,"page_count":2`),
-				pageOf(t, relationsOf(30, 31), `,"total_count":31,"page_count":2`),
+				pageOf(t, relationsOf(0, 30), `,"total_count":31,"page_count":30`),
+				pageOf(t, relationsOf(30, 31), `,"total_count":31,"page_count":1`),
 			},
 			want:    relationsOf(0, 31),
 			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
@@ -129,17 +130,17 @@ func TestResourceRelationsAllReadsEveryPage(t *testing.T) {
 		{
 			name: "the default per_page",
 			replies: []mockpermit.Reply{
-				pageOf(t, relationsOf(0, 31), `,"total_count":31,"page_count":1`),
+				pageOf(t, relationsOf(0, 31), `,"total_count":31,"page_count":31`),
 			},
 			want:    relationsOf(0, 31),
 			queries: []string{"page=1&per_page=100"},
 		},
 		{
-			name: "pages without page_count", opts: &ListOptions{PerPage: 30},
+			name: "pages without total_count", opts: &ListOptions{PerPage: 30},
 			replies: []mockpermit.Reply{
-				pageOf(t, relationsOf(0, 30), `,"total_count":31`),
-				pageOf(t, relationsOf(30, 31), `,"total_count":31`),
-				pageOf(t, relationsOf(0, 0), `,"total_count":31`),
+				pageOf(t, relationsOf(0, 30), `,"page_count":30`),
+				pageOf(t, relationsOf(30, 31), `,"page_count":1`),
+				pageOf(t, relationsOf(0, 0), `,"page_count":0`),
 			},
 			want: relationsOf(0, 31),
 			queries: []string{
@@ -149,10 +150,11 @@ func TestResourceRelationsAllReadsEveryPage(t *testing.T) {
 		{
 			name: "from page 2", opts: &ListOptions{Page: 2, PerPage: 30},
 			replies: []mockpermit.Reply{
-				pageOf(t, relationsOf(30, 31), `,"total_count":31,"page_count":2`),
+				pageOf(t, relationsOf(30, 31), `,"total_count":31,"page_count":1`),
+				pageOf(t, relationsOf(0, 0), `,"total_count":31,"page_count":0`),
 			},
 			want:    relationsOf(30, 31),
-			queries: []string{"page=2&per_page=30"},
+			queries: []string{"page=2&per_page=30", "page=3&per_page=30"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -266,9 +268,9 @@ func TestResourceRelationsListReturnsAPage(t *testing.T) {
 	}{
 		{
 			name:  "nil options",
-			reply: pageOf(t, relationsOf(0, 2), `,"total_count":2,"page_count":1`),
+			reply: pageOf(t, relationsOf(0, 2), `,"total_count":2,"page_count":2`),
 			want: &Page[models.RelationRead]{
-				Data: relationsOf(0, 2), Page: 1, TotalCount: new(2), PageCount: new(1),
+				Data: relationsOf(0, 2), Page: 1, TotalCount: new(2), PageCount: new(2),
 			},
 		},
 		{
@@ -281,11 +283,11 @@ func TestResourceRelationsListReturnsAPage(t *testing.T) {
 		},
 		{
 			name: "a page after the last", opts: &ListOptions{Page: 3, PerPage: 30},
-			reply: pageOf(t, []models.RelationRead{}, `,"total_count":31,"page_count":2`),
+			reply: pageOf(t, []models.RelationRead{}, `,"total_count":31,"page_count":0`),
 			query: "page=3&per_page=30",
 			want: &Page[models.RelationRead]{
 				Data: []models.RelationRead{}, Page: 3, PerPage: 30, TotalCount: new(31),
-				PageCount: new(2),
+				PageCount: new(0),
 			},
 		},
 		{

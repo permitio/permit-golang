@@ -72,7 +72,7 @@ func sweepReplies(t *testing.T, scope string, envs []sweptEnv,
 func runSweep(t *testing.T, apiURL string, vars map[string]string) scriptResult {
 	t.Helper()
 	root := t.TempDir()
-	copyScripts(t, root, "sweep-envs.sh")
+	linkScripts(t, root, "sweep-envs.sh")
 	all := map[string]string{"PERMIT_E2E_PROJECT_KEY": fakeProjectKey, "PERMIT_E2E_API_URL": apiURL}
 	maps.Copy(all, loopbackEnv)
 	maps.Copy(all, vars)
@@ -100,6 +100,7 @@ func deleted(f *fakePermit) []string {
 // environment, and one whose creation time it cannot read. It reads every page, and gives the key
 // to curl in a file, not on its command line.
 func TestSweepEnvs(t *testing.T) {
+	t.Parallel()
 	now := time.Now().UTC()
 	ago := func(d time.Duration, zone *time.Location, layout string) string {
 		return now.Add(-d).In(zone).Format(layout)
@@ -211,6 +212,7 @@ func TestSweepEnvs(t *testing.T) {
 // other deletes nor the job, as the sweep of a later run tries again, and that a 404 means the
 // environment is gone.
 func TestSweepEnvsDeleteFails(t *testing.T) {
+	t.Parallel()
 	old := time.Now().Add(-48 * time.Hour).UTC().Format(time.RFC3339)
 	envs := []sweptEnv{
 		{ID: "a", Key: "gosdk-ci-1-1-pinned", CreatedAt: old},
@@ -256,6 +258,7 @@ func scopeThen(status int, body string) func(r permitRequest) (int, string) {
 // as a later run sweeps again: a scope or a list that cannot be read for a reason other than
 // the key. It deletes nothing then.
 func TestSweepEnvsGivesUp(t *testing.T) {
+	t.Parallel()
 	old := time.Now().Add(-48 * time.Hour).UTC().Format(time.RFC3339)
 	envs := []sweptEnv{{ID: "a", Key: "gosdk-ci-1-1-pinned", CreatedAt: old}}
 	tests := []struct {
@@ -300,6 +303,7 @@ func TestSweepEnvsGivesUp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			fake, url := startFakePermit(t, tt.reply)
 
 			result := runSweep(t, url, tt.vars)
@@ -327,6 +331,7 @@ func TestSweepEnvsGivesUp(t *testing.T) {
 // it then deletes nothing: a key whose scope is not one project, a key the API refuses, and a
 // setting or an argument that is wrong.
 func TestSweepEnvsDidNotRun(t *testing.T) {
+	t.Parallel()
 	old := time.Now().Add(-48 * time.Hour).UTC().Format(time.RFC3339)
 	envs := []sweptEnv{{ID: "a", Key: "gosdk-ci-1-1-pinned", CreatedAt: old}}
 	notProject := "PERMIT_E2E_PROJECT_KEY is not a project-level API key"
@@ -381,6 +386,7 @@ func TestSweepEnvsDidNotRun(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			fake, url := startFakePermit(t, tt.reply)
 
 			result := runSweep(t, url, tt.vars)
@@ -397,8 +403,9 @@ func TestSweepEnvsDidNotRun(t *testing.T) {
 	}
 
 	t.Run("an argument", func(t *testing.T) {
+		t.Parallel()
 		root := t.TempDir()
-		copyScripts(t, root, "sweep-envs.sh")
+		linkScripts(t, root, "sweep-envs.sh")
 
 		result := runScript(t, root, nil, filepath.Join(root, ".github", "scripts",
 			"sweep-envs.sh"), "x")
@@ -412,6 +419,7 @@ func TestSweepEnvsDidNotRun(t *testing.T) {
 // TestSweepEnvsWithoutTheKey checks that without PERMIT_E2E_PROJECT_KEY there is nothing to
 // sweep, and the sweep sends no request.
 func TestSweepEnvsWithoutTheKey(t *testing.T) {
+	t.Parallel()
 	fake, url := startFakePermit(t, sweepReplies(t, projectScope, nil, nil))
 
 	result := runSweep(t, url, map[string]string{"PERMIT_E2E_PROJECT_KEY": ""})

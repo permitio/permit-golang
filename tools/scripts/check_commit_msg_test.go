@@ -8,6 +8,7 @@ import (
 )
 
 func TestCheckCommitMsg(t *testing.T) {
+	t.Parallel()
 	script, err := filepath.Abs(repositoryFile(".github/scripts/check-commit-msg.sh"))
 	if err != nil {
 		t.Fatal(err)
@@ -410,6 +411,7 @@ func TestCheckCommitMsg(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			dir := t.TempDir()
 			args := tt.args
 			if args == nil {

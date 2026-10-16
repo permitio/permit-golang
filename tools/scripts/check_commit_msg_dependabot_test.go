@@ -13,6 +13,7 @@ import (
 // notes, Changelog and Commits links; the updated-dependencies block that GitHub adds; and the
 // sign-off.
 func TestCheckCommitMsgDependabot(t *testing.T) {
+	t.Parallel()
 	script, err := filepath.Abs(repositoryFile(".github/scripts/check-commit-msg.sh"))
 	if err != nil {
 		t.Fatal(err)
@@ -36,6 +37,7 @@ func TestCheckCommitMsgDependabot(t *testing.T) {
 	for _, name := range messages {
 		for _, mode := range modes {
 			t.Run(name+", "+mode.name, func(t *testing.T) {
+				t.Parallel()
 				file, err := filepath.Abs(filepath.Join("testdata", "dependabot", name))
 				if err != nil {
 					t.Fatal(err)

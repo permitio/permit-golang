@@ -34,6 +34,7 @@ exit 0
 `
 
 func TestGolangciAll(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
 		t.Fatalf("fetch-tool.sh supports darwin and linux; this test runs on %s", runtime.GOOS)
 	}
@@ -44,24 +45,6 @@ func TestGolangciAll(t *testing.T) {
 	otherArchive := tarGz(t, binary,
 		[]byte(strings.Replace(golangciStub, "echo 2.14.0", "echo 2.13.0", 1)))
 	archives := map[string][]byte{"/" + archiveName: archive, "/other.tar.gz": otherArchive}
-	var downloads atomic.Int32
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter,
-		r *http.Request,
-	) {
-		served, ok := archives[r.URL.Path]
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-		downloads.Add(1)
-		_, _ = w.Write(served)
-	}))
-	defer server.Close()
-	caFile := filepath.Join(t.TempDir(), "ca.pem")
-	ca := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw})
-	if err := os.WriteFile(caFile, ca, 0o600); err != nil {
-		t.Fatal(err)
-	}
 	lockFor := func(url string, release []byte) string {
 		var b strings.Builder
 		fmt.Fprintf(&b, "[golangci-lint]\nversion = 2.14.0\nurl = %s\narchive = tar.gz\n"+
@@ -71,7 +54,10 @@ func TestGolangciAll(t *testing.T) {
 		}
 		return b.String()
 	}
-	lock := lockFor(server.URL+"/golangci-lint-{version}-{os}-{arch}.tar.gz", archive)
+	// releaseLock is the lock of the 2.14.0 release that the archive server at url serves.
+	releaseLock := func(url string) string {
+		return lockFor(url+"/golangci-lint-{version}-{os}-{arch}.tar.gz", archive)
+	}
 	// modules are the tracked go.mod files of a repository with a nested module, and a module
 	// under testdata that the script must not lint.
 	modules := map[string]string{
@@ -79,11 +65,17 @@ func TestGolangciAll(t *testing.T) {
 		"tools/go.mod":                  "module example.com/root/tools\n",
 		"tools/testdata/fixture/go.mod": "module example.com/fixture\n",
 	}
+	// installed are the stubs that a repository links as bin/golangci-lint, by their version.
+	// fetch-tool.sh replaces the link, not the stub, when it installs another binary.
+	installed := map[string]string{}
+	for _, version := range []string{"2.14.0", "2.13.0"} {
+		installed[version] = writeStub(t, "golangci-lint",
+			strings.Replace(golangciStub, "echo 2.14.0", "echo "+version, 1))
+	}
 	stubInstalled := func(version string) func(t *testing.T, root string) {
 		return func(t *testing.T, root string) {
 			t.Helper()
-			stub := strings.Replace(golangciStub, "echo 2.14.0", "echo "+version, 1)
-			writeExecutable(t, root, "bin/golangci-lint", stub)
+			linkFile(t, root, "bin/golangci-lint", installed[version])
 		}
 	}
 	// allSteps are the steps the script runs on the modules above, in order.
@@ -93,9 +85,11 @@ func TestGolangciAll(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		// files are written into the repository; lock, modules and .golangci.yml are added
-		// unless noDefaults is set.
+		// files are written into the repository; the lock, modules and .golangci.yml are added
+		// unless noDefaults is set. lock returns the lock for the URL of the subtest's archive
+		// server, releaseLock when nil.
 		files      map[string]string
+		lock       func(url string) string
 		noDefaults bool
 		// noRepository leaves out git init, and untracked names files git must not track.
 		noRepository  bool
@@ -165,9 +159,9 @@ func TestGolangciAll(t *testing.T) {
 		{
 			name:  "a lock version with no spaces around = and spaces after it",
 			setup: stubInstalled("2.14.0"),
-			files: map[string]string{
-				"tools/binaries.lock": strings.Replace(lock, "version = 2.14.0\n",
-					"version=2.14.0  \n", 1),
+			lock: func(url string) string {
+				return strings.Replace(releaseLock(url), "version = 2.14.0\n",
+					"version=2.14.0  \n", 1)
 			},
 			wantExit:   0,
 			wantStderr: []string{"golangci-all: golangci-lint 2.14.0: verifying .golangci.yml"},
@@ -176,16 +170,16 @@ func TestGolangciAll(t *testing.T) {
 		{
 			name:     "a download that fails",
 			wantExit: 2,
-			files: map[string]string{
-				"tools/binaries.lock": lockFor(server.URL+"/missing.tar.gz", archive),
+			lock: func(url string) string {
+				return lockFor(url+"/missing.tar.gz", archive)
 			},
 			wantStderr: []string{"golangci-all: installing golangci-lint 2.14.0 with " +
 				".github/scripts/fetch-tool.sh failed"},
 		},
 		{
 			name: "a download that reports another version", wantExit: 2, wantDownloads: 1,
-			files: map[string]string{
-				"tools/binaries.lock": lockFor(server.URL+"/other.tar.gz", otherArchive),
+			lock: func(url string) string {
+				return lockFor(url+"/other.tar.gz", otherArchive)
 			},
 			wantStderr: []string{"golangci-all: bin/golangci-lint is version 2.13.0, want " +
 				"2.14.0 from tools/binaries.lock"},
@@ -220,7 +214,10 @@ func TestGolangciAll(t *testing.T) {
 		},
 		{
 			name: "no .golangci.yml", noDefaults: true, setup: stubInstalled("2.14.0"),
-			files:      map[string]string{"go.mod": modules["go.mod"], "tools/binaries.lock": lock},
+			files: map[string]string{
+				"go.mod":              modules["go.mod"],
+				"tools/binaries.lock": releaseLock("https://127.0.0.1:9"),
+			},
 			wantExit:   2,
 			wantStderr: []string{"golangci-all: .golangci.yml is missing"},
 		},
@@ -247,12 +244,18 @@ func TestGolangciAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			server := startArchiveServer(t, archives)
+			lock := releaseLock
+			if tt.lock != nil {
+				lock = tt.lock
+			}
 			root := t.TempDir()
-			copyScripts(t, root, "golangci-all.sh", "fetch-tool.sh")
+			linkScripts(t, root, "golangci-all.sh", "fetch-tool.sh")
 			if !tt.noDefaults {
 				writeFiles(t, root, modules)
 				writeFiles(t, root, map[string]string{
-					".golangci.yml": "version: \"2\"\n", "tools/binaries.lock": lock,
+					".golangci.yml": "version: \"2\"\n", "tools/binaries.lock": lock(server.url),
 				})
 			}
 			writeFiles(t, root, tt.files)
@@ -269,9 +272,8 @@ func TestGolangciAll(t *testing.T) {
 				tt.setup(t, root)
 			}
 			stubLog := filepath.Join(t.TempDir(), "stub.log")
-			downloads.Store(0)
 			env := slices.Concat(gitEnv(root), []string{
-				"STUB_LOG=" + stubLog, "STUB_EXITS=" + tt.exits, "CURL_CA_BUNDLE=" + caFile,
+				"STUB_LOG=" + stubLog, "STUB_EXITS=" + tt.exits, "CURL_CA_BUNDLE=" + server.caFile,
 				"TMPDIR=" + t.TempDir(), "NO_PROXY=127.0.0.1", "no_proxy=127.0.0.1",
 			})
 
@@ -289,11 +291,44 @@ func TestGolangciAll(t *testing.T) {
 			if got := stubSteps(t, stubLog, root); !slices.Equal(got, tt.wantSteps) {
 				t.Errorf("golangci-lint ran\n%q\nwant\n%q", got, tt.wantSteps)
 			}
-			if got := downloads.Load(); got != tt.wantDownloads {
+			if got := server.downloads.Load(); got != tt.wantDownloads {
 				t.Errorf("downloaded golangci-lint %d times, want %d", got, tt.wantDownloads)
 			}
 		})
 	}
+}
+
+// archiveServer is a TLS server of release archives: its URL, the file of its certificate for
+// CURL_CA_BUNDLE, and how many archives it served.
+type archiveServer struct {
+	url, caFile string
+	downloads   atomic.Int32
+}
+
+// startArchiveServer starts an archiveServer that serves archives, a map from a URL path to an
+// archive, until the test ends.
+func startArchiveServer(t *testing.T, archives map[string][]byte) *archiveServer {
+	t.Helper()
+	s := &archiveServer{}
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter,
+		r *http.Request,
+	) {
+		served, ok := archives[r.URL.Path]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		s.downloads.Add(1)
+		_, _ = w.Write(served)
+	}))
+	t.Cleanup(server.Close)
+	s.url = server.URL
+	s.caFile = filepath.Join(t.TempDir(), "ca.pem")
+	ca := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw})
+	if err := os.WriteFile(s.caFile, ca, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return s
 }
 
 // stubSteps reads the stub's log and returns each call as its arguments without the --config

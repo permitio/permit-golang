@@ -8,6 +8,7 @@ import (
 )
 
 func TestCheckIgnore(t *testing.T) {
+	t.Parallel()
 	gitignore, err := os.ReadFile(repositoryFile(".gitignore"))
 	if err != nil {
 		t.Fatal(err)
@@ -119,8 +120,9 @@ func TestCheckIgnore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "check-ignore.sh")
+			linkScripts(t, root, "check-ignore.sh")
 			writeFiles(t, root, tt.files)
 			if !tt.noGitignore {
 				writeFiles(t, root, map[string]string{".gitignore": tt.gitignore})

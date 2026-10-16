@@ -64,7 +64,7 @@ type pdpRun struct {
 func runPDPUp(t *testing.T, port string, vars map[string]string, args ...string) pdpRun {
 	t.Helper()
 	root := t.TempDir()
-	copyScripts(t, root, "pdp-up.sh")
+	linkScripts(t, root, "pdp-up.sh")
 	writeExecutable(t, root, "stub/docker", dockerStub)
 	log := filepath.Join(root, "docker.log")
 	inherited := os.Getenv("PATH") //nolint:forbidigo // the stub goes before it

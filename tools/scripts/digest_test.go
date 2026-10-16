@@ -124,6 +124,7 @@ type digestCase struct {
 }
 
 func TestDigest(t *testing.T) {
+	t.Parallel()
 	now := time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC)
 	ago := func(d time.Duration) string { return now.Add(-d).Format(time.RFC3339) }
 	const day = 24 * time.Hour
@@ -447,6 +448,7 @@ func TestDigest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			runDigest(t, tt, stub, bin, now)
 		})
 	}
@@ -456,7 +458,7 @@ func TestDigest(t *testing.T) {
 func runDigest(t *testing.T, tt digestCase, stub, bin string, now time.Time) {
 	t.Helper()
 	root := t.TempDir()
-	copyScripts(t, root, "digest.sh")
+	linkScripts(t, root, "digest.sh")
 	files := map[string]string{
 		"go.mod":                      "module example.com/m\n\ngo 1.26.0\n\ntoolchain go1.27.1\n",
 		"tools/binaries.lock":         digestLock,

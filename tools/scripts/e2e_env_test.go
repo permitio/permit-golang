@@ -108,7 +108,7 @@ type e2eEnvRun struct {
 func runE2EEnv(t *testing.T, apiURL string, vars map[string]string, args ...string) e2eEnvRun {
 	t.Helper()
 	root := t.TempDir()
-	copyScripts(t, root, "e2e-env.sh")
+	linkScripts(t, root, "e2e-env.sh")
 	all := map[string]string{
 		"PERMIT_E2E_PROJECT_KEY": fakeProjectKey, "PERMIT_E2E_PROJECT": "gosdk-e2e",
 		"PERMIT_E2E_API_URL": apiURL, "GITHUB_RUN_ID": "1234", "GITHUB_RUN_ATTEMPT": "2",
@@ -215,6 +215,7 @@ func assertKeyNotInArgs(t *testing.T, log string) {
 // the key before it exports it, and exports the environment's settings. The project's key goes
 // to curl in a file, not on its command line.
 func TestE2EEnvCreate(t *testing.T) {
+	t.Parallel()
 	fake, url := startFakePermit(t, permitReplies(nil))
 	curlVars, curlLog := logCurlArgs(t)
 
@@ -267,6 +268,7 @@ func TestE2EEnvCreate(t *testing.T) {
 // TestE2EEnvMasksBeforeExport checks that the API key is masked before the script writes it to
 // GITHUB_ENV: when the write fails, the mask is out already.
 func TestE2EEnvMasksBeforeExport(t *testing.T) {
+	t.Parallel()
 	_, url := startFakePermit(t, permitReplies(nil))
 	readOnly := t.TempDir()
 
@@ -283,6 +285,7 @@ func TestE2EEnvMasksBeforeExport(t *testing.T) {
 // TestE2EEnvCreateFails checks the replies on which create does not run, the key level its
 // message names after a 401 or 403, and that it never exports a key then.
 func TestE2EEnvCreateFails(t *testing.T) {
+	t.Parallel()
 	const keyLevel = "The end-to-end jobs need a project-level API key of the project gosdk-e2e"
 	tests := []struct {
 		name     string
@@ -370,6 +373,7 @@ func TestE2EEnvCreateFails(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			reply := tt.reply
 			if reply == nil {
 				reply = permitReplies(tt.statuses)
@@ -407,6 +411,7 @@ func TestE2EEnvCreateFails(t *testing.T) {
 // trigger of the e2e jobs: a pull request and a manual run of the mode e2e from a ref other than
 // master pass with a notice; a push to master, a release and a manual run from master fail.
 func TestE2EEnvWithoutTheSecret(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name, event, ref, mode string
 		wantExit               int
@@ -437,6 +442,7 @@ func TestE2EEnvWithoutTheSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			fake, url := startFakePermit(t, permitReplies(nil))
 
 			run := runE2EEnv(t, url, map[string]string{
@@ -469,6 +475,7 @@ func TestE2EEnvWithoutTheSecret(t *testing.T) {
 // TestE2EEnvDelete checks that delete removes the environment, that a 404 means it is gone, and
 // that any other reply warns that it leaked and passes.
 func TestE2EEnvDelete(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		statuses map[string]int
@@ -503,6 +510,7 @@ func TestE2EEnvDelete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			fake, url := startFakePermit(t, permitReplies(tt.statuses))
 
 			run := runE2EEnv(t, url, tt.vars, "delete", "pinned")
@@ -522,6 +530,7 @@ func TestE2EEnvDelete(t *testing.T) {
 // TestE2EEnvDidNotRun checks the arguments and settings without which the script does not run,
 // and that it sends no request then.
 func TestE2EEnvDidNotRun(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		args []string
@@ -570,6 +579,7 @@ func TestE2EEnvDidNotRun(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			fake, url := startFakePermit(t, permitReplies(nil))
 
 			run := runE2EEnv(t, url, tt.vars, tt.args...)

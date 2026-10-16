@@ -106,10 +106,12 @@ func rangeBin(t *testing.T, fake bool, without string) string {
 }
 
 func TestMutationRange(t *testing.T) {
+	t.Parallel()
 	// The history: base, then master moves on to master2; the pull request adds c1, c2 and c3
-	// (head) on base; x1 is on another branch from base, as a force push leaves a commit.
+	// (head) on base; x1 is on another branch from base, as a force push leaves a commit. The
+	// subtests share it, which mutation-range.sh only reads, so they run in parallel.
 	root := t.TempDir()
-	copyScripts(t, root, "mutation-range.sh")
+	linkScripts(t, root, "mutation-range.sh")
 	gitInit(t, root)
 	base := commit(t, root, "base\n")
 	git := func(args ...string) {
@@ -328,6 +330,7 @@ func TestMutationRange(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			ghDir := t.TempDir()
 			writeFiles(t, ghDir, tt.files)
 			check := cmp.Or(tt.check, "mutation")
@@ -366,6 +369,7 @@ func TestMutationRange(t *testing.T) {
 	// The commits are read newest first, and the search stops at the first that qualifies.
 	// Without GITHUB_OUTPUT, as when run locally, the commit is only printed.
 	t.Run("newest first", func(t *testing.T) {
+		t.Parallel()
 		ghDir := t.TempDir()
 		writeFiles(t, ghDir, map[string]string{
 			"commits.json": commitsJSON(c1, c2, c3), "checks-" + c2 + ".json": success,
@@ -391,6 +395,7 @@ func TestMutationRange(t *testing.T) {
 	// A range that starts at head holds no change, and mutationgate passes it with a notice
 	// without starting gremlins.
 	t.Run("an empty range passes through the gate", func(t *testing.T) {
+		t.Parallel()
 		gate := filepath.Join(t.TempDir(), "mutationgate")
 		build := exec.CommandContext(t.Context(), "go", "build", "-o", gate,
 			"../cmd/mutationgate")
@@ -398,7 +403,7 @@ func TestMutationRange(t *testing.T) {
 			t.Fatalf("go build: %v\n%s", err, out)
 		}
 		repo := t.TempDir()
-		copyScripts(t, repo, "mutation-range.sh")
+		linkScripts(t, repo, "mutation-range.sh")
 		writeFiles(t, repo, map[string]string{
 			"go.mod": "module example.com/m\n\ngo 1.26.0\n",
 			"m.go":   "package m\n\n// F returns 1.\nfunc F() int { return 1 }\n",

@@ -37,6 +37,7 @@ func assertWrapped(t *testing.T, output, inside string) {
 }
 
 func TestCIAggregate(t *testing.T) {
+	t.Parallel()
 	const (
 		securityCron = "23 4 * * 1,4"
 		weeklyCron   = "41 6 * * 1"
@@ -398,8 +399,9 @@ func TestCIAggregate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "ci-aggregate.sh")
+			linkScripts(t, root, "ci-aggregate.sh")
 			vars := map[string]string{
 				"EVENT": "pull_request", "INPUT_MODE": "", "SCHEDULE": "", "NEEDS": allPassed,
 				"EXPECTED_JOBS": "4", "PULL_REQUEST_JOBS": "", "E2E_JOBS": "", "ADVISORY_JOBS": "",
@@ -434,8 +436,9 @@ func TestCIAggregate(t *testing.T) {
 	}
 
 	t.Run("without jq", func(t *testing.T) {
+		t.Parallel()
 		root := t.TempDir()
-		copyScripts(t, root, "ci-aggregate.sh")
+		linkScripts(t, root, "ci-aggregate.sh")
 		bin := t.TempDir()
 		for _, tool := range []string{"bash", "od", "tr"} {
 			path, err := exec.LookPath(tool)
@@ -460,8 +463,9 @@ func TestCIAggregate(t *testing.T) {
 	})
 
 	t.Run("a new token in each run", func(t *testing.T) {
+		t.Parallel()
 		root := t.TempDir()
-		copyScripts(t, root, "ci-aggregate.sh")
+		linkScripts(t, root, "ci-aggregate.sh")
 		env := []string{
 			"EVENT=pull_request", "NEEDS=" + allPassed, "EXPECTED_JOBS=4",
 			"SCHEDULED_JOBS=prek-upstream:weekly",
@@ -481,6 +485,7 @@ func TestCIAggregate(t *testing.T) {
 // pull request, and a release. crossbuild stands in for the e2e job, and prek-upstream is the
 // weekly job.
 func TestCIAggregateE2EJobs(t *testing.T) {
+	t.Parallel()
 	needs := func(gate, e2e, weekly string) string {
 		return `{"prek": {"result": "` + gate + `"}, "test": {"result": "` + gate +
 			`"}, "crossbuild": {"result": "` + e2e + `"}, "prek-upstream": {"result": "` +
@@ -575,8 +580,9 @@ func TestCIAggregateE2EJobs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "ci-aggregate.sh")
+			linkScripts(t, root, "ci-aggregate.sh")
 			env := []string{
 				"EVENT=" + tt.event, "INPUT_MODE=" + tt.mode, "SCHEDULE=" + tt.schedule,
 				"NEEDS=" + tt.needs, "EXPECTED_JOBS=4", "PULL_REQUEST_JOBS=",
@@ -603,6 +609,7 @@ func TestCIAggregateE2EJobs(t *testing.T) {
 // prek-upstream for the weekly jobs; prek-upstream succeeds in every run, as a success never
 // fails CI, whatever the mode.
 func TestCIAggregateAdvisoryE2ELegs(t *testing.T) {
+	t.Parallel()
 	needs := func(gate, pinned, latest, cloud string) string {
 		return `{"prek": {"result": "` + gate + `"}, "e2e": {"result": "` + pinned +
 			`"}, "e2e-latest": {"result": "` + latest + `"}, "e2e-cloudpdp": {"result": "` +
@@ -712,8 +719,9 @@ func TestCIAggregateAdvisoryE2ELegs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "ci-aggregate.sh")
+			linkScripts(t, root, "ci-aggregate.sh")
 			env := []string{
 				"EVENT=" + tt.event, "INPUT_MODE=" + tt.mode, "SCHEDULE=" + tt.schedule,
 				"NEEDS=" + tt.needs, "EXPECTED_JOBS=5", "PULL_REQUEST_JOBS=",

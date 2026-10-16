@@ -103,7 +103,7 @@ func linkGitleaks(t *testing.T, root, gitleaks string) {
 func newGitleaksRepository(t *testing.T, lock, gitleaks string) (root, first string) {
 	t.Helper()
 	root = t.TempDir()
-	copyScripts(t, root, "gitleaks-range.sh")
+	linkScripts(t, root, "gitleaks-range.sh")
 	writeFiles(t, root, map[string]string{
 		"tools/binaries.lock": lock, ".gitignore": "/bin/\n", "README.md": "# Test\n",
 	})
@@ -133,6 +133,7 @@ type gitleaksHistory struct {
 }
 
 func TestGitleaksRange(t *testing.T) {
+	t.Parallel()
 	const (
 		zeros     = "0000000000000000000000000000000000000000"
 		didNotRun = "gitleaks-range: DID NOT RUN\n"
@@ -450,6 +451,7 @@ func TestGitleaksRange(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			lock, link := gitleaksLock, stub
 			if tt.lock != "" {
 				lock = tt.lock
@@ -528,6 +530,7 @@ func TestGitleaksRange(t *testing.T) {
 	}
 
 	t.Run("a shallow clone", func(t *testing.T) {
+		t.Parallel()
 		root, _ := newGitleaksRepository(t, gitleaksLock, stub)
 		clone := filepath.Join(t.TempDir(), "clone")
 		runGit(t, root, "clone", "--quiet", "--depth", "1", "file://"+root, clone)
@@ -545,6 +548,7 @@ func TestGitleaksRange(t *testing.T) {
 	})
 
 	t.Run("without jq", func(t *testing.T) {
+		t.Parallel()
 		root, first := newGitleaksRepository(t, gitleaksLock, stub)
 		// PATH has every program the script runs before it looks for jq.
 		bin := t.TempDir()
@@ -666,6 +670,7 @@ func gitleaksBinary(t *testing.T) string {
 // TestGitleaksRangeScans runs gitleaks-range.sh with the gitleaks that tools/binaries.lock pins
 // on commits that hold a Permit API key, some of which try to keep gitleaks from reporting it.
 func TestGitleaksRangeScans(t *testing.T) {
+	t.Parallel()
 	gitleaks := gitleaksBinary(t)
 	lock, err := os.ReadFile(repositoryFile("tools/binaries.lock"))
 	if err != nil {
@@ -824,6 +829,7 @@ func TestGitleaksRangeScans(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root, first := newGitleaksRepository(t, string(lock), gitleaks)
 			findings := tt.commit(t, root)
 			got := checkScan(t, root, first, tt.env, findings)
@@ -834,6 +840,7 @@ func TestGitleaksRangeScans(t *testing.T) {
 	}
 
 	t.Run("a linked worktree", func(t *testing.T) {
+		t.Parallel()
 		root, first := newGitleaksRepository(t, string(lock), gitleaks)
 		worktree := filepath.Join(t.TempDir(), "worktree")
 		runGit(t, root, "worktree", "add", "--quiet", "-b", "side", worktree)

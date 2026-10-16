@@ -44,28 +44,44 @@ func repositoryFile(name string) string {
 	return filepath.Join("..", "..", filepath.FromSlash(name))
 }
 
-// copyScripts copies the named scripts from .github/scripts into the same place under root,
-// keeping their file modes.
-func copyScripts(t *testing.T, root string, names ...string) {
+// linkScripts links the named scripts of .github/scripts into the same place under root. A script
+// finds the repository root from the path it runs by, so run by its link it takes root for the
+// repository root. Unlike a copy, a link is not a new executable: some systems, such as macOS,
+// check each new executable the first time it runs, one at a time, which makes the tests that run
+// in parallel wait for each other. Stubs that many subtests run are linked from one file per test
+// for the same reason.
+func linkScripts(t *testing.T, root string, names ...string) {
 	t.Helper()
-	dir := filepath.Join(root, ".github", "scripts")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	for _, name := range names {
+		source, err := filepath.Abs(repositoryFile(".github/scripts/" + name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(source); err != nil {
+			t.Fatal(err)
+		}
+		linkFile(t, root, ".github/scripts/"+name, source)
+	}
+}
+
+// writeStub writes content to an executable file named name in a new directory, which the tests'
+// repositories link to, and returns its path.
+func writeStub(t *testing.T, name, content string) string {
+	t.Helper()
+	dir := t.TempDir()
+	writeExecutable(t, dir, name, content)
+	return filepath.Join(dir, name)
+}
+
+// linkFile links name, a path relative to root, to target, and makes the directory it is in.
+func linkFile(t *testing.T, root, name, target string) {
+	t.Helper()
+	path := filepath.Join(root, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range names {
-		source := repositoryFile(".github/scripts/" + name)
-		info, err := os.Stat(source)
-		if err != nil {
-			t.Fatal(err)
-		}
-		script, err := os.ReadFile(source)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = execfile.WriteFile(filepath.Join(dir, name), script, info.Mode().Perm())
-		if err != nil {
-			t.Fatal(err)
-		}
+	if err := os.Symlink(target, path); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -109,7 +125,40 @@ func gitEnv(root string) []string {
 
 // A git commit starts git maintenance, which can run git gc, in a background process that outlives
 // the commit; gitEnv turns both off.
+// TestScriptsFindTheirRootByLink checks that no script of .github/scripts resolves links when it
+// finds its own directory: the tests run each script through a link from a temporary root, as
+// linkScripts says, so a script that resolved the link would act on the repository itself.
+func TestScriptsFindTheirRootByLink(t *testing.T) {
+	t.Parallel()
+	scripts, err := filepath.Glob(repositoryFile(".github/scripts/*.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(scripts) == 0 {
+		t.Fatal("found no script in .github/scripts")
+	}
+	resolvers := []string{"pwd -P", "cd -P", "realpath", "readlink"}
+	for _, script := range scripts {
+		content, err := os.ReadFile(script)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, line := range strings.Split(string(content), "\n") {
+			if !strings.Contains(line, "BASH_SOURCE") {
+				continue
+			}
+			for _, resolver := range resolvers {
+				if strings.Contains(line, resolver) {
+					t.Errorf("%s:%d: finds its directory with %s, which resolves the link "+
+						"that the tests run it by", filepath.Base(script), i+1, resolver)
+				}
+			}
+		}
+	}
+}
+
 func TestGitEnvTurnsOffMaintenance(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	for key, want := range map[string]string{"maintenance.auto": "false", "gc.auto": "0"} {
 		result := runScript(t, root, gitEnv(root), "git", "config", "--get", key)

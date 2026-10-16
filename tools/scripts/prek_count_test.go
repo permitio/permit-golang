@@ -28,6 +28,7 @@ func hookLine(name, result string) string {
 }
 
 func TestPrekCount(t *testing.T) {
+	t.Parallel()
 	const injection = "::error::a hook printed this\n"
 	var (
 		passedA  = hookLine("check yaml", "Passed")
@@ -163,14 +164,16 @@ func TestPrekCount(t *testing.T) {
 			wantStderr: []string{"prek-count: usage: prek-count.sh [--upstream]"},
 		},
 	}
+	prek := writeStub(t, "prek", prekStub)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "prek-count.sh")
+			linkScripts(t, root, "prek-count.sh")
 			files := t.TempDir()
 			writeFiles(t, files, map[string]string{"fast": tt.fast, "upstream": tt.upstream})
 			if !tt.noPrek {
-				writeExecutable(t, root, "bin/prek", prekStub)
+				linkFile(t, root, "bin/prek", prek)
 			}
 			log := filepath.Join(files, "log")
 			env := []string{

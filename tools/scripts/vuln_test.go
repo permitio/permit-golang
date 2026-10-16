@@ -55,6 +55,7 @@ exit 0
 `
 
 func TestVuln(t *testing.T) {
+	t.Parallel()
 	const (
 		scanned = "|GH_TOKEN=unset|GITHUB_TOKEN=unset"
 		names   = "govulncheck trivy-floor trivy-ceiling trivy-tools "
@@ -210,8 +211,9 @@ func TestVuln(t *testing.T) {
 	workDir := regexp.MustCompile(`TMP/vuln\.[A-Za-z0-9]+`)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "vuln.sh")
+			linkScripts(t, root, "vuln.sh")
 			writeFiles(t, root, map[string]string{
 				"go.mod": "module example.com/m\n", "tools/go.mod": "module example.com/m/tools\n",
 				".git/HEAD": "ref: refs/heads/main\n", "bin/old": "an old build\n",

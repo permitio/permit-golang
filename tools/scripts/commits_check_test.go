@@ -35,6 +35,7 @@ func revParse(t *testing.T, root, rev string) string {
 }
 
 func TestCommitsCheck(t *testing.T) {
+	t.Parallel()
 	const zeros = "0000000000000000000000000000000000000000"
 	// newRepository returns a repository that holds the scripts in scripts and a history of
 	// base, good (two commits that pass), bad (one that fails), a commit whose message tries to
@@ -46,7 +47,7 @@ func TestCommitsCheck(t *testing.T) {
 	newRepository := func(t *testing.T, scripts ...string) history {
 		t.Helper()
 		root := t.TempDir()
-		copyScripts(t, root, scripts...)
+		linkScripts(t, root, scripts...)
 		gitInit(t, root)
 		var h history
 		h.root = root
@@ -61,6 +62,7 @@ func TestCommitsCheck(t *testing.T) {
 		return h
 	}
 	both := []string{"commits-check.sh", "check-commit-msg.sh"}
+	// The subtests share h, which commits-check.sh only reads, so they run in parallel.
 	h := newRepository(t, both...)
 	tests := []struct {
 		name string
@@ -163,6 +165,7 @@ func TestCommitsCheck(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			run := h
 			if tt.scripts != nil {
 				run = newRepository(t, tt.scripts...)
@@ -191,6 +194,7 @@ func TestCommitsCheck(t *testing.T) {
 	}
 
 	t.Run("a commit message cannot issue workflow commands", func(t *testing.T) {
+		t.Parallel()
 		env := gitEnv(h.root)
 		result := runScript(t, h.root, env,
 			filepath.Join(h.root, ".github", "scripts", "commits-check.sh"), h.bad, h.command)

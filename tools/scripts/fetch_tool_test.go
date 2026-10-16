@@ -19,8 +19,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-
-	"github.com/permitio/permit-golang/v2/tools/internal/execfile"
 )
 
 // platforms are the platforms every tools/binaries.lock entry has a sha256 for.
@@ -108,37 +106,18 @@ func otherPlatform() string {
 	return platforms[0]
 }
 
-// newRoot lays out a repository in a new directory, with a copy of fetch-tool.sh that keeps its
-// file mode and lock as tools/binaries.lock, and returns the directory.
+// newRoot lays out a repository in a new directory, with fetch-tool.sh and lock as
+// tools/binaries.lock, and returns the directory.
 func newRoot(t *testing.T, lock string) string {
 	t.Helper()
-	source := filepath.Join("..", "..", ".github", "scripts", "fetch-tool.sh")
-	info, err := os.Stat(source)
-	if err != nil {
-		t.Fatal(err)
-	}
-	script, err := os.ReadFile(source)
-	if err != nil {
-		t.Fatal(err)
-	}
 	root := t.TempDir()
-	for _, dir := range []string{".github/scripts", "tools"} {
-		if err := os.MkdirAll(filepath.Join(root, dir), 0o755); err != nil {
-			t.Fatal(err)
-		}
-	}
-	scriptPath := filepath.Join(root, ".github", "scripts", "fetch-tool.sh")
-	if err := execfile.WriteFile(scriptPath, script, info.Mode().Perm()); err != nil {
-		t.Fatal(err)
-	}
-	lockPath := filepath.Join(root, "tools", "binaries.lock")
-	if err := os.WriteFile(lockPath, []byte(lock), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	linkScripts(t, root, "fetch-tool.sh")
+	writeFiles(t, root, map[string]string{"tools/binaries.lock": lock})
 	return root
 }
 
 func TestFetchTool(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
 		t.Fatalf("fetch-tool.sh supports darwin and linux; this test runs on %s", runtime.GOOS)
 	}
@@ -159,7 +138,7 @@ func TestFetchTool(t *testing.T) {
 		}
 		_, _ = w.Write(archive)
 	}))
-	defer plain.Close()
+	t.Cleanup(plain.Close)
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter,
 		r *http.Request,
 	) {
@@ -178,7 +157,7 @@ func TestFetchTool(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	t.Cleanup(server.Close)
 	caFile := filepath.Join(t.TempDir(), "ca.pem")
 	ca := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw})
 	if err := os.WriteFile(caFile, ca, 0o600); err != nil {
@@ -410,6 +389,7 @@ func TestFetchTool(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := newRoot(t, tt.lock)
 			if tt.setup != nil {
 				tt.setup(t, root)

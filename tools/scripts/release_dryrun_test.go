@@ -85,15 +85,25 @@ type dryrunResult struct {
 	ciRuns, evidence string
 }
 
+// writeDryrunStubs writes the stubs of the dry run's tools, and returns their directory.
+func writeDryrunStubs(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	writeExecutable(t, dir, "releasecheck", releasecheckStub)
+	writeExecutable(t, dir, "apisurface", apisurfaceStub)
+	writeExecutable(t, dir, "zipcheck", dryrunZipcheckStub)
+	return dir
+}
+
 // runDryrun runs release-dryrun.sh in a git repository whose version.go has the Version 2.1.0,
-// with the stubs of its tools and the real go, git and jq.
-func runDryrun(t *testing.T, tc dryrunCase, genuine []byte, hash string) dryrunResult {
+// with the stubs of its tools in bin, from writeDryrunStubs, and the real go, git and jq.
+func runDryrun(t *testing.T, tc dryrunCase, bin string, genuine []byte, hash string) dryrunResult {
 	t.Helper()
 	root := t.TempDir()
-	copyScripts(t, root, "release-dryrun.sh", "release-verify.sh")
-	writeExecutable(t, root, "bin/releasecheck", releasecheckStub)
-	writeExecutable(t, root, "bin/apisurface", apisurfaceStub)
-	writeExecutable(t, root, "bin/zipcheck", dryrunZipcheckStub)
+	linkScripts(t, root, "release-dryrun.sh", "release-verify.sh")
+	for _, tool := range []string{"releasecheck", "apisurface", "zipcheck"} {
+		linkFile(t, root, "bin/"+tool, filepath.Join(bin, tool))
+	}
 	files := map[string]string{
 		"version.go": "package permit\n\n// Version is the version.\nconst Version = \"2.1.0\"\n",
 		"tools/e2e/local-only.txt": "# Local-only methods.\n\n  # A.B org-key api.old\n" +
@@ -175,6 +185,7 @@ func orHash(hash, def string) string {
 }
 
 func TestReleaseDryrun(t *testing.T) {
+	t.Parallel()
 	genuine, hash := moduleZip(t, dryrunModule, moduleFiles)
 	tampered, _ := moduleZip(t, dryrunModule, map[string]string{
 		"go.mod": moduleFiles["go.mod"], "LICENSE": moduleFiles["LICENSE"],
@@ -312,9 +323,11 @@ func TestReleaseDryrun(t *testing.T) {
 			want:  []string{"release-dryrun: zipcheck is not at "},
 		},
 	}
+	stubs := writeDryrunStubs(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := runDryrun(t, tt, genuine, hash)
+			t.Parallel()
+			result := runDryrun(t, tt, stubs, genuine, hash)
 
 			if result.exit != tt.wantExit {
 				t.Errorf("release-dryrun.sh exited %d, want %d:\n%s%s", result.exit,
@@ -337,9 +350,10 @@ func TestReleaseDryrun(t *testing.T) {
 // in its latest attempt; and the harness evidence is of the commit, on each Go release that
 // releasecheck lanes printed, with each phase of tools/e2e/local-only.txt passed.
 func TestReleaseDryrunInputs(t *testing.T) {
+	t.Parallel()
 	genuine, hash := moduleZip(t, dryrunModule, moduleFiles)
 
-	result := runDryrun(t, dryrunCase{}, genuine, hash)
+	result := runDryrun(t, dryrunCase{}, writeDryrunStubs(t), genuine, hash)
 
 	if result.exit != 0 {
 		t.Fatalf("release-dryrun.sh exited %d:\n%s%s", result.exit, result.stdout,

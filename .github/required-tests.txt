@@ -1598,6 +1598,7 @@ github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestGitInTurnsOffMaint
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestGitInTurnsOffMaintenance
 github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestGitInTurnsOffMaintenance
 github.com/permitio/permit-golang/v2/tools/scripts TestGitEnvTurnsOffMaintenance
+github.com/permitio/permit-golang/v2/tools/scripts TestScriptsFindTheirRootByLink
 
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckE2E
 github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregateE2EJobs

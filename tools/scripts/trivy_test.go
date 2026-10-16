@@ -70,6 +70,7 @@ func firstVuln(change func(v map[string]any)) func(report map[string]any) {
 }
 
 func TestTrivy(t *testing.T) {
+	t.Parallel()
 	const (
 		noRequires = "module example.com/m\n\ngo 1.26.0\n"
 		oneRequire = noRequires + "\nrequire golang.org/x/oauth2 v0.14.0\n"
@@ -398,8 +399,9 @@ func TestTrivy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "trivy.sh")
+			linkScripts(t, root, "trivy.sh")
 			lock := trivyLock
 			if tt.lock != "" {
 				lock = tt.lock
@@ -479,8 +481,9 @@ func TestTrivy(t *testing.T) {
 	}
 
 	t.Run("without jq", func(t *testing.T) {
+		t.Parallel()
 		root := t.TempDir()
-		copyScripts(t, root, "trivy.sh")
+		linkScripts(t, root, "trivy.sh")
 		writeFiles(t, root, map[string]string{"tools/binaries.lock": trivyLock})
 		if err := os.Mkdir(filepath.Join(root, "bin"), 0o755); err != nil {
 			t.Fatal(err)

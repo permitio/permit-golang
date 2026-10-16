@@ -128,8 +128,9 @@ jobs:
   # upgrade dry run's against tools/upgrade/required.txt as well, the list of the e2e job. The
   # ceiling legs tidy tools/upgrade too, which builds the root and tools modules through its
   # replace directives. The modules, and the gitleaks that the tests of gitleaks-range.sh run,
-  # are downloaded first, and the tests then run offline. Then the benchmarks of the root package
-  # run 100 times each, so that each compiles and runs; the bench job measures them.
+  # are downloaded first, and the tests then run offline. Then each leg checks that the tests of
+  # tools/scripts kept within SCRIPTS_TEST_SECONDS, and the benchmarks of the root package run 100
+  # times each, so that each compiles and runs; the bench job measures them.
   test:
     name: test (${{ matrix.go }}, ${{ matrix.deps }} tree)
     if: >-
@@ -151,6 +152,11 @@ jobs:
     env:
       GOTOOLCHAIN: local
       GOFLAGS: -mod=readonly
+      # The tests of tools/scripts run the scripts hundreds of times, in parallel; they take 15
+      # to 35 seconds on a laptop. A leg fails when they take longer than this, half the 5-minute
+      # -timeout that AGENTS.md gives go test in both modules, so that a slowdown shows here before
+      # it makes the tests time out on a busy machine.
+      SCRIPTS_TEST_SECONDS: "150"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -160,7 +166,8 @@ jobs:
           go-version: ${{ env[matrix.go] }}
           cache: false
       # checkgotest exits 1 when a test failed or skipped, and 2 when a required test or a
-      # module's tests did not run. go test's own exit code is reported after it.
+      # module's tests did not run. go test's own exit code is reported after it, and then
+      # whether the tests of tools/scripts kept within SCRIPTS_TEST_SECONDS.
       - name: Test
         env:
           GO_VERSION: ${{ env[matrix.go] }}
@@ -210,6 +217,21 @@ jobs:
               "skills/permit-golang-v2-migration."
             exit 1
           fi
+          scripts=$(jq -r 'select(.Action == "pass" and .Test == null and
+            .Package == "github.com/permitio/permit-golang/v2/tools/scripts") | .Elapsed' \
+            "$RUNNER_TEMP/tools.json")
+          if ! [[ $scripts =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+            echo "go test reported no single time for the tests of tools/scripts: '$scripts'."
+            exit 2
+          fi
+          echo "The tests of tools/scripts took ${scripts}s, of at most ${SCRIPTS_TEST_SECONDS}s."
+          awk -v took="$scripts" -v most="$SCRIPTS_TEST_SECONDS" \
+            'BEGIN { exit !(took + 0 <= most + 0) }' || {
+            echo "The tests of tools/scripts took longer than $SCRIPTS_TEST_SECONDS seconds: run" \
+              "them in parallel, and link the scripts and stubs that they run, as linkScripts" \
+              "in tools/scripts/run_test.go says."
+            exit 1
+          }
           go test -count=1 -run '^$' -bench . -benchtime 100x .
 
   # Compiles the SDK for every platform that applications commonly build for.

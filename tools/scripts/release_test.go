@@ -76,13 +76,13 @@ type githubRun struct {
 	ghExit string
 }
 
-// runGitHub runs release-github.sh with the gh stub, and returns the result and the gh commands
-// it ran.
-func runGitHub(t *testing.T, mode string, r githubRun) (scriptResult, []string) {
+// runGitHub runs release-github.sh with gh, the gh stub, and returns the result and the gh
+// commands it ran.
+func runGitHub(t *testing.T, gh, mode string, r githubRun) (scriptResult, []string) {
 	t.Helper()
 	root := t.TempDir()
-	copyScripts(t, root, "release-github.sh")
-	writeExecutable(t, root, "stub/gh", ghStub)
+	linkScripts(t, root, "release-github.sh")
+	linkFile(t, root, "stub/gh", gh)
 	stubDir := filepath.Join(root, "stubdir")
 	files := map[string]string{
 		"stubdir/ref": r.ref, "dist/SHA256SUMS": "sums\n", "dist/m.zip": "zip\n",
@@ -111,6 +111,7 @@ func runGitHub(t *testing.T, mode string, r githubRun) (scriptResult, []string) 
 }
 
 func TestReleaseGitHubDraft(t *testing.T) {
+	t.Parallel()
 	final := []string{"v2.1.0", releaseCommit, "notes.md", "dist"}
 	candidate := []string{"v2.1.0-rc.1", releaseCommit, "notes.md", "dist"}
 	complete := []string{"SHA256SUMS", "m.zip"}
@@ -217,9 +218,11 @@ func TestReleaseGitHubDraft(t *testing.T) {
 			wantExit: 2, want: "release-github: usage: release-github.sh draft <tag> <sha>",
 		},
 	}
+	gh := writeStub(t, "gh", ghStub)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, ran := runGitHub(t, "draft", tt.run)
+			t.Parallel()
+			result, ran := runGitHub(t, gh, "draft", tt.run)
 
 			if result.exit != tt.wantExit || !strings.Contains(result.stdout, tt.want) {
 				t.Errorf("release-github.sh draft exited %d and printed\n%s\nwant %d and %q",
@@ -246,6 +249,7 @@ func assertRan(t *testing.T, ran []string, prefix, want string) {
 }
 
 func TestReleaseGitHubPublish(t *testing.T) {
+	t.Parallel()
 	sums := []string{"SHA256SUMS", "m.zip"}
 	final := []string{"v2.1.0", releaseCommit}
 	candidate := []string{"v2.1.0-rc.1", releaseCommit}
@@ -361,9 +365,11 @@ func TestReleaseGitHubPublish(t *testing.T) {
 			wantExit: 2, want: "release-github: usage: ",
 		},
 	}
+	gh := writeStub(t, "gh", ghStub)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, ran := runGitHub(t, "publish", tt.run)
+			t.Parallel()
+			result, ran := runGitHub(t, gh, "publish", tt.run)
 
 			if result.exit != tt.wantExit || !strings.Contains(result.stdout, tt.want) {
 				t.Errorf("release-github.sh publish exited %d and printed\n%s\nwant %d and %q",
@@ -529,6 +535,7 @@ func downloadError(t *testing.T, err string) goReply {
 // which the script asks again and, once the attempts run out, reports as a check that did not
 // run, exit 2, not as a version to retract.
 func TestReleaseVerifyChecksumDatabase(t *testing.T) {
+	t.Parallel()
 	const (
 		target   = "example.com/m/v2@v2.1.0"
 		served   = "h1:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
@@ -607,13 +614,16 @@ func TestReleaseVerifyChecksumDatabase(t *testing.T) {
 			},
 		},
 	}
+	zipcheck := writeStub(t, "zipcheck", zipcheckStub)
+	goCommand, sleep := writeStub(t, "go", goStub), writeStub(t, "sleep", sleepStub)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "release-verify.sh")
-			writeExecutable(t, root, "bin/zipcheck", zipcheckStub)
-			writeExecutable(t, root, "stub/go", goStub)
-			writeExecutable(t, root, "stub/sleep", sleepStub)
+			linkScripts(t, root, "release-verify.sh")
+			linkFile(t, root, "bin/zipcheck", zipcheck)
+			linkFile(t, root, "stub/go", goCommand)
+			linkFile(t, root, "stub/sleep", sleep)
 			// The script runs in root, so the zip that the go stub names is root's m.zip.
 			files := map[string]string{"m.zip": "zip\n"}
 			for i, reply := range tt.replies {
@@ -651,6 +661,7 @@ func TestReleaseVerifyChecksumDatabase(t *testing.T) {
 }
 
 func TestReleaseVerify(t *testing.T) {
+	t.Parallel()
 	served, sum := moduleZip(t, proxyModule, moduleFiles)
 	tampered := withExtraFile(t, served)
 	const otherSum = "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
@@ -784,11 +795,13 @@ func TestReleaseVerify(t *testing.T) {
 			want: []string{"release-verify: zipcheck is not at /nonexistent/zipcheck; build it"},
 		},
 	}
+	zipcheck := writeStub(t, "zipcheck", zipcheckStub)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			root := t.TempDir()
-			copyScripts(t, root, "release-verify.sh")
-			writeExecutable(t, root, "bin/zipcheck", zipcheckStub)
+			linkScripts(t, root, "release-verify.sh")
+			linkFile(t, root, "bin/zipcheck", zipcheck)
 			log := filepath.Join(root, "zipcheck.log")
 			proxy := writeProxy(t, tt.zip)
 			if tt.zip == nil {

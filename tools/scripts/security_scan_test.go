@@ -220,6 +220,7 @@ func truffleHogLog(raw string, chunks, verified int) string {
 }
 
 func TestSecurityScan(t *testing.T) {
+	t.Parallel()
 	const (
 		module   = "github.com/permitio/permit-golang/v2"
 		highNet  = `{"id":"GHSA-4444-5555-6666","package":"golang.org/x/net","severity":"high"}`
@@ -658,6 +659,7 @@ func TestSecurityScan(t *testing.T) {
 	s := newScanSetup(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			s.run(t, tt, raw)
 		})
 	}
@@ -716,7 +718,7 @@ func newScanSetup(t *testing.T) scanSetup {
 func (s scanSetup) newScanRepository(t *testing.T, keys int, dir string) (string, []string) {
 	t.Helper()
 	root := t.TempDir()
-	copyScripts(t, root, "security-scan.sh")
+	linkScripts(t, root, "security-scan.sh")
 	for _, name := range []string{"vuln.sh", "trivy.sh", "fetch-tool.sh"} {
 		if err := os.Symlink(s.stub, filepath.Join(root, ".github", "scripts", name)); err != nil {
 			t.Fatal(err)
@@ -932,6 +934,7 @@ func checkScanLog(t *testing.T, log string, tt scanCase) {
 
 // TestSecurityScanHistoryDigests runs the mode that writes the digests of the history's findings.
 func TestSecurityScanHistoryDigests(t *testing.T) {
+	t.Parallel()
 	s := newScanSetup(t)
 	root, fingerprints := s.newScanRepository(t, 2, "")
 	out := filepath.Join(t.TempDir(), "digests")
@@ -963,8 +966,11 @@ func TestSecurityScanHistoryDigests(t *testing.T) {
 		}
 	}
 
+	// The subtests run in parallel and share root, so at most one of them may scan it: the others
+	// stop at the checks of the arguments, before the script touches root.
 	t.Run("in GitHub Actions", func(t *testing.T) {
-		got := runScript(t, root, append(env, "GITHUB_ACTIONS=true"), script,
+		t.Parallel()
+		got := runScript(t, root, slices.Concat(env, []string{"GITHUB_ACTIONS=true"}), script,
 			"--history-digests", out+"2")
 
 		if got.exit != 2 || !strings.Contains(got.stdout, "security-scan: --history-digests "+
@@ -975,6 +981,7 @@ func TestSecurityScanHistoryDigests(t *testing.T) {
 	})
 
 	t.Run("a path relative to another directory", func(t *testing.T) {
+		t.Parallel()
 		dir := t.TempDir()
 
 		got := runScript(t, dir, env, script, "--history-digests", "digests")
@@ -992,6 +999,7 @@ func TestSecurityScanHistoryDigests(t *testing.T) {
 		{"an absolute path inside the clone", t.TempDir(), filepath.Join(root, ".git", "digests")},
 	} {
 		t.Run(inside.name, func(t *testing.T) {
+			t.Parallel()
 			got := runScript(t, inside.dir, env, script, "--history-digests", inside.path)
 
 			if got.exit != 2 || !strings.Contains(got.stdout, " is inside the repository; "+
@@ -1010,6 +1018,7 @@ func TestSecurityScanHistoryDigests(t *testing.T) {
 // TestSecurityScanGitleaksRules checks that the history scan gives gitleaks the rules of
 // .gitleaks.toml.
 func TestSecurityScanGitleaksRules(t *testing.T) {
+	t.Parallel()
 	script, err := os.ReadFile(repositoryFile(".github/scripts/security-scan.sh"))
 	if err != nil {
 		t.Fatal(err)

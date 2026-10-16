@@ -434,6 +434,11 @@ github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestAppendix
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestReference
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestIsExclusionReason
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestIDsGrow
+github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestFenceAfter
+github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestSluggerAnchor
+github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestParseMarkdown
+github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestCheckLinks
+github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestCheckFixedList
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestDiff
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestDiffDidNotRun
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestParseAPIDiff
@@ -452,6 +457,7 @@ github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestReadSurfaceErrors
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestDeclName
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestReadV2Surface
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestRepositoryMigration
+github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestRepositoryListedWithoutMark
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestRepositoryV1Surface
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestRepositoryOperationsAreNotV1Routes
 github.com/permitio/permit-golang/v2/tools/cmd/apisurface TestGenerate

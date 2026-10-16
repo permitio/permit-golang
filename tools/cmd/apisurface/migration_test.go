@@ -64,12 +64,29 @@ Prose about the module.
 
 No entries yet.
 
+## Calls that could never work in v1
+
+- Users.Create ([M-users-1](#M-users-1)), as [v1.3.0](CHANGELOG.md#v130-2026-10-13) says.
+
 ## Appendix
 
 ` + fixtureAppendix + "\n"
 
+// fixtureChangelog is a CHANGELOG.md whose links resolve in fixtureGuide.
+const fixtureChangelog = `# Changelog
+
+## v2.0.0 (unreleased)
+
+[MIGRATION.md](MIGRATION.md) starts with [M-module-1](MIGRATION.md#M-module-1) and lists
+[the calls that could never work in v1](MIGRATION.md#calls-that-could-never-work-in-v1).
+
+## v1.3.0 (2026-10-13)
+
+Fixes.
+`
+
 // fixtureMigration returns the files of a repository that migration mode passes: the v1
-// surface, MIGRATION.md, pending.txt, ids.txt and the v2 packages.
+// surface, MIGRATION.md, CHANGELOG.md, README.md, pending.txt, ids.txt and the v2 packages.
 func fixtureMigration() map[string]string {
 	return map[string]string{
 		surfaceFile: "# The surface.\n" +
@@ -79,6 +96,9 @@ func fixtureMigration() map[string]string {
 			"b openapi.MembersApiService.ListMembers GET /v2/members in-spec\n" +
 			"c models.NullableUser type\nc models.Role type\nc models.User type\n",
 		migrationFile: fixtureGuide,
+		changelogFile: fixtureChangelog,
+		readmeFile: "# SDK\n\nSee [M-users-1](MIGRATION.md#M-users-1) and [Status](#status).\n\n" +
+			"## Status\n\nv2.\n",
 		pendingFile: "# Pending.\n\napi.Users users\napi.Users.Delete users\nconfig.* client\n" +
 			"openapi.AuthApiService.Login auth\nmodels.Role models\n",
 		idsFile:  "# IDs.\nM-module-1\nM-users-1\nM-members-1\nM-models-1\n",
@@ -116,8 +136,8 @@ func TestMigrationPasses(t *testing.T) {
 	code, out := runTool(t, system{}, "-mode", "migration", "-root", dir)
 	wantRun(t, code, out, exitPassed, "v1 surface: 4 identifiers (a), 2 operations (b), 3 "+
 		"models types (c); 3 in entries, 5 pending, 1 by a v2 models type of the same name; 4 "+
-		"entries, 5 pending lines\n", "PASS: each of the 9 v1 items is covered once, and every "+
-		"entry is well formed\n")
+		"entries, 5 pending lines\n", "PASS: each of the 9 v1 items is covered once, every "+
+		"entry is well formed, and every link to an anchor resolves\n")
 	if got := lastLine(out); !strings.HasPrefix(got, "PASS: ") {
 		t.Errorf("the last line is %q, want the verdict", got)
 	}
@@ -433,17 +453,17 @@ func TestMigrationFails(t *testing.T) {
 		"two appendixes": {
 			changes: map[string]string{migrationFile: guide + fixtureAppendix + "\n"},
 			want: []string{
-				"- MIGRATION.md:55: a second <!-- apisurface:models:begin -->; keep one models " +
+				"- MIGRATION.md:59: a second <!-- apisurface:models:begin -->; keep one models " +
 					"appendix",
-				"- MIGRATION.md:65: a second <!-- apisurface:models:end -->; keep one models " +
+				"- MIGRATION.md:69: a second <!-- apisurface:models:end -->; keep one models " +
 					"appendix",
 			},
 		},
 		"two appendixes, the first on the first line": {
 			changes: map[string]string{migrationFile: fixtureAppendix + "\n" + guide},
 			want: []string{
-				"- MIGRATION.md:55: a second <!-- apisurface:models:begin -->",
-				"- MIGRATION.md:65: a second <!-- apisurface:models:end -->",
+				"- MIGRATION.md:59: a second <!-- apisurface:models:begin -->",
+				"- MIGRATION.md:69: a second <!-- apisurface:models:end -->",
 			},
 		},
 		"a stale appendix on the first line": {
@@ -502,6 +522,51 @@ func TestMigrationFails(t *testing.T) {
 			changes: map[string]string{idsFile: ids + "M-users-1\n"},
 			want:    []string{"- tools/migration/ids.txt:6: M-users-1 is listed twice"},
 		},
+		"a link to an entry ID that the guide does not have": {
+			changes: map[string]string{migrationFile: replaced(t, guide, "(#M-users-1)",
+				"(#M-users-9)")},
+			want: []string{
+				"- MIGRATION.md:44: the link #M-users-9 names no anchor of MIGRATION.md;",
+				"- MIGRATION.md:19 (M-users-1): the entry is marked \"- Bug fix: could never " +
+					"work before\", and the section \"Calls that could never work in v1\" does " +
+					"not link it; add a list item with [M-users-1](#M-users-1)",
+			},
+		},
+		"a link to a heading of CHANGELOG.md that it does not have": {
+			changes: map[string]string{migrationFile: replaced(t, guide, "#v130-2026-10-13",
+				"#v130")},
+			want: []string{"- MIGRATION.md:44: the link CHANGELOG.md#v130 names no anchor of " +
+				"CHANGELOG.md;"},
+		},
+		"a link in CHANGELOG.md to an entry ID that the guide does not have": {
+			changes: map[string]string{changelogFile: replaced(t, fixtureChangelog,
+				"MIGRATION.md#M-module-1", "MIGRATION.md#M-module-9")},
+			want: []string{"- CHANGELOG.md:5: the link MIGRATION.md#M-module-9 names no anchor " +
+				"of MIGRATION.md;"},
+		},
+		"a link in README.md to a heading that it does not have": {
+			changes: map[string]string{readmeFile: replaced(t, fixtureMigration()[readmeFile],
+				"(#status)", "(#state)")},
+			want: []string{"- README.md:3: the link #state names no anchor of README.md;"},
+		},
+		"no section of the calls that could never work": {
+			changes: map[string]string{migrationFile: replaced(t, guide,
+				"## Calls that could never work in v1", "## Calls that never worked")},
+			want: []string{
+				"- MIGRATION.md has no section \"## Calls that could never work in v1\"; add it, " +
+					"and link from it each entry marked \"- Bug fix: could never work before\"",
+				"- CHANGELOG.md:6: the link MIGRATION.md#calls-that-could-never-work-in-v1 names " +
+					"no anchor of MIGRATION.md;",
+			},
+		},
+		"a section entry without the mark": {
+			changes: map[string]string{migrationFile: replaced(t, guide,
+				"- Bug fix: could never work before\n", "")},
+			want: []string{"- MIGRATION.md:43: the section \"Calls that could never work in v1\" " +
+				"links M-users-1, which is not marked \"- Bug fix: could never work before\"; " +
+				"mark the entry when v2 fixes the call, give it and the reason to " +
+				"listedWithoutMark in tools/cmd/apisurface when v2 does not, or remove the link"},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			dir := migrationRepo(t, tc.changes)
@@ -557,6 +622,10 @@ func TestMigrationDidNotRun(t *testing.T) {
 		"no guide":       {map[string]string{migrationFile: ""}, "MIGRATION.md: no such file"},
 		"no pending.txt": {map[string]string{pendingFile: ""}, "pending.txt: no such file"},
 		"no ids.txt":     {map[string]string{idsFile: ""}, "ids.txt: no such file"},
+		"no CHANGELOG.md": {
+			map[string]string{changelogFile: ""}, "CHANGELOG.md: no such file",
+		},
+		"no README.md": {map[string]string{readmeFile: ""}, "README.md: no such file"},
 		"a malformed v1 surface": {
 			changes: map[string]string{surfaceFile: "a api.Users\n"},
 			want: "DID NOT RUN: tools/migration/v1-surface.txt: line 1 is not <block> <id> " +

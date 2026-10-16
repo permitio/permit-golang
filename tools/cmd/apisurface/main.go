@@ -67,6 +67,19 @@
 //   - tools/migration/ids.txt does not list exactly the IDs of the entries, each once; with
 //     -ids-base, a commit after rev up to HEAD, or the working tree, drops an ID from the
 //     ids.txt before it: an ID may only be added;
+//   - a link of MIGRATION.md, CHANGELOG.md or README.md to an anchor of one of them, #<anchor>
+//     in the same file or <file>#<anchor>, names no anchor of that file: the id of an
+//     <a id="..."> tag, or the anchor that GitHub gives a heading, its text in lower case,
+//     without punctuation other than - and _ and with a hyphen for each space, then -1, -2 and
+//     so on when headings before have the same anchor. Only inline links, [text](target), and
+//     headings that start with # are read, so link an anchor inline; reference-style links and
+//     HTML links are not checked. A fenced code block holds no link, anchor or heading. Links to
+//     other files and to URLs are not checked;
+//   - MIGRATION.md has no section "## Calls that could never work in v1", or the section does
+//     not link, as #<ID>, each entry marked "Bug fix: could never work before", or it links an
+//     entry without the mark. The exceptions, which apisurface lists with their reasons, are the
+//     calls that v1.3.0 fixed and v1's OPA mode, which v2 drops: the section must link each of
+//     them, and none may have the mark;
 //   - the models appendix of MIGRATION.md, between <!-- apisurface:models:begin --> and
 //     <!-- apisurface:models:end -->, differs from the one apisurface writes: a table of each
 //     models type of v1 that an entry or a v2 type of the same name covers, and the number of
@@ -360,8 +373,8 @@ func migrationMode(ctx context.Context, opts options, sys system, r *report) {
 		"%d in entries, %d pending, %d by a v2 models type of the same name%s; %d entries, %d "+
 		"pending lines\n", counts[blockIdentifiers], counts[blockOperations], counts[blockModels],
 		byEntry, byPending, bySameName, byNothing, len(in.guide.entries), len(in.pending))
-	r.passed = fmt.Sprintf("each of the %d v1 items is covered once, and every entry is "+
-		"well formed", len(in.items))
+	r.passed = fmt.Sprintf("each of the %d v1 items is covered once, every entry is well "+
+		"formed, and every link to an anchor resolves", len(in.items))
 }
 
 // diffMode runs the diff check.

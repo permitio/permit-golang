@@ -51,6 +51,24 @@ var forbiddenWords = []string{"secret", "exposes", "vulnerab"}
 // fixMark is the line that marks an entry as a fix of a v1 feature that could never work.
 const fixMark = "- Bug fix: could never work before"
 
+// fixedSection is the text of the heading, of level 2, of the section of MIGRATION.md that links
+// each entry with fixMark.
+const fixedSection = "Calls that could never work in v1"
+
+// listedWithoutMark maps the ID of each entry that the section fixedSection links without
+// fixMark to the reason. Each is a v1 call that never worked as documented, but that v2 does not
+// fix: v1.3.0, the release this guide starts from, fixed it, or v2 drops the feature.
+var listedWithoutMark = map[string]string{
+	"M-action-groups-6": "v1.3.0 fixed ResourceActionGroups.Delete, which deleted an action " +
+		"up to v1.2.8",
+	"M-checks-8": "v1.3.0 fixed the checks that sent no key for a resource",
+	"M-checks-13": "v2 drops v1's OPA mode, in which BulkCheck and FilterObjects could never " +
+		"return decisions",
+	"M-checks-23":        "v1.3.0 fixed AllTenantsCheck, which returned the denied tenants too",
+	"M-condition-sets-3": "v1.3.0 fixed ConditionSets.List, which always returned an empty list",
+	"M-facts-7":          "v1.3.0 fixed the timeout of WaitForSync under one second",
+}
+
 const (
 	// appendixBegin and appendixEnd enclose the models table that apisurface writes into
 	// MIGRATION.md.
@@ -376,8 +394,10 @@ func parseIDs(r io.Reader, name string) ([]string, []string, error) {
 
 // migrationInput is what the migration check reads.
 type migrationInput struct {
-	items   []item
-	guide   guide
+	items []item
+	guide guide
+	// docs maps MIGRATION.md, CHANGELOG.md and README.md to their headings, anchors and links.
+	docs    map[string]markdown
 	pending []pending
 	ids     []string
 	v2      v2Surface
@@ -403,6 +423,13 @@ func readMigration(root string) (migrationInput, error) {
 	var problems []string
 	in.guide, problems = parseGuide(content)
 	in.problems = append(in.problems, problems...)
+	in.docs = map[string]markdown{migrationFile: parseMarkdown(migrationFile, content)}
+	for _, name := range []string{changelogFile, readmeFile} {
+		if content, err = os.ReadFile(filepath.Join(root, name)); err != nil {
+			return in, err
+		}
+		in.docs[name] = parseMarkdown(name, content)
+	}
 	content, err = os.ReadFile(filepath.Join(root, pendingFile))
 	if err != nil {
 		return in, err
@@ -491,7 +518,70 @@ func checkMigration(in migrationInput) ([]string, coverage) {
 		problems = append(problems, checkCovered(it, cov, in.v2)...)
 	}
 	problems = append(problems, checkIDs(in.guide.entries, in.ids)...)
+	problems = append(problems, checkLinks(in.docs)...)
+	problems = append(problems, checkFixedList(in.guide, in.docs[migrationFile],
+		listedWithoutMark)...)
 	return problems, cov
+}
+
+// checkFixedList returns the problems with the section fixedSection of MIGRATION.md, md: it is
+// missing; it does not link an entry with fixMark, or an entry of listed; it links an entry that
+// has no mark and is not in listed; or an entry of listed has the mark. The section ends at the
+// next heading of level 2 or less, and links an entry with #<ID>. listed maps the ID of an entry
+// that the section links without the mark to the reason; an ID that no entry has is left out.
+func checkFixedList(g guide, md markdown, listed map[string]string) []string {
+	start := slices.IndexFunc(md.headings, func(h heading) bool {
+		return h.level == 2 && h.text == fixedSection
+	})
+	if start < 0 {
+		return []string{fmt.Sprintf("%s has no section \"## %s\"; add it, and link from it each "+
+			"entry marked %q", migrationFile, fixedSection, fixMark)}
+	}
+	end := len(md.headings)
+	for i := start + 1; i < len(md.headings); i++ {
+		if md.headings[i].level <= 2 {
+			end = i
+			break
+		}
+	}
+	byID := map[string]entry{}
+	for _, e := range g.entries {
+		byID[e.id] = e
+	}
+	var problems []string
+	linked := map[string]bool{}
+	for _, l := range md.links {
+		id, ok := strings.CutPrefix(l.target, "#")
+		if !ok || l.heading < start || l.heading >= end || linked[id] {
+			continue
+		}
+		linked[id] = true
+		e, ok := byID[id]
+		if _, isListed := listed[id]; ok && !e.fixes && !isListed {
+			problems = append(problems, fmt.Sprintf("%s:%d: the section %q links %s, which is not "+
+				"marked %q; mark the entry when v2 fixes the call, give it and the reason to "+
+				"listedWithoutMark in tools/cmd/apisurface when v2 does not, or remove the link",
+				migrationFile, l.line, fixedSection, id, fixMark))
+		}
+	}
+	for _, e := range g.entries {
+		reason, isListed := listed[e.id]
+		switch {
+		case e.fixes && isListed:
+			problems = append(problems, fmt.Sprintf("%s: the entry is marked %q, and "+
+				"listedWithoutMark in tools/cmd/apisurface gives the reason it has no mark: %s; "+
+				"remove one of them", e.where(), fixMark, reason))
+		case e.fixes && !linked[e.id]:
+			problems = append(problems, fmt.Sprintf("%s: the entry is marked %q, and the section "+
+				"%q does not link it; add a list item with [%s](#%s)", e.where(), fixMark,
+				fixedSection, e.id, e.id))
+		case isListed && !linked[e.id]:
+			problems = append(problems, fmt.Sprintf("%s: the section %q does not link the entry, "+
+				"which listedWithoutMark in tools/cmd/apisurface lists: %s; link it, or remove "+
+				"it from listedWithoutMark", e.where(), fixedSection, reason))
+		}
+	}
+	return problems
 }
 
 // match returns the ids of the items that a pattern matches, and a problem when the pattern is

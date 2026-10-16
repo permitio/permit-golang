@@ -456,7 +456,15 @@ What changed, and what to do.
   on a line of an entry, from its heading to the next anchor or heading, that contains `secret`,
   `exposes` or `vulnerab`, in any case.
 - `- Bug fix: could never work before` marks a change to a v1 feature that could never work as
-  documented.
+  documented. The section `## Calls that could never work in v1` links each marked entry, as
+  `[M-users-1](#M-users-1)`, and no other entry but those that `listedWithoutMark` in
+  `tools/cmd/apisurface` lists with a reason: the calls that v1.3.0 fixed, and v1's OPA mode,
+  which v2 drops. The section must link each of those too, and none of them may have the mark.
+- A link of `MIGRATION.md`, `CHANGELOG.md` or `README.md` to an anchor of one of them, such as
+  `#M-users-1` or `MIGRATION.md#check-these-first`, must name the id of an `<a id="...">` tag or
+  the anchor that GitHub gives a heading. Only inline links, `[text](target)`, and headings that
+  start with `#` are read, so link an anchor inline. Links in fenced code blocks, to other files
+  and to URLs are not checked.
 
 ### Pending lines
 

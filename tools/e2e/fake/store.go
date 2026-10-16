@@ -48,6 +48,8 @@ const (
 	opListRoleAssignmentsDetailed = "list_role_assignments_detailed"
 	opBulkAssignRole              = "bulk_assign_role"
 	opBulkUnassignRole            = "bulk_unassign_role"
+
+	opDetailedInstances = "list_resource_instances_detailed"
 )
 
 // arrayBodies are the operations whose request body is a JSON array of objects, which the fake
@@ -119,6 +121,8 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 		return http.StatusOK, listed(roleAssignments(f.store[collectionOf(segments)], query), query)
 	case opListRoleAssignmentsDetailed:
 		return f.detailedRoleAssignments(segments, query)
+	case opDetailedInstances:
+		return http.StatusOK, f.detailedInstances(segments, query)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
@@ -300,6 +304,25 @@ func (f *Fake) item(rt route, segments []string, fields object) (int, any) {
 		return http.StatusNoContent, nil
 	}
 	return f.unsupported(rt)
+}
+
+// detailedInstances answers GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed, whose
+// path has segments, with IDs in place of keys, and whose query is query, as the Permit API
+// answers the detailed list of the resource instances: the paginated object of the instances of
+// the collection of the path without its last segment, as envelope gives it, each with its
+// relationships. The fake keeps no relationship of an instance, so each holds an empty list. The
+// instances that the fake stores stay as they are. The caller holds f.mu.
+func (f *Fake) detailedInstances(segments []string, query url.Values) object {
+	page := envelope(f.store[collectionOf(segments[:len(segments)-1])], query)
+	data, _ := page["data"].([]object)
+	detailed := make([]object, 0, len(data))
+	for _, o := range data {
+		instance := maps.Clone(o)
+		instance["relationships"] = []any{}
+		detailed = append(detailed, instance)
+	}
+	page["data"] = detailed
+	return page
 }
 
 // replaceUser answers PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}, whose path has segments,

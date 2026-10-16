@@ -18,9 +18,6 @@ api.NewElementsApi elements
 api.RelationshipTuples relationship-tuples
 api.RelationshipTuples.* relationship-tuples
 api.NewRelationshipTuplesApi relationship-tuples
-api.ResourceInstances resource-instances
-api.ResourceInstances.* resource-instances
-api.NewResourceInstancesApi resource-instances
 
 # Block b: operations of pkg/openapi
 openapi.AuthenticationApiService.ElementsLoginAs elements

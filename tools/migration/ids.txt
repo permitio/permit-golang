@@ -206,3 +206,12 @@ M-role-assignments-7
 M-role-assignments-8
 M-role-assignments-9
 M-role-assignments-10
+M-resource-instances-1
+M-resource-instances-2
+M-resource-instances-3
+M-resource-instances-4
+M-resource-instances-5
+M-resource-instances-6
+M-resource-instances-7
+M-resource-instances-8
+M-resource-instances-9

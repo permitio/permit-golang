@@ -1258,6 +1258,23 @@ github.com/permitio/permit-golang/v2 ExampleRoleAssignmentsService
 github.com/permitio/permit-golang/v2 ExampleRoleAssignmentsService_WaitForSync
 github.com/permitio/permit-golang/v2 ExampleRoleAssignmentsService_BulkAssign
 
+github.com/permitio/permit-golang/v2 TestResourceInstancesAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestResourceInstancesAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestResourceInstanceKeysInThePath
+github.com/permitio/permit-golang/v2 TestGetDetailedInstance
+github.com/permitio/permit-golang/v2 TestCreateInstanceWithoutTenant
+github.com/permitio/permit-golang/v2 TestDeleteResourceInstanceThatIsGone
+github.com/permitio/permit-golang/v2 TestResourceInstanceBodies
+github.com/permitio/permit-golang/v2 TestResourceInstanceRetries
+github.com/permitio/permit-golang/v2 TestMalformedResourceInstanceReplies
+github.com/permitio/permit-golang/v2 TestResourceInstanceIteratorsStopAtAMalformedReply
+github.com/permitio/permit-golang/v2 TestDetailedRelationshipsRoundTrip
+github.com/permitio/permit-golang/v2 TestResourceInstancesAfterClose
+github.com/permitio/permit-golang/v2 TestResourceInstancesWaitForSync
+github.com/permitio/permit-golang/v2 TestResourceInstancesWaitForSyncMisuse
+github.com/permitio/permit-golang/v2 FuzzResourceInstanceDetailedRead
+github.com/permitio/permit-golang/v2 ExampleResourceInstancesService
+
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllYieldsAnErrorOnce
 github.com/permitio/permit-golang/v2 TestProxyConfigsListReturnsAPage
@@ -1329,6 +1346,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestStatsAndCopies
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoutes
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestParents
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestResourceInstances
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestDetailedResourceInstances
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestAttributeFilters
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRolePermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoleRelatives
@@ -1375,6 +1393,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/concurrent_sync_of_a_new_user
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_assignment_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_instance_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context

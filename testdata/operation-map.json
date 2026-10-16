@@ -225,6 +225,30 @@
     "ResourceAttributesService.Update": [
       "update_resource_attribute"
     ],
+    "ResourceInstancesService.All": [
+      "list_resource_instances"
+    ],
+    "ResourceInstancesService.AllDetailed": [
+      "list_resource_instances_detailed"
+    ],
+    "ResourceInstancesService.Create": [
+      "create_resource_instance"
+    ],
+    "ResourceInstancesService.Delete": [
+      "delete_resource_instance"
+    ],
+    "ResourceInstancesService.Get": [
+      "get_resource_instance"
+    ],
+    "ResourceInstancesService.List": [
+      "list_resource_instances"
+    ],
+    "ResourceInstancesService.ListDetailed": [
+      "list_resource_instances_detailed"
+    ],
+    "ResourceInstancesService.Update": [
+      "update_resource_instance"
+    ],
     "ResourceRelationsService.All": [
       "list_resource_relations"
     ],

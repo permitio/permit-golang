@@ -89,6 +89,10 @@ var routes = []Route{
 		"DELETE", "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
 		"delete_resource_instance",
 	},
+	{
+		"GET", "/v2/facts/{proj_id}/{env_id}/resource_instances/detailed",
+		"list_resource_instances_detailed",
+	},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors", "get_role_ancestors"},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/roles/{role_id}/descendants", "get_role_descendants"},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/roles", "create_role"},
@@ -681,6 +685,39 @@ func TestResourceInstances(t *testing.T) {
 	if got := h.expect(200, "GET", instances+"/folder:a", "", projectKey); got["resource"] !=
 		"folder" {
 		t.Errorf("the instance folder:a is %v after the deletion of document:a", got)
+	}
+}
+
+// TestDetailedResourceInstances checks the detailed list of the resource instances: the paginated
+// object of the instances of the environment, in the order in which they were created, on the
+// page of page and per_page, with the counts of every instance, each instance with an empty list
+// of relationships, and the instances that the fake stores without them.
+func TestDetailedResourceInstances(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	instances := "/v2/facts/proj/dev/resource_instances"
+	for _, key := range []string{"a", "b"} {
+		h.expect(200, "POST", instances,
+			`{"resource": "document", "key": "`+key+`", "tenant": "t"}`, projectKey)
+	}
+	for page, want := range map[string]string{"1": "a", "2": "b"} {
+		got := h.expect(200, "GET", instances+"/detailed?per_page=1&page="+page, "", projectKey)
+		data, _ := got["data"].([]any)
+		var instance map[string]any
+		if len(data) == 1 {
+			instance, _ = data[0].(map[string]any)
+		}
+		relationships, ok := instance["relationships"].([]any)
+		if instance["key"] != want || !ok || len(relationships) != 0 ||
+			got["total_count"] != 2.0 || got["page_count"] != 2.0 {
+			t.Errorf("page %s of the detailed list is %v, want the instance %s with no "+
+				"relationship, of 2 instances on 2 pages", page, got, want)
+		}
+	}
+	if got := h.expect(200, "GET", instances+"/document:a", "", projectKey); got["relationships"] !=
+		nil {
+		t.Errorf("the instance document:a is %v after the detailed list, want no relationships",
+			got)
 	}
 }
 

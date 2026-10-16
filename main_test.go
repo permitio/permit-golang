@@ -171,6 +171,14 @@ func TestMain(m *testing.M) {
 	servers.API.Handle("PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}", mockpermit.Reply{
 		Status: http.StatusCreated, Body: replyFixture("replace_user.201.json"),
 	}, mockpermit.Reply{Body: replyFixture("replace_user.200.json")})
+	servers.API.Handle("POST /v2/facts/{proj_id}/{env_id}/resource_instances",
+		mockpermit.Reply{Body: replyFixture("create_resource_instance.200.json")})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed",
+		mockpermit.Reply{Body: replyFixture("list_resource_instances_detailed.200.json")})
+	servers.API.Handle("PATCH /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+		mockpermit.Reply{Body: replyFixture("update_resource_instance.200.json")})
+	servers.API.Handle("DELETE /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+		mockpermit.Reply{Status: http.StatusNoContent})
 	servers.API.Handle("POST /v2/facts/{proj_id}/{env_id}/proxy_configs",
 		mockpermit.Reply{Body: replyFixture("create_proxy_config.200.json")})
 	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/proxy_configs",

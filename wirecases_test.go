@@ -125,6 +125,7 @@ var wireCaseLists = []func() []wireCase{
 	conditionSetRuleCases,
 	userCases,
 	roleAssignmentCases,
+	resourceInstanceCases,
 	proxyConfigCases,
 }
 

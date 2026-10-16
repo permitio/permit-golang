@@ -286,12 +286,12 @@ control-plane:
   - {op: update_resource_attribute, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: covered}
   - {op: delete_resource_attribute, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: covered}
   # Resource Instances
-  - {op: list_resource_instances, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances", stage: GA, status: planned}
-  - {op: create_resource_instance, route: "POST /v2/facts/{proj_id}/{env_id}/resource_instances", stage: GA, status: planned}
-  - {op: list_resource_instances_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed", stage: GA, status: planned}
-  - {op: get_resource_instance, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: planned}
-  - {op: update_resource_instance, route: "PATCH /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: planned}
-  - {op: delete_resource_instance, route: "DELETE /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: planned}
+  - {op: list_resource_instances, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances", stage: GA, status: covered}
+  - {op: create_resource_instance, route: "POST /v2/facts/{proj_id}/{env_id}/resource_instances", stage: GA, status: covered}
+  - {op: list_resource_instances_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed", stage: GA, status: covered}
+  - {op: get_resource_instance, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: covered}
+  - {op: update_resource_instance, route: "PATCH /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: covered}
+  - {op: delete_resource_instance, route: "DELETE /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: covered}
   # Resource Relations
   - {op: list_resource_relations, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations", stage: GA, status: covered}
   - {op: create_resource_relation, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations", stage: GA, status: covered}
@@ -454,8 +454,8 @@ pdp:
   - {route: "GET /ready", stage: GA, status: excluded, reason: operator}
   # Local Facts API
   - {op: create_relationship_tuple_facts_relationship_tuples_post, route: "POST /facts/relationship_tuples", stage: GA, status: planned}
-  - {op: create_resource_instance_facts_resource_instances_post, route: "POST /facts/resource_instances", stage: GA, status: planned}
-  - {op: update_resource_instance_facts_resource_instances__instance_id__patch, route: "PATCH /facts/resource_instances/{instance_id}", stage: GA, status: planned}
+  - {op: create_resource_instance_facts_resource_instances_post, route: "POST /facts/resource_instances", stage: GA, status: covered}
+  - {op: update_resource_instance_facts_resource_instances__instance_id__patch, route: "PATCH /facts/resource_instances/{instance_id}", stage: GA, status: covered}
   - {op: create_role_assignment_facts_role_assignments_post, route: "POST /facts/role_assignments", stage: GA, status: covered}
   - {op: delete_role_assignment_facts_role_assignments_delete, route: "DELETE /facts/role_assignments", stage: GA, status: covered}
   - {op: create_tenant_facts_tenants_post, route: "POST /facts/tenants", stage: GA, status: covered}

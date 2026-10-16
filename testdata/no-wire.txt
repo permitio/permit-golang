@@ -9,6 +9,7 @@ Client.Format prints the client's settings; it sends no request
 Client.GoString prints the client's settings; it sends no request
 Client.LogValue gives slog the client's settings; it sends no request
 Client.String prints the client's settings; it sends no request
+ResourceInstancesService.WaitForSync returns a copy of the service; it sends no request
 RoleAssignmentsService.WaitForSync returns a copy of the service; it sends no request
 TenantsService.WaitForSync returns a copy of the service; it sends no request
 UsersService.WaitForSync returns a copy of the service; it sends no request

@@ -34,11 +34,13 @@ list.attribute-filter.repeated the attribute filter names the attribute of an ea
 list.page.negative Page is less than zero; give 0 or 1 for the first page, or the number of a later page
 list.per-page.negative PerPage is less than zero; give 0 to leave the number of items on a page to the method, or a number from 1
 path.api-key-id.scope the API key ID is scope, which names the route of the scope of the API key, not a key; pass the ID of an API key
+path.instance-id.detailed the instance is detailed, which names the route of the detailed list of the instances, not an instance; pass the instance as <resource>:<key>, such as document:detailed, or its ID
 path.segment.dot the path parameter is . or .., which would change the route; pass the key or ID of the object
 path.segment.empty the path parameter is empty; pass the key or ID of the object
 proxy-config.auth-mechanism.mismatch the auth mechanism names another branch of the secret than the one that it sets; leave AuthMechanism empty to send the mechanism of that branch, or set the branch that it names
 proxy-config.secret.many the secret sets more than one of Basic, Bearer and Headers; set only the one of the proxy config's auth mechanism
 proxy-config.secret.none the secret holds no credential: it sets none of Basic, Bearer and Headers, or the one that it sets is empty or has an empty value; set the one of the proxy config's auth mechanism, with values that are not empty
+resource-instance.tenant.empty the instance has no Tenant, and an instance belongs to a tenant; set Tenant to the key of its tenant
 scope.environment.missing the operation acts on an environment, and the client's scope has none; pass WithScope(project, environment) to New
 scope.project.missing the operation acts on a project, and the client's scope has none; pass WithScope(project, environment) to New
 wait-for-sync.facts-via-api the call waits for sync, which only the PDP container does, and the client sends facts to the API; pass WithFactsViaPDP to New, or make the call without the wait

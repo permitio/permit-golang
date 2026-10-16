@@ -701,6 +701,43 @@ change from v1 and what to use instead.
   not a role assignment, to a bulk call that is not its report, or to a list that is not a list of
   role assignments, an empty body too, is an error that names the model.
 
+### Resource instances
+
+- The `ResourceInstances` field of the client, a `*permit.ResourceInstancesService`, lists,
+  reads, creates, changes and deletes the resource instances of an environment: `List` returns a
+  page as a `*permit.Page[models.ResourceInstanceRead]`, with the counts of a paginated reply, and
+  `All` reads every page, 100 instances at a time; `Get` reads one instance, named as
+  `<resource>:<key>`, such as `document:doc-1`, or by its ID; `Create` takes a
+  `models.ResourceInstanceCreate` and `Update` a `models.ResourceInstanceUpdate`; `Delete` deletes
+  an instance.
+- `ListDetailed` and `AllDetailed` send `GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed`
+  and return each instance as a `models.ResourceInstanceDetailedRead`, with its `Relationships`, the
+  relationship tuples of the instance. v1's `ListDetailed` sent the list with `detailed=true`, a
+  parameter that the API's spec marks deprecated, and read the reply into a model without the
+  relationships, so it never returned them.
+- `permit.ResourceInstancesListOptions` filters the lists with `Tenant`, `Resource` and `Search`.
+  `Search` is the API's text search, a list of texts, each sent in a `search` parameter of its
+  own: it matches a key that holds the text, not only the key equal to it. v1's `keyFilter` went
+  out in the same parameter; the API's spec has no filter of one key.
+- `Create` refuses an instance without a `Tenant`, with an error that matches `ErrInvalidConfig`
+  and the rule `resource-instance.tenant.empty`, and sends no request; v1 sent the instance
+  without a tenant. `Update` sends the attributes alone, as `models.ResourceInstanceUpdate` holds
+  nothing else: unset leaves them out, `models.Some` of a map replaces them as a whole, `{}` too,
+  which removes every attribute, and `models.Null` sends null.
+- The calls are calls of the facts API: they act on the environment of the client's scope, or,
+  with `WithFactsViaPDP`, go to the PDP container under `/facts/resource_instances`. Each is sent
+  with an environment-level API key, or higher. `ResourceInstancesService.WaitForSync(timeout,
+  opts...)` returns a copy whose `Create` and `Update` the PDP container holds until the change
+  reaches its policy; any other call through the copy, and a call from a client without
+  `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
+- An instance is sent as one segment of the path, escaped, with its `:` as it is; an empty one,
+  `.` or `..` is an error that matches `ErrInvalidConfig`, and no request for the instance is
+  sent, and so is `Get` of the instance `detailed`, with the rule `path.instance-id.detailed`, as
+  that path is the route of the detailed list. `Delete` returns nil when the API answers 404, as
+  the instance is gone already. A reply in 200-299 that is not an instance, an empty body too, is
+  an error that names the model. `Create` is sent again after a 429 only; the other calls are
+  sent again after a 500, 502, 503 or 504 reply or a failed connection too.
+
 ### Proxy configs
 
 - The `ProxyConfigs` field of the client, a `*permit.ProxyConfigsService`, lists, reads,

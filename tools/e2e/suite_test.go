@@ -185,6 +185,15 @@ var cloudScenarios = []scenario{
 		run: roleAssignmentLifecycle,
 	},
 	{
+		name: "resource_instance_lifecycle", methods: []string{
+			"ResourceInstancesService.Create", "ResourceInstancesService.Get",
+			"ResourceInstancesService.Update", "ResourceInstancesService.List",
+			"ResourceInstancesService.All", "ResourceInstancesService.ListDetailed",
+			"ResourceInstancesService.AllDetailed", "ResourceInstancesService.Delete",
+		},
+		run: resourceInstanceLifecycle,
+	},
+	{
 		name: "proxy_config_lifecycle", methods: []string{
 			"ProxyConfigsService.Create", "ProxyConfigsService.Get", "ProxyConfigsService.List",
 			"ProxyConfigsService.All", "ProxyConfigsService.Update", "ProxyConfigsService.Delete",

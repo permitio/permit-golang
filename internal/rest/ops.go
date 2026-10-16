@@ -341,6 +341,51 @@ var defaultOps = []Op{
 		ResponseModel: "BulkRoleUnAssignmentReport",
 	},
 
+	// The resource instances of an environment, calls of the facts API, which the PDP container
+	// also serves under /facts. v1's integration tests created and deleted them with an
+	// environment-level key, and the PDP container sends each of them on with its own, an
+	// environment-level key. These key levels are not measured yet: the phase
+	// api.resource_instances of the local harness confirms them. The PDP container waits for
+	// sync on the create and the PATCH of an instance, and not on the lists, the get and the
+	// delete. The list is a JSON array or a paginated object of at most 100 instances, and the
+	// detailed list, which holds the relationships of each instance, the paginated object alone.
+	// A PATCH sets the attributes that it gives, so it does the same when sent twice; a create
+	// does not.
+	{
+		ID: "list_resource_instances", Method: http.MethodGet,
+		Route: "/v2/facts/{proj_id}/{env_id}/resource_instances", Idempotent: true, Facts: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ResourceInstanceRead",
+	},
+	{
+		ID: "create_resource_instance", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/resource_instances", Facts: true, WaitsForSync: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "ResourceInstanceCreate",
+		ResponseModel: "ResourceInstanceRead",
+	},
+	{
+		ID: "list_resource_instances_detailed", Method: http.MethodGet,
+		Route:      "/v2/facts/{proj_id}/{env_id}/resource_instances/detailed",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "ResourceInstanceDetailedRead",
+	},
+	{
+		ID: "get_resource_instance", Method: http.MethodGet,
+		Route:      "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel,
+		ResponseModel: "ResourceInstanceRead",
+	},
+	{
+		ID: "update_resource_instance", Method: http.MethodPatch,
+		Route:      "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+		Idempotent: true, Facts: true, WaitsForSync: true, KeyLevel: EnvironmentLevel,
+		RequestModel: "ResourceInstanceUpdate", ResponseModel: "ResourceInstanceRead",
+	},
+	{
+		ID: "delete_resource_instance", Method: http.MethodDelete,
+		Route:      "/v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The actions of a resource of an environment, each at the environment level, as v1 sends
 	// them too. These key levels are not measured yet: the phase api.resource_actions of the
 	// local harness confirms them. The list is a JSON array of at most 100 actions. A PATCH sets

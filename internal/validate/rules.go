@@ -241,6 +241,16 @@ var (
 			"not a key; pass the ID of an API key",
 	}
 
+	// PathInstanceIDDetailed rejects the instance ID detailed in a get of one resource instance:
+	// GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed is the route of the detailed
+	// list of the instances, so the request would reach that route in place of the instance's.
+	PathInstanceIDDetailed = Rule{
+		ID: "path.instance-id.detailed",
+		Message: "the instance is detailed, which names the route of the detailed list of the " +
+			"instances, not an instance; pass the instance as <resource>:<key>, such as " +
+			"document:detailed, or its ID",
+	}
+
 	// PathSegmentDot rejects a path parameter that is . or .., which a server or a proxy on the
 	// way may resolve as a step in the path, so that the request reaches another route.
 	PathSegmentDot = Rule{
@@ -254,6 +264,14 @@ var (
 	PathSegmentEmpty = Rule{
 		ID:      "path.segment.empty",
 		Message: "the path parameter is empty; pass the key or ID of the object",
+	}
+
+	// ResourceInstanceTenantEmpty rejects a create of a resource instance without a tenant,
+	// which the API requires of every instance.
+	ResourceInstanceTenantEmpty = Rule{
+		ID: "resource-instance.tenant.empty",
+		Message: "the instance has no Tenant, and an instance belongs to a tenant; set Tenant to " +
+			"the key of its tenant",
 	}
 )
 
@@ -380,11 +398,13 @@ var rules = []Rule{
 	ListPageNegative,
 	ListPerPageNegative,
 	PathAPIKeyIDScope,
+	PathInstanceIDDetailed,
 	PathSegmentDot,
 	PathSegmentEmpty,
 	ProxyConfigAuthMechanismMismatch,
 	ProxyConfigSecretMany,
 	ProxyConfigSecretNone,
+	ResourceInstanceTenantEmpty,
 	ScopeEnvironmentMissing,
 	ScopeProjectMissing,
 	WaitForSyncFactsViaAPI,

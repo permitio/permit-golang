@@ -24,14 +24,15 @@
 // and their conditions, as implicitGrant says, the ancestors and the descendants of a condition
 // set, as conditionSetRelatives says, the list of the condition set rules, with its filters, and
 // their creates, which answer a JSON array, as setRules and assignSetRule say, the PUT of a user,
-// which replaces it or creates it, as replaceUser says, and the assignment and the unassignment of
-// a role of a user in a tenant, which its associated_tenants hold, as userRole says. It filters
-// the lists of the role assignments by their user, role, tenant and resource instance, and
-// answers the detailed list of them, as roleAssignments and detailedRoleAssignments say, and
-// their bulk assignment and unassignment, whose bodies are JSON arrays, as bulkRoleAssignments
-// says. A delete of a condition set rule that the fake does not hold gets 404, as a DELETE of a
-// collection with a body does; the API's documentation says that it skips such a delete, and
-// what the API answers is not confirmed yet.
+// which replaces it or creates it, as replaceUser says, the assignment and the unassignment of a
+// role of a user in a tenant, which its associated_tenants hold, as userRole says, and the
+// detailed list of the resource instances, as detailedInstances says. It filters the lists of the
+// role assignments by their user, role, tenant and resource instance, and answers the detailed
+// list of them, as roleAssignments and detailedRoleAssignments say, and their bulk assignment and
+// unassignment, whose bodies are JSON arrays, as bulkRoleAssignments says. A delete of a
+// condition set rule that the fake does not hold gets 404, as a DELETE of a collection with a
+// body does; the API's documentation says that it skips such a delete, and what the API answers
+// is not confirmed yet.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An

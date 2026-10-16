@@ -3180,6 +3180,143 @@ sent it to the Permit API also with `WithProxyFactsViaPDP(true)`; with `permit.W
 v2 sends it to the PDP container, `DELETE /facts/role_assignments/bulk`, which answers without
 waiting for sync, as `BulkAssign` does. An environment-level API key may call it, as v1's could.
 
+<a id="M-resource-instances-1"></a>
+### M-resource-instances-1: ResourceInstances becomes Client.ResourceInstances
+
+- v1: `api.ResourceInstances`
+- v1: `api.NewResourceInstancesApi`
+- v2: `permit.ResourceInstancesService`
+
+Call the methods of the resource instances on the `ResourceInstances` field of the client,
+`client.ResourceInstances`, in place of `client.Api.ResourceInstances`; `permit.New` builds it, so
+nothing takes the place of `api.NewResourceInstancesApi`. Each method takes a `context.Context`
+first. The calls act on the environment of the client's scope, as v1's acted on the environment
+of its context: the project and the environment of `permit.WithScope`, or else those of the API
+key, as [M-scope-2](#M-scope-2) says. With `permit.WithFactsViaPDP()`, they go to the PDP
+container, as [M-facts-2](#M-facts-2) says. An environment-level API key may call each of them.
+
+`models.ResourceInstanceRead` has `ID`, `OrganizationID`, `ProjectID`, `EnvironmentID`,
+`ResourceID` and `TenantID` in place of `Id`, `OrganizationId`, `ProjectId`, `EnvironmentId`,
+`ResourceId` and `TenantId`; `Tenant` and `TenantID` are plain strings in place of pointers;
+`CreatedAt` and `UpdatedAt` are `models.Time`, which embeds `time.Time`; and `Attributes` is a
+`models.Attributes`, whose numbers are `json.Number`, as [M-models-1](#M-models-1) says. It adds
+`Relationships`, the relationship tuples of the instance when the reply holds them, each a
+`models.RelationshipTupleBlockRead` with its subject, relation and object.
+
+<a id="M-resource-instances-2"></a>
+### M-resource-instances-2: List takes ResourceInstancesListOptions, whose key filter is Search, and All reads every page
+
+- v1: `api.ResourceInstances.List`
+- v2: `permit.ResourceInstancesService.List`
+
+`ResourceInstancesService.List(ctx, opts)` takes a `*permit.ResourceInstancesListOptions`, nil for
+the first page of every instance with the API's default of 30 instances, in place of the page,
+the number of instances and three filters as positional arguments, and returns a
+`*permit.Page[models.ResourceInstanceRead]` with the counts of a paginated reply, as
+[M-lists-1](#M-lists-1) says. v1 failed for a page below 1, and for a number of instances below 1
+or above 100, before any request; v2 sends a number that is not 0 as given, and the API answers
+above 100 with an error. `Tenant` and `Resource` take the place of `tenantFilter` and
+`resourceFilter`, sent in `tenant` and `resource` as v1 sent them. v1's `keyFilter` went out in
+`search`, the API's text search, which matches a key that holds the text, not only the key equal
+to it: v2 names the filter for what it does, `Search`, a list of texts, each sent in a `search`
+parameter of its own, and has no filter of one key, as the API's spec has no such parameter.
+`ResourceInstancesService.All(ctx, opts)` returns an
+`iter.Seq2[models.ResourceInstanceRead, error]` that reads every page, 100 instances at a time.
+
+<a id="M-resource-instances-3"></a>
+### M-resource-instances-3: ListDetailed returns the relationships of each instance
+
+- v1: `api.ResourceInstances.ListDetailed`
+- v2: `permit.ResourceInstancesService.ListDetailed`
+- Bug fix: could never work before
+
+v1's `ListDetailed` sent the list of the instances with `detailed=true`, a query parameter that the
+API's spec marks deprecated, and read the reply as a `[]models.ResourceInstanceRead`, which has no
+field for the relationships: it never returned the details that it asked for. v2's
+`ResourceInstancesService.ListDetailed(ctx, opts)` sends
+`GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed`, as
+[M-resource-instances-9](#M-resource-instances-9) says, and returns a
+`*permit.Page[models.ResourceInstanceDetailedRead]`, whose instances hold their `Relationships`.
+It takes the same `*permit.ResourceInstancesListOptions` as `List`, and
+`ResourceInstancesService.AllDetailed(ctx, opts)` reads every page. Code that called `ListDetailed`
+got the instances without their relationships, so check what it did without them.
+
+<a id="M-resource-instances-4"></a>
+### M-resource-instances-4: ResourceInstances.Get takes the instance as resource:key or its ID
+
+- v1: `api.ResourceInstances.Get`
+- v2: `permit.ResourceInstancesService.Get`
+
+`ResourceInstancesService.Get(ctx, instance)` sends the instance as v1's `Get` did, as one
+segment of the path: as `<resource>:<key>`, such as `document:doc-1`, or its ID, not the `Key` of
+the instance alone. A `/` or a `%` in it is sent escaped, and an empty instance, `.` or `..` is an
+error that matches `permit.ErrInvalidConfig`, with no request for the instance. So is the instance
+`detailed`, which names the route of the detailed list, not an instance; v1 sent the request to
+that route. An instance that the environment does not have is a `*permit.Error` that matches
+`permit.ErrNotFound`.
+
+<a id="M-resource-instances-5"></a>
+### M-resource-instances-5: ResourceInstances.Create takes models.ResourceInstanceCreate, which needs a tenant
+
+- v1: `api.ResourceInstances.Create`
+- v2: `permit.ResourceInstancesService.Create`
+
+Build the instance as a struct literal, such as `models.ResourceInstanceCreate{Key: "doc-1",
+Tenant: "tenant-a", Resource: "document"}`, in place of `models.NewResourceInstanceCreate` and its
+setters. `Tenant` is a plain string, in place of a `*string`, and Create refuses an instance
+without one: an empty `Tenant` is an error that matches `permit.ErrInvalidConfig`, and no request
+is sent, where v1 sent the instance without a tenant. `Attributes`, a `models.Attributes`, is left
+out of the request when nil, and an empty map that is not nil sends `{}`. Create is sent again
+only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created the instance when a
+request got no complete reply.
+
+<a id="M-resource-instances-6"></a>
+### M-resource-instances-6: ResourceInstances.Update takes models.ResourceInstanceUpdate, which can send null
+
+- v1: `api.ResourceInstances.Update`
+- v2: `permit.ResourceInstancesService.Update`
+
+Build the change as a struct literal of `models.ResourceInstanceUpdate`, in place of
+`models.NewResourceInstanceUpdate` and its setters. Its one field, `Attributes`, is a
+`models.Optional`: unset leaves the attributes out, so the instance keeps them; `models.Some(value)`
+sends the map, which replaces the instance's attributes as a whole; and `models.Null[T]()` sends
+null. v1 could not send null, as it left a nil map out of the request; v2's `models.Null` sends
+null, and `models.Some` of an empty map sends `{}`, which removes every attribute, as an empty map
+did in v1. It is sent again after a 500, 502, 503 or 504 reply or a failed connection, as sending
+the same attributes twice sets the same attributes.
+
+<a id="M-resource-instances-7"></a>
+### M-resource-instances-7: ResourceInstances.Delete of an instance that is gone returns nil
+
+- v1: `api.ResourceInstances.Delete`
+- v2: `permit.ResourceInstancesService.Delete`
+
+`ResourceInstancesService.Delete(ctx, instance)` returns nil when the API answers 404, as the
+instance is gone already, such as when a retry follows a delete that succeeded; v1 returned an
+error with the code `NotFound`. A mistyped instance returns nil too, so check it before a delete
+that must remove something. Any other error status is a `*permit.Error` with the status and the
+body.
+
+<a id="M-resource-instances-8"></a>
+### M-resource-instances-8: ResourceInstances.WaitForSync takes a time.Duration and waits on creates and updates
+
+- v1: `api.ResourceInstances.WaitForSync`
+- v2: `permit.ResourceInstancesService.WaitForSync`
+
+`ResourceInstancesService.WaitForSync(timeout, opts...)` takes the timeout as a `time.Duration`, in
+place of a `*time.Duration` whose nil meant the timeout of the configuration, and options, in place
+of `api.WaitForSyncOptions`, as [M-facts-3](#M-facts-3) says. It returns a copy of the service
+whose calls carry the wait; the service that it is called on keeps none.
+
+Only `Create` and `Update` wait for sync: of the routes that `ResourceInstancesService` calls, the
+PDP container waits on `POST /facts/resource_instances` and on
+`PATCH /facts/resource_instances/{instance_id}`, and answers the lists, the get and the delete
+without waiting. A call through the copy of any other method, such as `Get` or `Delete`, is an
+error that matches `permit.ErrInvalidConfig`, and no request is sent; v1 sent the headers of the
+wait with every call through its copy. A client without `permit.WithFactsViaPDP()` gets the same
+error for every call through the copy, as only the PDP container waits; v1 logged a warning and
+made the calls without the wait.
+
 <a id="M-proxy-configs-1"></a>
 ### M-proxy-configs-1: ProxyConfigs becomes Client.ProxyConfigs, which acts on the environment of the scope
 
@@ -3484,6 +3621,19 @@ No call of the role assignments sends `detailed`, `include_total_count` or `retu
 `permit.WithFactsViaPDP()`, the request goes to the PDP container,
 `GET /facts/role_assignments/detailed`, which sends it on to the API without waiting.
 
+<a id="M-resource-instances-9"></a>
+### M-resource-instances-9: ListDetailed sends the detailed route, without detailed=true
+
+- v1: a `GET /v2/facts/{proj_id}/{env_id}/resource_instances` request with `detailed=true` from `ListDetailed`
+- v2: a `GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed` request, and no `detailed` parameter from any call
+
+v1's `ListDetailed` sent the route of the list with the query parameter `detailed=true`, which the
+API's spec marks deprecated. v2's `ListDetailed` and `AllDetailed` send the route of the detailed
+list, whose reply holds the relationships of each instance, as
+[M-resource-instances-3](#M-resource-instances-3) says, and no call sends `detailed`. With
+`permit.WithFactsViaPDP()`, the request goes to the PDP container,
+`GET /facts/resource_instances/detailed`, which sends it on to the API.
+
 ## Kept on purpose
 
 What v2 keeps from v1 although a new major version could change it:
@@ -3551,6 +3701,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.RelationBlockRead` | `models.RelationBlockRead` |
 | `models.RelationCreate` | `models.RelationCreate` |
 | `models.RelationRead` | `models.RelationRead` |
+| `models.RelationshipTupleBlockRead` | `models.RelationshipTupleBlockRead` |
 | `models.RemoveRolePermissions` | `models.RemoveRolePermissions` |
 | `models.ResourceActionCreate` | `models.ResourceActionCreate` |
 | `models.ResourceActionGroupCreate` | `models.ResourceActionGroupCreate` |
@@ -3561,6 +3712,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceAttributeRead` | `models.ResourceAttributeRead` |
 | `models.ResourceAttributeUpdate` | `models.ResourceAttributeUpdate` |
 | `models.ResourceCreate` | `models.ResourceCreate` |
+| `models.ResourceInstanceCreate` | `models.ResourceInstanceCreate` |
+| `models.ResourceInstanceRead` | `models.ResourceInstanceRead` |
+| `models.ResourceInstanceUpdate` | `models.ResourceInstanceUpdate` |
 | `models.ResourceRead` | `models.ResourceRead` |
 | `models.ResourceReplace` | `models.ResourceReplace` |
 | `models.ResourceRoleCreate` | `models.ResourceRoleCreate` |
@@ -3588,6 +3742,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.UserRoleRemove` | `models.UserRoleRemove` |
 | `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 300 of the 384 types of v1's pkg/models.
+Not mapped yet: 296 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

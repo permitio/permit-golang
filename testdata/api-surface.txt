@@ -433,6 +433,10 @@ models: type RelationRead struct, ProjectID string
 models: type RelationRead struct, SubjectResource string
 models: type RelationRead struct, SubjectResourceID string
 models: type RelationRead struct, UpdatedAt Time
+models: type RelationshipTupleBlockRead struct
+models: type RelationshipTupleBlockRead struct, Object string
+models: type RelationshipTupleBlockRead struct, Relation string
+models: type RelationshipTupleBlockRead struct, Subject string
 models: type RemoveRolePermissions struct
 models: type RemoveRolePermissions struct, Permissions []string
 models: type ResourceActionCreate struct
@@ -514,6 +518,41 @@ models: type ResourceCreate struct, Relations map[string]string
 models: type ResourceCreate struct, Roles map[string]RoleBlockEditable
 models: type ResourceCreate struct, TypeAttributes Attributes
 models: type ResourceCreate struct, URN string
+models: type ResourceInstanceCreate struct
+models: type ResourceInstanceCreate struct, Attributes Attributes
+models: type ResourceInstanceCreate struct, Key string
+models: type ResourceInstanceCreate struct, Resource string
+models: type ResourceInstanceCreate struct, Tenant string
+models: type ResourceInstanceDetailedRead struct
+models: type ResourceInstanceDetailedRead struct, Attributes Attributes
+models: type ResourceInstanceDetailedRead struct, CreatedAt Time
+models: type ResourceInstanceDetailedRead struct, EnvironmentID string
+models: type ResourceInstanceDetailedRead struct, ID string
+models: type ResourceInstanceDetailedRead struct, Key string
+models: type ResourceInstanceDetailedRead struct, OrganizationID string
+models: type ResourceInstanceDetailedRead struct, ProjectID string
+models: type ResourceInstanceDetailedRead struct, Relationships []RelationshipTupleBlockRead
+models: type ResourceInstanceDetailedRead struct, Resource string
+models: type ResourceInstanceDetailedRead struct, ResourceID string
+models: type ResourceInstanceDetailedRead struct, Tenant string
+models: type ResourceInstanceDetailedRead struct, TenantID string
+models: type ResourceInstanceDetailedRead struct, UpdatedAt Time
+models: type ResourceInstanceRead struct
+models: type ResourceInstanceRead struct, Attributes Attributes
+models: type ResourceInstanceRead struct, CreatedAt Time
+models: type ResourceInstanceRead struct, EnvironmentID string
+models: type ResourceInstanceRead struct, ID string
+models: type ResourceInstanceRead struct, Key string
+models: type ResourceInstanceRead struct, OrganizationID string
+models: type ResourceInstanceRead struct, ProjectID string
+models: type ResourceInstanceRead struct, Relationships []RelationshipTupleBlockRead
+models: type ResourceInstanceRead struct, Resource string
+models: type ResourceInstanceRead struct, ResourceID string
+models: type ResourceInstanceRead struct, Tenant string
+models: type ResourceInstanceRead struct, TenantID string
+models: type ResourceInstanceRead struct, UpdatedAt Time
+models: type ResourceInstanceUpdate struct
+models: type ResourceInstanceUpdate struct, Attributes Optional[Attributes]
 models: type ResourceRead struct
 models: type ResourceRead struct, ActionGroups map[string][]string
 models: type ResourceRead struct, Actions map[string]ActionBlockRead
@@ -872,6 +911,15 @@ permit: method (*ResourceAttributesService) Delete(ctx context.Context, resource
 permit: method (*ResourceAttributesService) Get(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error)
 permit: method (*ResourceAttributesService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
 permit: method (*ResourceAttributesService) Update(ctx context.Context, resourceKey string, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
+permit: method (*ResourceInstancesService) All(ctx context.Context, opts *ResourceInstancesListOptions) iter.Seq2[models.ResourceInstanceRead, error]
+permit: method (*ResourceInstancesService) AllDetailed(ctx context.Context, opts *ResourceInstancesListOptions) iter.Seq2[models.ResourceInstanceDetailedRead, error]
+permit: method (*ResourceInstancesService) Create(ctx context.Context, instance models.ResourceInstanceCreate) (*models.ResourceInstanceRead, error)
+permit: method (*ResourceInstancesService) Delete(ctx context.Context, instance string) error
+permit: method (*ResourceInstancesService) Get(ctx context.Context, instance string) (*models.ResourceInstanceRead, error)
+permit: method (*ResourceInstancesService) List(ctx context.Context, opts *ResourceInstancesListOptions) (*Page[models.ResourceInstanceRead], error)
+permit: method (*ResourceInstancesService) ListDetailed(ctx context.Context, opts *ResourceInstancesListOptions) (*Page[models.ResourceInstanceDetailedRead], error)
+permit: method (*ResourceInstancesService) Update(ctx context.Context, instance string, update models.ResourceInstanceUpdate) (*models.ResourceInstanceRead, error)
+permit: method (*ResourceInstancesService) WaitForSync(timeout time.Duration, opts ...SyncOption) *ResourceInstancesService
 permit: method (*ResourceRelationsService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.RelationRead, error]
 permit: method (*ResourceRelationsService) Create(ctx context.Context, resourceKey string, relation models.RelationCreate) (*models.RelationRead, error)
 permit: method (*ResourceRelationsService) Delete(ctx context.Context, resourceKey string, relationKey string) error
@@ -987,6 +1035,7 @@ permit: type Client struct, ProxyConfigs *ProxyConfigsService
 permit: type Client struct, ResourceActionGroups *ResourceActionGroupsService
 permit: type Client struct, ResourceActions *ResourceActionsService
 permit: type Client struct, ResourceAttributes *ResourceAttributesService
+permit: type Client struct, ResourceInstances *ResourceInstancesService
 permit: type Client struct, ResourceRelations *ResourceRelationsService
 permit: type Client struct, ResourceRoles *ResourceRolesService
 permit: type Client struct, Resources *ResourcesService
@@ -1067,6 +1116,12 @@ permit: type ResourceDetails struct
 permit: type ResourceDetails struct, Attributes map[string]any
 permit: type ResourceDetails struct, Key string
 permit: type ResourceDetails struct, Type string
+permit: type ResourceInstancesListOptions struct
+permit: type ResourceInstancesListOptions struct, Resource string
+permit: type ResourceInstancesListOptions struct, Search []string
+permit: type ResourceInstancesListOptions struct, Tenant string
+permit: type ResourceInstancesListOptions struct, embedded ListOptions
+permit: type ResourceInstancesService struct
 permit: type ResourceRelationsService struct
 permit: type ResourceRolesService struct
 permit: type ResourcesListOptions struct

@@ -39,8 +39,8 @@ const (
 // [WithFactsViaPDP], they go to the PDP container under /facts/tenants, or /facts/bulk/tenants,
 // instead, need no scope, and act on the environment of the container's own API key.
 //
-// [TenantsService.WaitForSync] returns a copy whose creates of tenants wait until the new tenant
-// reaches the policy of the PDP container.
+// [TenantsService.WaitForSync] returns a copy whose Create waits until the new tenant reaches the
+// policy of the PDP container.
 type TenantsService struct {
 	facts facts
 }
@@ -112,7 +112,7 @@ func tenantUsersRequest(tenantKey string, opts *TenantUsersListOptions) (request
 	return r, o.ListOptions
 }
 
-// WaitForSync returns a copy of the service whose creates ask the PDP container to wait for
+// WaitForSync returns a copy of the service whose Create asks the PDP container to wait for
 // sync: to hold its answer to the create until the new tenant reaches its policy, for at most
 // timeout, so that a check made after the create returns sees the tenant. A call through the
 // copy sends the headers X-Wait-Timeout, the timeout in decimal seconds, such as 0 for a timeout

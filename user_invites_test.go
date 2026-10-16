@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -763,7 +762,7 @@ func TestMalformedUserInviteReplies(t *testing.T) {
 			api := mockpermit.NewAPI(t)
 			api.Handle(o.route, mockpermit.Reply{Body: body})
 			got, err := o.call(resourceClient(t, api))
-			if e := mustError(t, err); !inviteNilResult(got) || e.Error() != prefix+o.model {
+			if e := mustError(t, err); !isNilResult(got) || e.Error() != prefix+o.model {
 				t.Errorf("%s of the reply %q returned %+v and\n%v\nwant nothing and\n%s",
 					o.route, body, got, err, prefix+o.model)
 			}
@@ -793,13 +792,6 @@ func TestMalformedUserInviteReplies(t *testing.T) {
 				"one error:\n%s", body, len(items), errs, prefix+model)
 		}
 	}
-}
-
-// inviteNilResult reports whether v, the result of a call of the user invites, is a nil pointer,
-// as a call that fails returns.
-func inviteNilResult(v any) bool {
-	p := reflect.ValueOf(v)
-	return p.Kind() == reflect.Pointer && p.IsNil()
 }
 
 // TestUserInvitesAfterClose checks that each method returns ErrClosed after Close, and sends

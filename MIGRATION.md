@@ -3166,8 +3166,7 @@ no complete reply. v1 sent it to the Permit API also with `WithProxyFactsViaPDP(
 `permit.WithFactsViaPDP()`, v2 sends it to the PDP container, `POST /facts/role_assignments/bulk`,
 which answers without waiting for sync, so a call through a copy of
 `RoleAssignmentsService.WaitForSync` is an error that matches `permit.ErrInvalidConfig`, as
-[M-role-assignments-4](#M-role-assignments-4) says. An environment-level API key may call it, as
-v1's could.
+[M-role-assignments-4](#M-role-assignments-4) says.
 
 <a id="M-role-assignments-10"></a>
 ### M-role-assignments-10: Roles.BulkUnAssignRole becomes RoleAssignments.BulkUnassign
@@ -3189,7 +3188,7 @@ assignments to remove and a 404 can mean a mistyped key. It is sent again after 
 504 reply or a failed connection, as after a 429, as removing roles twice leaves them removed. v1
 sent it to the Permit API also with `WithProxyFactsViaPDP(true)`; with `permit.WithFactsViaPDP()`,
 v2 sends it to the PDP container, `DELETE /facts/role_assignments/bulk`, which answers without
-waiting for sync, as `BulkAssign` does. An environment-level API key may call it, as v1's could.
+waiting for sync, as `BulkAssign` does.
 
 <a id="M-resource-instances-1"></a>
 ### M-resource-instances-1: ResourceInstances becomes Client.ResourceInstances

@@ -6,7 +6,6 @@ import (
 	"iter"
 	"net/http"
 	"path/filepath"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -1201,7 +1200,7 @@ func TestMalformedGroupReplies(t *testing.T) {
 			api := mockpermit.NewAPI(t)
 			api.Handle(o.route, mockpermit.Reply{Body: body})
 			got, err := o.call(resourceClient(t, api))
-			if e := mustError(t, err); !isNilGroupResult(got) || e.Error() != prefix+o.model {
+			if e := mustError(t, err); !isNilResult(got) || e.Error() != prefix+o.model {
 				t.Errorf("%s of the reply %q returned %+v and\n%v\nwant nothing and\n%s",
 					o.route, body, got, err, prefix+o.model)
 			}
@@ -1280,7 +1279,7 @@ func TestMalformedGroupReplies(t *testing.T) {
 			api := mockpermit.NewAPI(t)
 			api.Handle(l.route, mockpermit.Reply{Body: body})
 			got, err := l.call(resourceClient(t, api))
-			if e := mustError(t, err); !isNilGroupResult(got) || e.Error() != prefix+l.model {
+			if e := mustError(t, err); !isNilResult(got) || e.Error() != prefix+l.model {
 				t.Errorf("%s of the reply %q returned %+v and\n%v\nwant no page and\n%s",
 					l.route, body, got, err, prefix+l.model)
 			}
@@ -1295,13 +1294,6 @@ func TestMalformedGroupReplies(t *testing.T) {
 			}
 		}
 	}
-}
-
-// isNilGroupResult reports whether v, the result of a call of the groups, is a nil pointer, as
-// a call that fails returns.
-func isNilGroupResult(v any) bool {
-	p := reflect.ValueOf(v)
-	return p.Kind() == reflect.Pointer && p.IsNil()
 }
 
 // TestGroupsAfterClose checks that each method returns ErrClosed after Close, and sends nothing,

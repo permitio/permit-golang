@@ -46,7 +46,7 @@ const detailedInstanceID = "detailed"
 // under /facts/resource_instances, or /facts/bulk/resource_instances, instead, need no scope,
 // and act on the environment of the container's own API key.
 //
-// [ResourceInstancesService.WaitForSync] returns a copy whose creates and updates wait until the
+// [ResourceInstancesService.WaitForSync] returns a copy whose Create and Update wait until the
 // change reaches the policy of the PDP container.
 type ResourceInstancesService struct {
 	facts facts
@@ -105,7 +105,7 @@ func resourceInstancesRequest(op string, opts *ResourceInstancesListOptions,
 	return request{op: op, query: query}, o.ListOptions
 }
 
-// WaitForSync returns a copy of the service whose creates and updates ask the PDP container to
+// WaitForSync returns a copy of the service whose Create and Update ask the PDP container to
 // wait for sync: to hold its answer until the change reaches its policy, for at most timeout,
 // so that a check made after the call returns sees it. A call through the copy sends the
 // headers X-Wait-Timeout, the timeout in decimal seconds, such as 0 for a timeout of 0 or 0.5 for

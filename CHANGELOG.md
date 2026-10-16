@@ -334,7 +334,7 @@ change from v1 and what to use instead.
   tenant's attributes as a whole, and an empty map sends `{}`, which removes them all. The
   `Attributes` of a `models.TenantRead` are nil when the reply holds null, as after an update
   that sent null, and an empty map that is not nil for `{}`.
-- `TenantsService.WaitForSync(timeout, opts...)` returns a copy of the service whose creates the
+- `TenantsService.WaitForSync(timeout, opts...)` returns a copy of the service whose `Create` the
   PDP container holds until the new tenant reaches its policy, for at most `timeout`, sent in
   `X-Wait-Timeout` as decimal seconds, such as `0.5`; `permit.WithSyncPolicy` sends
   `permit.SyncPolicyFail` or `permit.SyncPolicyIgnore` in `X-Timeout-Policy`. The copy shares no

@@ -759,7 +759,7 @@ func TestMalformedEnvironmentReplies(t *testing.T) {
 			api.Handle(tc.route, mockpermit.Reply{Body: body})
 			got, err := tc.call(projectClient(t, api))
 			want := prefix + tc.op + ": status 200: the reply is not a valid " + tc.model
-			if e := mustError(t, err); !isNilPointer(got) || e.Error() != want {
+			if e := mustError(t, err); !isNilResult(got) || e.Error() != want {
 				t.Errorf("the reply %q returned %+v and\n%v\nwant no environment and\n%s", body,
 					got, err, want)
 			}
@@ -775,23 +775,6 @@ func TestMalformedEnvironmentReplies(t *testing.T) {
 			t.Errorf("List of the reply %q returned %+v and\n%v\nwant no page and\n%s", body,
 				page, err, want)
 		}
-	}
-}
-
-// isNilPointer reports whether v is a nil pointer to an environment, to the statistics of one or
-// to the task of a copy, the result of a call that failed.
-func isNilPointer(v any) bool {
-	switch p := v.(type) {
-	case *models.EnvironmentRead:
-		return p == nil
-	case *models.EnvironmentReadWithEmailConfig:
-		return p == nil
-	case *models.EnvironmentStats:
-		return p == nil
-	case *models.TaskResultEnvironmentRead:
-		return p == nil
-	default:
-		return false
 	}
 }
 

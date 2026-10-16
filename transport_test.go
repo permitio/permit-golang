@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -118,6 +119,13 @@ func mustError(t *testing.T, err error) *Error {
 		t.Fatalf("the call returned %v (%T), want a *Error", err, err)
 	}
 	return e
+}
+
+// isNilResult reports whether v, the result of a call, is a nil pointer, as a call that fails
+// returns.
+func isNilResult(v any) bool {
+	p := reflect.ValueOf(v)
+	return p.Kind() == reflect.Pointer && p.IsNil()
 }
 
 // TestDoDecodesAnObject checks do on the replies in 200-299 that hold an object, and those that

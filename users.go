@@ -39,8 +39,8 @@ const (
 // [WithFactsViaPDP], they go to the PDP container under /facts/users, or /facts/bulk/users,
 // instead, need no scope, and act on the environment of the container's own API key.
 //
-// [UsersService.WaitForSync] returns a copy whose creates, syncs, updates and assignments and
-// unassignments of roles wait until the change reaches the policy of the PDP container.
+// [UsersService.WaitForSync] returns a copy whose Create, Sync, Update, AssignRole and
+// UnassignRole wait until the change reaches the policy of the PDP container.
 type UsersService struct {
 	facts facts
 }
@@ -93,13 +93,13 @@ type UserSyncResult struct {
 	Created bool
 }
 
-// WaitForSync returns a copy of the service whose creates, syncs, updates and assignments and
-// unassignments of roles ask the PDP container to wait for sync: to hold its answer until the
-// change reaches its policy, for at most timeout, so that a check made after the call returns
-// sees it. A call through the copy sends the headers X-Wait-Timeout, the timeout in decimal
-// seconds, such as 0 for a timeout of 0 or 0.5 for 500 milliseconds, and X-Timeout-Policy when
-// opts give a policy with [WithSyncPolicy]. The service that WaitForSync is called on, and its
-// other copies, keep their own waits: the copy shares no state with them.
+// WaitForSync returns a copy of the service whose Create, Sync, Update, AssignRole and UnassignRole
+// ask the PDP container to wait for sync: to hold its answer until the change reaches its policy,
+// for at most timeout, so that a check made after the call returns sees it. A call through the copy
+// sends the headers X-Wait-Timeout, the timeout in decimal seconds, such as 0 for a timeout of 0 or
+// 0.5 for 500 milliseconds, and X-Timeout-Policy when opts give a policy with [WithSyncPolicy]. The
+// service that WaitForSync is called on, and its other copies, keep their own waits: the copy
+// shares no state with them.
 //
 // Only [UsersService.Create], [UsersService.Sync], [UsersService.Update],
 // [UsersService.AssignRole] and [UsersService.UnassignRole] wait for sync: of the routes that

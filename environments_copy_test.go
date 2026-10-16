@@ -366,7 +366,7 @@ func TestMalformedStatsAndCopyReplies(t *testing.T) {
 			api.Handle(tc.route, mockpermit.Reply{Body: body})
 			got, err := tc.call(projectClient(t, api))
 			want := prefix + tc.op + ": status 200: the reply is not a valid " + tc.model
-			if e := mustError(t, err); !isNilPointer(got) || e.Error() != want ||
+			if e := mustError(t, err); !isNilResult(got) || e.Error() != want ||
 				strings.Contains(fmt.Sprintf("%+v", e), "opaque") {
 				t.Errorf("the reply %q returned %+v and\n%v\nwant no value and\n%s", body, got,
 					err, want)

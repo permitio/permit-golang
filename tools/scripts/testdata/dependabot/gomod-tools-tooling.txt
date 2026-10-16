@@ -1,0 +1,35 @@
+deps-dev: bump the tooling group in /tools with 3 updates
+
+Bumps the tooling group in /tools with 3 updates: [golang.org/x/vuln](https://github.com/golang/vuln), [golang.org/x/exp](https://github.com/golang/exp) and [github.com/editorconfig-checker/editorconfig-checker/v4](https://github.com/editorconfig-checker/editorconfig-checker).
+
+
+Updates `golang.org/x/vuln` from 1.8.0 to 1.9.0
+- [Commits](https://github.com/golang/vuln/compare/v1.8.0...v1.9.0)
+
+Updates `golang.org/x/exp` from 0.0.0-20261005173118-76772065c9b0 to 0.0.0-20261012094512-1a2b3c4d5e6f
+- [Commits](https://github.com/golang/exp/compare/76772065c9b0...1a2b3c4d5e6f)
+
+Updates `github.com/editorconfig-checker/editorconfig-checker/v4` from 4.0.2 to 4.1.0
+- [Release notes](https://github.com/editorconfig-checker/editorconfig-checker/releases)
+- [Changelog](https://github.com/editorconfig-checker/editorconfig-checker/blob/main/CHANGELOG.md)
+- [Commits](https://github.com/editorconfig-checker/editorconfig-checker/compare/v4.0.2...v4.1.0)
+
+---
+updated-dependencies:
+- dependency-name: golang.org/x/vuln
+  dependency-version: 1.9.0
+  dependency-type: indirect
+  update-type: version-update:semver-minor
+  dependency-group: tooling
+- dependency-name: golang.org/x/exp
+  dependency-version: 0.0.0-20261012094512-1a2b3c4d5e6f
+  dependency-type: indirect
+  dependency-group: tooling
+- dependency-name: github.com/editorconfig-checker/editorconfig-checker/v4
+  dependency-version: 4.1.0
+  dependency-type: indirect
+  update-type: version-update:semver-minor
+  dependency-group: tooling
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>

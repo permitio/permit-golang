@@ -1,0 +1,8 @@
+// want: use of internal package github.com/permitio/permit-golang/v2/internal/surface not allowed
+
+// An application cannot import a package under the SDK's internal/ directory.
+package main
+
+import _ "github.com/permitio/permit-golang/v2/internal/surface"
+
+func main() {}

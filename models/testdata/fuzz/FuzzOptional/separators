@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"description\":\"\u2028\u2029 and \\u2028\\u2029\"}")

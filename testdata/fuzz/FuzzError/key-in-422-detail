@@ -1,0 +1,4 @@
+go test fuzz v1
+uint16(422)
+[]byte("{\"detail\":[{\"loc\":[\"body\",\"key\"],\"msg\":\"bad value \",\"input\":{\"secret\":\"s\"}}]}")
+uint(50)

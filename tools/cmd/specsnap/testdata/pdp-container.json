@@ -1,0 +1,8 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Fixture container PDP", "version": "0.2.0"},
+  "paths": {
+    "/allowed": {"post": {"operationId": "allowed", "responses": {"200": {"description": "Decision"}}}},
+    "/user-tenants": {"post": {"operationId": "user_tenants", "responses": {"200": {"description": "Tenants"}}}}
+  }
+}

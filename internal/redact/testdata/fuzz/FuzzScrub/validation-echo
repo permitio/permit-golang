@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("{\"detail\":[{\"loc\":[\"body\",\"token\"],\"msg\":\"m\",\"input\":{\"token\":\"x\"}}]}")
+uint(30)
+string("token-value")

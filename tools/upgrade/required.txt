@@ -1,0 +1,7 @@
+# Tests that every live run of the upgrade test must run and pass: the step of the e2e job of
+# .github/workflows/ci.yml that runs it checks them with checkgotest -require-file
+# (tools/cmd/checkgotest), and the offline test job checks the dry run against this file too.
+# One test per line: its package import path and its name, separated by a space. Blank lines
+# and lines that start with # are ignored.
+
+github.com/permitio/permit-golang/v2/tools/upgrade TestUpgrade

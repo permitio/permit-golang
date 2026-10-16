@@ -1,0 +1,59 @@
+# Tests that must run and pass in every live run of the end-to-end scenarios of the leg cloudpdp,
+# against the cloud PDP. The job e2e-cloudpdp of ci.yml checks them with checkgotest -require-file
+# (tools/cmd/checkgotest). Such a run selects the scenarios of every PDP and those of the cloud
+# PDP, so the scenario of the PDP container is not here; tools/e2e/required.txt lists those of a
+# run against the PDP container. TestRequiredScenarios checks that this file names the subtest of
+# each scenario that such a run selects, and of no other, and the same tests as
+# tools/e2e/required.txt outside the subtests of TestCloud. One test per line: its package import
+# path and its name, separated by a space. Blank lines and lines that start with # are ignored.
+
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_project
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/environment_stats_and_copy
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/get_environment_key
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenant_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_action_group_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_attribute_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_relation_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_role_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/implicit_grant_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/concurrent_sync_of_a_new_user
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_assignment_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_instance_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/relationship_tuple_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/bulk_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/pdp_data_refresh
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/audit_log_of_a_check
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/elements_login_as
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_roles_and_nesting
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_invite_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_permissions
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/authorized_users
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/container_only_routes_on_cloud_pdp
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_on_cloud_pdp
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
+github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
+github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder
+github.com/permitio/permit-golang/v2/tools/e2e TestVerdict
+github.com/permitio/permit-golang/v2/tools/e2e TestUnrecorded
+github.com/permitio/permit-golang/v2/tools/e2e TestConfigure
+github.com/permitio/permit-golang/v2/tools/e2e TestLegPDP
+github.com/permitio/permit-golang/v2/tools/e2e TestPlan
+github.com/permitio/permit-golang/v2/tools/e2e TestContainerOnlyScenarios
+github.com/permitio/permit-golang/v2/tools/e2e TestRequiredScenarios
+github.com/permitio/permit-golang/v2/tools/e2e TestAwaitValue
+github.com/permitio/permit-golang/v2/tools/e2e TestAcceptingNull

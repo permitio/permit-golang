@@ -1,0 +1,68 @@
+# The pull request lane of the end-to-end tests. On a pull request from a branch of this
+# repository, in a run that Dependabot did not trigger, it calls ci.yml in the mode e2e, which
+# runs the end-to-end jobs against Permit in the integration environment, whose deployment
+# branch policies allow pull requests, and the CI job of that run decides the lane. The lane is
+# outside the check the ruleset requires, CI of ci.yml's own pull request run, and cicheck lists
+# it in pullRequestLanes; but a pull request into master also needs a successful deployment to
+# the integration environment, which this lane makes, so a failing lane blocks the merge. A
+# pull request from a fork, or a run that Dependabot triggered, gets no secrets, so the lane
+# skips it with a notice; a maintainer merges such a pull request once the lane has run on a
+# branch of this repository that holds its commits. CONTRIBUTING.md describes the lane.
+name: e2e (pull request)
+
+on:
+  pull_request:
+
+permissions: {}
+
+# One run of the lane per pull request: a newer push cancels the older run, whose steps under
+# always() still remove its PDP and delete its scratch environment.
+concurrency:
+  group: e2e-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+jobs:
+  e2e:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
+    # The workflow of the pull request's own commit, by its path, which cicheck and actionlint
+    # read.
+    uses: ./.github/workflows/ci.yml  # zizmor: ignore[self-repository]
+    with:
+      mode: e2e
+    # GitHub starts a called workflow only when the caller grants every permission that its jobs
+    # ask for, those that the mode e2e skips too; the e2e jobs ask for contents: read only.
+    permissions:
+      contents: read
+      pull-requests: write  # the vuln and dependency-review jobs, which the mode e2e skips
+      checks: read  # the mutation job, which the mode e2e skips
+      actions: read  # the bench, digest and tag-watchdog jobs, which the mode e2e skips
+      attestations: read  # the tag-watchdog job, which the mode e2e skips
+
+  # Every other pull request: the negation of the e2e job's if:.
+  skipped:
+    name: e2e (skipped)
+    if: >-
+      !(github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Say why the lane skips
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          echo "::$token::"
+          trap - EXIT
+          echo "::notice title=e2e::The end-to-end tests against Permit do not run on a pull" \
+            "request from a fork, or in a run that Dependabot triggered, as neither gets" \
+            "secrets; the offline tests and the end-to-end dry run of CI do. A maintainer" \
+            "merges the pull request once the lane has run on a branch of this repository" \
+            "that holds its commits."

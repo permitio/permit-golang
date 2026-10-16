@@ -1,0 +1,1 @@
+{"task_id":"00000000-0000-4000-8000-000000000012","status":"failure","error":{"id":"err-9","title":"Conflict","error_code":"DUPLICATE_ENTITY","message":"the role admin exists in the target","support_link":"https://docs.example.com/errors","additional_info":{"conflicts":[{"role":"admin"}],"count":9007199254740993}}}

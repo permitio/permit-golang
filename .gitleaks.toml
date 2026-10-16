@@ -1,0 +1,17 @@
+# gitleaks configuration: the default rules, plus a rule for Permit API keys, which the default
+# rules do not detect. Tests, examples and docs use fake keys that start with permit_key_FAKE.
+title = "permit-golang"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "permit-api-key"
+description = "Permit API key"
+regex = '''permit_key_[A-Za-z0-9]{20,}'''
+keywords = ["permit_key_"]
+
+# A fake key may appear anywhere, also where a default rule such as generic-api-key matches it.
+[[allowlists]]
+description = "Fake Permit API keys"
+regexes = ['''^permit_key_FAKE[A-Za-z0-9_]*$''']

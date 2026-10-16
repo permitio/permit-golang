@@ -1,0 +1,13 @@
+# A fixture: one deliberate change of a route that v1 sent.
+fixes:
+  - id: role-list
+    reason: A fixture change.
+    changes:
+      - v1_method: Roles.List
+        source: pkg/api/roles.go:34
+        v1: GET /v2/schema/{proj_id}/{env_id}/roles
+        v2: GET /v2/schema/{proj_id}/{env_id}/roles
+      - v1_method: Users.Get
+        source: pkg/api/users.go:70
+        v1: GET /v2/facts/{proj_id}/{env_id}/users/{user_id}
+        v2: GET /v2/facts/{proj_id}/{env_id}/users/{user_key}

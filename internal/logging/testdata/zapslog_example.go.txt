@@ -1,0 +1,74 @@
+// Command zapslog_example is the example of permit.WithLogger for an application that logs with
+// zap: the client gets a *slog.Logger whose handler is zapslog's, over a zap core that writes
+// JSON. It is also a check: it plants a fake API key where the client's warning shows it, and
+// fails when zap's output holds the key, or holds no marker, as then nothing was replaced.
+//
+// No go.mod of the repository requires zap. The docs job of CI copies this file into a module of
+// its own, which requires go.uber.org/zap and go.uber.org/zap/exp and replaces the SDK with the
+// checkout, and builds and runs it; CONTRIBUTING.md ("Logging") shows the commands.
+package main
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"log/slog"
+	"os"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/exp/zapslog"
+	"go.uber.org/zap/zapcore"
+
+	"github.com/permitio/permit-golang/v2"
+)
+
+// apiKey is a fake Permit API key, which zap's output must not hold.
+const apiKey = "permit_key_FAKEzapslogexample"
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, "zapslog example:", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	// A zap logger that writes JSON to out at every level. An application would rather build
+	// one with zap.NewProduction, as the documentation of permit.WithLogger shows.
+	var out bytes.Buffer
+	encoder := zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+	zapLogger := zap.New(zapcore.NewCore(encoder, zapcore.AddSync(&out), zapcore.DebugLevel))
+
+	// The client gets a *slog.Logger whose handler is zapslog's, with an attribute that tells
+	// the client's lines apart.
+	logger := slog.New(zapslog.NewHandler(zapLogger.Core())).With("component", "permit")
+
+	// The API URL uses http:// to a host that is not loopback, so New warns with the URL, which
+	// holds the key by mistake. New sends no request.
+	client, err := permit.New(
+		permit.WithAPIKey(apiKey),
+		permit.WithAPIURL("http://api.example.com/"+apiKey),
+		permit.WithPDPURL("http://localhost:7766"),
+		permit.WithLogger(logger),
+	)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = client.Close() }()
+
+	if err := zapLogger.Sync(); err != nil {
+		return err
+	}
+	if _, err := os.Stdout.Write(out.Bytes()); err != nil {
+		return err
+	}
+	switch {
+	case bytes.Contains(out.Bytes(), []byte(apiKey)):
+		return errors.New("zap's output holds the API key")
+	case !bytes.Contains(out.Bytes(), []byte("[REDACTED]")):
+		return errors.New("zap's output has no [REDACTED] marker, so the client replaced " +
+			"nothing; check that New still warns about an API URL over http://")
+	}
+	fmt.Println("zap's output holds no API key")
+	return nil
+}

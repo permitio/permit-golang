@@ -1,0 +1,42 @@
+{
+  "image": "permitio/pdp-v2:0.9.16",
+  "mounts": [
+    {
+      "prefix": "/v2/facts/{proj_id}/{env_id}",
+      "same_as": "/facts",
+      "source": "horizon/pdp.py:515"
+    }
+  ],
+  "repository": "https://github.com/permitio/PDP",
+  "routes": [
+    {
+      "group": "authzen",
+      "methods": [
+        "POST"
+      ],
+      "path": "/access/v1/evaluation",
+      "source": "pdp-server/src/api/authzen/mod.rs:23"
+    },
+    {
+      "group": "facts",
+      "methods": [
+        "DELETE",
+        "GET",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "path": "/facts/{full_path}",
+      "source": "horizon/facts/router.py:387"
+    },
+    {
+      "group": "health",
+      "methods": [
+        "GET"
+      ],
+      "path": "/health",
+      "source": "pdp-server/src/api/health/handlers.rs:193"
+    }
+  ],
+  "tag": "0.9.16"
+}

@@ -1,0 +1,2 @@
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/check TICKET-1 2026-12-31 a release
+github.com/permitio/permit-golang/v2/tools/drift TestOther TICKET-2 2026-12-31 a release

@@ -1,0 +1,510 @@
+# The drift findings that tools/drift accepts, each because the published spec differs from what
+# the API does, and the SDK follows the API, because the spec lists an optional property that the
+# API reads elsewhere, and the SDK leaves it out, because a reply fixture holds a value of an
+# enum that the spec does not list, as the API may add one later, to check that the SDK reads
+# it, because the SDK reads a property whose anyOf lists several forms into one Go type, with
+# a reason that names what the type keeps and what it drops, or because an operation sends no
+# JSON request body that the spec gives it, or reads no model of package models from a reply in
+# 200-299 with a JSON body, such as a reply without fields, with a reason that says why. The
+# section Model drift of CONTRIBUTING.md says when to add an entry.
+#
+# key: the key of the finding, as the failing test prints it before the colon, such as
+#   "model UserRead field email", "operation get_user response",
+#   "operation bulk_create_users response without model" or "reply get_user.200.json#/email".
+#   An operation that names no model for a body has a finding under a key of its own, which ends
+#   in "without model", so that its entry accepts no model that the operation names later.
+# reason: why the finding is accepted, such as what the API does that the spec does not say
+#   ("the API returns email, which the published spec does not list"), or why the SDK reads no
+#   model from a reply.
+# trigger: when the entry can go, such as "when the published spec lists email".
+#
+# An entry that accepts no finding fails as stale: remove it.
+allow:
+  - key: model APIKeyRead field created_by_member
+    reason: >-
+      the reply of an API key can hold the member of the organization who created it, which
+      APIKeyRead leaves out, as the SDK covers no account administration of the members of the
+      organization, and the invite of a member holds its invite code
+    trigger: when the SDK models the members of the organization
+  - key: model EnvironmentStatistics field members
+    reason: >-
+      the statistics of an environment list the members of the organization, which
+      EnvironmentStatistics leaves out, as the SDK covers no account administration of the
+      members of the organization
+    trigger: when the SDK models the members of the organization
+  - key: reply get_api_key_scope.200.organization-null.json#/project_id
+    reason: >-
+      the API answers the scope of an organization-level API key with project_id null, which the
+      published spec types as a string only
+    trigger: when the published spec allows null for project_id of APIKeyScopeRead
+  - key: reply get_api_key_scope.200.organization-null.json#/environment_id
+    reason: >-
+      the API answers the scope of an organization-level API key with environment_id null, which
+      the published spec types as a string only
+    trigger: when the published spec allows null for environment_id of APIKeyScopeRead
+  - key: reply update_tenant.200.null-attributes.json#/attributes
+    reason: >-
+      the API stores null for the attributes of a tenant that an update sets to null, and then
+      returns them as null, which the published spec types as an object only
+    trigger: when the published spec allows null for attributes of TenantRead
+  - key: model UserRead field roles
+    reason: >-
+      the reply of a user holds roles, which the published spec marks deprecated, and UserRead
+      leaves out, as associated_tenants holds the roles of the user in each tenant
+    trigger: when the published spec drops roles from UserRead
+  - key: model CheckRequest field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of a check
+    trigger: when a PDP reads the SDK of a check from its sdk field only
+  - key: model CheckRequest@pdp-cloud field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of a check
+    trigger: when a PDP reads the SDK of a check from its sdk field only
+  - key: model Resource@pdp-cloud field context
+    reason: >-
+      the PDP container reads the context of a resource, which the spec of the cloud PDP does
+      not list; the cloud PDP reads the context of the check instead
+    trigger: when the spec of the cloud PDP lists the context of a resource, or the SDK stops
+      sending it
+  - key: model User field first_name
+    reason: >-
+      every PDP reads first_name, the name of the field, and the PDP container also reads its alias
+      firstName, which its spec lists in place of first_name, so the SDK sends first_name
+    trigger: when the spec of the PDP container lists first_name
+  - key: model User field firstName
+    reason: >-
+      the SDK sends first_name, which every PDP reads, in place of the alias firstName, which
+      only the PDP container reads
+    trigger: when the spec of the PDP container lists first_name
+  - key: model User field last_name
+    reason: >-
+      every PDP reads last_name, the name of the field, and the PDP container also reads its alias
+      lastName, which its spec lists in place of last_name, so the SDK sends last_name
+    trigger: when the spec of the PDP container lists last_name
+  - key: model User field lastName
+    reason: >-
+      the SDK sends last_name, which every PDP reads, in place of the alias lastName, which only
+      the PDP container reads
+    trigger: when the spec of the PDP container lists last_name
+  - key: model AuthorizedUsersRequest field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of the request
+    trigger: when a PDP reads the SDK of a request for authorized users from its sdk field only
+  - key: model AuthorizedUsersRequest@pdp-cloud field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of the request
+    trigger: when a PDP reads the SDK of a request for authorized users from its sdk field only
+  - key: model ObjectPermissions field permissions
+    reason: >-
+      the PDP container returns permissions in every entry of the permissions of a user, an empty
+      list when the user has none, which its spec lists as optional; the spec of the cloud PDP
+      requires it, and the SDK reads an entry without it as malformed
+    trigger: when the spec of the PDP container requires permissions
+  - key: model CheckURLRequest field sdk
+    reason: >-
+      the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+      request of the SDK carries, so the SDK leaves out the optional sdk field of a check of a URL
+    trigger: when the PDP reads the SDK of a check of a URL from its sdk field only
+  - key: model ResourceCreate field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of a create of a resource, which v1 never
+      sent, so ResourceCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_path of a create of a resource
+  - key: model ResourceCreate field v1compat_type
+    reason: >-
+      the API's documentation hides the v1compat_type of a create of a resource, which v1 never
+      sent, so ResourceCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_type of a create of a resource
+  - key: model ResourceCreate field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of a create of a resource, which v1 never
+      sent, so ResourceCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_name of a create of a resource
+  - key: model ResourceReplace field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of a replace of a resource, which v1 never
+      sent, so ResourceReplace leaves it out
+    trigger: when the API's documentation describes the v1compat_path of a replace of a resource
+  - key: model ResourceReplace field v1compat_type
+    reason: >-
+      the API's documentation hides the v1compat_type of a replace of a resource, which v1 never
+      sent, so ResourceReplace leaves it out
+    trigger: when the API's documentation describes the v1compat_type of a replace of a resource
+  - key: model ResourceReplace field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of a replace of a resource, which v1 never
+      sent, so ResourceReplace leaves it out
+    trigger: when the API's documentation describes the v1compat_name of a replace of a resource
+  - key: model ResourceUpdate field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of an update of a resource, which v1 never
+      sent, so ResourceUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_path of an update of a resource
+  - key: model ResourceUpdate field v1compat_type
+    reason: >-
+      the API's documentation hides the v1compat_type of an update of a resource, which v1 never
+      sent, so ResourceUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_type of an update of a resource
+  - key: model ResourceUpdate field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of an update of a resource, which v1 never
+      sent, so ResourceUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_name of an update of a resource
+  - key: model ActionBlockEditable field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of an action of a resource, which v1 never
+      sent, so ActionBlockEditable leaves it out
+    trigger: when the API's documentation describes the v1compat_path of an action of a resource
+  - key: model ActionBlockEditable field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of an action of a resource, which v1 never
+      sent, so ActionBlockEditable leaves it out
+    trigger: when the API's documentation describes the v1compat_name of an action of a resource
+  - key: model RoleBlockEditable field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of a role of a resource, which v1 never
+      sent, so RoleBlockEditable leaves it out
+    trigger: when the API's documentation describes the v1compat_settings of a role of a resource
+  - key: model RoleBlockEditable field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of a role of a resource, which v1 never
+      sent, so RoleBlockEditable leaves it out
+    trigger: when the API's documentation describes the v1compat_attributes of a role of a resource
+  - key: model ResourceActionCreate field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of a create of an action, which v1 never
+      sent, so ResourceActionCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_path of a create of an action
+  - key: model ResourceActionCreate field v1compat_is_built_in
+    reason: >-
+      the API's documentation hides the v1compat_is_built_in of a create of an action, which v1
+      never sent, so ResourceActionCreate leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_is_built_in of a create of an action
+  - key: model ResourceActionCreate field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of a create of an action, which v1 never
+      sent, so ResourceActionCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_name of a create of an action
+  - key: model ResourceActionUpdate field v1compat_path
+    reason: >-
+      the API's documentation hides the v1compat_path of an update of an action, which v1 never
+      sent, so ResourceActionUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_path of an update of an action
+  - key: model ResourceActionUpdate field v1compat_is_built_in
+    reason: >-
+      the API's documentation hides the v1compat_is_built_in of an update of an action, which v1
+      never sent, so ResourceActionUpdate leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_is_built_in of an update of an action
+  - key: model ResourceActionUpdate field v1compat_name
+    reason: >-
+      the API's documentation hides the v1compat_name of an update of an action, which v1 never
+      sent, so ResourceActionUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_name of an update of an action
+  - key: reply update_resource_action.200.json#/description
+    reason: >-
+      the API answers with description null for an action after an update that sent null for its
+      description, which clears it, and the published spec types the description as a string only
+    trigger: when the published spec allows null for the description of ResourceActionRead
+  - key: reply update_resource_action.200.json#/attributes
+    reason: >-
+      the API answers with attributes null for an action after an update that sent null for its
+      attributes, which clears them, and the published spec types the attributes as an object only
+    trigger: when the published spec allows null for the attributes of ResourceActionRead
+  - key: reply list_resource_attributes.200.unknown-type.json#/0/type
+    reason: >-
+      the fixture holds an attribute of the type geo_point, which the published spec does not
+      list, as the API may add a type later, to check that List and All read it as it is
+    trigger: when the published spec lists geo_point as an attribute type
+  - key: reply get_resource_attribute.200.unknown-type.json#/type
+    reason: >-
+      the fixture holds an attribute of the type geo_point, which the published spec does not
+      list, as the API may add a type later, to check that Get reads it as it is
+    trigger: when the published spec lists geo_point as an attribute type
+  - key: reply update_resource_attribute.200.json#/description
+    reason: >-
+      the API answers with description null for an attribute of a resource after an update that
+      sent null for its description, which clears it, and the published spec types the
+      description as a string only
+    trigger: when the published spec allows null for the description of ResourceAttributeRead
+  - key: model RoleCreate field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of a create of a role, which v1 never
+      sent, so RoleCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_settings of a create of a role
+  - key: model RoleCreate field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of a create of a role, which v1 never
+      sent, so RoleCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_attributes of a create of a role
+  - key: model RoleCreate field v1compat_is_built_in
+    reason: >-
+      the API's documentation hides the v1compat_is_built_in of a create of a role, which v1 never
+      sent, so RoleCreate leaves it out
+    trigger: when the API's documentation describes the v1compat_is_built_in of a create of a role
+  - key: model RoleUpdate field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of an update of a role, which v1 never
+      sent, so RoleUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_settings of an update of a role
+  - key: model RoleUpdate field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of an update of a role, which v1 never
+      sent, so RoleUpdate leaves it out
+    trigger: when the API's documentation describes the v1compat_attributes of an update of a role
+  - key: reply list_user_attributes.200.unknown-type.json#/0/type
+    reason: >-
+      the fixture holds an attribute of the users of the type geo_point, which the published spec
+      does not list, as the API may add a type later, to check that List and All read it as it is
+    trigger: when the published spec lists geo_point as an attribute type
+  - key: reply get_user_attribute.200.unknown-type.json#/type
+    reason: >-
+      the fixture holds an attribute of the users of the type geo_point, which the published spec
+      does not list, as the API may add a type later, to check that Get reads it as it is
+    trigger: when the published spec lists geo_point as an attribute type
+  - key: model RoleCreateBulk field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of a role of a bulk replace, which v1
+      never sent, so RoleCreateBulk leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_settings of a role of a bulk replace
+  - key: model RoleCreateBulk field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of a role of a bulk replace, which v1
+      never sent, so RoleCreateBulk leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_attributes of a role of a bulk replace
+  - key: model RoleList field roles
+    reason: >-
+      the published spec gives the roles of the ancestors or the descendants of a role as a JSON
+      array or as the paginated object that holds them in data; RoleList decodes either form
+      into Roles, a slice, and keeps no counts, as these calls take no page
+    trigger: when the published spec gives the roles of RoleList one form
+  - key: round trip RoleList#/roles
+    reason: >-
+      RoleList decodes roles of the paginated form into a slice, which encodes back as a JSON
+      array, as the entry of the field roles of RoleList says; the SDK never sends a RoleList
+    trigger: when the published spec gives the roles of RoleList one form
+  - key: model ResourceRoleCreate field v1compat_settings
+    reason: >-
+      the API's documentation hides the v1compat_settings of a create of a role of a resource,
+      which v1 never sent, so ResourceRoleCreate leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_settings of a create of a role of a
+      resource
+  - key: model ResourceRoleCreate field v1compat_attributes
+    reason: >-
+      the API's documentation hides the v1compat_attributes of a create of a role of a resource,
+      which v1 never sent, so ResourceRoleCreate leaves it out
+    trigger: >-
+      when the API's documentation describes the v1compat_attributes of a create of a role of a
+      resource
+  - key: model ResourceRoleList field roles
+    reason: >-
+      the published spec gives the roles of the ancestors or the descendants of a role of a
+      resource as a JSON array or as the paginated object that holds them in data;
+      ResourceRoleList decodes either form into Roles, a slice, and keeps no counts, as these
+      calls take no page
+    trigger: when the published spec gives the roles of ResourceRoleList one form
+  - key: round trip ResourceRoleList#/roles
+    reason: >-
+      ResourceRoleList decodes roles of the paginated form into a slice, which encodes back as a
+      JSON array, as the entry of the field roles of ResourceRoleList says; the SDK never sends a
+      ResourceRoleList
+    trigger: when the published spec gives the roles of ResourceRoleList one form
+  - key: model ProxyConfigCreate field secret
+    reason: >-
+      the published spec types the secret of a proxy config as HeadersAuth, BasicAuth or
+      BearerAuth, which are not JSON Schema types (PER-16342), and the snapshot holds them as
+      specsnap pre-fixes them, an object of strings and two strings, which only the
+      auth_mechanism of the config tells apart; the secret is a ProxySecret, which no schema
+      maps, and which holds the object as Headers and a string as Basic or Bearer, as
+      auth_mechanism names it, and no other form
+    trigger: >-
+      when the published spec gives the secret schemas that say which auth_mechanism each form
+      is for
+  - key: model ProxyConfigRead field secret
+    reason: >-
+      the published spec types the secret of a proxy config as HeadersAuth, BasicAuth or
+      BearerAuth, which are not JSON Schema types (PER-16342), and the snapshot holds them as
+      specsnap pre-fixes them, an object of strings and two strings, which only the
+      auth_mechanism of the config tells apart; the secret is a ProxySecret, which no schema
+      maps, and which holds the object as Headers and a string as Basic or Bearer, as
+      auth_mechanism names it, and no other form
+    trigger: >-
+      when the published spec gives the secret schemas that say which auth_mechanism each form
+      is for
+  - key: model ProxyConfigUpdate field secret
+    reason: >-
+      the published spec types the secret of a proxy config as HeadersAuth, BasicAuth or
+      BearerAuth, which are not JSON Schema types (PER-16342), and the snapshot holds them as
+      specsnap pre-fixes them, an object of strings and two strings, which only the
+      auth_mechanism of the config tells apart; the secret is a ProxySecret, which no schema
+      maps, and which holds the object as Headers and a string as Basic or Bearer, as
+      auth_mechanism names it, and no other form
+    trigger: >-
+      when the published spec gives the secret schemas that say which auth_mechanism each form
+      is for
+  - key: operation list_role_assignments response
+    reason: >-
+      the published spec lists four forms of the reply to the list of the role assignments, a
+      JSON array or a paginated object of RoleAssignmentRead or of RoleAssignmentDetailedRead;
+      the API answers a detailed form when the request sends the query parameter detailed,
+      which the spec marks deprecated and the SDK never sends, so List reads RoleAssignmentRead
+      in either list form, and ListDetailed reads the detailed form from the route of the
+      detailed list
+    trigger: when the published spec drops the detailed forms from the reply to the list
+  - key: operation unassign_role response without model
+    reason: >-
+      the published spec lists a 204 without a body for the unassignment of a role, and a 200 with
+      the removed role assignment for the deprecated query parameter return_deleted, which the SDK
+      never sends, so Unassign reads no body from the reply and the operation has no ResponseModel
+    trigger: when the published spec drops the 200 reply of the unassignment of a role
+  - key: operation unassign_role_from_user response without model
+    reason: >-
+      the published spec lists a 204 without a body for the removal of a role from a user, and a
+      200 with the removed role assignment for the deprecated query parameter return_deleted,
+      which the SDK never sends, so UnassignRole reads no body from the reply and the operation has
+      no ResponseModel
+    trigger: when the published spec drops the 200 reply of the removal of a role from a user
+  - key: operation bulk_create_users response without model
+    reason: >-
+      the reply to a bulk create of users is UserCreateBulkOperationResult, a JSON object that the
+      published spec gives no field, so BulkCreate reads no body from it and the operation has no
+      ResponseModel
+    trigger: when the published spec gives the reply to a bulk create of users a field
+  - key: operation bulk_replace_users response without model
+    reason: >-
+      the reply to a bulk replace of users is UserReplaceBulkOperationResult, a JSON object that
+      the published spec gives no field, so BulkReplace reads no body from it and the operation has
+      no ResponseModel
+    trigger: when the published spec gives the reply to a bulk replace of users a field
+  - key: operation bulk_delete_users response without model
+    reason: >-
+      the reply to a bulk delete of users is UserDeleteBulkOperationResult, a JSON object that the
+      published spec gives no field, so BulkDelete reads no body from it and the operation has no
+      ResponseModel
+    trigger: when the published spec gives the reply to a bulk delete of users a field
+  - key: operation bulk_create_tenants response without model
+    reason: >-
+      the reply to a bulk create of tenants is TenantCreateBulkOperationResult, a JSON object that
+      the published spec gives no field, so BulkCreate reads no body from it and the operation has
+      no ResponseModel
+    trigger: when the published spec gives the reply to a bulk create of tenants a field
+  - key: operation bulk_delete_tenants response without model
+    reason: >-
+      the reply to a bulk delete of tenants is TenantDeleteBulkOperationResult, a JSON object that
+      the published spec gives no field, so BulkDelete reads no body from it and the operation has
+      no ResponseModel
+    trigger: when the published spec gives the reply to a bulk delete of tenants a field
+  - key: operation bulk_replace_resource_instances response without model
+    reason: >-
+      the reply to a bulk replace of resource instances is
+      ResourceInstanceCreateBulkOperationResult, a JSON object that the published spec gives no
+      field, so BulkReplace reads no body from it and the operation has no ResponseModel
+    trigger: when the published spec gives the reply to a bulk replace of resource instances a field
+  - key: operation bulk_delete_resource_instances response without model
+    reason: >-
+      the reply to a bulk delete of resource instances is
+      ResourceInstanceDeleteBulkOperationResult, a JSON object that the published spec gives no
+      field, so BulkDelete reads no body from it and the operation has no ResponseModel
+    trigger: when the published spec gives the reply to a bulk delete of resource instances a field
+  - key: operation bulk_create_relationship_tuples response without model
+    reason: >-
+      the reply to a bulk create of relationship tuples is
+      RelationshipTupleCreateBulkOperationResult, a JSON object that the published spec gives no
+      field, so BulkCreate reads no body from it and the operation has no ResponseModel
+    trigger: >-
+      when the published spec gives the reply to a bulk create of relationship tuples a field
+  - key: operation bulk_delete_relationship_tuples response without model
+    reason: >-
+      the reply to a bulk delete of relationship tuples is
+      RelationshipTupleDeleteBulkOperationResult, a JSON object that the published spec gives no
+      field, so BulkDelete reads no body from it and the operation has no ResponseModel
+    trigger: >-
+      when the published spec gives the reply to a bulk delete of relationship tuples a field
+  - key: operation is_allowed_allowed_post response without model
+    reason: >-
+      the SDK reads the allow of a decision itself, as a strict boolean, and no type of package
+      models holds the reply, so the operation has no ResponseModel; the reply fixtures of the
+      wire tests are checked against the specs
+    trigger: when a type of package models holds the reply of a decision
+  - key: operation is_allowed_allowed_post@pdp-cloud response without model
+    reason: >-
+      the SDK reads the allow of a decision itself, as a strict boolean, and no type of package
+      models holds the reply, so the operation has no ResponseModel; the reply fixtures of the
+      wire tests are checked against the specs
+    trigger: when a type of package models holds the reply of a decision
+  - key: operation is_allowed_bulk_allowed_bulk_post response without model
+    reason: >-
+      the SDK reads the allow of each decision of a bulk check itself, as a strict boolean, and no
+      type of package models holds the reply, so the operation has no ResponseModel; the reply
+      fixtures of the wire tests are checked against the specs
+    trigger: when a type of package models holds the reply of a bulk check
+  - key: operation is_allowed_bulk_allowed_bulk_post@pdp-cloud response without model
+    reason: >-
+      the SDK reads the allow of each decision of a bulk check itself, as a strict boolean, and no
+      type of package models holds the reply, so the operation has no ResponseModel; the reply
+      fixtures of the wire tests are checked against the specs
+    trigger: when a type of package models holds the reply of a bulk check
+  - key: operation is_allowed_url_allowed_url_post response without model
+    reason: >-
+      the SDK reads the allow of the check of a URL itself, as a strict boolean, and no type of
+      package models holds the reply, so the operation has no ResponseModel; the reply fixtures of
+      the wire tests are checked against the spec of the PDP container
+    trigger: when a type of package models holds the reply of the check of a URL
+  - key: operation is_allowed_all_tenants_allowed_all_tenants_post response without model
+    reason: >-
+      the SDK reads the tenants in which a check is allowed itself, strictly, into TenantDetails of
+      the root package, and a ResponseModel names a type of package models, so the operation has
+      none; the reply fixtures of the wire tests are checked against the spec of the PDP container
+    trigger: when a type of package models holds the reply of the check in every tenant
+  - key: operation Get_User_Permissions_user_permissions_post response without model
+    reason: >-
+      the reply is a JSON object of the permissions of a user by object, whose values
+      ObjectPermissions of the root package holds; the SDK reads the reply itself, and a
+      ResponseModel names a type of package models, so the operation has none; the drift tests
+      compare ObjectPermissions with the schema of its row
+    trigger: when a type of package models holds the reply of the permissions of a user
+  - key: operation Get_User_Permissions_user_permissions_post@pdp-cloud response without model
+    reason: >-
+      the reply is a JSON object of the permissions of a user by object, whose values
+      ObjectPermissions of the root package holds; the SDK reads the reply itself, and a
+      ResponseModel names a type of package models, so the operation has none; the drift tests
+      compare ObjectPermissions with the schema of its row
+    trigger: when a type of package models holds the reply of the permissions of a user
+  - key: operation authorized_users_authorized_users_post response without model
+    reason: >-
+      the reply is AuthorizedUsersResult of the root package, which the SDK reads itself, and a
+      ResponseModel names a type of package models, so the operation has none; the drift tests
+      compare AuthorizedUsersResult with the schema of its row
+    trigger: when a type of package models holds the reply of the authorized users
+  - key: operation authorized_users_authorized_users_post@pdp-cloud response without model
+    reason: >-
+      the reply is AuthorizedUsersResult of the root package, which the SDK reads itself, and a
+      ResponseModel names a type of package models, so the operation has none; the drift tests
+      compare AuthorizedUsersResult with the schema of its row
+    trigger: when a type of package models holds the reply of the authorized users
+  - key: operation Get_User_Tenants_user_tenants_post response without model
+    reason: >-
+      the reply is a JSON array of the tenants of a user, each TenantDetails of the root package,
+      which the SDK reads itself, and a ResponseModel names a type of package models, so the
+      operation has none; the drift tests compare TenantDetails with the schema of its row
+    trigger: when a type of package models holds the reply of the tenants of a user
+  - key: operation list_role_assignments_local_role_assignments_get response without model
+    reason: >-
+      the reply is a JSON array of the role assignments that the PDP container holds, each
+      LocalRoleAssignment of the root package, and a ResponseModel names a type of package models,
+      as the error of a malformed reply names it, so the operation has none; the drift tests
+      compare LocalRoleAssignment with the schema of its row
+    trigger: when a type of package models holds the role assignments of the PDP container
+  - key: model UserObj field roles
+    reason: >-
+      the API's documentation hides the roles of the user of an audit log, the relationship
+      tuples of its roles, whose keys assigned_roles holds, so UserObj leaves them out
+    trigger: when the API's documentation describes the roles of UserObj

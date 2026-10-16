@@ -1,0 +1,109 @@
+{
+  "info": {
+    "version": "2.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v2/api-key/scope": {
+      "get": {
+        "operationId": "get_api_key_scope",
+        "tags": [
+          "API Keys"
+        ]
+      }
+    },
+    "/v2/facts/{proj_id}/{env_id}/email_templates/": {
+      "get": {
+        "operationId": "list_templates",
+        "tags": [
+          "Email Templates"
+        ]
+      }
+    },
+    "/v2/facts/{proj_id}/{env_id}/users/{user_id}": {
+      "get": {
+        "operationId": "get_user",
+        "tags": [
+          "Users"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "user_id"
+        }
+      ]
+    },
+    "/v2/members": {
+      "get": {
+        "operationId": "list_organization_members",
+        "tags": [
+          "Members"
+        ]
+      }
+    },
+    "/v2/pdps/{proj_id}/{env_id}/configs": {
+      "get": {
+        "operationId": "list_pdp_configs",
+        "tags": [
+          "Policy Decision Points"
+        ]
+      }
+    },
+    "/v2/policy_guards": {
+      "get": {
+        "operationId": "list_policy_guards",
+        "tags": [
+          "Policy Guards (EAP)"
+        ]
+      }
+    },
+    "/v2/schema/{proj_id}/{env_id}/groups/direct": {
+      "get": {
+        "operationId": "list_direct_group",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}": {
+      "get": {
+        "deprecated": true,
+        "operationId": "get_group",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users": {
+      "get": {
+        "operationId": "list_group_users",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/v2/schema/{proj_id}/{env_id}/roles": {
+      "get": {
+        "operationId": "list_roles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proj_id"
+          },
+          {
+            "in": "query",
+            "name": "page"
+          },
+          {
+            "in": "query",
+            "name": "search"
+          }
+        ],
+        "tags": [
+          "Roles"
+        ]
+      }
+    }
+  }
+}

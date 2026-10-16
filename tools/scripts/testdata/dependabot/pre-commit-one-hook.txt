@@ -1,0 +1,20 @@
+deps-dev: bump https://github.com/crate-ci/typos
+
+Bumps the tooling group with 1 update: [https://github.com/crate-ci/typos](https://github.com/crate-ci/typos).
+
+
+Updates `https://github.com/crate-ci/typos` from 1.50.3 to 1.51.0
+- [Release notes](https://github.com/crate-ci/typos/releases)
+- [Changelog](https://github.com/crate-ci/typos/blob/master/CHANGELOG.md)
+- [Commits](https://github.com/crate-ci/typos/compare/v1.50.3...v1.51.0)
+
+---
+updated-dependencies:
+- dependency-name: https://github.com/crate-ci/typos
+  dependency-version: 1.51.0
+  dependency-type: direct:production
+  update-type: version-update:semver-minor
+  dependency-group: tooling
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>

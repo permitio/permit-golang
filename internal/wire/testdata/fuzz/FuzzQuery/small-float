@@ -1,0 +1,6 @@
+go test fuzz v1
+string("attr_ratio")
+string("0.1")
+int64(9223372036854775807)
+float64(1e-07)
+bool(false)

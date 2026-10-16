@@ -1,0 +1,58 @@
+# A fixture of tools/specs/coverage.yaml.
+reasons:
+  account-admin: "Account administration."
+  dashboard-only: "Dashboard setup."
+  deprecated: "Deprecated in the spec."
+  eap: "In early access."
+  operator: "Routes for whoever runs a PDP."
+
+control-plane:
+  - {op: get_api_key_scope, route: "GET /v2/api-key/scope", stage: GA, status: planned}
+  - {op: list_templates, route: "GET /v2/facts/{proj_id}/{env_id}/email_templates/", stage: GA, status: excluded, reason: dashboard-only}
+  - {op: get_user, route: "GET /v2/facts/{proj_id}/{env_id}/users/{user_id}", stage: GA, status: covered}
+  - {op: list_organization_members, route: "GET /v2/members", stage: GA, status: excluded, reason: account-admin}
+  - op: list_pdp_configs
+    route: "GET /v2/pdps/{proj_id}/{env_id}/configs"
+    stage: GA
+    status: deferred
+    reason: "The API is due to change this route."
+    trigger: "Decide again once the change ships."
+  - {op: list_policy_guards, route: "GET /v2/policy_guards", stage: EAP, status: excluded, reason: eap}
+  - {op: list_direct_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/direct", stage: GA, status: planned}
+  - {op: get_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", stage: deprecated, status: excluded, reason: deprecated}
+  - op: list_group_users
+    route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users"
+    stage: GA
+    status: planned
+    stage_override:
+      stage: GA
+      reason: "The summary says EAP; the tag is GA."
+  - {op: list_roles, route: "GET /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: planned}
+  - op: elements_login_as
+    route: "POST /v2/auth/elements_login_as"
+    stage: GA
+    status: planned
+    sdk_only: "The login-as route is not in the spec."
+
+pdp:
+  - {op: is_allowed_allowed_post, route: "POST /allowed", stage: GA, status: covered}
+  - op: access_evaluation_handler
+    route: "POST /access/v1/evaluation"
+    stage: GA
+    status: deferred
+    reason: "Not exposed yet."
+    trigger: "Decide again when it is."
+  - {op: list_callbacks_callbacks_get, route: "GET /callbacks", stage: GA, status: excluded, reason: operator}
+  - {op: create_user_facts_users_post, route: "POST /facts/users", stage: GA, status: planned}
+  - op: forward_remaining_requests
+    route: "ANY /facts/{full_path}"
+    stage: GA
+    status: planned
+    sdk_only: "The catch-all of the facts routes."
+  - {route: "GET /health", stage: GA, status: excluded, reason: operator}
+  - {op: get_policy_store_details_policy_store_config_get, route: "GET /policy-store/config", stage: deprecated, status: excluded, reason: deprecated}
+
+sdk_only_params:
+  - op: list_roles
+    param: "attr_*"
+    reason: "Attribute filters that the spec does not list."

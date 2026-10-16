@@ -1,0 +1,4 @@
+go test fuzz v1
+uint16(401)
+[]byte("{\"id\":\"8f2c\",\"title\":\"Unauthorized\",\"error_code\":\"UNAUTHORIZED\",\"message\":\"the API key  is not valid\"}")
+uint(87)

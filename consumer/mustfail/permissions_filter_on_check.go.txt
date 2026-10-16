@@ -1,0 +1,17 @@
+// want: permit.PermissionsOption) as permit.CheckOption value in argument to client.Check
+
+// A filter of the permissions of a user is an option of Client.UserPermissions only: a check
+// takes CheckOption values, and a PermissionsOption is not one.
+package main
+
+import (
+	"context"
+
+	"github.com/permitio/permit-golang/v2"
+)
+
+func main() {
+	client, _ := permit.New()
+	_, _ = client.Check(context.Background(), permit.User{Key: "alice"}, "read",
+		permit.Resource{Type: "document"}, permit.WithTenants("tenant-a"))
+}

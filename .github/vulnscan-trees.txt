@@ -1,0 +1,13 @@
+# Go modules in this repository that the vulnerability scan does not scan, read by vulnscan
+# (tools/cmd/vulnscan). vulnscan scans the root module, as committed (the floor) and with every
+# dependency at its newest version (the ceiling), and the tools module. Every other directory with
+# a go.mod that git tracks, outside testdata directories, must be listed here with the reason it
+# is not scanned: only a test-only module that never ships may be left out.
+#
+# One module per line: its directory relative to the repository root, then the reason, separated
+# by spaces. vulnscan fails on an entry whose directory has no go.mod that git tracks. Blank lines
+# and lines that start with # are ignored.
+
+consumer test-only and never ships; its module graph is the SDK's, which the floor scan covers
+tools/upgrade test-only and never ships; it pins v1.3.0 on purpose, as the v1 release that it tests
+skills/permit-golang-v2-migration user-built from source; never imported by the SDK or released

@@ -1,0 +1,28 @@
+{
+  "control-plane": {
+    "file": "control-plane.json",
+    "url": "https://api.permit.io/v2/openapi.json",
+    "fetched": "2026-10-14",
+    "source_sha256": "15ab6a09bb7cd99bddca0bf3d1c380ac39dbcc6de35edeec1e2cc8454f8e8215",
+    "sha256": "5c755af8ada3209e95de55347dfaf382cf006e9e32fb35d5de3dab8747879847",
+    "operations": 263
+  },
+  "pdp-cloud": {
+    "file": "pdp-cloud.json",
+    "url": "https://cloudpdp.api.permit.io/openapi.json",
+    "fetched": "2026-10-11",
+    "source_sha256": "8fb3ad79b93679b24ddd90596e17b7f6baa6b662e2c09a96f1a3ffc938292a29",
+    "sha256": "e733b5419652811d6e2f01a758a3a4614e7188f6dac2c09aeb5cbffff6c34fff",
+    "operations": 10
+  },
+  "pdp-container": {
+    "file": "pdp-container.json",
+    "image": "permitio/pdp-v2:0.9.16",
+    "digest": "sha256:e3cf30794ec2d256636b4714641df46e51ee58a3f1f0d24c606e214e0bf8669a",
+    "note": "GET /openapi.json of the container, as the Node SDK (permitio/permit-node) saved it",
+    "fetched": "2026-09-30",
+    "source_sha256": "863635167e13483f21ccce5b3f38d93a2f8625c4e480d5fdea306c56a461b46f",
+    "sha256": "6757f5d9aca00f99a32ac46b598906f7954190ac239e040472d4a3e028c3ae93",
+    "operations": 34
+  }
+}

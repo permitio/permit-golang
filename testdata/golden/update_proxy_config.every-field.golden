@@ -1,0 +1,1 @@
+{"name":"Payments","auth_mechanism":"Basic","mapping_rules":[{"url":"https://api.example.com/orders","http_method":"get","resource":"order","should_delete":true},{"url":"https://api.example.com/invoices/.*","url_type":"regex","http_method":"post","resource":"invoice","headers":{"X-A":"1"},"action":"create","priority":5}],"secret":"opaque-user:opaque-pass"}

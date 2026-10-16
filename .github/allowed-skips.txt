@@ -1,0 +1,22 @@
+# Tests that may skip in an offline test run, checked by checkgotest -allow-skips
+# (tools/cmd/checkgotest). Any other skip fails the run, and so does an entry that has expired or
+# whose test did not skip.
+#
+# One test per line, with five or more fields separated by spaces:
+#
+#   <import path> <test name> <ticket> <expiry> <un-skip condition>
+#
+#   import path        the test's package, such as github.com/permitio/permit-golang/v2
+#   test name          the test or subtest as go test names it, such as TestGet/not_found
+#   ticket             the issue that tracks the skip, such as TICKET-123
+#   expiry             the last day the skip is allowed, in UTC, as YYYY-MM-DD
+#   un-skip condition  the rest of the line: what must happen before the test can run again
+#
+# Blank lines and lines that start with # are ignored.
+
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context/abac_allow_and_deny PER-16209 2027-01-31 an attribute-based rule seeded through the API takes effect in the PDP (also PER-16553): then seed one and assert its allow and deny
+github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete/dry_run/decision_context/abac_allow_and_deny PER-16209 2027-01-31 an attribute-based rule seeded through the API takes effect in the PDP (also PER-16553): then seed one and assert its allow and deny
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/audit_log_of_a_check/in_the_audit_logs PER-17140 2027-01-31 ingest latency measured in the phase api.audit_logs of the local harness: then poll List for the audit log of the check of the scenario for at most 120 s and read it with Get
+github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete/dry_run/audit_log_of_a_check/in_the_audit_logs PER-17140 2027-01-31 ingest latency measured in the phase api.audit_logs of the local harness: then poll List for the audit log of the check of the scenario for at most 120 s and read it with Get
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/elements_login_as/token_and_redirect_url PER-17142 2027-01-31 the phase api.elements of the local harness confirms the fields of the reply to a login: then serve the login in the fake of tools/e2e, remove the skip and assert the token, the bearer token and the redirect URL
+github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete/dry_run/elements_login_as/token_and_redirect_url PER-17142 2027-01-31 the phase api.elements of the local harness confirms the fields of the reply to a login: then serve the login in the fake of tools/e2e, remove the skip and assert the token, the bearer token and the redirect URL

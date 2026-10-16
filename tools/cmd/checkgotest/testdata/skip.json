@@ -1,0 +1,16 @@
+{"Time":"2026-10-13T14:16:01.892868+03:00","Action":"start","Package":"example.com/fixture/a"}
+{"Time":"2026-10-13T14:16:01.892965+03:00","Action":"start","Package":"example.com/fixture/empty"}
+{"Time":"2026-10-13T14:16:01.892986+03:00","Action":"output","Package":"example.com/fixture/empty","Output":"?   \texample.com/fixture/empty\t[no test files]\n"}
+{"Time":"2026-10-13T14:16:01.892998+03:00","Action":"skip","Package":"example.com/fixture/empty","Elapsed":0}
+{"Time":"2026-10-13T14:16:02.12427+03:00","Action":"run","Package":"example.com/fixture/a","Test":"TestA"}
+{"Time":"2026-10-13T14:16:02.124303+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestA","Output":"=== RUN   TestA\n"}
+{"Time":"2026-10-13T14:16:02.12434+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestA","Output":"--- PASS: TestA (0.00s)\n"}
+{"Time":"2026-10-13T14:16:02.124349+03:00","Action":"pass","Package":"example.com/fixture/a","Test":"TestA","Elapsed":0}
+{"Time":"2026-10-13T14:16:02.124355+03:00","Action":"run","Package":"example.com/fixture/a","Test":"TestB"}
+{"Time":"2026-10-13T14:16:02.124359+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestB","Output":"=== RUN   TestB\n"}
+{"Time":"2026-10-13T14:16:02.124363+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestB","Output":"    a_test.go:15: planted skip\n"}
+{"Time":"2026-10-13T14:16:02.124367+03:00","Action":"output","Package":"example.com/fixture/a","Test":"TestB","Output":"--- SKIP: TestB (0.00s)\n"}
+{"Time":"2026-10-13T14:16:02.124371+03:00","Action":"skip","Package":"example.com/fixture/a","Test":"TestB","Elapsed":0}
+{"Time":"2026-10-13T14:16:02.124374+03:00","Action":"output","Package":"example.com/fixture/a","Output":"PASS\n"}
+{"Time":"2026-10-13T14:16:02.124797+03:00","Action":"output","Package":"example.com/fixture/a","Output":"ok  \texample.com/fixture/a\t0.232s\n"}
+{"Time":"2026-10-13T14:16:02.124823+03:00","Action":"pass","Package":"example.com/fixture/a","Elapsed":0.232}

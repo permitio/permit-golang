@@ -1,0 +1,744 @@
+{
+  "methods": {
+    "APIKeysService.All": [
+      "list_api_keys"
+    ],
+    "APIKeysService.Create": [
+      "create_api_key"
+    ],
+    "APIKeysService.Delete": [
+      "delete_api_key"
+    ],
+    "APIKeysService.Get": [
+      "get_api_key"
+    ],
+    "APIKeysService.GetEnvironmentKey": [
+      "get_environment_api_key"
+    ],
+    "APIKeysService.List": [
+      "list_api_keys"
+    ],
+    "APIKeysService.RotateSecret": [
+      "rotate_api_key"
+    ],
+    "AuditLogsService.All": [
+      "list_audit_logs"
+    ],
+    "AuditLogsService.Get": [
+      "get_detailed_audit_log"
+    ],
+    "AuditLogsService.List": [
+      "list_audit_logs"
+    ],
+    "Client.AllTenantsCheck": [
+      "is_allowed_all_tenants_allowed_all_tenants_post"
+    ],
+    "Client.AuthorizedUsers": [
+      "authorized_users_authorized_users_post"
+    ],
+    "Client.BulkCheck": [
+      "is_allowed_bulk_allowed_bulk_post"
+    ],
+    "Client.Check": [
+      "is_allowed_allowed_post"
+    ],
+    "Client.CheckURL": [
+      "is_allowed_url_allowed_url_post"
+    ],
+    "Client.FilterObjects": [
+      "is_allowed_bulk_allowed_bulk_post"
+    ],
+    "Client.LocalRoleAssignments": [
+      "list_role_assignments_local_role_assignments_get"
+    ],
+    "Client.LocalRoleAssignmentsAll": [
+      "list_role_assignments_local_role_assignments_get"
+    ],
+    "Client.Scope": [
+      "get_api_key_scope"
+    ],
+    "Client.UserPermissions": [
+      "Get_User_Permissions_user_permissions_post"
+    ],
+    "Client.UserTenants": [
+      "Get_User_Tenants_user_tenants_post"
+    ],
+    "ConditionSetRulesService.All": [
+      "list_set_permissions"
+    ],
+    "ConditionSetRulesService.Create": [
+      "assign_set_permissions"
+    ],
+    "ConditionSetRulesService.Delete": [
+      "unassign_set_permissions"
+    ],
+    "ConditionSetRulesService.List": [
+      "list_set_permissions"
+    ],
+    "ConditionSetsService.All": [
+      "list_condition_sets"
+    ],
+    "ConditionSetsService.Ancestors": [
+      "get_condition_set_ancestors"
+    ],
+    "ConditionSetsService.AncestorsAll": [
+      "get_condition_set_ancestors"
+    ],
+    "ConditionSetsService.Create": [
+      "create_condition_set"
+    ],
+    "ConditionSetsService.Delete": [
+      "delete_condition_set"
+    ],
+    "ConditionSetsService.Descendants": [
+      "get_condition_set_descendants"
+    ],
+    "ConditionSetsService.DescendantsAll": [
+      "get_condition_set_descendants"
+    ],
+    "ConditionSetsService.Get": [
+      "get_condition_set"
+    ],
+    "ConditionSetsService.List": [
+      "list_condition_sets"
+    ],
+    "ConditionSetsService.Update": [
+      "update_condition_set"
+    ],
+    "ElementsService.LoginAs": [
+      "elements_login_as"
+    ],
+    "EnvironmentsService.All": [
+      "list_environments"
+    ],
+    "EnvironmentsService.Copy": [
+      "copy_environment"
+    ],
+    "EnvironmentsService.CopyAsync": [
+      "copy_environment_async"
+    ],
+    "EnvironmentsService.CopyResult": [
+      "get_copy_environment_async_result"
+    ],
+    "EnvironmentsService.Create": [
+      "create_environment"
+    ],
+    "EnvironmentsService.Delete": [
+      "delete_environment"
+    ],
+    "EnvironmentsService.Get": [
+      "get_environment"
+    ],
+    "EnvironmentsService.List": [
+      "list_environments"
+    ],
+    "EnvironmentsService.Stats": [
+      "stats_environments"
+    ],
+    "EnvironmentsService.Update": [
+      "update_environment"
+    ],
+    "GroupsService.All": [
+      "list_direct_group"
+    ],
+    "GroupsService.AllChildren": [
+      "list_group_children"
+    ],
+    "GroupsService.AllParents": [
+      "list_group_parents"
+    ],
+    "GroupsService.AllRoles": [
+      "list_group_roles"
+    ],
+    "GroupsService.AllUsers": [
+      "list_group_users"
+    ],
+    "GroupsService.AssignGroup": [
+      "assign_group_to_group"
+    ],
+    "GroupsService.AssignRole": [
+      "assign_role_to_group"
+    ],
+    "GroupsService.AssignUser": [
+      "assign_user_to_group"
+    ],
+    "GroupsService.Create": [
+      "create_group"
+    ],
+    "GroupsService.Delete": [
+      "delete_group"
+    ],
+    "GroupsService.Get": [
+      "get_direct_group"
+    ],
+    "GroupsService.List": [
+      "list_direct_group"
+    ],
+    "GroupsService.ListChildren": [
+      "list_group_children"
+    ],
+    "GroupsService.ListParents": [
+      "list_group_parents"
+    ],
+    "GroupsService.ListRoles": [
+      "list_group_roles"
+    ],
+    "GroupsService.ListUsers": [
+      "list_group_users"
+    ],
+    "GroupsService.RemoveGroup": [
+      "remove_group_from_group"
+    ],
+    "GroupsService.RemoveRole": [
+      "remove_role_from_group"
+    ],
+    "GroupsService.RemoveUser": [
+      "remove_user_from_group"
+    ],
+    "ImplicitGrantsService.Create": [
+      "create_implicit_grant"
+    ],
+    "ImplicitGrantsService.Delete": [
+      "delete_implicit_grant"
+    ],
+    "ImplicitGrantsService.UpdateConditions": [
+      "update_implicit_grants_conditions"
+    ],
+    "PDPsService.Refresh": [
+      "refresh_environment_pdp_data"
+    ],
+    "PDPsService.RefreshPDP": [
+      "refresh_pdp_data"
+    ],
+    "ProjectsService.All": [
+      "list_projects"
+    ],
+    "ProjectsService.Create": [
+      "create_project"
+    ],
+    "ProjectsService.Delete": [
+      "delete_project"
+    ],
+    "ProjectsService.Get": [
+      "get_project"
+    ],
+    "ProjectsService.List": [
+      "list_projects"
+    ],
+    "ProjectsService.Update": [
+      "update_project"
+    ],
+    "ProxyConfigsService.All": [
+      "list_proxy_configs"
+    ],
+    "ProxyConfigsService.Create": [
+      "create_proxy_config"
+    ],
+    "ProxyConfigsService.Delete": [
+      "delete_proxy_config"
+    ],
+    "ProxyConfigsService.Get": [
+      "get_proxy_config"
+    ],
+    "ProxyConfigsService.List": [
+      "list_proxy_configs"
+    ],
+    "ProxyConfigsService.Update": [
+      "update_proxy_config"
+    ],
+    "RelationshipTuplesService.All": [
+      "list_relationship_tuples"
+    ],
+    "RelationshipTuplesService.AllDetailed": [
+      "list_relationship_tuples_detailed"
+    ],
+    "RelationshipTuplesService.BulkCreate": [
+      "bulk_create_relationship_tuples"
+    ],
+    "RelationshipTuplesService.BulkDelete": [
+      "bulk_delete_relationship_tuples"
+    ],
+    "RelationshipTuplesService.Create": [
+      "create_relationship_tuple"
+    ],
+    "RelationshipTuplesService.Delete": [
+      "delete_relationship_tuple"
+    ],
+    "RelationshipTuplesService.List": [
+      "list_relationship_tuples"
+    ],
+    "RelationshipTuplesService.ListDetailed": [
+      "list_relationship_tuples_detailed"
+    ],
+    "ResourceActionGroupsService.All": [
+      "list_resource_action_groups"
+    ],
+    "ResourceActionGroupsService.Create": [
+      "create_resource_action_group"
+    ],
+    "ResourceActionGroupsService.Delete": [
+      "delete_resource_action_group"
+    ],
+    "ResourceActionGroupsService.Get": [
+      "get_resource_action_group"
+    ],
+    "ResourceActionGroupsService.List": [
+      "list_resource_action_groups"
+    ],
+    "ResourceActionGroupsService.Update": [
+      "update_resource_action_group"
+    ],
+    "ResourceActionsService.All": [
+      "list_resource_actions"
+    ],
+    "ResourceActionsService.Create": [
+      "create_resource_action"
+    ],
+    "ResourceActionsService.Delete": [
+      "delete_resource_action"
+    ],
+    "ResourceActionsService.Get": [
+      "get_resource_action"
+    ],
+    "ResourceActionsService.List": [
+      "list_resource_actions"
+    ],
+    "ResourceActionsService.Update": [
+      "update_resource_action"
+    ],
+    "ResourceAttributesService.All": [
+      "list_resource_attributes"
+    ],
+    "ResourceAttributesService.Create": [
+      "create_resource_attribute"
+    ],
+    "ResourceAttributesService.Delete": [
+      "delete_resource_attribute"
+    ],
+    "ResourceAttributesService.Get": [
+      "get_resource_attribute"
+    ],
+    "ResourceAttributesService.List": [
+      "list_resource_attributes"
+    ],
+    "ResourceAttributesService.Update": [
+      "update_resource_attribute"
+    ],
+    "ResourceInstancesService.All": [
+      "list_resource_instances"
+    ],
+    "ResourceInstancesService.AllDetailed": [
+      "list_resource_instances_detailed"
+    ],
+    "ResourceInstancesService.BulkDelete": [
+      "bulk_delete_resource_instances"
+    ],
+    "ResourceInstancesService.BulkReplace": [
+      "bulk_replace_resource_instances"
+    ],
+    "ResourceInstancesService.Create": [
+      "create_resource_instance"
+    ],
+    "ResourceInstancesService.Delete": [
+      "delete_resource_instance"
+    ],
+    "ResourceInstancesService.Get": [
+      "get_resource_instance"
+    ],
+    "ResourceInstancesService.List": [
+      "list_resource_instances"
+    ],
+    "ResourceInstancesService.ListDetailed": [
+      "list_resource_instances_detailed"
+    ],
+    "ResourceInstancesService.Update": [
+      "update_resource_instance"
+    ],
+    "ResourceRelationsService.All": [
+      "list_resource_relations"
+    ],
+    "ResourceRelationsService.Create": [
+      "create_resource_relation"
+    ],
+    "ResourceRelationsService.Delete": [
+      "delete_resource_relation"
+    ],
+    "ResourceRelationsService.Get": [
+      "get_resource_relation"
+    ],
+    "ResourceRelationsService.List": [
+      "list_resource_relations"
+    ],
+    "ResourceRolesService.All": [
+      "list_resource_roles"
+    ],
+    "ResourceRolesService.Ancestors": [
+      "get_resource_role_ancestors"
+    ],
+    "ResourceRolesService.AssignPermissions": [
+      "assign_permissions_to_resource_role"
+    ],
+    "ResourceRolesService.Create": [
+      "create_resource_role"
+    ],
+    "ResourceRolesService.Delete": [
+      "delete_resource_role"
+    ],
+    "ResourceRolesService.Descendants": [
+      "get_resource_role_descendants"
+    ],
+    "ResourceRolesService.Get": [
+      "get_resource_role"
+    ],
+    "ResourceRolesService.List": [
+      "list_resource_roles"
+    ],
+    "ResourceRolesService.RemovePermissions": [
+      "remove_permissions_from_resource_role"
+    ],
+    "ResourceRolesService.Update": [
+      "update_resource_role"
+    ],
+    "ResourcesService.All": [
+      "list_resources"
+    ],
+    "ResourcesService.Create": [
+      "create_resource"
+    ],
+    "ResourcesService.Delete": [
+      "delete_resource"
+    ],
+    "ResourcesService.Get": [
+      "get_resource"
+    ],
+    "ResourcesService.List": [
+      "list_resources"
+    ],
+    "ResourcesService.Replace": [
+      "replace_resource"
+    ],
+    "ResourcesService.Update": [
+      "update_resource"
+    ],
+    "RoleAssignmentsService.All": [
+      "list_role_assignments"
+    ],
+    "RoleAssignmentsService.AllDetailed": [
+      "list_role_assignments_detailed"
+    ],
+    "RoleAssignmentsService.Assign": [
+      "assign_role"
+    ],
+    "RoleAssignmentsService.BulkAssign": [
+      "bulk_assign_role"
+    ],
+    "RoleAssignmentsService.BulkUnassign": [
+      "bulk_unassign_role"
+    ],
+    "RoleAssignmentsService.List": [
+      "list_role_assignments"
+    ],
+    "RoleAssignmentsService.ListDetailed": [
+      "list_role_assignments_detailed"
+    ],
+    "RoleAssignmentsService.Unassign": [
+      "unassign_role"
+    ],
+    "RolesService.All": [
+      "list_roles"
+    ],
+    "RolesService.Ancestors": [
+      "get_role_ancestors"
+    ],
+    "RolesService.AssignPermissions": [
+      "assign_permissions_to_role"
+    ],
+    "RolesService.BulkReplace": [
+      "bulk_create_or_replace_roles"
+    ],
+    "RolesService.Create": [
+      "create_role"
+    ],
+    "RolesService.Delete": [
+      "delete_role"
+    ],
+    "RolesService.Descendants": [
+      "get_role_descendants"
+    ],
+    "RolesService.Get": [
+      "get_role"
+    ],
+    "RolesService.List": [
+      "list_roles"
+    ],
+    "RolesService.RemovePermissions": [
+      "remove_permissions_from_role"
+    ],
+    "RolesService.Update": [
+      "update_role"
+    ],
+    "TenantsService.AddUser": [
+      "add_user_to_tenant"
+    ],
+    "TenantsService.All": [
+      "list_tenants"
+    ],
+    "TenantsService.AllUsers": [
+      "list_tenant_users"
+    ],
+    "TenantsService.BulkCreate": [
+      "bulk_create_tenants"
+    ],
+    "TenantsService.BulkDelete": [
+      "bulk_delete_tenants"
+    ],
+    "TenantsService.Create": [
+      "create_tenant"
+    ],
+    "TenantsService.Delete": [
+      "delete_tenant"
+    ],
+    "TenantsService.Get": [
+      "get_tenant"
+    ],
+    "TenantsService.List": [
+      "list_tenants"
+    ],
+    "TenantsService.ListUsers": [
+      "list_tenant_users"
+    ],
+    "TenantsService.RemoveUser": [
+      "delete_tenant_user"
+    ],
+    "TenantsService.Update": [
+      "update_tenant"
+    ],
+    "UserAttributesService.All": [
+      "list_user_attributes"
+    ],
+    "UserAttributesService.Create": [
+      "create_user_attribute"
+    ],
+    "UserAttributesService.Delete": [
+      "delete_user_attribute"
+    ],
+    "UserAttributesService.Get": [
+      "get_user_attribute"
+    ],
+    "UserAttributesService.List": [
+      "list_user_attributes"
+    ],
+    "UserAttributesService.Update": [
+      "update_user_attribute"
+    ],
+    "UserInvitesService.All": [
+      "list_user_invites"
+    ],
+    "UserInvitesService.Approve": [
+      "approve_user_invite"
+    ],
+    "UserInvitesService.Create": [
+      "create_user_invite"
+    ],
+    "UserInvitesService.Delete": [
+      "delete_user_invite"
+    ],
+    "UserInvitesService.Get": [
+      "get_user_invite"
+    ],
+    "UserInvitesService.List": [
+      "list_user_invites"
+    ],
+    "UserInvitesService.Update": [
+      "update_user_invite"
+    ],
+    "UsersService.All": [
+      "list_users"
+    ],
+    "UsersService.AssignRole": [
+      "assign_role_to_user"
+    ],
+    "UsersService.BulkCreate": [
+      "bulk_create_users"
+    ],
+    "UsersService.BulkDelete": [
+      "bulk_delete_users"
+    ],
+    "UsersService.BulkReplace": [
+      "bulk_replace_users"
+    ],
+    "UsersService.Create": [
+      "create_user"
+    ],
+    "UsersService.Delete": [
+      "delete_user"
+    ],
+    "UsersService.Get": [
+      "get_user"
+    ],
+    "UsersService.List": [
+      "list_users"
+    ],
+    "UsersService.Sync": [
+      "replace_user"
+    ],
+    "UsersService.UnassignRole": [
+      "unassign_role_from_user"
+    ],
+    "UsersService.Update": [
+      "update_user"
+    ]
+  },
+  "facts_via_pdp": {
+    "RelationshipTuplesService.All": [
+      "GET /facts/relationship_tuples"
+    ],
+    "RelationshipTuplesService.AllDetailed": [
+      "GET /facts/relationship_tuples/detailed"
+    ],
+    "RelationshipTuplesService.BulkCreate": [
+      "POST /facts/relationship_tuples/bulk"
+    ],
+    "RelationshipTuplesService.BulkDelete": [
+      "DELETE /facts/relationship_tuples/bulk"
+    ],
+    "RelationshipTuplesService.Create": [
+      "POST /facts/relationship_tuples"
+    ],
+    "RelationshipTuplesService.Delete": [
+      "DELETE /facts/relationship_tuples"
+    ],
+    "RelationshipTuplesService.List": [
+      "GET /facts/relationship_tuples"
+    ],
+    "RelationshipTuplesService.ListDetailed": [
+      "GET /facts/relationship_tuples/detailed"
+    ],
+    "ResourceInstancesService.All": [
+      "GET /facts/resource_instances"
+    ],
+    "ResourceInstancesService.AllDetailed": [
+      "GET /facts/resource_instances/detailed"
+    ],
+    "ResourceInstancesService.BulkDelete": [
+      "DELETE /facts/bulk/resource_instances"
+    ],
+    "ResourceInstancesService.BulkReplace": [
+      "PUT /facts/bulk/resource_instances"
+    ],
+    "ResourceInstancesService.Create": [
+      "POST /facts/resource_instances"
+    ],
+    "ResourceInstancesService.Delete": [
+      "DELETE /facts/resource_instances/{instance_id}"
+    ],
+    "ResourceInstancesService.Get": [
+      "GET /facts/resource_instances/{instance_id}"
+    ],
+    "ResourceInstancesService.List": [
+      "GET /facts/resource_instances"
+    ],
+    "ResourceInstancesService.ListDetailed": [
+      "GET /facts/resource_instances/detailed"
+    ],
+    "ResourceInstancesService.Update": [
+      "PATCH /facts/resource_instances/{instance_id}"
+    ],
+    "RoleAssignmentsService.All": [
+      "GET /facts/role_assignments"
+    ],
+    "RoleAssignmentsService.AllDetailed": [
+      "GET /facts/role_assignments/detailed"
+    ],
+    "RoleAssignmentsService.Assign": [
+      "POST /facts/role_assignments"
+    ],
+    "RoleAssignmentsService.BulkAssign": [
+      "POST /facts/role_assignments/bulk"
+    ],
+    "RoleAssignmentsService.BulkUnassign": [
+      "DELETE /facts/role_assignments/bulk"
+    ],
+    "RoleAssignmentsService.List": [
+      "GET /facts/role_assignments"
+    ],
+    "RoleAssignmentsService.ListDetailed": [
+      "GET /facts/role_assignments/detailed"
+    ],
+    "RoleAssignmentsService.Unassign": [
+      "DELETE /facts/role_assignments"
+    ],
+    "TenantsService.AddUser": [
+      "POST /facts/tenants/{tenant_id}/users"
+    ],
+    "TenantsService.All": [
+      "GET /facts/tenants"
+    ],
+    "TenantsService.AllUsers": [
+      "GET /facts/tenants/{tenant_id}/users"
+    ],
+    "TenantsService.BulkCreate": [
+      "POST /facts/bulk/tenants"
+    ],
+    "TenantsService.BulkDelete": [
+      "DELETE /facts/bulk/tenants"
+    ],
+    "TenantsService.Create": [
+      "POST /facts/tenants"
+    ],
+    "TenantsService.Delete": [
+      "DELETE /facts/tenants/{tenant_id}"
+    ],
+    "TenantsService.Get": [
+      "GET /facts/tenants/{tenant_id}"
+    ],
+    "TenantsService.List": [
+      "GET /facts/tenants"
+    ],
+    "TenantsService.ListUsers": [
+      "GET /facts/tenants/{tenant_id}/users"
+    ],
+    "TenantsService.RemoveUser": [
+      "DELETE /facts/tenants/{tenant_id}/users/{user_id}"
+    ],
+    "TenantsService.Update": [
+      "PATCH /facts/tenants/{tenant_id}"
+    ],
+    "UsersService.All": [
+      "GET /facts/users"
+    ],
+    "UsersService.AssignRole": [
+      "POST /facts/users/{user_id}/roles"
+    ],
+    "UsersService.BulkCreate": [
+      "POST /facts/bulk/users"
+    ],
+    "UsersService.BulkDelete": [
+      "DELETE /facts/bulk/users"
+    ],
+    "UsersService.BulkReplace": [
+      "PUT /facts/bulk/users"
+    ],
+    "UsersService.Create": [
+      "POST /facts/users"
+    ],
+    "UsersService.Delete": [
+      "DELETE /facts/users/{user_id}"
+    ],
+    "UsersService.Get": [
+      "GET /facts/users/{user_id}"
+    ],
+    "UsersService.List": [
+      "GET /facts/users"
+    ],
+    "UsersService.Sync": [
+      "PUT /facts/users/{user_id}"
+    ],
+    "UsersService.UnassignRole": [
+      "DELETE /facts/users/{user_id}/roles"
+    ],
+    "UsersService.Update": [
+      "PATCH /facts/users/{user_id}"
+    ]
+  }
+}

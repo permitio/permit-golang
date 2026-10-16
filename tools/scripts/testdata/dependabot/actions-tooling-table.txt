@@ -1,0 +1,68 @@
+deps-dev: bump the tooling group with 5 updates
+
+Bumps the tooling group with 5 updates:
+
+| Package | From | To |
+| --- | --- | --- |
+| [actions/checkout](https://github.com/actions/checkout) | `7.0.1` | `7.0.2` |
+| [actions/setup-go](https://github.com/actions/setup-go) | `7.0.0` | `7.1.0` |
+| [actions/upload-artifact](https://github.com/actions/upload-artifact) | `5.0.0` | `5.0.1` |
+| [github/codeql-action](https://github.com/github/codeql-action) | `4.38.1` | `4.38.2` |
+| [zizmorcore/zizmor-action](https://github.com/zizmorcore/zizmor-action) | `0.5.0` | `0.5.1` |
+
+
+Updates `actions/checkout` from 7.0.1 to 7.0.2
+- [Release notes](https://github.com/actions/checkout/releases)
+- [Changelog](https://github.com/actions/checkout/blob/main/CHANGELOG.md)
+- [Commits](https://github.com/actions/checkout/compare/3d3c42e5aac5ba805825da76410c181273ba90b1...0c366fd6a839edf440554fa01a7085ccba70ac98)
+
+Updates `actions/setup-go` from 7.0.0 to 7.1.0
+- [Release notes](https://github.com/actions/setup-go/releases)
+- [Changelog](https://github.com/actions/setup-go/blob/main/CHANGELOG.md)
+- [Commits](https://github.com/actions/setup-go/compare/b7ad1dad31e06c5925ef5d2fc7ad053ef454303e...5f1a9c3e2b7d4c8a6e0f9b1d3c5a7e9f2b4d6c8a)
+
+Updates `actions/upload-artifact` from 5.0.0 to 5.0.1
+- [Release notes](https://github.com/actions/upload-artifact/releases)
+- [Changelog](https://github.com/actions/upload-artifact/blob/main/CHANGELOG.md)
+- [Commits](https://github.com/actions/upload-artifact/compare/8e4c2a6b0d9f7e5c3a1b9d7f5e3c1a9b7d5f3e1c...2a4c6e8b0d1f3a5c7e9b1d3f5a7c9e1b3d5f7a9c)
+
+Updates `github/codeql-action` from 4.38.1 to 4.38.2
+- [Release notes](https://github.com/github/codeql-action/releases)
+- [Changelog](https://github.com/github/codeql-action/blob/main/CHANGELOG.md)
+- [Commits](https://github.com/github/codeql-action/compare/1c5b675653bb5c22dbe9b12b556ec555138e09fd...2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2)
+
+Updates `zizmorcore/zizmor-action` from 0.5.0 to 0.5.1
+- [Release notes](https://github.com/zizmorcore/zizmor-action/releases)
+- [Changelog](https://github.com/zizmorcore/zizmor-action/blob/main/CHANGELOG.md)
+- [Commits](https://github.com/zizmorcore/zizmor-action/compare/6c8e0a2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a4c...9d1f3b5a7c9e1d3f5b7a9c1e3d5f7b9a1c3e5d7f)
+
+---
+updated-dependencies:
+- dependency-name: actions/checkout
+  dependency-version: 7.0.2
+  dependency-type: direct:production
+  update-type: version-update:semver-patch
+  dependency-group: tooling
+- dependency-name: actions/setup-go
+  dependency-version: 7.1.0
+  dependency-type: direct:production
+  update-type: version-update:semver-minor
+  dependency-group: tooling
+- dependency-name: actions/upload-artifact
+  dependency-version: 5.0.1
+  dependency-type: direct:production
+  update-type: version-update:semver-patch
+  dependency-group: tooling
+- dependency-name: github/codeql-action
+  dependency-version: 4.38.2
+  dependency-type: direct:production
+  update-type: version-update:semver-patch
+  dependency-group: tooling
+- dependency-name: zizmorcore/zizmor-action
+  dependency-version: 0.5.1
+  dependency-type: direct:production
+  update-type: version-update:semver-patch
+  dependency-group: tooling
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>

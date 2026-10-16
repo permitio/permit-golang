@@ -1,0 +1,30 @@
+{
+  "commit": "78500657b487c63cba5fde8247d53d3bbc83fee7",
+  "routes": [
+    {
+      "callers": [
+        {
+          "sdk_method": "Users.Get",
+          "source": "pkg/api/users.go:70"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "get_user",
+      "path": "/v2/facts/{proj_id}/{env_id}/users/{user_id}",
+      "source": "pkg/openapi/api_users.go:700"
+    },
+    {
+      "callers": [
+        {
+          "sdk_method": "Roles.List",
+          "source": "pkg/api/roles.go:34"
+        }
+      ],
+      "method": "GET",
+      "operation_id": "list_roles",
+      "path": "/v2/schema/{proj_id}/{env_id}/roles",
+      "source": "pkg/openapi/api_roles.go:650"
+    }
+  ],
+  "tag": "v1.2.8"
+}

@@ -1,0 +1,130 @@
+{
+  "components": {
+    "parameters": {
+      "description": {
+        "in": "query",
+        "name": "description",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "Note": {
+        "discriminator": {
+          "mapping": {
+            "title": "#/components/schemas/Note"
+          },
+          "propertyName": "kind"
+        },
+        "properties": {
+          "description": {
+            "default": "<b>&amp;</b>",
+            "type": "string"
+          },
+          "example": {
+            "type": "string"
+          },
+          "pattern": {
+            "pattern": "^<a&b>$",
+            "type": "string"
+          },
+          "properties": {
+            "default": {
+              "big": 9007199254740993,
+              "description": "kept: a default is data"
+            },
+            "properties": {
+              "summary": {
+                "maximum": 1e3,
+                "minimum": 1.50,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "summary": {
+            "const": "description",
+            "enum": [
+              "description",
+              "title"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "example"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "title": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/notes/{description}": {
+      "get": {
+        "operationId": "get_note",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Note"
+                }
+              }
+            },
+            "headers": {
+              "summary": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {}
+        },
+        "x-internal": {
+          "description": "kept: an extension is data"
+        }
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "description",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    }
+  },
+  "security": [
+    {
+      "title": []
+    }
+  ],
+  "tags": [
+    {
+      "externalDocs": {
+        "url": "https://example.com/notes"
+      },
+      "name": "Notes"
+    }
+  ]
+}

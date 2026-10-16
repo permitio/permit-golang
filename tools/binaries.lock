@@ -1,0 +1,112 @@
+# Release binaries that CI and the git hooks download, each pinned by version and sha256. Go
+# tools are pinned in tools/go.mod instead.
+#
+# .github/scripts/fetch-tool.sh <name> reads this file. It downloads the entry's release for the
+# machine it runs on, checks the sha256 before it unpacks anything, and installs the binary as
+# bin/<name>. It exits 2 when the lock is missing, has no complete entry for the name or this
+# platform, bin/<name> exists and is not a regular file, the download fails, the sha256 does not
+# match, or the binary cannot be unpacked or installed.
+#
+# Each entry starts with a [name] line and holds "key = value" lines. Blank lines and lines that
+# start with # are ignored.
+#
+#   version                 the release version, as the URL spells it without a "v" prefix
+#   url                     the download URL, https only; {version}, {os} and {arch} are
+#                           replaced with the version and the platform's names
+#   archive                 the download's format: tar.gz, the only one fetch-tool.sh unpacks
+#   binary                  the binary's path inside the archive, as tar -tzf lists it; the same
+#                           placeholders are replaced
+#   os.<goos>               optional: the release's name for a Go OS (darwin, linux) when it
+#                           differs, such as os.darwin = macOS
+#   arch.<goarch>           optional: the release's name for a Go architecture (amd64, arm64)
+#                           when it differs, such as arch.amd64 = x86_64
+#   sha256.<goos>/<goarch>  the download's sha256 in lowercase hex; every entry has one for each
+#                           of darwin/arm64, darwin/amd64, linux/amd64 and linux/arm64
+#
+# For example:
+#
+#   [example-tool]
+#   version = 1.2.3
+#   url = https://example.com/releases/v{version}/example-tool_{version}_{os}_{arch}.tar.gz
+#   archive = tar.gz
+#   binary = example-tool_{version}_{os}_{arch}/example-tool
+#   arch.amd64 = x86_64
+#   sha256.darwin/arm64 = <64 hex digits>
+#   sha256.darwin/amd64 = <64 hex digits>
+#   sha256.linux/amd64 = <64 hex digits>
+#   sha256.linux/arm64 = <64 hex digits>
+#
+# tools/README.md says how to add or update an entry.
+
+[gitleaks]
+version = 8.30.1
+url = https://github.com/gitleaks/gitleaks/releases/download/v{version}/gitleaks_{version}_{os}_{arch}.tar.gz
+archive = tar.gz
+binary = gitleaks
+arch.amd64 = x64
+sha256.darwin/arm64 = b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5
+sha256.darwin/amd64 = dfe101a4db2255fc85120ac7f3d25e4342c3c20cf749f2c20a18081af1952709
+sha256.linux/amd64 = 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+sha256.linux/arm64 = e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080
+
+[golangci-lint]
+version = 2.14.0
+url = https://github.com/golangci/golangci-lint/releases/download/v{version}/golangci-lint-{version}-{os}-{arch}.tar.gz
+archive = tar.gz
+binary = golangci-lint-{version}-{os}-{arch}/golangci-lint
+sha256.darwin/arm64 = 5ef5f36a7147e91dc58ef9ef4d11bb7bad5ead0c76eb6c01327a73c641d1dcc3
+sha256.darwin/amd64 = a5667c1c3536be1740133213e1e822bfb8f0d98ea12903174d6d5f635e4ed68d
+sha256.linux/amd64 = ab90aeb7b066f92a33415b638a50fe5344bbb75a0d32ad30cc248d88f81032ab
+sha256.linux/arm64 = ee7ec5f3453d15ddf106fae5a4d6c71737712348a979d1fe9cd52ec7ea299bae
+
+# Run gremlins only through tools/cmd/mutationgate, which bounds its test runs; CONTRIBUTING.md
+# says how.
+[gremlins]
+version = 0.6.0
+url = https://github.com/go-gremlins/gremlins/releases/download/v{version}/gremlins_{version}_{os}_{arch}.tar.gz
+archive = tar.gz
+binary = gremlins
+sha256.darwin/arm64 = 90de858ffad3eea5018e41cdf28747b7003966684b9420f4605eb10bdad0c301
+sha256.darwin/amd64 = 6b00937bb51a9ac994371b9835572320f1f26f4e3ffce7b212b8b85afa0a12ae
+sha256.linux/amd64 = b02a42e47935f891c9a411d68c07e211c7082609e79c2435b67c85ee9658c538
+sha256.linux/arm64 = 686542674e54559afb7e86d6994d342c19a856cfd970c315748989537936664c
+
+[prek]
+version = 0.5.5
+url = https://github.com/j178/prek/releases/download/v{version}/prek-{arch}-{os}.tar.gz
+archive = tar.gz
+binary = prek-{arch}-{os}/prek
+os.darwin = apple-darwin
+os.linux = unknown-linux-gnu
+arch.amd64 = x86_64
+arch.arm64 = aarch64
+sha256.darwin/arm64 = e4bc3132023b50020e62b073bc3147082828bf250d8b9282850c6f2bed5471b6
+sha256.darwin/amd64 = 9ea09639374a34b6f0b7d2a2567c175221cd37e44004e9b1cf591f31f9dda1b3
+sha256.linux/amd64 = 5470e4aa0fc0ad9d3de7dfaf088fb746d59c2eda3b173c06418e7c8861a520eb
+sha256.linux/arm64 = 420451a13aaf3de670dfe73b25e18dbca0d96bc3b153cc3924b9d01c3b7caa12
+
+[trivy]
+version = 0.75.0
+url = https://github.com/aquasecurity/trivy/releases/download/v{version}/trivy_{version}_{os}-{arch}.tar.gz
+archive = tar.gz
+binary = trivy
+os.darwin = macOS
+os.linux = Linux
+arch.amd64 = 64bit
+arch.arm64 = ARM64
+sha256.darwin/arm64 = 4a77108cccf8e55c8d6823e1e759939a622277e66cd0daa3c1fc621ed69e4568
+sha256.darwin/amd64 = 291edaa9778acbe4693d067b5ad60ee11570e5ac68296e85595417528ca641e4
+sha256.linux/amd64 = c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f
+sha256.linux/arm64 = a1ee9f6ffb7d112b64ff726a2a0717c21175c1114361391f4a132956751a13b3
+
+# Run only through .github/scripts/security-scan.sh, which never prints its output: with
+# --results=verified, it reports secrets that work.
+[trufflehog]
+version = 3.99.2
+url = https://github.com/trufflesecurity/trufflehog/releases/download/v{version}/trufflehog_{version}_{os}_{arch}.tar.gz
+archive = tar.gz
+binary = trufflehog
+sha256.darwin/arm64 = b612143d840b4c75d41fe40436c5932efead001951283f18c87013c4145e1675
+sha256.darwin/amd64 = c23a1b10522b8b84cfd04dc88a3a8819d3dc23b20f15e23540ba442b4b2fbeed
+sha256.linux/amd64 = 3c7b0d1dc4278294269bfdd7594bca8bb28c78da0a4a06ad202ded37b48deca4
+sha256.linux/arm64 = 929b81efffca752eafd58bf6f17bf725d354f338636a7bbbee65c086d2f9ddf3

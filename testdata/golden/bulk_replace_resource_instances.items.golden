@@ -1,0 +1,1 @@
+{"operations":[{"key":"doc-1","tenant":"tenant-a","resource":"document","attributes":{"owner":"alice"}},{"key":"","tenant":"tenant-b","resource":""}]}

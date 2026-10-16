@@ -1,0 +1,11 @@
+// want: unknown field ID in struct literal of type permit.Resource
+
+// A resource of a check has a key and no ID: the PDP reads the key of a resource instance, which
+// permit.Resource sends as key.
+package main
+
+import "github.com/permitio/permit-golang/v2"
+
+func main() {
+	_ = permit.Resource{Type: "document", ID: "2026-report"}
+}

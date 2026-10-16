@@ -1,0 +1,62 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Canonical form", "summary": "Prose", "description": "Prose.", "version": "1.0.0"},
+  "tags": [{"name": "Notes", "description": "Prose.", "externalDocs": {"description": "Prose.", "url": "https://example.com/notes"}}],
+  "security": [{"title": []}],
+  "paths": {
+    "/notes/{description}": {
+      "summary": "Prose",
+      "description": "Prose.",
+      "parameters": [
+        {"name": "description", "in": "path", "required": true, "description": "Prose.", "example": "a-note", "schema": {"type": "string", "title": "Description"}}
+      ],
+      "get": {
+        "operationId": "get_note",
+        "summary": "Prose",
+        "description": "Prose.",
+        "x-internal": {"description": "kept: an extension is data"},
+        "responses": {
+          "200": {
+            "description": "Prose.",
+            "headers": {"summary": {"description": "Prose.", "schema": {"type": "string"}}},
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Note"},
+                "example": {"title": "dropped"},
+                "examples": {"one": {"summary": "dropped", "value": {}}}
+              }
+            }
+          },
+          "404": {"description": "Prose."}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {"title": {"type": "http", "scheme": "bearer", "description": "Prose."}},
+    "parameters": {"description": {"name": "description", "in": "query", "description": "Prose.", "schema": {"type": "string"}}},
+    "examples": {"note": {"value": {"title": "dropped"}}},
+    "schemas": {
+      "Note": {
+        "title": "Note",
+        "description": "Prose.",
+        "type": "object",
+        "required": ["title", "description", "example"],
+        "properties": {
+          "title": {"type": "string", "title": "Title", "description": "Prose.", "maxLength": 100},
+          "description": {"type": "string", "title": "Description", "default": "<b>&amp;</b>"},
+          "example": {"type": "string", "examples": ["dropped"]},
+          "summary": {"type": "string", "enum": ["description", "title"], "const": "description"},
+          "properties": {
+            "type": "object",
+            "properties": {"summary": {"type": "integer", "minimum": 1.50, "maximum": 1e3}},
+            "default": {"description": "kept: a default is data", "big": 9007199254740993}
+          },
+          "pattern": {"type": "string", "pattern": "^<a&b>$"}
+        },
+        "discriminator": {"propertyName": "kind", "mapping": {"title": "#/components/schemas/Note"}},
+        "example": {"title": "dropped"}
+      }
+    }
+  }
+}

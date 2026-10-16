@@ -1,0 +1,4 @@
+{"config":{"protocol_version":"v1.0.0","scanner_name":"govulncheck","scanner_version":"v1.8.0","db":"https://vuln.go.dev","db_last_modified":"2026-10-08T22:31:09Z","go_version":"go1.27.1","scan_level":"symbol","scan_mode":"source"}}
+{"SBOM":{"go_version":"go1.27.1","modules":[{"path":"github.com/permitio/permit-golang/v2"},{"path":"stdlib","version":"v1.27.1"}],"roots":["github.com/permitio/permit-golang/v2","github.com/permitio/permit-golang/v2/models"]}}
+{"osv":{"schema_version":"1.3.1","id":"GO-2026-6599","modified":"2026-10-08T22:31:09Z","published":"2026-10-08T22:31:09Z","aliases":["CVE-2026-94448"],"summary":"Reset context tracking on consecutive template expressions in html/template","database_specific":{"url":"https://pkg.go.dev/vuln/GO-2026-6599","review_status":"REVIEWED"}}}
+{"finding":{"osv":"GO-2026-6599","fixed_version":"v1.27.2","trace":[{"module":"stdlib","version":"v1.27.1"}]}}

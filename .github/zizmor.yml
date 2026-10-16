@@ -1,0 +1,7 @@
+# zizmor configuration (https://docs.zizmor.sh/configuration/).
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # Every action, GitHub's own included, is pinned to a full commit SHA.
+        "*": hash-pin

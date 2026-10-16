@@ -1,0 +1,4 @@
+go test fuzz v1
+uint16(200)
+[]byte("{\"key\":\"\"}")
+uint(8)

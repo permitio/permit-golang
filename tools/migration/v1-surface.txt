@@ -1,0 +1,841 @@
+# The v1 API that v2 replaces or drops. apisurface's migration mode checks that MIGRATION.md
+# or tools/migration/pending.txt covers every line. apisurface wrote this file from the module
+# zip that the Go module proxy served for the version below, verified by the checksum database:
+#
+#   go -C tools build -o ../bin/apisurface ./cmd/apisurface
+#   bin/apisurface -module <module path>@<version>
+#
+# Do not edit it by hand. Each line is <block> <id> <details>, sorted by block, then id:
+#
+#   a  an exported identifier of pkg/api, pkg/config, pkg/enforcement, pkg/errors or pkg/permit:
+#      <package>.<name> for a type, function, constant or variable, <package>.<type>.<name> for
+#      a method. The details are its kind.
+#   b  an operation of the generated client in pkg/openapi, <package>.<service>.<operation>,
+#      that the packages of block a never call, or whose route the API spec does not have. The
+#      details are its route and in-spec or not-in-spec: whether the spec
+#      (tools/specs/control-plane.json) has the route.
+#   c  a type of pkg/models, models.<name>.
+#
+# module github.com/permitio/permit-golang v1.3.0 h1:pzGr1DVrotTLDjsp8jXiEAhBP+/Z5UDgk9psYBuqI2U=
+a api.ConditionSets type
+a api.ConditionSets.AssignSetPermissions method
+a api.ConditionSets.Create method
+a api.ConditionSets.Delete method
+a api.ConditionSets.Get method
+a api.ConditionSets.GetById method
+a api.ConditionSets.GetByKey method
+a api.ConditionSets.List method
+a api.ConditionSets.ListSetPermissions method
+a api.ConditionSets.UnassignSetPermissions method
+a api.ConditionSets.Update method
+a api.DefaultPerPageLimit const
+a api.Elements type
+a api.Elements.LoginAs method
+a api.Environments type
+a api.Environments.Create method
+a api.Environments.Delete method
+a api.Environments.Get method
+a api.Environments.GetById method
+a api.Environments.GetByKey method
+a api.Environments.List method
+a api.Environments.Update method
+a api.IPermitBaseApi type
+a api.IPermitBaseFactsApi type
+a api.ImplicitGrants type
+a api.ImplicitGrants.Create method
+a api.ImplicitGrants.Delete method
+a api.ImplicitGrants.UpdateConditions method
+a api.NewClientConfig func
+a api.NewConditionSetsApi func
+a api.NewElementsApi func
+a api.NewEnvironmentsApi func
+a api.NewFactsClientConfig func
+a api.NewImplicitGrantsApi func
+a api.NewPermitApiClient func
+a api.NewPermitBaseFactsApi func
+a api.NewProjectsApi func
+a api.NewProxyConfigsApi func
+a api.NewRelationshipTuplesApi func
+a api.NewResourceActionGroupsApi func
+a api.NewResourceActionsApi func
+a api.NewResourceAttributesApi func
+a api.NewResourceInstancesApi func
+a api.NewResourceRelationsApi func
+a api.NewResourceRolesApi func
+a api.NewResourcesApi func
+a api.NewRoleAssignmentsApi func
+a api.NewRolesApi func
+a api.NewTenantsApi func
+a api.NewUsersApi func
+a api.PermitApiClient type
+a api.PermitApiClient.SetContext method
+a api.PermitBaseFactsApi type
+a api.PermitBaseFactsApi.WaitForSync method
+a api.Projects type
+a api.Projects.Create method
+a api.Projects.Delete method
+a api.Projects.Get method
+a api.Projects.GetById method
+a api.Projects.GetByKey method
+a api.Projects.List method
+a api.Projects.Update method
+a api.ProxyConfigs type
+a api.ProxyConfigs.Create method
+a api.ProxyConfigs.Delete method
+a api.ProxyConfigs.Get method
+a api.ProxyConfigs.GetById method
+a api.ProxyConfigs.GetByKey method
+a api.ProxyConfigs.List method
+a api.ProxyConfigs.Update method
+a api.RelationshipTuples type
+a api.RelationshipTuples.BulkCreate method
+a api.RelationshipTuples.BulkDelete method
+a api.RelationshipTuples.Create method
+a api.RelationshipTuples.Delete method
+a api.RelationshipTuples.List method
+a api.RelationshipTuples.ListDetailed method
+a api.RelationshipTuples.WaitForSync method
+a api.ResourceActionGroups type
+a api.ResourceActionGroups.Create method
+a api.ResourceActionGroups.Delete method
+a api.ResourceActionGroups.Get method
+a api.ResourceActionGroups.GetById method
+a api.ResourceActionGroups.GetByKey method
+a api.ResourceActionGroups.List method
+a api.ResourceActionGroups.ListByAttributes method
+a api.ResourceActions type
+a api.ResourceActions.Create method
+a api.ResourceActions.Delete method
+a api.ResourceActions.Get method
+a api.ResourceActions.GetById method
+a api.ResourceActions.GetByKey method
+a api.ResourceActions.List method
+a api.ResourceActions.ListByAttributes method
+a api.ResourceActions.Update method
+a api.ResourceAttributes type
+a api.ResourceAttributes.Create method
+a api.ResourceAttributes.Delete method
+a api.ResourceAttributes.Get method
+a api.ResourceAttributes.GetById method
+a api.ResourceAttributes.GetByKey method
+a api.ResourceAttributes.List method
+a api.ResourceAttributes.Update method
+a api.ResourceInstances type
+a api.ResourceInstances.Create method
+a api.ResourceInstances.Delete method
+a api.ResourceInstances.Get method
+a api.ResourceInstances.List method
+a api.ResourceInstances.ListDetailed method
+a api.ResourceInstances.Update method
+a api.ResourceInstances.WaitForSync method
+a api.ResourceRelations type
+a api.ResourceRelations.Create method
+a api.ResourceRelations.Delete method
+a api.ResourceRelations.Get method
+a api.ResourceRelations.List method
+a api.ResourceRoles type
+a api.ResourceRoles.AddParent method
+a api.ResourceRoles.AssignPermissions method
+a api.ResourceRoles.Create method
+a api.ResourceRoles.Delete method
+a api.ResourceRoles.Get method
+a api.ResourceRoles.GetAncestors method
+a api.ResourceRoles.GetDescendants method
+a api.ResourceRoles.List method
+a api.ResourceRoles.RemoveParent method
+a api.ResourceRoles.RemovePermissions method
+a api.ResourceRoles.Update method
+a api.Resources type
+a api.Resources.Create method
+a api.Resources.Delete method
+a api.Resources.Get method
+a api.Resources.GetById method
+a api.Resources.GetByKey method
+a api.Resources.List method
+a api.Resources.Search method
+a api.Resources.Update method
+a api.RoleAssignments type
+a api.RoleAssignments.List method
+a api.RoleAssignments.ListDetailed method
+a api.RoleAssignments.WaitForSync method
+a api.RoleRead type
+a api.Roles type
+a api.Roles.AddParentRole method
+a api.Roles.AssignPermissions method
+a api.Roles.BulkAssignRole method
+a api.Roles.BulkUnAssignRole method
+a api.Roles.Create method
+a api.Roles.Delete method
+a api.Roles.Get method
+a api.Roles.GetById method
+a api.Roles.GetByKey method
+a api.Roles.List method
+a api.Roles.ListByAttributes method
+a api.Roles.RemoveParentRole method
+a api.Roles.RemovePermissions method
+a api.Roles.Update method
+a api.Tenants type
+a api.Tenants.Create method
+a api.Tenants.Delete method
+a api.Tenants.Get method
+a api.Tenants.GetById method
+a api.Tenants.GetByKey method
+a api.Tenants.List method
+a api.Tenants.ListByAttributes method
+a api.Tenants.ListTenantUsers method
+a api.Tenants.Update method
+a api.Tenants.WaitForSync method
+a api.Users type
+a api.Users.AssignResourceRole method
+a api.Users.AssignRole method
+a api.Users.Create method
+a api.Users.Delete method
+a api.Users.Get method
+a api.Users.GetAssignedRoles method
+a api.Users.GetById method
+a api.Users.GetByKey method
+a api.Users.List method
+a api.Users.SyncUser method
+a api.Users.UnassignResourceRole method
+a api.Users.UnassignRole method
+a api.Users.Update method
+a api.Users.WaitForSync method
+a api.WaitForSyncOptions type
+a config.APIKeyLevel type
+a config.DefaultApiUrl const
+a config.DefaultDebugMode const
+a config.DefaultFactsSyncTimeout const
+a config.DefaultOpaUrl const
+a config.DefaultPdpUrl const
+a config.DefaultTimeout const
+a config.EnvironmentAPIKeyLevel const
+a config.FactsSyncTimeoutPolicy type
+a config.FactsSyncTimeoutPolicyFail const
+a config.FactsSyncTimeoutPolicyIgnore const
+a config.GetApiKeyLevel func
+a config.IPermitConfig type
+a config.NewConfigBuilder func
+a config.NewPermitConfig func
+a config.NewPermitContext func
+a config.NoneAPIKeyLevel const
+a config.OrganizationAPIKeyLevel const
+a config.PermitBuilder type
+a config.PermitConfig type
+a config.PermitConfig.Build method
+a config.PermitConfig.GetApiUrl method
+a config.PermitConfig.GetContext method
+a config.PermitConfig.GetDebug method
+a config.PermitConfig.GetFactsSyncTimeout method
+a config.PermitConfig.GetFactsSyncTimeoutPolicy method
+a config.PermitConfig.GetHTTPClient method
+a config.PermitConfig.GetLogger method
+a config.PermitConfig.GetOpaUrl method
+a config.PermitConfig.GetPdpUrl method
+a config.PermitConfig.GetProxyFactsViaPDP method
+a config.PermitConfig.GetToken method
+a config.PermitConfig.WithApiUrl method
+a config.PermitConfig.WithContext method
+a config.PermitConfig.WithDebug method
+a config.PermitConfig.WithFactsSyncTimeout method
+a config.PermitConfig.WithHTTPClient method
+a config.PermitConfig.WithLogger method
+a config.PermitConfig.WithOpaUrl method
+a config.PermitConfig.WithPdpUrl method
+a config.PermitConfig.WithProxyFactsViaPDP method
+a config.PermitConfig.WithTimeout method
+a config.PermitContext type
+a config.PermitContext.GetContext method
+a config.PermitContext.GetEnvironment method
+a config.PermitContext.GetProject method
+a config.PermitContext.SetPermitContext method
+a config.PermitContextFactory func
+a config.PermitContextInterface type
+a config.ProjectAPIKeyLevel const
+a enforcement.Action type
+a enforcement.AllTenantsCheckResponse type
+a enforcement.AllowKey const
+a enforcement.AssignedRole type
+a enforcement.CheckRequest type
+a enforcement.CheckResponse type
+a enforcement.DefaultTenant const
+a enforcement.DefaultTimeout const
+a enforcement.GetUserPermissionsRequest type
+a enforcement.MapToJson func
+a enforcement.NewBulkCheckRequest func
+a enforcement.NewBulkCheckRequestParameterized func
+a enforcement.NewCheckRequest func
+a enforcement.NewGetUserPermissionsRequest func
+a enforcement.NewPermitEnforcerClient func
+a enforcement.PermitBaseEnforcer type
+a enforcement.PermitEnforcer type
+a enforcement.PermitEnforcer.AllTenantsCheck method
+a enforcement.PermitEnforcer.BulkCheck method
+a enforcement.PermitEnforcer.Check method
+a enforcement.PermitEnforcer.FilterObjects method
+a enforcement.PermitEnforcer.GetUserPermissions method
+a enforcement.PermitEnforcer.GetUserPermissionsWithOptions method
+a enforcement.Resource type
+a enforcement.Resource.Build method
+a enforcement.Resource.GetAttributes method
+a enforcement.Resource.GetContext method
+a enforcement.Resource.GetID method
+a enforcement.Resource.GetTenant method
+a enforcement.Resource.GetType method
+a enforcement.Resource.WithAttributes method
+a enforcement.Resource.WithContext method
+a enforcement.Resource.WithID method
+a enforcement.Resource.WithKey method
+a enforcement.Resource.WithTenant method
+a enforcement.ResourceBuilder func
+a enforcement.ResourceDetails type
+a enforcement.ResourceI type
+a enforcement.TenantDetails type
+a enforcement.TenantUserPermissions type
+a enforcement.User type
+a enforcement.User.Build method
+a enforcement.User.WithAttributes method
+a enforcement.User.WithEmail method
+a enforcement.User.WithFirstName method
+a enforcement.User.WithLastName method
+a enforcement.User.WithRoles method
+a enforcement.UserBuilder func
+a enforcement.UserPermissions type
+a enforcement.UserPermissionsOption type
+a enforcement.WithContext func
+a enforcement.WithResourceTypes func
+a enforcement.WithResources func
+a enforcement.WithTenants func
+a errors.API_ERROR const
+a errors.CACHE_ERROR const
+a errors.Conflict const
+a errors.ConflictMessage const
+a errors.ConnectionError const
+a errors.ConnectionErrorMessage const
+a errors.ContextError const
+a errors.ContextMessage const
+a errors.ContextUnexpectedMessage const
+a errors.DuplicateEntity const
+a errors.DuplicateEntityMessage const
+a errors.EmptyDecisionLogs const
+a errors.EmptyErrorMessage const
+a errors.ErrorCode type
+a errors.ErrorMessage type
+a errors.ErrorType type
+a errors.ForbiddenAccess const
+a errors.ForbiddenMessage const
+a errors.GENERAL_ERROR const
+a errors.HttpErrorHandle func
+a errors.INVALID_REQUEST_ERROR const
+a errors.InvalidPermissionFormat const
+a errors.InvalidPolicyRepoStatus const
+a errors.MismatchAttributesTypes const
+a errors.MissingPermissions const
+a errors.MissingRequestAttribute const
+a errors.MissingResourceAttribute const
+a errors.NewPermitConflictError func
+a errors.NewPermitConnectionError func
+a errors.NewPermitContextError func
+a errors.NewPermitContextErrorWithCause func
+a errors.NewPermitDuplicateEntityError func
+a errors.NewPermitError func
+a errors.NewPermitForbiddenError func
+a errors.NewPermitNotFoundError func
+a errors.NewPermitPaginationError func
+a errors.NewPermitUnauthorizedError func
+a errors.NewPermitUnexpectedError func
+a errors.NewPermitUnprocessableEntityError func
+a errors.NotFound const
+a errors.NotFoundMessage const
+a errors.PaginationError const
+a errors.PaginationMessage const
+a errors.PermitError type
+a errors.PermitError.Unwrap method
+a errors.TeapotError const
+a errors.Unauthorized const
+a errors.UnauthorizedMessage const
+a errors.UnexpectedError const
+a errors.UnexpectedErrorMessage const
+a errors.UnprocessableEntityError const
+a errors.UnprocessableEntityMessage const
+a errors.UnsupportedAttributeType const
+a permit.Client type
+a permit.Client.AllTenantsCheck method
+a permit.Client.BulkCheck method
+a permit.Client.Check method
+a permit.Client.FilterObjects method
+a permit.Client.GetUserPermissions method
+a permit.Client.GetUserPermissionsWithOptions method
+a permit.Client.SyncUser method
+a permit.New var
+a permit.NewPermit func
+a permit.PermitInterface type
+b openapi.APIKeysApiService.CreateApiKey POST /v2/api-key in-spec
+b openapi.APIKeysApiService.DeleteApiKey DELETE /v2/api-key/{api_key_id} in-spec
+b openapi.APIKeysApiService.GetApiKey GET /v2/api-key/{api_key_id} in-spec
+b openapi.APIKeysApiService.GetEnvironmentApiKey GET /v2/api-key/{proj_id}/{env_id} in-spec
+b openapi.APIKeysApiService.ListApiKeys GET /v2/api-key in-spec
+b openapi.AuthenticationApiService.DevLogin POST /v2/auth/devlogin not-in-spec
+b openapi.AuthenticationApiService.ElementsLoginAs POST /v2/auth/elements_login_as not-in-spec
+b openapi.AuthenticationApiService.Login POST /v2/auth/login not-in-spec
+b openapi.AuthenticationApiService.LoginElements GET /v2/auth/login_elements not-in-spec
+b openapi.AuthenticationApiService.LogoutGet GET /v2/auth/logout not-in-spec
+b openapi.AuthenticationApiService.LogoutPost POST /v2/auth/logout not-in-spec
+b openapi.AuthenticationApiService.Me GET /v2/auth/me not-in-spec
+b openapi.AuthenticationApiService.SwitchOrganization POST /v2/auth/switch_org/{org_id} not-in-spec
+b openapi.ConditionSetsApiService.GetConditionSetAncestors GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/ancestors in-spec
+b openapi.ConditionSetsApiService.GetConditionSetDescendants GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/descendants in-spec
+b openapi.ConditionSetsApiService.GetConditionSetPossibleParents GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/possible_parents not-in-spec
+b openapi.DecisionLogsApiService.ListPdpDecisionLogs GET /v2/pdps/{proj_id}/{env_id}/decision-logs/{pdp_id} not-in-spec
+b openapi.DecisionLogsIngressApiService.InsertOpaDecisionLogs POST /v2/decision-logs/ingress not-in-spec
+b openapi.DefaultApiService.Dummy GET /v2/stress/dummy not-in-spec
+b openapi.DefaultApiService.DummyDb GET /v2/stress/db/dummy not-in-spec
+b openapi.DefaultApiService.GetOrganizationV2StressDbOrganizationGet GET /v2/stress/db/organization not-in-spec
+b openapi.DefaultApiService.GetOrganizationWithAuthn GET /v2/stress/db/organization_auth not-in-spec
+b openapi.DefaultApiService.GetOrganizationWithAuthz GET /v2/stress/db/organization_authz not-in-spec
+b openapi.ElementsConfigsApiService.CreateElementsConfig POST /v2/elements/{proj_id}/{env_id}/config in-spec
+b openapi.ElementsConfigsApiService.DeleteElementsConfig DELETE /v2/elements/{proj_id}/{env_id}/{elements_config_id} in-spec
+b openapi.ElementsConfigsApiService.GetElementsConfig GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id} in-spec
+b openapi.ElementsConfigsApiService.GetEnvConfig GET /v2/elements/{proj_id}/{env_id} not-in-spec
+b openapi.ElementsConfigsApiService.ListElementsConfigs GET /v2/elements/{proj_id}/{env_id}/config in-spec
+b openapi.ElementsConfigsApiService.UpdateElementsConfig PATCH /v2/elements/{proj_id}/{env_id}/config/{elements_config_id} in-spec
+b openapi.ElementsConfigsApiService.UpdateElementsEnv PATCH /v2/elements/{proj_id}/{env_id} not-in-spec
+b openapi.ElementsDataApiService.ElementsAssignRoleToUser POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles in-spec
+b openapi.ElementsDataApiService.ElementsCreateUser POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users in-spec
+b openapi.ElementsDataApiService.ElementsDeleteUser DELETE /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id} in-spec
+b openapi.ElementsDataApiService.ElementsListRoles GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/roles in-spec
+b openapi.ElementsDataApiService.ElementsListUsers GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users in-spec
+b openapi.ElementsDataApiService.ElementsUnassignRoleFromUser DELETE /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles in-spec
+b openapi.ElementsDataApiService.SetConfigActive POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/active in-spec
+b openapi.EnvironmentsApiService.CopyEnvironment POST /v2/projects/{proj_id}/envs/{env_id}/copy in-spec
+b openapi.EnvironmentsApiService.StatsEnvironments GET /v2/projects/{proj_id}/envs/{env_id}/stats in-spec
+b openapi.InstructionsApiService.ListLanguageInstructions GET /v2/{proj_id}/{env_id}/get_instructions not-in-spec
+b openapi.MembersApiService.DeleteOrganizationMember DELETE /v2/members/{member_id} in-spec
+b openapi.MembersApiService.GetAuthenticatedMember GET /v2/members/me in-spec
+b openapi.MembersApiService.GetOrganizationMember GET /v2/members/{member_id} in-spec
+b openapi.MembersApiService.ListOrganizationMembers GET /v2/members in-spec
+b openapi.MembersApiService.UpdateOrganizationMember PATCH /v2/members/{member_id} in-spec
+b openapi.OPALDataApiService.GetAllData GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id} in-spec
+b openapi.OPALDataApiService.GetDataForRole GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/roles/{role_id} not-in-spec
+b openapi.OPALDataApiService.GetDataForSetRule GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/condition_set_rules/{user_set_id}/{resource_set_id} not-in-spec
+b openapi.OPALDataApiService.GetDataForUser GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/users/{user_id} not-in-spec
+b openapi.OrganizationsApiService.CancelInvite DELETE /v2/orgs/{org_id}/invites/{invite_id} in-spec
+b openapi.OrganizationsApiService.CreateOrganization POST /v2/orgs in-spec
+b openapi.OrganizationsApiService.DeleteOrganization DELETE /v2/orgs/{org_id} in-spec
+b openapi.OrganizationsApiService.GetActiveOrganization GET /v2/orgs/active/org in-spec
+b openapi.OrganizationsApiService.GetOrganization GET /v2/orgs/{org_id} in-spec
+b openapi.OrganizationsApiService.InviteMembersToOrganization POST /v2/orgs/{org_id}/invites in-spec
+b openapi.OrganizationsApiService.ListOrganizationInvites GET /v2/orgs/{org_id}/invites in-spec
+b openapi.OrganizationsApiService.ListOrganizations GET /v2/orgs in-spec
+b openapi.OrganizationsApiService.UpdateOrganization PATCH /v2/orgs/{org_id} in-spec
+b openapi.PolicyApiService.GetOpalDataSources GET /v2/opal/data/config not-in-spec
+b openapi.PolicyApiService.GetOpalDataSourcesOpalDataConfigGet GET /opal/data/config not-in-spec
+b openapi.PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValues POST /v2/pdps/me/config not-in-spec
+b openapi.PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValuesLegacy GET /v2/pdps/me/config not-in-spec
+b openapi.PolicyDecisionPointsApiService.GetPdpConfigValues GET /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/values in-spec
+b openapi.PolicyDecisionPointsApiService.ListPdpConfigs GET /v2/pdps/{proj_id}/{env_id}/configs in-spec
+b openapi.PolicyDecisionPointsApiService.RotatePdpApiKey POST /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/rotate-api-key in-spec
+b openapi.PolicyGitRepositoriesApiService.ActivatePolicyRepo PUT /v2/projects/{proj_id}/repos/{repo_id}/activate in-spec
+b openapi.PolicyGitRepositoriesApiService.CreatePolicyRepo POST /v2/projects/{proj_id}/repos in-spec
+b openapi.PolicyGitRepositoriesApiService.DeletePolicyRepo DELETE /v2/projects/{proj_id}/repos/{repo_id} in-spec
+b openapi.PolicyGitRepositoriesApiService.DisableActivePolicyRepo PUT /v2/projects/{proj_id}/repos/disable in-spec
+b openapi.PolicyGitRepositoriesApiService.GetActivePolicyRepo GET /v2/projects/{proj_id}/repos/active in-spec
+b openapi.PolicyGitRepositoriesApiService.GetPolicyRepo GET /v2/projects/{proj_id}/repos/{repo_id} in-spec
+b openapi.PolicyGitRepositoriesApiService.ListPolicyRepos GET /v2/projects/{proj_id}/repos in-spec
+b openapi.ResourceRolesApiService.AddParentResourceRole PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/parents/{parent_role_id} not-in-spec
+b openapi.ResourceRolesApiService.RemoveParentResourceRole DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/parents/{parent_role_id} not-in-spec
+b openapi.ResourcesApiService.ReplaceResource PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id} in-spec
+b openapi.RoleAssignmentsApiService.AssignRole POST /v2/facts/{proj_id}/{env_id}/role_assignments in-spec
+b openapi.RoleAssignmentsApiService.UnassignRole DELETE /v2/facts/{proj_id}/{env_id}/role_assignments in-spec
+b openapi.RolesApiService.AddParentRole PUT /v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id} not-in-spec
+b openapi.RolesApiService.RemoveParentRole DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id} not-in-spec
+b openapi.TenantsApiService.DeleteTenantUser DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id} in-spec
+b openapi.UserAttributesApiService.CreateUserAttribute POST /v2/schema/{proj_id}/{env_id}/users/attributes in-spec
+b openapi.UserAttributesApiService.DeleteUserAttribute DELETE /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id} in-spec
+b openapi.UserAttributesApiService.GetUserAttribute GET /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id} in-spec
+b openapi.UserAttributesApiService.ListUserAttributes GET /v2/schema/{proj_id}/{env_id}/users/attributes in-spec
+b openapi.UserAttributesApiService.UpdateUserAttribute PATCH /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id} in-spec
+b openapi.UsersApiService.ReplaceUser PUT /v2/facts/{proj_id}/{env_id}/users/{user_id} in-spec
+c models.APIKeyCreate type
+c models.APIKeyOwnerType type
+c models.APIKeyRead type
+c models.APIKeyScopeRead type
+c models.ActionBlockEditable type
+c models.ActionBlockRead type
+c models.Actor type
+c models.AddRolePermissions type
+c models.AttributeBlockEditable type
+c models.AttributeBlockRead type
+c models.AttributeType type
+c models.Attributes type
+c models.AuthMechanism type
+c models.AuthnMeAPIKeyRead type
+c models.AuthnMeMemberRead type
+c models.AuthnMeRead type
+c models.AuthnMeUserRead type
+c models.BulkRoleAssignmentReport type
+c models.BulkRoleUnAssignmentReport type
+c models.ConditionSetCreate type
+c models.ConditionSetData type
+c models.ConditionSetRead type
+c models.ConditionSetRuleCreate type
+c models.ConditionSetRuleRead type
+c models.ConditionSetRuleRemove type
+c models.ConditionSetType type
+c models.ConditionSetUpdate type
+c models.CopyEnvironmentScopeRoles type
+c models.DataSourceConfig type
+c models.DataSourceEntry type
+c models.DerivedRole type
+c models.DerivedRoleBlockEdit type
+c models.DerivedRoleBlockRead type
+c models.DerivedRoleRule type
+c models.DerivedRoleRuleCreate type
+c models.DerivedRoleRuleDelete type
+c models.DerivedRoleRuleRead type
+c models.DevLogin type
+c models.ElementsConfigCreate type
+c models.ElementsConfigRead type
+c models.ElementsConfigUpdate type
+c models.ElementsEnvRead type
+c models.ElementsEnvUpdate type
+c models.ElementsPermissionLevel type
+c models.ElementsRoleRead type
+c models.ElementsType type
+c models.ElementsUserCreate type
+c models.ElementsUserRoleCreate type
+c models.ElementsUserRoleRemove type
+c models.EmbeddedLoginRequestOutput type
+c models.EnvironmentCopy type
+c models.EnvironmentCopyScope type
+c models.EnvironmentCopyScopeFilters type
+c models.EnvironmentCopyTarget type
+c models.EnvironmentCreate type
+c models.EnvironmentRead type
+c models.EnvironmentStats type
+c models.EnvironmentUpdate type
+c models.FailedInvite type
+c models.FullData type
+c models.HTTPValidationError type
+c models.IdentityRead type
+c models.InviteAttemptResult type
+c models.InviteCreate type
+c models.InviteRead type
+c models.InviteStatus type
+c models.Jwks type
+c models.Labels type
+c models.LanguageInstructions type
+c models.LocationInner type
+c models.LoginResult type
+c models.MappedNullable type
+c models.MappingRule type
+c models.MemberAccessLevel type
+c models.MemberAccessObj type
+c models.Methods type
+c models.MultiInviteResult type
+c models.New type
+c models.NullableAPIKeyCreate type
+c models.NullableAPIKeyOwnerType type
+c models.NullableAPIKeyRead type
+c models.NullableAPIKeyScopeRead type
+c models.NullableActionBlockEditable type
+c models.NullableActionBlockRead type
+c models.NullableActor type
+c models.NullableAddRolePermissions type
+c models.NullableAttributeBlockEditable type
+c models.NullableAttributeBlockRead type
+c models.NullableAttributeType type
+c models.NullableAttributes type
+c models.NullableAuthMechanism type
+c models.NullableAuthnMeAPIKeyRead type
+c models.NullableAuthnMeMemberRead type
+c models.NullableAuthnMeRead type
+c models.NullableAuthnMeUserRead type
+c models.NullableBool type
+c models.NullableBulkRoleAssignmentReport type
+c models.NullableBulkRoleUnAssignmentReport type
+c models.NullableConditionSetCreate type
+c models.NullableConditionSetData type
+c models.NullableConditionSetRead type
+c models.NullableConditionSetRuleCreate type
+c models.NullableConditionSetRuleRead type
+c models.NullableConditionSetRuleRemove type
+c models.NullableConditionSetType type
+c models.NullableConditionSetUpdate type
+c models.NullableCopyEnvironmentScopeRoles type
+c models.NullableDataSourceConfig type
+c models.NullableDataSourceEntry type
+c models.NullableDerivedRole type
+c models.NullableDerivedRoleBlockEdit type
+c models.NullableDerivedRoleBlockRead type
+c models.NullableDerivedRoleRule type
+c models.NullableDerivedRoleRuleCreate type
+c models.NullableDerivedRoleRuleDelete type
+c models.NullableDerivedRoleRuleRead type
+c models.NullableDevLogin type
+c models.NullableElementsConfigCreate type
+c models.NullableElementsConfigRead type
+c models.NullableElementsConfigUpdate type
+c models.NullableElementsEnvRead type
+c models.NullableElementsEnvUpdate type
+c models.NullableElementsPermissionLevel type
+c models.NullableElementsRoleRead type
+c models.NullableElementsType type
+c models.NullableElementsUserCreate type
+c models.NullableElementsUserRoleCreate type
+c models.NullableElementsUserRoleRemove type
+c models.NullableEmbeddedLoginRequestOutput type
+c models.NullableEnvironmentCopy type
+c models.NullableEnvironmentCopyScope type
+c models.NullableEnvironmentCopyScopeFilters type
+c models.NullableEnvironmentCopyTarget type
+c models.NullableEnvironmentCreate type
+c models.NullableEnvironmentRead type
+c models.NullableEnvironmentStats type
+c models.NullableEnvironmentUpdate type
+c models.NullableFailedInvite type
+c models.NullableFloat32 type
+c models.NullableFloat64 type
+c models.NullableFullData type
+c models.NullableHTTPValidationError type
+c models.NullableIdentityRead type
+c models.NullableInt type
+c models.NullableInt32 type
+c models.NullableInt64 type
+c models.NullableInviteAttemptResult type
+c models.NullableInviteCreate type
+c models.NullableInviteRead type
+c models.NullableInviteStatus type
+c models.NullableJwks type
+c models.NullableLabels type
+c models.NullableLanguageInstructions type
+c models.NullableLocationInner type
+c models.NullableLoginResult type
+c models.NullableMappingRule type
+c models.NullableMemberAccessLevel type
+c models.NullableMemberAccessObj type
+c models.NullableMethods type
+c models.NullableMultiInviteResult type
+c models.NullableNew type
+c models.NullableOPADecisionLog type
+c models.NullableOPALClient type
+c models.NullableOnboardingStep type
+c models.NullableOrgMemberRead type
+c models.NullableOrgMemberUpdate type
+c models.NullableOrganizationCreate type
+c models.NullableOrganizationRead type
+c models.NullableOrganizationReadWithAPIKey type
+c models.NullableOrganizationUpdate type
+c models.NullablePDPConfigRead type
+c models.NullablePDPContext type
+c models.NullablePDPState type
+c models.NullablePDPStateUpdate type
+c models.NullablePaginatedResultAPIKeyRead type
+c models.NullablePaginatedResultConditionSetRead type
+c models.NullablePaginatedResultElementsConfigRead type
+c models.NullablePaginatedResultOPADecisionLog type
+c models.NullablePaginatedResultRelationRead type
+c models.NullablePaginatedResultResourceRoleRead type
+c models.NullablePaginatedResultUserRead type
+c models.NullableParentId type
+c models.NullablePdp type
+c models.NullablePdpValues type
+c models.NullablePermissionLevelRoleRead type
+c models.NullablePermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings type
+c models.NullablePermitBackendSchemasSchemaOpalDataDerivationSettings type
+c models.NullablePolicyRepoCreate type
+c models.NullablePolicyRepoRead type
+c models.NullablePolicyRepoStatus type
+c models.NullableProgrammingLanguage type
+c models.NullableProjectCreate type
+c models.NullableProjectRead type
+c models.NullableProjectUpdate type
+c models.NullableProxyConfigCreate type
+c models.NullableProxyConfigRead type
+c models.NullableProxyConfigUpdate type
+c models.NullableRelationBlockRead type
+c models.NullableRelationCreate type
+c models.NullableRelationRead type
+c models.NullableRelationshipTupleBlockRead type
+c models.NullableRelationshipTupleCreate type
+c models.NullableRelationshipTupleCreateBulkOperation type
+c models.NullableRelationshipTupleDelete type
+c models.NullableRelationshipTupleDeleteBulkOperation type
+c models.NullableRelationshipTupleObj type
+c models.NullableRelationshipTupleRead type
+c models.NullableRemoteConfig type
+c models.NullableRemoveRolePermissions type
+c models.NullableResourceActionCreate type
+c models.NullableResourceActionGroupCreate type
+c models.NullableResourceActionGroupRead type
+c models.NullableResourceActionRead type
+c models.NullableResourceActionUpdate type
+c models.NullableResourceAttributeCreate type
+c models.NullableResourceAttributeRead type
+c models.NullableResourceAttributeUpdate type
+c models.NullableResourceCreate type
+c models.NullableResourceId type
+c models.NullableResourceInstanceBlockRead type
+c models.NullableResourceInstanceCreate type
+c models.NullableResourceInstanceRead type
+c models.NullableResourceInstanceUpdate type
+c models.NullableResourceRead type
+c models.NullableResourceReplace type
+c models.NullableResourceRoleCreate type
+c models.NullableResourceRoleList type
+c models.NullableResourceRoleRead type
+c models.NullableResourceRoleUpdate type
+c models.NullableResourceSets type
+c models.NullableResourceUpdate type
+c models.NullableResources type
+c models.NullableResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet type
+c models.NullableResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet type
+c models.NullableRoleAssignmentCreate type
+c models.NullableRoleAssignmentDetailedRead type
+c models.NullableRoleAssignmentRead type
+c models.NullableRoleAssignmentRemove type
+c models.NullableRoleAssignmentResourceInstance type
+c models.NullableRoleAssignmentRole type
+c models.NullableRoleAssignmentTenant type
+c models.NullableRoleAssignmentUser type
+c models.NullableRoleBlock type
+c models.NullableRoleCreate type
+c models.NullableRoleData type
+c models.NullableRoleRead type
+c models.NullableRoleUpdate type
+c models.NullableRoles type
+c models.NullableSSHAuthData type
+c models.NullableScope type
+c models.NullableSettings type
+c models.NullableStatistics type
+c models.NullableString type
+c models.NullableStrippedRelationBlockRead type
+c models.NullableTargetEnv type
+c models.NullableTenantBlockRead type
+c models.NullableTenantCreate type
+c models.NullableTenantRead type
+c models.NullableTenantUpdate type
+c models.NullableTime type
+c models.NullableUserCreate type
+c models.NullableUserData type
+c models.NullableUserLoginRequestInput type
+c models.NullableUserRead type
+c models.NullableUserRole type
+c models.NullableUserRoleCreate type
+c models.NullableUserRoleRemove type
+c models.NullableUserSets type
+c models.NullableUserUpdate type
+c models.NullableValidationError type
+c models.NullableWebhookCreate type
+c models.NullableWebhookRead type
+c models.NullableWebhookUpdate type
+c models.OPADecisionLog type
+c models.OPALClient type
+c models.OnboardingStep type
+c models.OrgMemberRead type
+c models.OrgMemberUpdate type
+c models.OrganizationCreate type
+c models.OrganizationRead type
+c models.OrganizationReadWithAPIKey type
+c models.OrganizationUpdate type
+c models.PDPConfigRead type
+c models.PDPContext type
+c models.PDPState type
+c models.PDPStateUpdate type
+c models.PaginatedResultAPIKeyRead type
+c models.PaginatedResultConditionSetRead type
+c models.PaginatedResultElementsConfigRead type
+c models.PaginatedResultOPADecisionLog type
+c models.PaginatedResultRelationRead type
+c models.PaginatedResultResourceRoleRead type
+c models.PaginatedResultUserRead type
+c models.ParentId type
+c models.Pdp type
+c models.PdpValues type
+c models.PermissionLevelRoleRead type
+c models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings type
+c models.PermitBackendSchemasSchemaOpalDataDerivationSettings type
+c models.PolicyRepoCreate type
+c models.PolicyRepoRead type
+c models.PolicyRepoStatus type
+c models.ProgrammingLanguage type
+c models.ProjectCreate type
+c models.ProjectRead type
+c models.ProjectUpdate type
+c models.ProxyConfigCreate type
+c models.ProxyConfigRead type
+c models.ProxyConfigUpdate type
+c models.RelationBlockRead type
+c models.RelationCreate type
+c models.RelationRead type
+c models.RelationshipTupleBlockRead type
+c models.RelationshipTupleCreate type
+c models.RelationshipTupleCreateBulkOperation type
+c models.RelationshipTupleDelete type
+c models.RelationshipTupleDeleteBulkOperation type
+c models.RelationshipTupleObj type
+c models.RelationshipTupleRead type
+c models.RemoteConfig type
+c models.RemoveRolePermissions type
+c models.ResourceActionCreate type
+c models.ResourceActionGroupCreate type
+c models.ResourceActionGroupRead type
+c models.ResourceActionRead type
+c models.ResourceActionUpdate type
+c models.ResourceAttributeCreate type
+c models.ResourceAttributeRead type
+c models.ResourceAttributeUpdate type
+c models.ResourceCreate type
+c models.ResourceId type
+c models.ResourceInstanceBlockRead type
+c models.ResourceInstanceCreate type
+c models.ResourceInstanceRead type
+c models.ResourceInstanceUpdate type
+c models.ResourceRead type
+c models.ResourceReplace type
+c models.ResourceRoleCreate type
+c models.ResourceRoleList type
+c models.ResourceRoleRead type
+c models.ResourceRoleUpdate type
+c models.ResourceSets type
+c models.ResourceUpdate type
+c models.Resources type
+c models.ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet type
+c models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet type
+c models.RoleAssignmentCreate type
+c models.RoleAssignmentDetailedRead type
+c models.RoleAssignmentRead type
+c models.RoleAssignmentRemove type
+c models.RoleAssignmentResourceInstance type
+c models.RoleAssignmentRole type
+c models.RoleAssignmentTenant type
+c models.RoleAssignmentUser type
+c models.RoleBlock type
+c models.RoleCreate type
+c models.RoleData type
+c models.RoleRead type
+c models.RoleUpdate type
+c models.Roles type
+c models.SSHAuthData type
+c models.Scope type
+c models.Settings type
+c models.Statistics type
+c models.StrippedRelationBlockRead type
+c models.TargetEnv type
+c models.TenantBlockRead type
+c models.TenantCreate type
+c models.TenantRead type
+c models.TenantUpdate type
+c models.UrlMatchType type
+c models.UserCreate type
+c models.UserData type
+c models.UserLoginRequestInput type
+c models.UserRead type
+c models.UserRole type
+c models.UserRoleCreate type
+c models.UserRoleRemove type
+c models.UserSets type
+c models.UserUpdate type
+c models.ValidationError type
+c models.WebhookCreate type
+c models.WebhookRead type
+c models.WebhookUpdate type

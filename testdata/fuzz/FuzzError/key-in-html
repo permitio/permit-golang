@@ -1,0 +1,4 @@
+go test fuzz v1
+uint16(502)
+[]byte("<html><body>Bad Gateway </body></html>")
+uint(24)

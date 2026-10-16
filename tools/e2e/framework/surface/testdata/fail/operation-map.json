@@ -1,0 +1,16 @@
+{
+  "methods": {
+    "Client.Bulk": [
+      "bulk"
+    ],
+    "Client.Check": [
+      "check"
+    ],
+    "Client.Scope": [
+      "scope"
+    ],
+    "UsersService.List": [
+      "list_users"
+    ]
+  }
+}

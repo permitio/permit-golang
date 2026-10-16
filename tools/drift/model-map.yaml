@@ -1,0 +1,1732 @@
+# The drift map of package models, and of the decision types of the root package that the
+# requests to the PDP and its replies hold. tools/drift checks it against the types and the spec
+# snapshots in tools/specs, and apisurface reads its required flags to find a field that turned
+# required. The section Model drift of CONTRIBUTING.md says how to write a row.
+#
+# models.<Type>: a type that a schema of a spec describes, of package models or of the root
+#   package.
+#   spec: the snapshot that holds the schema: control-plane (when left out), pdp-container or
+#     pdp-cloud; or elements-login, the side schema of the login of Permit Elements, a route
+#     that the published spec does not list.
+#   schema: the name of the schema under components.schemas.
+#   also: the schemas of other specs that describe the type too, each {spec, schema} of a spec of
+#     its own, such as the schema of the cloud PDP of a decision type. The type is compared with
+#     each; the keys of the findings name the type and the spec, such as User@pdp-cloud.
+#   left_out.<property>: a property of the schemas that the type has no field for on purpose,
+#     with the reason. The round trip leaves it out of the maximal values; the comparison still
+#     finds it, for allow.yaml to accept.
+#   fields.<JSON name>: each field of a struct.
+#     required: true when the schema lists the field as required.
+#     null_policy: what the API does with null for the field in a request: accepts (the field
+#       is a models.Optional), rejects, ignores (the API reads null as the field left out), or
+#       n/a, for a type that no request holds.
+#     always_sent: optional, for a field that is not required and is no models.Optional: why a
+#       request holds the field even when it is its zero value; the field is then tagged
+#       without omitzero.
+#
+# blocks.<Type>: a type that no schema describes, which models use for their fields, with what it
+# stands for.
+models:
+  # An API key, as a create sends it and as the API returns it. A create reads null for a field
+  # that the schema does not require and that has no default as the field left out, as every
+  # create does, and rejects null for the organization and for the fields with a default: the
+  # level, the access level and the owner type. These null policies are not measured yet: the
+  # phase api.api_keys of the local harness confirms them. The model of the reply leaves out the
+  # member who created the key.
+  APIKeyCreate:
+    schema: APIKeyCreate
+    fields:
+      organization_id: {required: true, null_policy: rejects}
+      project_id: {required: false, null_policy: ignores}
+      environment_id: {required: false, null_policy: ignores}
+      object_type: {required: false, null_policy: rejects}
+      access_level: {required: false, null_policy: rejects}
+      owner_type: {required: false, null_policy: rejects}
+      name: {required: false, null_policy: ignores}
+  APIKeyOwnerType:
+    schema: APIKeyOwnerType
+  APIKeyRead:
+    schema: APIKeyRead
+    left_out:
+      created_by_member: >-
+        the member of the organization who created the key, which the SDK does not model, as
+        the members of the organization are account administration that it does not cover, and
+        the invite of a member holds its invite code
+    fields:
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: false, null_policy: n/a}
+      environment_id: {required: false, null_policy: n/a}
+      object_type: {required: false, null_policy: n/a}
+      access_level: {required: false, null_policy: n/a}
+      owner_type: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      secret: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      last_used_at: {required: false, null_policy: n/a}
+      env: {required: false, null_policy: n/a}
+      project: {required: false, null_policy: n/a}
+  APIKeyScopeRead:
+    schema: APIKeyScopeRead
+    fields:
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: false, null_policy: n/a}
+      environment_id: {required: false, null_policy: n/a}
+  # The blocks of a resource: those that a create, a replace and an update of a resource send in
+  # its actions, attributes and roles, and those that the API returns in its actions,
+  # attributes, relations and roles. A block that a request holds reads null for an optional
+  # field as the field left out, as a create does, and rejects null for a required one and for a
+  # field with a default. These null policies are not measured yet: the phase api.resources of
+  # the local harness confirms them.
+  ActionBlockEditable:
+    schema: ActionBlockEditable
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: false, null_policy: ignores}
+      description: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+  ActionBlockRead:
+    schema: ActionBlockRead
+    fields:
+      name: {required: false, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      v1compat_path: {required: false, null_policy: n/a}
+      v1compat_name: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      key: {required: false, null_policy: n/a}
+  AttributeBlockEditable:
+    schema: AttributeBlockEditable
+    fields:
+      type: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+  AttributeBlockRead:
+    schema: AttributeBlockRead
+    fields:
+      type: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      key: {required: false, null_policy: n/a}
+  AttributeType:
+    schema: AttributeType
+  # The decision types of the root package map to the schemas of the PDP container, and to those
+  # of the cloud PDP. Both PDPs read null for an optional string of a check, and for a filter of
+  # the permissions of a user, a list, as the field left out (the spec of the cloud PDP types
+  # these fields as a value or null), and both answer 422 to null for a map. The types of the
+  # replies are in no request.
+  AuthorizedUserAssignment:
+    spec: pdp-container
+    schema: AuthorizedUserAssignment
+    also:
+      - {spec: pdp-cloud, schema: AuthorizedUserAssignment}
+    fields:
+      user: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+  AuthorizedUsersRequest:
+    spec: pdp-container
+    schema: AuthorizedUsersAuthorizationQuery
+    also:
+      - {spec: pdp-cloud, schema: AuthorizedUsersQuery}
+    left_out:
+      sdk: >-
+        the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+        request of the SDK carries
+    fields:
+      action: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
+  AuthorizedUsersResult:
+    spec: pdp-container
+    schema: AuthorizedUsersResult
+    also:
+      - {spec: pdp-cloud, schema: AuthorizedUsersResult}
+    fields:
+      resource: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      users: {required: true, null_policy: n/a}
+  CheckRequest:
+    spec: pdp-container
+    schema: AuthorizationQuery
+    also:
+      - {spec: pdp-cloud, schema: AllowedQuery}
+    left_out:
+      sdk: >-
+        the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+        request of the SDK carries
+    fields:
+      user: {required: true, null_policy: rejects}
+      action: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
+  # The requests of the routes that only the PDP container serves map to the schemas of the PDP
+  # container alone: the spec of the cloud PDP does not list the routes, as the cloud PDP does not
+  # serve them, so these rows have no also.
+  CheckURLRequest:
+    spec: pdp-container
+    schema: UrlAuthorizationQuery
+    left_out:
+      sdk: >-
+        the PDP reads the language of the SDK from the X-Permit-SDK-Language header, which every
+        request of the SDK carries
+    fields:
+      user: {required: true, null_policy: rejects}
+      http_method: {required: true, null_policy: rejects}
+      url: {required: true, null_policy: rejects}
+      tenant: {required: true, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
+  # A condition set of an environment, a user set or a resource set, as a create and an update
+  # send it and as the API returns it, alone, in a list and in the list of its ancestors or its
+  # descendants. A create reads null for a field that the schema does not require and that has
+  # no default as the field left out, as every create does, and rejects null for a required one
+  # and for a field with a default; these null policies are not measured yet: the phase
+  # api.condition_sets of the local harness confirms them. No null policy of the update is
+  # measured either, so the update never sends null and its rows say rejects: the same phase
+  # measures whether null clears the description or the parent, which would make each an
+  # Optional.
+  ConditionSetCreate:
+    schema: ConditionSetCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      type: {required: false, null_policy: rejects}
+      autogenerated: {required: false, null_policy: rejects}
+      resource_id: {required: false, null_policy: ignores}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      conditions: {required: false, null_policy: rejects}
+      parent_id: {required: false, null_policy: ignores}
+  ConditionSetRead:
+    schema: ConditionSetRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      type: {required: false, null_policy: n/a}
+      autogenerated: {required: false, null_policy: n/a}
+      resource_id: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      resource: {required: false, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      conditions: {required: false, null_policy: n/a}
+      parent_id: {required: false, null_policy: n/a}
+  # A condition set rule of an environment, as a create and a delete send it and as the API
+  # returns it, in a list and in the JSON array of the reply to a create. A create and a delete
+  # reject null for a required field and for a field with a default, as every create does; these
+  # null policies are not measured yet: the phase api.condition_set_rules of the local harness
+  # confirms them.
+  ConditionSetRuleCreate:
+    schema: ConditionSetRuleCreate
+    fields:
+      user_set: {required: true, null_policy: rejects}
+      permission: {required: true, null_policy: rejects}
+      resource_set: {required: true, null_policy: rejects}
+      is_role: {required: false, null_policy: rejects}
+      is_resource: {required: false, null_policy: rejects}
+  ConditionSetRuleRead:
+    schema: ConditionSetRuleRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      user_set: {required: true, null_policy: n/a}
+      permission: {required: true, null_policy: n/a}
+      resource_set: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ConditionSetRuleRemove:
+    schema: ConditionSetRuleRemove
+    fields:
+      user_set: {required: true, null_policy: rejects}
+      permission: {required: true, null_policy: rejects}
+      resource_set: {required: true, null_policy: rejects}
+      is_role: {required: false, null_policy: rejects}
+      is_resource: {required: false, null_policy: rejects}
+  ConditionSetType:
+    schema: ConditionSetType
+  ConditionSetUpdate:
+    schema: ConditionSetUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: rejects}
+      conditions: {required: false, null_policy: rejects}
+      parent_id: {required: false, null_policy: rejects}
+  # How a user gets a role of a resource through a role on a related resource, in the
+  # granted_to of the role, as a create, a replace and an update of the resource send it and as
+  # the API returns it. Each field of a block that a request holds is required or has a
+  # default, and the API rejects null for it, as for the other blocks of a resource. These null
+  # policies are not measured yet: the phase api.resources of the local harness confirms them.
+  # DerivationSettings is also the request and the reply of an update of the conditions of the
+  # implicit grants of a role, whose null policy the phase api.implicit_grants confirms.
+  DerivationSettings:
+    schema: permit_backend__schemas__schema_derived_role_rule__DerivationSettings
+    fields:
+      no_direct_roles_on_object:
+        required: false
+        null_policy: rejects
+        always_sent: >-
+          a PUT of the conditions of the implicit grants of a role replaces them, so a request
+          sends false too, as v1's constructor of the settings did
+  DerivedRoleBlockEdit:
+    schema: DerivedRoleBlockEdit
+    fields:
+      users_with_role: {required: false, null_policy: rejects}
+      when: {required: false, null_policy: rejects}
+  DerivedRoleBlockRead:
+    schema: DerivedRoleBlockRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      users_with_role: {required: false, null_policy: n/a}
+      when: {required: false, null_policy: n/a}
+  DerivedRoleRuleCreate:
+    schema: DerivedRoleRuleCreate
+    fields:
+      role: {required: true, null_policy: rejects}
+      on_resource: {required: true, null_policy: rejects}
+      linked_by_relation: {required: true, null_policy: rejects}
+      when: {required: false, null_policy: rejects}
+  # A rule of an implicit grant of a role of a resource, as a delete of the grant sends it; a
+  # create of the grant sends DerivedRoleRuleCreate and returns DerivedRoleRuleRead, and an update
+  # of the conditions of the grants sends and returns DerivationSettings. These null policies are
+  # those of DerivedRoleRuleCreate, and are not measured yet: the phase api.implicit_grants of the
+  # local harness confirms them.
+  DerivedRoleRuleDelete:
+    schema: DerivedRoleRuleDelete
+    fields:
+      role: {required: true, null_policy: rejects}
+      on_resource: {required: true, null_policy: rejects}
+      linked_by_relation: {required: true, null_policy: rejects}
+      when: {required: false, null_policy: rejects}
+  DerivedRoleRuleRead:
+    schema: DerivedRoleRuleRead
+    fields:
+      role_id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      relation_id: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+      on_resource: {required: true, null_policy: n/a}
+      linked_by_relation: {required: true, null_policy: n/a}
+      when: {required: false, null_policy: n/a}
+  # An invite of a user to an environment, as a create and an update send it, each with every
+  # field, which the spec requires of both, and as the API returns it; its status; and the
+  # approval of an invite. A create, an update and an approval reject null for each field, which
+  # each requires. These null policies are not measured yet: the phase api.user_invites of the
+  # local harness confirms them.
+  ElementsUserInviteCreate:
+    schema: ElementsUserInviteCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      status: {required: true, null_policy: rejects}
+      email: {required: true, null_policy: rejects}
+      first_name: {required: true, null_policy: rejects}
+      last_name: {required: true, null_policy: rejects}
+      role_id: {required: true, null_policy: rejects}
+      tenant_id: {required: true, null_policy: rejects}
+      resource_instance_id: {required: true, null_policy: rejects}
+  ElementsUserInviteUpdate:
+    schema: ElementsUserInviteUpdate
+    fields:
+      key: {required: true, null_policy: rejects}
+      status: {required: true, null_policy: rejects}
+      email: {required: true, null_policy: rejects}
+      first_name: {required: true, null_policy: rejects}
+      last_name: {required: true, null_policy: rejects}
+      role_id: {required: true, null_policy: rejects}
+      tenant_id: {required: true, null_policy: rejects}
+      resource_instance_id: {required: true, null_policy: rejects}
+  ElementsUserInviteRead:
+    schema: ElementsUserInviteRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      status: {required: true, null_policy: n/a}
+      email: {required: true, null_policy: n/a}
+      first_name: {required: true, null_policy: n/a}
+      last_name: {required: true, null_policy: n/a}
+      role_id: {required: true, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      resource_instance_id: {required: true, null_policy: n/a}
+  UserInviteStatus:
+    schema: UserInviteStatus
+  ElementsUserInviteApprove:
+    schema: ElementsUserInviteApprove
+    fields:
+      email: {required: true, null_policy: rejects}
+      key: {required: true, null_policy: rejects}
+      attributes: {required: true, null_policy: rejects}
+  # A copy of an environment into another, with EnvironmentsService.Copy and CopyAsync. The API
+  # rejects null for the target and for each field with a default: the conflict strategy, the
+  # scope, each filter of the scope and each list of a filter; and reads null for the existing or
+  # the new environment of the target, which have no default, as the field left out. These null
+  # policies are not measured yet: the phase api.environments of the local harness confirms them.
+  EnvironmentCopy:
+    schema: EnvironmentCopy
+    fields:
+      target_env: {required: true, null_policy: rejects}
+      conflict_strategy: {required: false, null_policy: rejects}
+      scope: {required: false, null_policy: rejects}
+  EnvironmentCopyConflictStrategy:
+    schema: EnvironmentCopyConflictStrategy
+  EnvironmentCopyScope:
+    schema: EnvironmentCopyScope
+    fields:
+      resources: {required: false, null_policy: rejects}
+      roles: {required: false, null_policy: rejects}
+      user_sets: {required: false, null_policy: rejects}
+      resource_sets: {required: false, null_policy: rejects}
+      custom_policies: {required: false, null_policy: rejects}
+  EnvironmentCopyScopeFilters:
+    schema: EnvironmentCopyScopeFilters
+    fields:
+      include: {required: false, null_policy: rejects}
+      exclude: {required: false, null_policy: rejects}
+  EnvironmentCopyTarget:
+    schema: EnvironmentCopyTarget
+    fields:
+      existing: {required: false, null_policy: ignores}
+      new: {required: false, null_policy: ignores}
+  # An environment to create, with EnvironmentsService.Create or as a new project holds it in
+  # initial_environments, with the configuration of its JSON Web Key Sets. As in every create,
+  # the API reads null for a field that the schema does not require as the field left out, and
+  # rejects null for a required one. These null policies, like those of the projects below, are
+  # not measured yet: the phases api.environments and api.projects of the local harness confirm
+  # them.
+  EnvironmentCreate:
+    schema: EnvironmentCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      custom_branch_name: {required: false, null_policy: ignores}
+      jwks: {required: false, null_policy: ignores}
+      settings: {required: false, null_policy: ignores}
+  # An environment, as a create and an update return it, and with its email configuration as a
+  # list and a get return it; the second embeds the first.
+  EnvironmentRead:
+    schema: EnvironmentRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      avp_policy_store_id: {required: false, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      custom_branch_name: {required: false, null_policy: n/a}
+      jwks: {required: false, null_policy: n/a}
+      jwks_unpinned: {required: false, null_policy: n/a}
+      settings: {required: false, null_policy: n/a}
+  EnvironmentReadWithEmailConfig:
+    schema: EnvironmentReadWithEmailConfig
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      avp_policy_store_id: {required: false, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      custom_branch_name: {required: false, null_policy: n/a}
+      jwks: {required: false, null_policy: n/a}
+      jwks_unpinned: {required: false, null_policy: n/a}
+      settings: {required: false, null_policy: n/a}
+      email_configuration: {required: true, null_policy: n/a}
+  # The statistics of an environment, which embed the environment as EnvironmentRead with the
+  # configurations of its PDPs, whose credentials are each a Secret. The statistics leave out the
+  # members of the organization that the reply lists.
+  EnvironmentStatistics:
+    schema: EnvironmentStatistics
+    left_out:
+      members: >-
+        the members of the organization, which the SDK does not model, as the members of the
+        organization are account administration that it does not cover
+    fields:
+      roles: {required: true, null_policy: n/a}
+      users: {required: true, null_policy: n/a}
+      policies: {required: true, null_policy: n/a}
+      resources: {required: true, null_policy: n/a}
+      tenants: {required: true, null_policy: n/a}
+      has_decision_logs: {required: true, null_policy: n/a}
+      mau: {required: true, null_policy: n/a}
+  EnvironmentStats:
+    schema: EnvironmentStats
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      avp_policy_store_id: {required: false, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      custom_branch_name: {required: false, null_policy: n/a}
+      jwks: {required: false, null_policy: n/a}
+      jwks_unpinned: {required: false, null_policy: n/a}
+      settings: {required: false, null_policy: n/a}
+      pdp_configs: {required: true, null_policy: n/a}
+      stats: {required: true, null_policy: n/a}
+  # A change to an environment. An update stores null for the description, the branch name, the
+  # configuration of the JSON Web Key Sets and the settings, which clears each, and rejects null
+  # for the name, which only a value changes. These null policies are not measured yet: the phase
+  # api.environments of the local harness confirms them.
+  EnvironmentUpdate:
+    schema: EnvironmentUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      custom_branch_name: {required: false, null_policy: accepts}
+      jwks: {required: false, null_policy: accepts}
+      settings: {required: false, null_policy: accepts}
+  ErrorCode:
+    schema: ErrorCode
+  # An error of the API that a reply holds as a value, such as the error that ended a task.
+  ErrorDetails:
+    schema: ErrorDetails
+    fields:
+      id: {required: true, null_policy: n/a}
+      title: {required: true, null_policy: n/a}
+      error_code: {required: true, null_policy: n/a}
+      message: {required: false, null_policy: n/a}
+      support_link: {required: false, null_policy: n/a}
+      additional_info: {required: false, null_policy: n/a}
+  # A group of an environment, as a create sends it and as the API returns it to a create and to
+  # the assignment of a user, and to a get and in a list; the tenant of the membership of a user,
+  # as an assignment and a removal send it; and a user in a group, as the list of the users of a
+  # group returns it. A create rejects null for its required fields and for the key of the
+  # resource of the group, which has a default, as every create does, and so do an assignment and
+  # a removal for the tenant. These null policies are not measured yet: the phase api.groups of
+  # the local harness confirms them.
+  GroupCreate:
+    schema: GroupCreate
+    fields:
+      group_instance_key: {required: true, null_policy: rejects}
+      group_resource_type_key: {required: false, null_policy: rejects}
+      group_tenant: {required: true, null_policy: rejects}
+  GroupRead:
+    schema: GroupRead
+    fields:
+      assigned_roles: {required: false, null_policy: n/a}
+      group_instance_key: {required: true, null_policy: n/a}
+      group_resource_type_key: {required: false, null_policy: n/a}
+      group_tenant: {required: true, null_policy: n/a}
+      users: {required: false, null_policy: n/a}
+  GroupReadSchema:
+    schema: GroupReadSchema
+    fields:
+      group_instance_key: {required: true, null_policy: n/a}
+      group_resource_type_key: {required: false, null_policy: n/a}
+      group_tenant: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+  GroupAssignUser:
+    schema: GroupAssignUser
+    fields:
+      tenant: {required: true, null_policy: rejects}
+  GroupUserReadSchema:
+    schema: GroupUserReadSchema
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+  # A role on a resource instance, as the assignment of a role to a group and its removal send
+  # it; a group, as the assignment of a group to a group and its removal send it; and a role of a
+  # group with its resource and its resource instance, as the list of the roles of a group
+  # returns it. The assignments and the removals reject null for each field, which each requires.
+  # These null policies are not measured yet: the phase api.groups of the local harness confirms
+  # them.
+  GroupAddRole:
+    schema: GroupAddRole
+    fields:
+      role: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      resource_instance: {required: true, null_policy: rejects}
+      tenant: {required: true, null_policy: rejects}
+  GroupAssignment:
+    schema: GroupAssignment
+    fields:
+      group_instance_key: {required: true, null_policy: rejects}
+  GroupRoleReadSchema:
+    schema: GroupRoleReadSchema
+    fields:
+      key: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      resource_instance: {required: true, null_policy: n/a}
+  GroupRoleResourceReadOnly:
+    schema: GroupRoleResourceReadOnly
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+  JwksConfig:
+    schema: JwksConfig
+    fields:
+      audience: {required: false, null_policy: ignores}
+      issuer: {required: false, null_policy: ignores}
+      jwks: {required: false, null_policy: ignores}
+      ttl: {required: false, null_policy: ignores}
+      url: {required: false, null_policy: ignores}
+  JwksObj:
+    schema: JwksObj
+    fields:
+      keys: {required: true, null_policy: rejects}
+  # A role assignment that the PDP container holds, an item of the reply of its list, which only
+  # the container serves, so the row has no also.
+  LocalRoleAssignment:
+    spec: pdp-container
+    schema: RoleAssignment
+    fields:
+      user: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource_instance: {required: false, null_policy: n/a}
+  MemberAccessLevel:
+    schema: MemberAccessLevel
+  MemberAccessObj:
+    schema: MemberAccessObj
+  ObjectPermissions:
+    spec: pdp-container
+    schema: _UserPermissionsResult
+    also:
+      - {spec: pdp-cloud, schema: UserPermissionsResult}
+    fields:
+      tenant: {required: false, null_policy: n/a}
+      resource: {required: false, null_policy: n/a}
+      permissions: {required: true, null_policy: n/a}
+      roles: {required: false, null_policy: n/a}
+  # The configuration of a PDP of an environment, as the statistics of the environment hold it.
+  PDPConfigRead:
+    schema: PDPConfigRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      client_secret: {required: true, null_policy: n/a}
+      debug_audit_logs: {required: false, null_policy: n/a}
+      min_pdp_version: {required: false, null_policy: n/a}
+      num_shards: {required: false, null_policy: n/a}
+      opal_server_access_token: {required: false, null_policy: n/a}
+  # A project, as a create sends it, as an update sends it and as the API returns it. A create
+  # reads null for a field that the schema does not require as the field left out, as every
+  # create does, but for initial_environments, a list with a default, whose null it rejects. An
+  # update stores null for the description, which clears it, and rejects null for the name, the
+  # settings and the policy repository, which only a value changes. These null policies are not
+  # measured yet: the phase api.projects of the local harness confirms them.
+  ProjectCreate:
+    schema: ProjectCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      urn_namespace: {required: false, null_policy: ignores}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      settings: {required: false, null_policy: ignores}
+      active_policy_repo_id: {required: false, null_policy: ignores}
+      initial_environments: {required: false, null_policy: rejects}
+  ProjectRead:
+    schema: ProjectRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      urn_namespace: {required: false, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      settings: {required: false, null_policy: n/a}
+      active_policy_repo_id: {required: false, null_policy: n/a}
+  ProjectUpdate:
+    schema: ProjectUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      settings: {required: false, null_policy: rejects}
+      active_policy_repo_id: {required: false, null_policy: rejects}
+  # A proxy config, as a create and an update send it and as the API returns it, with its
+  # mapping rules. A create reads null for a field that the schema does not require and that has
+  # no default as the field left out, as every create does, and rejects null for the fields with
+  # a default: the mapping rules, the auth mechanism and, in a rule, its headers and
+  # should_delete. An update rejects null for each field; the API answers 422 to an update
+  # without the secret, so an update always sends it. These null policies, and the 422, are not
+  # measured yet: the phase api.proxy_config of the local harness confirms them. The secret of
+  # each is a ProxySecret, which allow.yaml says why no schema maps.
+  AuthMechanism:
+    schema: AuthMechanism
+  MappingRule:
+    schema: MappingRule
+    fields:
+      url: {required: true, null_policy: rejects}
+      url_type: {required: false, null_policy: ignores}
+      http_method: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      headers: {required: false, null_policy: rejects}
+      action: {required: false, null_policy: ignores}
+      priority: {required: false, null_policy: ignores}
+  MappingRuleUpdate:
+    schema: MappingRuleUpdate
+    fields:
+      url: {required: true, null_policy: rejects}
+      url_type: {required: false, null_policy: ignores}
+      http_method: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      headers: {required: false, null_policy: rejects}
+      action: {required: false, null_policy: ignores}
+      priority: {required: false, null_policy: ignores}
+      should_delete: {required: false, null_policy: rejects}
+  Methods:
+    schema: Methods
+  ProxyConfigCreate:
+    schema: ProxyConfigCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      auth_mechanism: {required: false, null_policy: rejects}
+      secret: {required: true, null_policy: rejects}
+      mapping_rules: {required: false, null_policy: rejects}
+  ProxyConfigRead:
+    schema: ProxyConfigRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      auth_mechanism: {required: false, null_policy: n/a}
+      secret: {required: true, null_policy: n/a}
+      mapping_rules: {required: false, null_policy: n/a}
+  ProxyConfigUpdate:
+    schema: ProxyConfigUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      auth_mechanism: {required: false, null_policy: rejects}
+      secret:
+        required: false
+        null_policy: rejects
+        always_sent: >-
+          the API answers 422 to an update of a proxy config without the secret, so an update
+          always sends it, and one whose secret sets no branch is not sent
+      mapping_rules: {required: false, null_policy: rejects}
+  RelationBlockRead:
+    schema: RelationBlockRead
+    fields:
+      description: {required: false, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      relation_name: {required: false, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+  # A relation of a resource to another resource, as a create sends it and as the API returns
+  # it. A create reads null for the description, which has no default, as the field left out, as
+  # every create does, and rejects null for its required fields. The API has no update of a
+  # relation. These null policies are not measured yet: the phase api.resource_relations of the
+  # local harness confirms them.
+  RelationCreate:
+    schema: RelationCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      subject_resource: {required: true, null_policy: rejects}
+  RelationRead:
+    schema: RelationRead
+    fields:
+      description: {required: false, null_policy: n/a}
+      subject_resource: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      object_resource_id: {required: true, null_policy: n/a}
+      object_resource: {required: true, null_policy: n/a}
+      subject_resource_id: {required: true, null_policy: n/a}
+  Resource:
+    spec: pdp-container
+    schema: Resource
+    also:
+      - {spec: pdp-cloud, schema: Resource}
+    fields:
+      type: {required: true, null_policy: rejects}
+      key: {required: false, null_policy: ignores}
+      tenant: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
+  # An action of a resource of an environment, as a create and an update send it and as the API
+  # returns it. A run of the local harness against the API measured the null policies of the
+  # update: null clears the description and the attributes, and the API rejects null for the
+  # name. A create reads null for a field that the schema does not require as the field left
+  # out, as every create does, and rejects null for a required one; these null policies are not
+  # measured yet: the phase api.resource_actions of the local harness confirms them.
+  ResourceActionCreate:
+    schema: ResourceActionCreate
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_is_built_in: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+  ResourceActionRead:
+    schema: ResourceActionRead
+    fields:
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      permission_name: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      v1compat_path: {required: false, null_policy: n/a}
+      v1compat_is_built_in: {required: false, null_policy: n/a}
+      v1compat_name: {required: false, null_policy: n/a}
+  ResourceActionUpdate:
+    schema: ResourceActionUpdate
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_is_built_in: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      attributes: {required: false, null_policy: accepts}
+  # An attribute of a resource of an environment, as a create and an update send it and as the
+  # API returns it. A run of the local harness against the API measured the null policies of the
+  # update: null clears the description, and the API rejects null for the type. A create reads
+  # null for a field that the schema does not require as the field left out, as every create
+  # does, and rejects null for a required one; these null policies are not measured yet: the
+  # phase api.resource_attributes of the local harness confirms them. The routes of the
+  # attributes of the users take and return the same models; no null policy of these routes is
+  # measured yet, and the API answers 500 to an update of a user attribute: the phase
+  # api.user_attributes of the local harness measures them.
+  ResourceAttributeCreate:
+    schema: ResourceAttributeCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      type: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+  ResourceAttributeRead:
+    schema: ResourceAttributeRead
+    fields:
+      type: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      resource_key: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      built_in: {required: true, null_policy: n/a}
+  ResourceAttributeUpdate:
+    schema: ResourceAttributeUpdate
+    fields:
+      type: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+  ResourceDetails:
+    spec: pdp-container
+    schema: _ResourceDetails
+    also:
+      - {spec: pdp-cloud, schema: ResourceDetails}
+    fields:
+      type: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  # An action group of a resource, as a create sends it, as an update changes it and as the API
+  # returns it. A create reads null for the description and the attributes, which have no
+  # default, as the fields left out, as every create does, and rejects null for its required
+  # fields and for the actions, which have a default. An update accepts null for the description,
+  # which clears it, and for the actions, and rejects null for the name and the attributes, which
+  # only a value changes. These null policies are not measured yet: the phase
+  # api.resource_action_groups of the local harness confirms them.
+  ResourceActionGroupCreate:
+    schema: ResourceActionGroupCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      actions: {required: false, null_policy: rejects}
+  ResourceActionGroupRead:
+    schema: ResourceActionGroupRead
+    fields:
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      actions: {required: false, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ResourceActionGroupUpdate:
+    schema: ResourceActionGroupUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      attributes: {required: false, null_policy: rejects}
+      actions: {required: false, null_policy: accepts}
+  # A resource of an environment, as a create, a replace and an update send it and as the API
+  # returns it. A create and a replace read null for a field that the schema does not require
+  # as the field left out, as every create does, and reject null for a required one. An update
+  # rejects null for each map, actions, type_attributes, attributes, roles and relations, and
+  # the SDK sends a map that it is given as a whole, {} for an empty one; it stores null for the
+  # description, which clears it, and rejects null for the other fields. These null policies
+  # are not measured yet: the phase api.resources of the local harness confirms them.
+  ResourceCreate:
+    schema: ResourceCreate
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_type: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      urn: {required: false, null_policy: ignores}
+      description: {required: false, null_policy: ignores}
+      actions: {required: true, null_policy: rejects}
+      type_attributes: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      roles: {required: false, null_policy: ignores}
+      relations: {required: false, null_policy: ignores}
+  ResourceRead:
+    schema: ResourceRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      urn: {required: false, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      actions: {required: false, null_policy: n/a}
+      type_attributes: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      roles: {required: false, null_policy: n/a}
+      relations: {required: false, null_policy: n/a}
+      v1compat_path: {required: false, null_policy: n/a}
+      v1compat_type: {required: false, null_policy: n/a}
+      v1compat_name: {required: false, null_policy: n/a}
+      action_groups: {required: false, null_policy: n/a}
+  ResourceReplace:
+    schema: ResourceReplace
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_type: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: true, null_policy: rejects}
+      urn: {required: false, null_policy: ignores}
+      description: {required: false, null_policy: ignores}
+      actions: {required: true, null_policy: rejects}
+      type_attributes: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      roles: {required: false, null_policy: ignores}
+      relations: {required: false, null_policy: ignores}
+  ResourceRoleRead:
+    schema: ResourceRoleRead
+    fields:
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      permissions: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      extends: {required: false, null_policy: n/a}
+      granted_to: {required: false, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ResourceUpdate:
+    schema: ResourceUpdate
+    left_out:
+      v1compat_path: the API's documentation hides it and v1 never sent it
+      v1compat_type: the API's documentation hides it and v1 never sent it
+      v1compat_name: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: false, null_policy: rejects}
+      urn: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      actions: {required: false, null_policy: rejects}
+      type_attributes: {required: false, null_policy: rejects}
+      attributes: {required: false, null_policy: rejects}
+      roles: {required: false, null_policy: rejects}
+      relations: {required: false, null_policy: rejects}
+  RoleBlockEditable:
+    schema: RoleBlockEditable
+    left_out:
+      v1compat_settings: the API's documentation hides it and v1 never sent it
+      v1compat_attributes: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      permissions: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      extends: {required: false, null_policy: ignores}
+      granted_to: {required: false, null_policy: ignores}
+  # A role assignment of an environment, as an assignment and an unassignment send it, one or in a
+  # JSON array of a bulk call, and as the API returns it, alone and in a list, also to the
+  # assignment of a role with the route of its user, and with its user, its role, its tenant and
+  # its resource instance as objects in the detailed list; the reports of a bulk assignment and a
+  # bulk unassignment, and the policy of a bulk assignment for a user that the environment does
+  # not have, which it sends in its query. An assignment reads null for the tenant and the resource
+  # instance, and an unassignment for the resource instance, which have no default, as the fields
+  # left out, as every create does, and each rejects null for the fields that it requires. These
+  # null policies are not measured yet: the phase api.role_assignments of the local harness
+  # confirms them.
+  BulkRoleAssignmentReport:
+    schema: BulkRoleAssignmentReport
+    fields:
+      assignments_created: {required: false, null_policy: n/a}
+  BulkRoleUnAssignmentReport:
+    schema: BulkRoleUnAssignmentReport
+    fields:
+      assignments_removed: {required: false, null_policy: n/a}
+  MissingUserPolicy:
+    schema: MissingUserPolicy
+  RoleAssignmentCreate:
+    schema: RoleAssignmentCreate
+    fields:
+      user: {required: true, null_policy: rejects}
+      role: {required: true, null_policy: rejects}
+      tenant: {required: false, null_policy: ignores}
+      resource_instance: {required: false, null_policy: ignores}
+  RoleAssignmentDetailedRead:
+    schema: RoleAssignmentDetailedRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+      user: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource_instance: {required: false, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+  RoleAssignmentRead:
+    schema: RoleAssignmentRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      user: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+      tenant: {required: false, null_policy: n/a}
+      resource_instance: {required: false, null_policy: n/a}
+      resource_instance_id: {required: false, null_policy: n/a}
+      user_id: {required: true, null_policy: n/a}
+      role_id: {required: true, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+  RoleAssignmentRemove:
+    schema: RoleAssignmentRemove
+    fields:
+      user: {required: true, null_policy: rejects}
+      role: {required: true, null_policy: rejects}
+      tenant: {required: true, null_policy: rejects}
+      resource_instance: {required: false, null_policy: ignores}
+  RoleAssignmentResourceInstance:
+    schema: RoleAssignmentResourceInstance
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  RoleAssignmentRole:
+    schema: RoleAssignmentRole
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      permissions: {required: false, null_policy: n/a}
+  RoleAssignmentTenant:
+    schema: RoleAssignmentTenant
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  RoleAssignmentUser:
+    schema: RoleAssignmentUser
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      email: {required: false, null_policy: n/a}
+      first_name: {required: false, null_policy: n/a}
+      last_name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  # A relationship tuple of an environment, as a create and a delete send it, one or in the JSON
+  # object of a bulk call, and as the API returns it, alone, in a list and in the detailed list,
+  # with the details of its subject, its relation, its object and its tenant. A create reads null
+  # for the tenant, which has no default, as the field left out, as every create does, and each
+  # body rejects null for the fields that it requires. These null policies are not measured yet:
+  # the phase api.relationship_tuples of the local harness confirms them.
+  RelationshipTupleCreate:
+    schema: RelationshipTupleCreate
+    fields:
+      subject: {required: true, null_policy: rejects}
+      relation: {required: true, null_policy: rejects}
+      object: {required: true, null_policy: rejects}
+      tenant: {required: false, null_policy: ignores}
+  RelationshipTupleCreateBulkOperation:
+    schema: RelationshipTupleCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  RelationshipTupleDelete:
+    schema: RelationshipTupleDelete
+    fields:
+      subject: {required: true, null_policy: rejects}
+      relation: {required: true, null_policy: rejects}
+      object: {required: true, null_policy: rejects}
+  RelationshipTupleDeleteBulkOperation:
+    schema: RelationshipTupleDeleteBulkOperation
+    fields:
+      idents: {required: true, null_policy: rejects}
+  RelationshipTupleDetailedRead:
+    schema: RelationshipTupleDetailedRead
+    fields:
+      subject: {required: true, null_policy: n/a}
+      relation: {required: true, null_policy: n/a}
+      object: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      subject_id: {required: true, null_policy: n/a}
+      relation_id: {required: true, null_policy: n/a}
+      object_id: {required: false, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      subject_details: {required: false, null_policy: n/a}
+      relation_details: {required: false, null_policy: n/a}
+      object_details: {required: false, null_policy: n/a}
+      tenant_details: {required: false, null_policy: n/a}
+  RelationshipTupleRead:
+    schema: RelationshipTupleRead
+    fields:
+      subject: {required: true, null_policy: n/a}
+      relation: {required: true, null_policy: n/a}
+      object: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      subject_id: {required: true, null_policy: n/a}
+      relation_id: {required: true, null_policy: n/a}
+      object_id: {required: false, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      subject_details: {required: false, null_policy: n/a}
+      relation_details: {required: false, null_policy: n/a}
+      object_details: {required: false, null_policy: n/a}
+      tenant_details: {required: false, null_policy: n/a}
+  ResourceInstanceBlockRead:
+    schema: ResourceInstanceBlockRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  StrippedRelationBlockRead:
+    schema: StrippedRelationBlockRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+  TenantBlockRead:
+    schema: TenantBlockRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  # A role of an environment, as a create, an update and a bulk replace send it and as the API
+  # returns it, alone and in the list of its ancestors or its descendants; the result of a bulk
+  # replace, which lists the names of the roles that it created and replaced; and the bodies of
+  # the calls that grant and remove its permissions. A run of the local harness against the API
+  # measured the null policies of the update: null clears the description, the attributes and
+  # granted_to, the API reads null for the permissions and for extends as the field left out,
+  # and keeps them, and it rejects null for the name. A create and a bulk replace read null for
+  # a field that the schema does not require as the field left out, as every create does, and
+  # reject null for a required one; these null policies are not measured yet: the phase
+  # api.roles of the local harness confirms them.
+  AddRolePermissions:
+    schema: AddRolePermissions
+    fields:
+      permissions: {required: true, null_policy: rejects}
+  RemoveRolePermissions:
+    schema: RemoveRolePermissions
+    fields:
+      permissions: {required: true, null_policy: rejects}
+  RoleCreate:
+    schema: RoleCreate
+    left_out:
+      v1compat_settings: the API's documentation hides it and v1 never sent it
+      v1compat_attributes: the API's documentation hides it and v1 never sent it
+      v1compat_is_built_in: the API's documentation hides it and v1 never sent it
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      permissions: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      extends: {required: false, null_policy: ignores}
+      granted_to: {required: false, null_policy: ignores}
+  RoleCreateBulk:
+    schema: RoleCreateBulk
+    left_out:
+      v1compat_settings: the API's documentation hides it and v1 never sent it
+      v1compat_attributes: the API's documentation hides it and v1 never sent it
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      permissions: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      extends: {required: false, null_policy: ignores}
+      granted_to: {required: false, null_policy: ignores}
+      resource: {required: false, null_policy: ignores}
+  RoleCreateBulkOperation:
+    schema: RoleCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  RoleCreateBulkOperationResult:
+    schema: RoleCreateBulkOperationResult
+    fields:
+      created: {required: true, null_policy: n/a}
+      updated: {required: true, null_policy: n/a}
+  RoleList:
+    schema: RoleList
+    fields:
+      roles: {required: true, null_policy: n/a}
+  RoleRead:
+    schema: RoleRead
+    fields:
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      permissions: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      extends: {required: false, null_policy: n/a}
+      granted_to: {required: false, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      v1compat_settings: {required: false, null_policy: n/a}
+      v1compat_attributes: {required: false, null_policy: n/a}
+  RoleUpdate:
+    schema: RoleUpdate
+    left_out:
+      v1compat_settings: the API's documentation hides it and v1 never sent it
+      v1compat_attributes: the API's documentation hides it and v1 never sent it
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      permissions: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: accepts}
+      extends: {required: false, null_policy: ignores}
+      granted_to: {required: false, null_policy: accepts}
+  # A role of a resource, as a create and an update send it, and the list of its ancestors or its
+  # descendants; the API returns a role of a resource as ResourceRoleRead, and the calls that
+  # grant and remove its permissions send AddRolePermissions and RemoveRolePermissions. No run of
+  # the local harness has measured null policies for the routes of the roles of a resource yet:
+  # the update takes those that a run measured for the update of a role of an environment, and
+  # the create reads null for a field that the schema does not require as the field left out, as
+  # every create does, and rejects null for a required one. The two update schemas differ:
+  # ResourceRoleUpdate.extends has a default of [] in the spec, which RoleUpdate.extends lacks,
+  # and RoleUpdate has v1compat_* fields, which ResourceRoleUpdate lacks. The phase
+  # api.resource_roles of the local harness confirms these policies, and that a PATCH without
+  # extends keeps the role's extends.
+  ResourceRoleCreate:
+    schema: ResourceRoleCreate
+    left_out:
+      v1compat_settings: the API's documentation hides it and v1 never sent it
+      v1compat_attributes: the API's documentation hides it and v1 never sent it
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      permissions: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: ignores}
+      extends: {required: false, null_policy: ignores}
+      granted_to: {required: false, null_policy: ignores}
+  ResourceRoleList:
+    schema: ResourceRoleList
+    fields:
+      roles: {required: true, null_policy: n/a}
+  ResourceRoleUpdate:
+    schema: ResourceRoleUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      permissions: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: accepts}
+      extends: {required: false, null_policy: ignores}
+      granted_to: {required: false, null_policy: accepts}
+  # The task of a copy of an environment that runs in the background, as the copy and the result
+  # of its task return it.
+  TaskResultEnvironmentRead:
+    schema: TaskResult_EnvironmentRead_
+    fields:
+      task_id: {required: true, null_policy: n/a}
+      status: {required: true, null_policy: n/a}
+      result: {required: false, null_policy: n/a}
+      error: {required: false, null_policy: n/a}
+  TaskStatus:
+    schema: TaskStatus
+  # A tenant of an environment, as a create sends it, as an update changes it and as the API
+  # returns it. The local harness measured the update: the API rejects null for the name with a
+  # 422, clears the description for null, stores null for the attributes, which a read then
+  # returns as null, and stores {} as {}. A create reads null for the description, which has no
+  # default, as the field left out, and rejects null for its required fields and for the
+  # attributes, which have a default, as every create does; these null policies of the create
+  # are not measured yet: the phase api.tenants of the local harness confirms them.
+  TenantCreate:
+    schema: TenantCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      name: {required: true, null_policy: rejects}
+      description: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: rejects}
+  TenantRead:
+    schema: TenantRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      last_action_at: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  TenantUpdate:
+    schema: TenantUpdate
+    fields:
+      name: {required: false, null_policy: rejects}
+      description: {required: false, null_policy: accepts}
+      attributes: {required: false, null_policy: accepts}
+  # The bodies of the bulk create and the bulk delete of the tenants, which hold the tenants in
+  # operations and their keys or IDs in idents, each of which they require and, as an array
+  # without a default, reject null for. These null policies are not measured yet: the phase
+  # api.bulk of the local harness confirms them.
+  TenantCreateBulkOperation:
+    schema: TenantCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  TenantDeleteBulkOperation:
+    schema: TenantDeleteBulkOperation
+    fields:
+      idents: {required: true, null_policy: rejects}
+  TenantDetails:
+    spec: pdp-container
+    schema: _TenantDetails
+    also:
+      - {spec: pdp-cloud, schema: TenantDetails}
+    fields:
+      key: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  User:
+    spec: pdp-container
+    schema: User
+    also:
+      - {spec: pdp-cloud, schema: User}
+    left_out:
+      firstName: >-
+        the SDK sends first_name, which every PDP reads; the PDP container also reads firstName
+      lastName: >-
+        the SDK sends last_name, which every PDP reads; the PDP container also reads lastName
+    fields:
+      key: {required: true, null_policy: rejects}
+      first_name: {required: false, null_policy: ignores}
+      last_name: {required: false, null_policy: ignores}
+      email: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: rejects}
+  UserPermissionsRequest:
+    spec: pdp-container
+    schema: UserPermissionsQuery
+    also:
+      - {spec: pdp-cloud, schema: UserPermissionsQuery}
+    fields:
+      user: {required: true, null_policy: rejects}
+      tenants: {required: false, null_policy: ignores}
+      resources: {required: false, null_policy: ignores}
+      resource_types: {required: false, null_policy: ignores}
+      context: {required: false, null_policy: rejects}
+  UserTenantsRequest:
+    spec: pdp-container
+    schema: UserTenantsQuery
+    fields:
+      user: {required: true, null_policy: rejects}
+      context: {required: false, null_policy: rejects}
+  # A user of an environment, as a create and a sync, the PUT of a user, send it, as an update
+  # changes it and as the API returns it, with the tenants in which it has a role. A create and a
+  # sync read null for a field that the schema does not require and that has no default as the
+  # field left out, as every create does, and reject null for a required field and for the
+  # attributes, which have a default; so does a role that they assign. An update accepts null for
+  # each of its fields, which clears the email and the names and stores null for the attributes.
+  # The assignment of a role to a user sends UserRoleCreate and returns RoleAssignmentRead, and
+  # its unassignment sends UserRoleRemove, which reads null for the resource instance, which has
+  # no default, as the field left out, and rejects null for the role and the tenant, which it
+  # requires. These null policies are not measured yet: the phase api.users of the local harness
+  # confirms them. The model of the reply leaves out roles, which the spec marks deprecated:
+  # associated_tenants holds the roles of the user in each tenant. The add of a user to a tenant
+  # sends UserCreate, as a create does, and returns UserRead, which the list of the users in a
+  # tenant returns too.
+  UserCreate:
+    schema: UserCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      email: {required: false, null_policy: ignores}
+      first_name: {required: false, null_policy: ignores}
+      last_name: {required: false, null_policy: ignores}
+      attributes: {required: false, null_policy: rejects}
+      role_assignments: {required: false, null_policy: ignores}
+  UserRoleCreate:
+    schema: UserRoleCreate
+    fields:
+      role: {required: true, null_policy: rejects}
+      tenant: {required: false, null_policy: ignores}
+      resource_instance: {required: false, null_policy: ignores}
+  UserRoleRemove:
+    schema: UserRoleRemove
+    fields:
+      role: {required: true, null_policy: rejects}
+      tenant: {required: true, null_policy: rejects}
+      resource_instance: {required: false, null_policy: ignores}
+  UserUpdate:
+    schema: UserUpdate
+    fields:
+      email: {required: false, null_policy: accepts}
+      first_name: {required: false, null_policy: accepts}
+      last_name: {required: false, null_policy: accepts}
+      attributes: {required: false, null_policy: accepts}
+  UserRead:
+    schema: UserRead
+    left_out:
+      roles: >-
+        the spec marks it deprecated; associated_tenants holds the roles of the user in each
+        tenant
+    fields:
+      key: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      email: {required: false, null_policy: n/a}
+      first_name: {required: false, null_policy: n/a}
+      last_name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      associated_tenants: {required: false, null_policy: n/a}
+  UserInTenant:
+    schema: UserInTenant
+    fields:
+      tenant: {required: true, null_policy: n/a}
+      roles: {required: true, null_policy: n/a}
+      status: {required: true, null_policy: n/a}
+      resource_instance_roles: {required: false, null_policy: n/a}
+  UserResourceInstanceRole:
+    schema: UserResourceInstanceRole
+    fields:
+      resource_instance: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      role: {required: true, null_policy: n/a}
+  UserStatus:
+    schema: UserStatus
+  # The bodies of the bulk create, the bulk replace and the bulk delete of the users, which hold
+  # the users in operations and their keys or IDs in idents, each of which they require and, as
+  # an array without a default, reject null for. These null policies are not measured yet: the
+  # phase api.bulk of the local harness confirms them.
+  UserCreateBulkOperation:
+    schema: UserCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  UserReplaceBulkOperation:
+    schema: UserReplaceBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  UserDeleteBulkOperation:
+    schema: UserDeleteBulkOperation
+    fields:
+      idents: {required: true, null_policy: rejects}
+  # A resource instance of an environment, as a create sends it, as an update changes its
+  # attributes and as the API returns it, with its relationship tuples in the detailed list. A
+  # create rejects null for its required fields and for the attributes, which have a default, as
+  # every create does. An update accepts null for the attributes, which it stores as null. These
+  # null policies are not measured yet: the phase api.resource_instances of the local harness
+  # confirms them.
+  ResourceInstanceCreate:
+    schema: ResourceInstanceCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      tenant: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      attributes: {required: false, null_policy: rejects}
+  ResourceInstanceUpdate:
+    schema: ResourceInstanceUpdate
+    fields:
+      attributes: {required: false, null_policy: accepts}
+  # The bodies of the bulk replace and the bulk delete of the resource instances, which hold the
+  # instances in operations and their identifiers in idents, each of which they require and, as
+  # an array without a default, reject null for. These null policies are not measured yet: the
+  # phase api.bulk of the local harness confirms them.
+  ResourceInstanceCreateBulkOperation:
+    schema: ResourceInstanceCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  ResourceInstanceDeleteBulkOperation:
+    schema: ResourceInstanceDeleteBulkOperation
+    fields:
+      idents: {required: true, null_policy: rejects}
+  ResourceInstanceRead:
+    schema: ResourceInstanceRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      relationships: {required: false, null_policy: n/a}
+  ResourceInstanceDetailedRead:
+    schema: ResourceInstanceDetailedRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      resource_id: {required: true, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      relationships: {required: true, null_policy: n/a}
+  RelationshipTupleBlockRead:
+    schema: RelationshipTupleBlockRead
+    fields:
+      subject: {required: true, null_policy: n/a}
+      relation: {required: true, null_policy: n/a}
+      object: {required: true, null_policy: n/a}
+  # A refresh of the data of the PDPs of an environment, as a refresh sends it, and the reply to
+  # it. A refresh reads null for its fields, which the schema does not require and give no
+  # default, as the field left out. These null policies are not measured yet: the phase api.pdps
+  # of the local harness confirms them.
+  PDPDataRefreshRequest:
+    schema: PDPDataRefreshRequest
+    fields:
+      reason: {required: false, null_policy: ignores}
+      shard_id: {required: false, null_policy: ignores}
+  PDPDataRefreshResponse:
+    schema: PDPDataRefreshResponse
+    fields:
+      update_id: {required: true, null_policy: n/a}
+      pdp_ids: {required: true, null_policy: n/a}
+  # The audit logs of an environment, as a list and a get return them, with the objects that the
+  # decision of a log names, and the filters of a list. The SDK sends none of them in a request.
+  AuditLogQueryType:
+    schema: AuditLogQueryType
+  AuditLogSortKey:
+    schema: AuditLogSortKey
+  AuditLogModel:
+    schema: AuditLogModel
+    fields:
+      id: {required: true, null_policy: n/a}
+      timestamp: {required: true, null_policy: n/a}
+      created_at: {required: false, null_policy: n/a}
+      query: {required: false, null_policy: n/a}
+      user_key: {required: false, null_policy: n/a}
+      user_email: {required: false, null_policy: n/a}
+      user_name: {required: false, null_policy: n/a}
+      resource_type: {required: false, null_policy: n/a}
+      tenant: {required: false, null_policy: n/a}
+      action: {required: false, null_policy: n/a}
+      decision: {required: false, null_policy: n/a}
+      reason: {required: false, null_policy: n/a}
+      org_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      env_id: {required: true, null_policy: n/a}
+      pdp_config_id: {required: false, null_policy: n/a}
+      input: {required: false, null_policy: n/a}
+      result: {required: false, null_policy: n/a}
+      context: {required: false, null_policy: n/a}
+      raw_data: {required: false, null_policy: n/a}
+  DetailedAuditLogModel:
+    schema: DetailedAuditLogModel
+    fields:
+      id: {required: true, null_policy: n/a}
+      timestamp: {required: true, null_policy: n/a}
+      created_at: {required: false, null_policy: n/a}
+      query: {required: false, null_policy: n/a}
+      user_key: {required: false, null_policy: n/a}
+      user_email: {required: false, null_policy: n/a}
+      user_name: {required: false, null_policy: n/a}
+      resource_type: {required: false, null_policy: n/a}
+      tenant: {required: false, null_policy: n/a}
+      action: {required: false, null_policy: n/a}
+      decision: {required: false, null_policy: n/a}
+      reason: {required: false, null_policy: n/a}
+      org_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      env_id: {required: true, null_policy: n/a}
+      pdp_config_id: {required: false, null_policy: n/a}
+      input: {required: false, null_policy: n/a}
+      result: {required: false, null_policy: n/a}
+      context: {required: false, null_policy: n/a}
+      raw_data: {required: true, null_policy: n/a}
+      objects: {required: false, null_policy: n/a}
+  AuditLogObjectsModel:
+    schema: AuditLogObjectsModel
+    fields:
+      id: {required: false, null_policy: n/a}
+      created_at: {required: false, null_policy: n/a}
+      organization_object: {required: false, null_policy: n/a}
+      project_object: {required: false, null_policy: n/a}
+      environment_object: {required: false, null_policy: n/a}
+      pdp_config_object: {required: false, null_policy: n/a}
+      user_object: {required: false, null_policy: n/a}
+      action_object: {required: false, null_policy: n/a}
+      resource_type_object: {required: false, null_policy: n/a}
+      tenant_object: {required: false, null_policy: n/a}
+  UserObj:
+    schema: UserObj
+    left_out:
+      roles: >-
+        the relationship tuples of the roles of the user, which the API's documentation hides,
+        and whose keys assigned_roles holds
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      email: {required: false, null_policy: n/a}
+      first_name: {required: false, null_policy: n/a}
+      last_name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      assigned_roles: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ActionObj:
+    schema: ActionObj
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ResourceTypeObj:
+    schema: ResourceTypeObj
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ResourceAttributes:
+    schema: ResourceAttributes
+    fields:
+      key: {required: true, null_policy: n/a}
+      type: {required: true, null_policy: n/a}
+  TenantObj:
+    schema: TenantObj
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  # The login of Permit Elements as a user, as the SDK sends it, and the reply to it, whose
+  # schemas are those of the side schema elements-login, as the published spec does not list the
+  # route. The login rejects null for the user and the tenant, which the schema requires. This
+  # null policy is not measured yet: the phase api.elements of the local harness confirms it.
+  UserLoginRequestInput:
+    spec: elements-login
+    schema: UserLoginRequestInput
+    fields:
+      user_id: {required: true, null_policy: rejects}
+      tenant_id: {required: true, null_policy: rejects}
+  EmbeddedLoginRequestOutput:
+    spec: elements-login
+    schema: EmbeddedLoginRequestOutput
+    fields:
+      error: {required: false, null_policy: n/a}
+      error_code: {required: false, null_policy: n/a}
+      token: {required: false, null_policy: n/a}
+      extra: {required: false, null_policy: n/a}
+      redirect_url: {required: true, null_policy: n/a}
+      element_bearer_token: {required: false, null_policy: n/a}
+blocks:
+  Attributes: a JSON object of any values, the schema of an object that lists no property
+  Optional: a field that the API accepts null for, whose null policy is accepts
+  ProxySecret: >-
+    the credential of a proxy config, one of three branches, Basic, Bearer or Headers, the schema
+    of anyOf an object of strings and two strings, which encodes as the marker of package redact
+    in place of each credential
+  Secret: >-
+    a credential that the API returns, the schema of a string, which encodes as the marker of
+    package redact in place of the credential
+  StringOrList: >-
+    one string or a list of strings, in the form that it was made or decoded in, the schema of
+    anyOf a string and an array of strings
+  Time: a timestamp, the schema of a string of format date-time
+  URLType: >-
+    the type of the URL of a mapping rule, an open enum of the inline enum of url_type of
+    MappingRule and MappingRuleUpdate, which no schema of components.schemas names

@@ -1,0 +1,6 @@
+go test fuzz v1
+string("\xff")
+string("\xfe\xff")
+int64(2)
+float64(0.30000000000000004)
+bool(true)

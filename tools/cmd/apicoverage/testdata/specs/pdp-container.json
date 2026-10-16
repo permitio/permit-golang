@@ -1,0 +1,38 @@
+{
+  "openapi": "3.1.0",
+  "paths": {
+    "/allowed": {
+      "post": {
+        "operationId": "is_allowed_allowed_post",
+        "tags": [
+          "Authorization API"
+        ]
+      }
+    },
+    "/callbacks": {
+      "get": {
+        "operationId": "list_callbacks_callbacks_get",
+        "tags": [
+          "Callbacks"
+        ]
+      }
+    },
+    "/facts/users": {
+      "post": {
+        "operationId": "create_user_facts_users_post",
+        "tags": [
+          "Local Facts API"
+        ]
+      }
+    },
+    "/policy-store/config": {
+      "get": {
+        "deprecated": true,
+        "operationId": "get_policy_store_details_policy_store_config_get",
+        "tags": [
+          "Policy Store"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"__tenant:tenant-a":{"tenant":{"key":"tenant-a","attributes":{"plan":"pro"}},"permissions":["document:read"],"roles":["viewer"]},"document:2026-report":{"tenant":{"key":"tenant-a","attributes":{}},"resource":{"type":"document","key":"2026-report","attributes":{"pages":12}},"permissions":["document:read","document:update"],"roles":["editor"]}}

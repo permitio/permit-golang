@@ -1,0 +1,1534 @@
+# The exported API of the permit and models packages, one declaration per line, sorted.
+# TestSurfaceSnapshot (surface_test.go) fails when the source differs. After an intended
+# change, rewrite this file with go test -run TestSurfaceSnapshot -update . and review the
+# diff.
+models: const APIKeyOwnerTypeElements APIKeyOwnerType = "elements"
+models: const APIKeyOwnerTypeMember APIKeyOwnerType = "member"
+models: const APIKeyOwnerTypeNATSPDPConfig APIKeyOwnerType = "nats_pdp_config"
+models: const APIKeyOwnerTypePDPConfig APIKeyOwnerType = "pdp_config"
+models: const AttributeTypeArray AttributeType = "array"
+models: const AttributeTypeBool AttributeType = "bool"
+models: const AttributeTypeJSON AttributeType = "json"
+models: const AttributeTypeNumber AttributeType = "number"
+models: const AttributeTypeObject AttributeType = "object"
+models: const AttributeTypeObjectArray AttributeType = "object_array"
+models: const AttributeTypeString AttributeType = "string"
+models: const AttributeTypeTime AttributeType = "time"
+models: const AuditLogQueryTypeCheck AuditLogQueryType = "check"
+models: const AuditLogQueryTypeGetAuthorizedUsers AuditLogQueryType = "get_authorized_users"
+models: const AuditLogQueryTypeGetUserPermissions AuditLogQueryType = "get_user_permissions"
+models: const AuditLogQueryTypeNone AuditLogQueryType = "none"
+models: const AuditLogSortKeyNone AuditLogSortKey = "None"
+models: const AuditLogSortKeyTimestamp AuditLogSortKey = "timestamp"
+models: const AuthMechanismBasic AuthMechanism = "Basic"
+models: const AuthMechanismBearer AuthMechanism = "Bearer"
+models: const AuthMechanismHeaders AuthMechanism = "Headers"
+models: const ConditionSetTypeResourceSet ConditionSetType = "resourceset"
+models: const ConditionSetTypeUserSet ConditionSetType = "userset"
+models: const EnvironmentCopyConflictStrategyFail EnvironmentCopyConflictStrategy = "fail"
+models: const EnvironmentCopyConflictStrategyOverwrite EnvironmentCopyConflictStrategy = "overwrite"
+models: const ErrorCodeConcurrentOperationDisallowed ErrorCode = "CONCURRENT_OPERATION_DISALLOWED"
+models: const ErrorCodeDuplicateEntity ErrorCode = "DUPLICATE_ENTITY"
+models: const ErrorCodeEmptyDecisionLogs ErrorCode = "EMPTY_DECISION_LOGS"
+models: const ErrorCodeForbiddenAccess ErrorCode = "FORBIDDEN_ACCESS"
+models: const ErrorCodeInvalidInput ErrorCode = "INVALID_INPUT"
+models: const ErrorCodeInvalidJWKSConfiguration ErrorCode = "INVALID_JWKS_CONFIGURATION"
+models: const ErrorCodeInvalidPermissionFormat ErrorCode = "INVALID_PERMISSION_FORMAT"
+models: const ErrorCodeInvalidPolicyRepoStatus ErrorCode = "INVALID_POLICY_REPO_STATUS"
+models: const ErrorCodeInvalidSMTPConfiguration ErrorCode = "INVALID_SMTP_CONFIGURATION"
+models: const ErrorCodeMismatchAttributesTypes ErrorCode = "MISMATCH_ATTRIBUTES_TYPES"
+models: const ErrorCodeMismatchRelationType ErrorCode = "MISMATCH_RELATION_TYPE"
+models: const ErrorCodeMismatchResourceInstancesTenants ErrorCode = "MISMATCH_RESOURCE_INSTANCES_TENANTS"
+models: const ErrorCodeMissingPermissions ErrorCode = "MISSING_PERMISSIONS"
+models: const ErrorCodeMissingRequestAttribute ErrorCode = "MISSING_REQUEST_ATTRIBUTE"
+models: const ErrorCodeMissingResourceAttribute ErrorCode = "MISSING_RESOURCE_ATTRIBUTE"
+models: const ErrorCodeNotFound ErrorCode = "NOT_FOUND"
+models: const ErrorCodePaginationSizeOverreached ErrorCode = "PAGINATION_SIZE_OVERREACHED"
+models: const ErrorCodeUnauthorized ErrorCode = "UNAUTHORIZED"
+models: const ErrorCodeUnexpectedError ErrorCode = "UNEXPECTED_ERROR"
+models: const ErrorCodeUnsupportedAttributeType ErrorCode = "UNSUPPORTED_ATTRIBUTE_TYPE"
+models: const MemberAccessLevelAdmin MemberAccessLevel = "admin"
+models: const MemberAccessLevelNoAccess MemberAccessLevel = "no_access"
+models: const MemberAccessLevelRead MemberAccessLevel = "read"
+models: const MemberAccessLevelWrite MemberAccessLevel = "write"
+models: const MemberAccessObjEnv MemberAccessObj = "env"
+models: const MemberAccessObjOrg MemberAccessObj = "org"
+models: const MemberAccessObjProject MemberAccessObj = "project"
+models: const MethodsDelete Methods = "delete"
+models: const MethodsGet Methods = "get"
+models: const MethodsHead Methods = "head"
+models: const MethodsOptions Methods = "options"
+models: const MethodsPatch Methods = "patch"
+models: const MethodsPost Methods = "post"
+models: const MethodsPut Methods = "put"
+models: const MissingUserPolicyCreate MissingUserPolicy = "create"
+models: const MissingUserPolicyFail MissingUserPolicy = "fail"
+models: const MissingUserPolicyIgnore MissingUserPolicy = "ignore"
+models: const TaskStatusCancelled TaskStatus = "cancelled"
+models: const TaskStatusFailure TaskStatus = "failure"
+models: const TaskStatusProcessing TaskStatus = "processing"
+models: const TaskStatusSuccess TaskStatus = "success"
+models: const URLTypeRegex URLType = "regex"
+models: const UserInviteStatusApproved UserInviteStatus = "approved"
+models: const UserInviteStatusPending UserInviteStatus = "pending"
+models: const UserStatusActive UserStatus = "active"
+models: const UserStatusPending UserStatus = "pending"
+models: func NewSecret(credential string) Secret
+models: func Null[T any]() Optional[T]
+models: func OneString(s string) StringOrList
+models: func Some[T any](v T) Optional[T]
+models: func StringList(values ...string) StringOrList
+models: method (*Attributes) UnmarshalJSON(data []byte) error
+models: method (*Optional[T]) UnmarshalJSON(data []byte) error
+models: method (*ProxyConfigRead) UnmarshalJSON(data []byte) error
+models: method (*ProxySecret) UnmarshalJSON(data []byte) error
+models: method (*ResourceRoleList) UnmarshalJSON(data []byte) error
+models: method (*RoleList) UnmarshalJSON(data []byte) error
+models: method (*Secret) UnmarshalJSON(data []byte) error
+models: method (*StringOrList) UnmarshalJSON(data []byte) error
+models: method (*Time) UnmarshalJSON(data []byte) error
+models: method (*Time) UnmarshalText(text []byte) error
+models: method (APIKeyOwnerType) Known() bool
+models: method (AttributeType) Known() bool
+models: method (AuditLogQueryType) Known() bool
+models: method (AuditLogSortKey) Known() bool
+models: method (AuthMechanism) Known() bool
+models: method (ConditionSetType) Known() bool
+models: method (EnvironmentCopyConflictStrategy) Known() bool
+models: method (ErrorCode) Known() bool
+models: method (MemberAccessLevel) Known() bool
+models: method (MemberAccessObj) Known() bool
+models: method (Methods) Known() bool
+models: method (MissingUserPolicy) Known() bool
+models: method (Optional[T]) Get() (T, bool)
+models: method (Optional[T]) IsNull() bool
+models: method (Optional[T]) IsZero() bool
+models: method (Optional[T]) MarshalJSON() ([]byte, error)
+models: method (ProxySecret) Format(f fmt.State, _ rune)
+models: method (ProxySecret) GoString() string
+models: method (ProxySecret) MarshalJSON() ([]byte, error)
+models: method (ProxySecret) String() string
+models: method (Secret) Equal(other Secret) bool
+models: method (Secret) Format(f fmt.State, verb rune)
+models: method (Secret) GoString() string
+models: method (Secret) LogValue() slog.Value
+models: method (Secret) MarshalJSON() ([]byte, error)
+models: method (Secret) String() string
+models: method (Secret) Value() string
+models: method (StringOrList) Equal(other StringOrList) bool
+models: method (StringOrList) IsList() bool
+models: method (StringOrList) IsZero() bool
+models: method (StringOrList) MarshalJSON() ([]byte, error)
+models: method (StringOrList) Values() []string
+models: method (TaskStatus) Known() bool
+models: method (URLType) Known() bool
+models: method (UserInviteStatus) Known() bool
+models: method (UserStatus) Known() bool
+models: type APIKeyCreate struct
+models: type APIKeyCreate struct, AccessLevel MemberAccessLevel
+models: type APIKeyCreate struct, EnvironmentID string
+models: type APIKeyCreate struct, Name string
+models: type APIKeyCreate struct, ObjectType MemberAccessObj
+models: type APIKeyCreate struct, OrganizationID string
+models: type APIKeyCreate struct, OwnerType APIKeyOwnerType
+models: type APIKeyCreate struct, ProjectID string
+models: type APIKeyOwnerType string
+models: type APIKeyRead struct
+models: type APIKeyRead struct, AccessLevel MemberAccessLevel
+models: type APIKeyRead struct, CreatedAt Time
+models: type APIKeyRead struct, Env *EnvironmentRead
+models: type APIKeyRead struct, EnvironmentID string
+models: type APIKeyRead struct, ID string
+models: type APIKeyRead struct, LastUsedAt Time
+models: type APIKeyRead struct, Name string
+models: type APIKeyRead struct, ObjectType MemberAccessObj
+models: type APIKeyRead struct, OrganizationID string
+models: type APIKeyRead struct, OwnerType APIKeyOwnerType
+models: type APIKeyRead struct, Project *ProjectRead
+models: type APIKeyRead struct, ProjectID string
+models: type APIKeyRead struct, Secret Secret
+models: type APIKeyScopeRead struct
+models: type APIKeyScopeRead struct, EnvironmentID string
+models: type APIKeyScopeRead struct, OrganizationID string
+models: type APIKeyScopeRead struct, ProjectID string
+models: type ActionBlockEditable struct
+models: type ActionBlockEditable struct, Attributes Attributes
+models: type ActionBlockEditable struct, Description string
+models: type ActionBlockEditable struct, Name string
+models: type ActionBlockRead struct
+models: type ActionBlockRead struct, Attributes Attributes
+models: type ActionBlockRead struct, Description string
+models: type ActionBlockRead struct, ID string
+models: type ActionBlockRead struct, Key string
+models: type ActionBlockRead struct, Name string
+models: type ActionBlockRead struct, V1CompatName string
+models: type ActionBlockRead struct, V1CompatPath string
+models: type ActionObj struct
+models: type ActionObj struct, CreatedAt Time
+models: type ActionObj struct, ID string
+models: type ActionObj struct, Key string
+models: type ActionObj struct, Name string
+models: type ActionObj struct, UpdatedAt Time
+models: type AddRolePermissions struct
+models: type AddRolePermissions struct, Permissions []string
+models: type AttributeBlockEditable struct
+models: type AttributeBlockEditable struct, Description string
+models: type AttributeBlockEditable struct, Type AttributeType
+models: type AttributeBlockRead struct
+models: type AttributeBlockRead struct, Description string
+models: type AttributeBlockRead struct, ID string
+models: type AttributeBlockRead struct, Key string
+models: type AttributeBlockRead struct, Type AttributeType
+models: type AttributeType string
+models: type Attributes map[string]any
+models: type AuditLogModel struct
+models: type AuditLogModel struct, Action string
+models: type AuditLogModel struct, Context json.RawMessage
+models: type AuditLogModel struct, CreatedAt Time
+models: type AuditLogModel struct, Decision *bool
+models: type AuditLogModel struct, EnvironmentID string
+models: type AuditLogModel struct, ID string
+models: type AuditLogModel struct, Input json.RawMessage
+models: type AuditLogModel struct, OrganizationID string
+models: type AuditLogModel struct, PDPConfigID string
+models: type AuditLogModel struct, ProjectID string
+models: type AuditLogModel struct, Query string
+models: type AuditLogModel struct, RawData json.RawMessage
+models: type AuditLogModel struct, Reason string
+models: type AuditLogModel struct, ResourceType string
+models: type AuditLogModel struct, Result json.RawMessage
+models: type AuditLogModel struct, Tenant string
+models: type AuditLogModel struct, Timestamp Time
+models: type AuditLogModel struct, UserEmail string
+models: type AuditLogModel struct, UserKey string
+models: type AuditLogModel struct, UserName string
+models: type AuditLogObjectsModel struct
+models: type AuditLogObjectsModel struct, ActionObject *ActionObj
+models: type AuditLogObjectsModel struct, CreatedAt Time
+models: type AuditLogObjectsModel struct, EnvironmentObject json.RawMessage
+models: type AuditLogObjectsModel struct, ID string
+models: type AuditLogObjectsModel struct, OrganizationObject json.RawMessage
+models: type AuditLogObjectsModel struct, PDPConfigObject json.RawMessage
+models: type AuditLogObjectsModel struct, ProjectObject json.RawMessage
+models: type AuditLogObjectsModel struct, ResourceTypeObject *ResourceTypeObj
+models: type AuditLogObjectsModel struct, TenantObject *TenantObj
+models: type AuditLogObjectsModel struct, UserObject *UserObj
+models: type AuditLogQueryType string
+models: type AuditLogSortKey string
+models: type AuthMechanism string
+models: type BulkRoleAssignmentReport struct
+models: type BulkRoleAssignmentReport struct, AssignmentsCreated int
+models: type BulkRoleUnAssignmentReport struct
+models: type BulkRoleUnAssignmentReport struct, AssignmentsRemoved int
+models: type ConditionSetCreate struct
+models: type ConditionSetCreate struct, Autogenerated bool
+models: type ConditionSetCreate struct, Conditions Attributes
+models: type ConditionSetCreate struct, Description string
+models: type ConditionSetCreate struct, Key string
+models: type ConditionSetCreate struct, Name string
+models: type ConditionSetCreate struct, ParentID string
+models: type ConditionSetCreate struct, ResourceID string
+models: type ConditionSetCreate struct, Type ConditionSetType
+models: type ConditionSetRead struct
+models: type ConditionSetRead struct, Autogenerated bool
+models: type ConditionSetRead struct, Conditions Attributes
+models: type ConditionSetRead struct, CreatedAt Time
+models: type ConditionSetRead struct, Description string
+models: type ConditionSetRead struct, EnvironmentID string
+models: type ConditionSetRead struct, ID string
+models: type ConditionSetRead struct, Key string
+models: type ConditionSetRead struct, Name string
+models: type ConditionSetRead struct, OrganizationID string
+models: type ConditionSetRead struct, ParentID string
+models: type ConditionSetRead struct, ProjectID string
+models: type ConditionSetRead struct, Resource *ResourceRead
+models: type ConditionSetRead struct, ResourceID string
+models: type ConditionSetRead struct, Type ConditionSetType
+models: type ConditionSetRead struct, UpdatedAt Time
+models: type ConditionSetRuleCreate struct
+models: type ConditionSetRuleCreate struct, IsResource bool
+models: type ConditionSetRuleCreate struct, IsRole bool
+models: type ConditionSetRuleCreate struct, Permission string
+models: type ConditionSetRuleCreate struct, ResourceSet string
+models: type ConditionSetRuleCreate struct, UserSet string
+models: type ConditionSetRuleRead struct
+models: type ConditionSetRuleRead struct, CreatedAt Time
+models: type ConditionSetRuleRead struct, EnvironmentID string
+models: type ConditionSetRuleRead struct, ID string
+models: type ConditionSetRuleRead struct, Key string
+models: type ConditionSetRuleRead struct, OrganizationID string
+models: type ConditionSetRuleRead struct, Permission string
+models: type ConditionSetRuleRead struct, ProjectID string
+models: type ConditionSetRuleRead struct, ResourceSet string
+models: type ConditionSetRuleRead struct, UpdatedAt Time
+models: type ConditionSetRuleRead struct, UserSet string
+models: type ConditionSetRuleRemove struct
+models: type ConditionSetRuleRemove struct, IsResource bool
+models: type ConditionSetRuleRemove struct, IsRole bool
+models: type ConditionSetRuleRemove struct, Permission string
+models: type ConditionSetRuleRemove struct, ResourceSet string
+models: type ConditionSetRuleRemove struct, UserSet string
+models: type ConditionSetType string
+models: type ConditionSetUpdate struct
+models: type ConditionSetUpdate struct, Conditions Attributes
+models: type ConditionSetUpdate struct, Description string
+models: type ConditionSetUpdate struct, Name string
+models: type ConditionSetUpdate struct, ParentID string
+models: type DerivationSettings struct
+models: type DerivationSettings struct, NoDirectRolesOnObject bool
+models: type DerivedRoleBlockEdit struct
+models: type DerivedRoleBlockEdit struct, UsersWithRole []DerivedRoleRuleCreate
+models: type DerivedRoleBlockEdit struct, When *DerivationSettings
+models: type DerivedRoleBlockRead struct
+models: type DerivedRoleBlockRead struct, ID string
+models: type DerivedRoleBlockRead struct, UsersWithRole []DerivedRoleRuleRead
+models: type DerivedRoleBlockRead struct, When *DerivationSettings
+models: type DerivedRoleRuleCreate struct
+models: type DerivedRoleRuleCreate struct, LinkedByRelation string
+models: type DerivedRoleRuleCreate struct, OnResource string
+models: type DerivedRoleRuleCreate struct, Role string
+models: type DerivedRoleRuleCreate struct, When *DerivationSettings
+models: type DerivedRoleRuleDelete struct
+models: type DerivedRoleRuleDelete struct, LinkedByRelation string
+models: type DerivedRoleRuleDelete struct, OnResource string
+models: type DerivedRoleRuleDelete struct, Role string
+models: type DerivedRoleRuleDelete struct, When *DerivationSettings
+models: type DerivedRoleRuleRead struct
+models: type DerivedRoleRuleRead struct, LinkedByRelation string
+models: type DerivedRoleRuleRead struct, OnResource string
+models: type DerivedRoleRuleRead struct, RelationID string
+models: type DerivedRoleRuleRead struct, ResourceID string
+models: type DerivedRoleRuleRead struct, Role string
+models: type DerivedRoleRuleRead struct, RoleID string
+models: type DerivedRoleRuleRead struct, When *DerivationSettings
+models: type DetailedAuditLogModel struct
+models: type DetailedAuditLogModel struct, Action string
+models: type DetailedAuditLogModel struct, Context json.RawMessage
+models: type DetailedAuditLogModel struct, CreatedAt Time
+models: type DetailedAuditLogModel struct, Decision *bool
+models: type DetailedAuditLogModel struct, EnvironmentID string
+models: type DetailedAuditLogModel struct, ID string
+models: type DetailedAuditLogModel struct, Input json.RawMessage
+models: type DetailedAuditLogModel struct, Objects AuditLogObjectsModel
+models: type DetailedAuditLogModel struct, OrganizationID string
+models: type DetailedAuditLogModel struct, PDPConfigID string
+models: type DetailedAuditLogModel struct, ProjectID string
+models: type DetailedAuditLogModel struct, Query string
+models: type DetailedAuditLogModel struct, RawData json.RawMessage
+models: type DetailedAuditLogModel struct, Reason string
+models: type DetailedAuditLogModel struct, ResourceType string
+models: type DetailedAuditLogModel struct, Result json.RawMessage
+models: type DetailedAuditLogModel struct, Tenant string
+models: type DetailedAuditLogModel struct, Timestamp Time
+models: type DetailedAuditLogModel struct, UserEmail string
+models: type DetailedAuditLogModel struct, UserKey string
+models: type DetailedAuditLogModel struct, UserName string
+models: type ElementsUserInviteApprove struct
+models: type ElementsUserInviteApprove struct, Attributes Attributes
+models: type ElementsUserInviteApprove struct, Email string
+models: type ElementsUserInviteApprove struct, Key string
+models: type ElementsUserInviteCreate struct
+models: type ElementsUserInviteCreate struct, Email string
+models: type ElementsUserInviteCreate struct, FirstName string
+models: type ElementsUserInviteCreate struct, Key string
+models: type ElementsUserInviteCreate struct, LastName string
+models: type ElementsUserInviteCreate struct, ResourceInstanceID string
+models: type ElementsUserInviteCreate struct, RoleID string
+models: type ElementsUserInviteCreate struct, Status UserInviteStatus
+models: type ElementsUserInviteCreate struct, TenantID string
+models: type ElementsUserInviteRead struct
+models: type ElementsUserInviteRead struct, CreatedAt Time
+models: type ElementsUserInviteRead struct, Email string
+models: type ElementsUserInviteRead struct, EnvironmentID string
+models: type ElementsUserInviteRead struct, FirstName string
+models: type ElementsUserInviteRead struct, ID string
+models: type ElementsUserInviteRead struct, Key string
+models: type ElementsUserInviteRead struct, LastName string
+models: type ElementsUserInviteRead struct, OrganizationID string
+models: type ElementsUserInviteRead struct, ProjectID string
+models: type ElementsUserInviteRead struct, ResourceInstanceID string
+models: type ElementsUserInviteRead struct, RoleID string
+models: type ElementsUserInviteRead struct, Status UserInviteStatus
+models: type ElementsUserInviteRead struct, TenantID string
+models: type ElementsUserInviteRead struct, UpdatedAt Time
+models: type ElementsUserInviteUpdate struct
+models: type ElementsUserInviteUpdate struct, Email string
+models: type ElementsUserInviteUpdate struct, FirstName string
+models: type ElementsUserInviteUpdate struct, Key string
+models: type ElementsUserInviteUpdate struct, LastName string
+models: type ElementsUserInviteUpdate struct, ResourceInstanceID string
+models: type ElementsUserInviteUpdate struct, RoleID string
+models: type ElementsUserInviteUpdate struct, Status UserInviteStatus
+models: type ElementsUserInviteUpdate struct, TenantID string
+models: type EmbeddedLoginRequestOutput struct
+models: type EmbeddedLoginRequestOutput struct, ElementBearerToken Secret
+models: type EmbeddedLoginRequestOutput struct, Error string
+models: type EmbeddedLoginRequestOutput struct, ErrorCode int
+models: type EmbeddedLoginRequestOutput struct, Extra string
+models: type EmbeddedLoginRequestOutput struct, RedirectURL Secret
+models: type EmbeddedLoginRequestOutput struct, Token Secret
+models: type EnvironmentCopy struct
+models: type EnvironmentCopy struct, ConflictStrategy EnvironmentCopyConflictStrategy
+models: type EnvironmentCopy struct, Scope EnvironmentCopyScope
+models: type EnvironmentCopy struct, TargetEnv EnvironmentCopyTarget
+models: type EnvironmentCopyConflictStrategy string
+models: type EnvironmentCopyScope struct
+models: type EnvironmentCopyScope struct, CustomPolicies EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScope struct, ResourceSets EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScope struct, Resources EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScope struct, Roles EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScope struct, UserSets EnvironmentCopyScopeFilters
+models: type EnvironmentCopyScopeFilters struct
+models: type EnvironmentCopyScopeFilters struct, Exclude []string
+models: type EnvironmentCopyScopeFilters struct, Include []string
+models: type EnvironmentCopyTarget struct
+models: type EnvironmentCopyTarget struct, Existing string
+models: type EnvironmentCopyTarget struct, New *EnvironmentCreate
+models: type EnvironmentCreate struct
+models: type EnvironmentCreate struct, CustomBranchName string
+models: type EnvironmentCreate struct, Description string
+models: type EnvironmentCreate struct, JWKS *JwksConfig
+models: type EnvironmentCreate struct, Key string
+models: type EnvironmentCreate struct, Name string
+models: type EnvironmentCreate struct, Settings Attributes
+models: type EnvironmentRead struct
+models: type EnvironmentRead struct, AVPPolicyStoreID string
+models: type EnvironmentRead struct, CreatedAt Time
+models: type EnvironmentRead struct, CustomBranchName string
+models: type EnvironmentRead struct, Description string
+models: type EnvironmentRead struct, ID string
+models: type EnvironmentRead struct, JWKS *JwksConfig
+models: type EnvironmentRead struct, JWKSUnpinned []string
+models: type EnvironmentRead struct, Key string
+models: type EnvironmentRead struct, Name string
+models: type EnvironmentRead struct, OrganizationID string
+models: type EnvironmentRead struct, ProjectID string
+models: type EnvironmentRead struct, Settings Attributes
+models: type EnvironmentRead struct, UpdatedAt Time
+models: type EnvironmentReadWithEmailConfig struct
+models: type EnvironmentReadWithEmailConfig struct, EmailConfiguration string
+models: type EnvironmentReadWithEmailConfig struct, embedded EnvironmentRead
+models: type EnvironmentStatistics struct
+models: type EnvironmentStatistics struct, HasDecisionLogs bool
+models: type EnvironmentStatistics struct, MAU int
+models: type EnvironmentStatistics struct, Policies int
+models: type EnvironmentStatistics struct, Resources int
+models: type EnvironmentStatistics struct, Roles int
+models: type EnvironmentStatistics struct, Tenants int
+models: type EnvironmentStatistics struct, Users int
+models: type EnvironmentStats struct
+models: type EnvironmentStats struct, PDPConfigs []PDPConfigRead
+models: type EnvironmentStats struct, Stats EnvironmentStatistics
+models: type EnvironmentStats struct, embedded EnvironmentRead
+models: type EnvironmentUpdate struct
+models: type EnvironmentUpdate struct, CustomBranchName Optional[string]
+models: type EnvironmentUpdate struct, Description Optional[string]
+models: type EnvironmentUpdate struct, JWKS Optional[JwksConfig]
+models: type EnvironmentUpdate struct, Name string
+models: type EnvironmentUpdate struct, Settings Optional[Attributes]
+models: type ErrorCode string
+models: type ErrorDetails struct
+models: type ErrorDetails struct, AdditionalInfo any
+models: type ErrorDetails struct, ErrorCode ErrorCode
+models: type ErrorDetails struct, ID string
+models: type ErrorDetails struct, Message string
+models: type ErrorDetails struct, SupportLink string
+models: type ErrorDetails struct, Title string
+models: type GroupAddRole struct
+models: type GroupAddRole struct, Resource string
+models: type GroupAddRole struct, ResourceInstance string
+models: type GroupAddRole struct, Role string
+models: type GroupAddRole struct, Tenant string
+models: type GroupAssignUser struct
+models: type GroupAssignUser struct, Tenant string
+models: type GroupAssignment struct
+models: type GroupAssignment struct, GroupInstanceKey string
+models: type GroupCreate struct
+models: type GroupCreate struct, GroupInstanceKey string
+models: type GroupCreate struct, GroupResourceTypeKey string
+models: type GroupCreate struct, GroupTenant string
+models: type GroupRead struct
+models: type GroupRead struct, AssignedRoles []string
+models: type GroupRead struct, GroupInstanceKey string
+models: type GroupRead struct, GroupResourceTypeKey string
+models: type GroupRead struct, GroupTenant string
+models: type GroupRead struct, Users []string
+models: type GroupReadSchema struct
+models: type GroupReadSchema struct, GroupInstanceKey string
+models: type GroupReadSchema struct, GroupResourceTypeKey string
+models: type GroupReadSchema struct, GroupTenant string
+models: type GroupReadSchema struct, ID string
+models: type GroupRoleReadSchema struct
+models: type GroupRoleReadSchema struct, Key string
+models: type GroupRoleReadSchema struct, Resource GroupRoleResourceReadOnly
+models: type GroupRoleReadSchema struct, ResourceInstance GroupRoleResourceReadOnly
+models: type GroupRoleResourceReadOnly struct
+models: type GroupRoleResourceReadOnly struct, ID string
+models: type GroupRoleResourceReadOnly struct, Key string
+models: type GroupUserReadSchema struct
+models: type GroupUserReadSchema struct, ID string
+models: type GroupUserReadSchema struct, Key string
+models: type JwksConfig struct
+models: type JwksConfig struct, Audience StringOrList
+models: type JwksConfig struct, Issuer StringOrList
+models: type JwksConfig struct, JWKS *JwksObj
+models: type JwksConfig struct, TTL int
+models: type JwksConfig struct, URL string
+models: type JwksObj struct
+models: type JwksObj struct, Keys []Attributes
+models: type MappingRule struct
+models: type MappingRule struct, Action string
+models: type MappingRule struct, HTTPMethod Methods
+models: type MappingRule struct, Headers map[string]string
+models: type MappingRule struct, Priority *int
+models: type MappingRule struct, Resource string
+models: type MappingRule struct, URL string
+models: type MappingRule struct, URLType URLType
+models: type MappingRuleUpdate struct
+models: type MappingRuleUpdate struct, Action string
+models: type MappingRuleUpdate struct, HTTPMethod Methods
+models: type MappingRuleUpdate struct, Headers map[string]string
+models: type MappingRuleUpdate struct, Priority *int
+models: type MappingRuleUpdate struct, Resource string
+models: type MappingRuleUpdate struct, ShouldDelete bool
+models: type MappingRuleUpdate struct, URL string
+models: type MappingRuleUpdate struct, URLType URLType
+models: type MemberAccessLevel string
+models: type MemberAccessObj string
+models: type Methods string
+models: type MissingUserPolicy string
+models: type Optional[T any] struct
+models: type PDPConfigRead struct
+models: type PDPConfigRead struct, ClientSecret Secret
+models: type PDPConfigRead struct, DebugAuditLogs *bool
+models: type PDPConfigRead struct, EnvironmentID string
+models: type PDPConfigRead struct, ID string
+models: type PDPConfigRead struct, MinPDPVersion string
+models: type PDPConfigRead struct, Name string
+models: type PDPConfigRead struct, NumShards int
+models: type PDPConfigRead struct, OPALServerAccessToken Secret
+models: type PDPConfigRead struct, OrganizationID string
+models: type PDPConfigRead struct, ProjectID string
+models: type PDPDataRefreshRequest struct
+models: type PDPDataRefreshRequest struct, Reason string
+models: type PDPDataRefreshRequest struct, ShardID *int
+models: type PDPDataRefreshResponse struct
+models: type PDPDataRefreshResponse struct, PDPIDs []string
+models: type PDPDataRefreshResponse struct, UpdateID string
+models: type ProjectCreate struct
+models: type ProjectCreate struct, ActivePolicyRepoID string
+models: type ProjectCreate struct, Description string
+models: type ProjectCreate struct, InitialEnvironments []EnvironmentCreate
+models: type ProjectCreate struct, Key string
+models: type ProjectCreate struct, Name string
+models: type ProjectCreate struct, Settings Attributes
+models: type ProjectCreate struct, URNNamespace string
+models: type ProjectRead struct
+models: type ProjectRead struct, ActivePolicyRepoID string
+models: type ProjectRead struct, CreatedAt Time
+models: type ProjectRead struct, Description string
+models: type ProjectRead struct, ID string
+models: type ProjectRead struct, Key string
+models: type ProjectRead struct, Name string
+models: type ProjectRead struct, OrganizationID string
+models: type ProjectRead struct, Settings Attributes
+models: type ProjectRead struct, URNNamespace string
+models: type ProjectRead struct, UpdatedAt Time
+models: type ProjectUpdate struct
+models: type ProjectUpdate struct, ActivePolicyRepoID string
+models: type ProjectUpdate struct, Description Optional[string]
+models: type ProjectUpdate struct, Name string
+models: type ProjectUpdate struct, Settings Attributes
+models: type ProxyConfigCreate struct
+models: type ProxyConfigCreate struct, AuthMechanism AuthMechanism
+models: type ProxyConfigCreate struct, Key string
+models: type ProxyConfigCreate struct, MappingRules []MappingRule
+models: type ProxyConfigCreate struct, Name string
+models: type ProxyConfigCreate struct, Secret ProxySecret
+models: type ProxyConfigRead struct
+models: type ProxyConfigRead struct, AuthMechanism AuthMechanism
+models: type ProxyConfigRead struct, CreatedAt Time
+models: type ProxyConfigRead struct, EnvironmentID string
+models: type ProxyConfigRead struct, ID string
+models: type ProxyConfigRead struct, Key string
+models: type ProxyConfigRead struct, MappingRules []MappingRule
+models: type ProxyConfigRead struct, Name string
+models: type ProxyConfigRead struct, OrganizationID string
+models: type ProxyConfigRead struct, ProjectID string
+models: type ProxyConfigRead struct, Secret ProxySecret
+models: type ProxyConfigRead struct, UpdatedAt Time
+models: type ProxyConfigUpdate struct
+models: type ProxyConfigUpdate struct, AuthMechanism AuthMechanism
+models: type ProxyConfigUpdate struct, MappingRules []MappingRuleUpdate
+models: type ProxyConfigUpdate struct, Name string
+models: type ProxyConfigUpdate struct, Secret ProxySecret
+models: type ProxySecret struct
+models: type ProxySecret struct, Basic *Secret
+models: type ProxySecret struct, Bearer *Secret
+models: type ProxySecret struct, Headers map[string]Secret
+models: type RelationBlockRead struct
+models: type RelationBlockRead struct, Description string
+models: type RelationBlockRead struct, RelationName string
+models: type RelationBlockRead struct, Resource string
+models: type RelationBlockRead struct, ResourceID string
+models: type RelationCreate struct
+models: type RelationCreate struct, Description string
+models: type RelationCreate struct, Key string
+models: type RelationCreate struct, Name string
+models: type RelationCreate struct, SubjectResource string
+models: type RelationRead struct
+models: type RelationRead struct, CreatedAt Time
+models: type RelationRead struct, Description string
+models: type RelationRead struct, EnvironmentID string
+models: type RelationRead struct, ID string
+models: type RelationRead struct, Key string
+models: type RelationRead struct, Name string
+models: type RelationRead struct, ObjectResource string
+models: type RelationRead struct, ObjectResourceID string
+models: type RelationRead struct, OrganizationID string
+models: type RelationRead struct, ProjectID string
+models: type RelationRead struct, SubjectResource string
+models: type RelationRead struct, SubjectResourceID string
+models: type RelationRead struct, UpdatedAt Time
+models: type RelationshipTupleBlockRead struct
+models: type RelationshipTupleBlockRead struct, Object string
+models: type RelationshipTupleBlockRead struct, Relation string
+models: type RelationshipTupleBlockRead struct, Subject string
+models: type RelationshipTupleCreate struct
+models: type RelationshipTupleCreate struct, Object string
+models: type RelationshipTupleCreate struct, Relation string
+models: type RelationshipTupleCreate struct, Subject string
+models: type RelationshipTupleCreate struct, Tenant string
+models: type RelationshipTupleCreateBulkOperation struct
+models: type RelationshipTupleCreateBulkOperation struct, Operations []RelationshipTupleCreate
+models: type RelationshipTupleDelete struct
+models: type RelationshipTupleDelete struct, Object string
+models: type RelationshipTupleDelete struct, Relation string
+models: type RelationshipTupleDelete struct, Subject string
+models: type RelationshipTupleDeleteBulkOperation struct
+models: type RelationshipTupleDeleteBulkOperation struct, Idents []RelationshipTupleDelete
+models: type RelationshipTupleDetailedRead RelationshipTupleRead
+models: type RelationshipTupleRead struct
+models: type RelationshipTupleRead struct, CreatedAt Time
+models: type RelationshipTupleRead struct, EnvironmentID string
+models: type RelationshipTupleRead struct, ID string
+models: type RelationshipTupleRead struct, Object string
+models: type RelationshipTupleRead struct, ObjectDetails *ResourceInstanceBlockRead
+models: type RelationshipTupleRead struct, ObjectID string
+models: type RelationshipTupleRead struct, OrganizationID string
+models: type RelationshipTupleRead struct, ProjectID string
+models: type RelationshipTupleRead struct, Relation string
+models: type RelationshipTupleRead struct, RelationDetails *StrippedRelationBlockRead
+models: type RelationshipTupleRead struct, RelationID string
+models: type RelationshipTupleRead struct, Subject string
+models: type RelationshipTupleRead struct, SubjectDetails *ResourceInstanceBlockRead
+models: type RelationshipTupleRead struct, SubjectID string
+models: type RelationshipTupleRead struct, Tenant string
+models: type RelationshipTupleRead struct, TenantDetails *TenantBlockRead
+models: type RelationshipTupleRead struct, TenantID string
+models: type RelationshipTupleRead struct, UpdatedAt Time
+models: type RemoveRolePermissions struct
+models: type RemoveRolePermissions struct, Permissions []string
+models: type ResourceActionCreate struct
+models: type ResourceActionCreate struct, Attributes Attributes
+models: type ResourceActionCreate struct, Description string
+models: type ResourceActionCreate struct, Key string
+models: type ResourceActionCreate struct, Name string
+models: type ResourceActionGroupCreate struct
+models: type ResourceActionGroupCreate struct, Actions []string
+models: type ResourceActionGroupCreate struct, Attributes Attributes
+models: type ResourceActionGroupCreate struct, Description string
+models: type ResourceActionGroupCreate struct, Key string
+models: type ResourceActionGroupCreate struct, Name string
+models: type ResourceActionGroupRead struct
+models: type ResourceActionGroupRead struct, Actions []string
+models: type ResourceActionGroupRead struct, Attributes Attributes
+models: type ResourceActionGroupRead struct, CreatedAt Time
+models: type ResourceActionGroupRead struct, Description string
+models: type ResourceActionGroupRead struct, EnvironmentID string
+models: type ResourceActionGroupRead struct, ID string
+models: type ResourceActionGroupRead struct, Key string
+models: type ResourceActionGroupRead struct, Name string
+models: type ResourceActionGroupRead struct, OrganizationID string
+models: type ResourceActionGroupRead struct, ProjectID string
+models: type ResourceActionGroupRead struct, ResourceID string
+models: type ResourceActionGroupRead struct, UpdatedAt Time
+models: type ResourceActionGroupUpdate struct
+models: type ResourceActionGroupUpdate struct, Actions Optional[[]string]
+models: type ResourceActionGroupUpdate struct, Attributes Attributes
+models: type ResourceActionGroupUpdate struct, Description Optional[string]
+models: type ResourceActionGroupUpdate struct, Name string
+models: type ResourceActionRead struct
+models: type ResourceActionRead struct, Attributes Attributes
+models: type ResourceActionRead struct, CreatedAt Time
+models: type ResourceActionRead struct, Description string
+models: type ResourceActionRead struct, EnvironmentID string
+models: type ResourceActionRead struct, ID string
+models: type ResourceActionRead struct, Key string
+models: type ResourceActionRead struct, Name string
+models: type ResourceActionRead struct, OrganizationID string
+models: type ResourceActionRead struct, PermissionName string
+models: type ResourceActionRead struct, ProjectID string
+models: type ResourceActionRead struct, ResourceID string
+models: type ResourceActionRead struct, UpdatedAt Time
+models: type ResourceActionRead struct, V1CompatIsBuiltIn bool
+models: type ResourceActionRead struct, V1CompatName string
+models: type ResourceActionRead struct, V1CompatPath string
+models: type ResourceActionUpdate struct
+models: type ResourceActionUpdate struct, Attributes Optional[Attributes]
+models: type ResourceActionUpdate struct, Description Optional[string]
+models: type ResourceActionUpdate struct, Name string
+models: type ResourceAttributeCreate struct
+models: type ResourceAttributeCreate struct, Description string
+models: type ResourceAttributeCreate struct, Key string
+models: type ResourceAttributeCreate struct, Type AttributeType
+models: type ResourceAttributeRead struct
+models: type ResourceAttributeRead struct, BuiltIn bool
+models: type ResourceAttributeRead struct, CreatedAt Time
+models: type ResourceAttributeRead struct, Description string
+models: type ResourceAttributeRead struct, EnvironmentID string
+models: type ResourceAttributeRead struct, ID string
+models: type ResourceAttributeRead struct, Key string
+models: type ResourceAttributeRead struct, OrganizationID string
+models: type ResourceAttributeRead struct, ProjectID string
+models: type ResourceAttributeRead struct, ResourceID string
+models: type ResourceAttributeRead struct, ResourceKey string
+models: type ResourceAttributeRead struct, Type AttributeType
+models: type ResourceAttributeRead struct, UpdatedAt Time
+models: type ResourceAttributeUpdate struct
+models: type ResourceAttributeUpdate struct, Description Optional[string]
+models: type ResourceAttributeUpdate struct, Type AttributeType
+models: type ResourceAttributes struct
+models: type ResourceAttributes struct, Key string
+models: type ResourceAttributes struct, Type AttributeType
+models: type ResourceCreate struct
+models: type ResourceCreate struct, Actions map[string]ActionBlockEditable
+models: type ResourceCreate struct, Attributes map[string]AttributeBlockEditable
+models: type ResourceCreate struct, Description string
+models: type ResourceCreate struct, Key string
+models: type ResourceCreate struct, Name string
+models: type ResourceCreate struct, Relations map[string]string
+models: type ResourceCreate struct, Roles map[string]RoleBlockEditable
+models: type ResourceCreate struct, TypeAttributes Attributes
+models: type ResourceCreate struct, URN string
+models: type ResourceInstanceBlockRead struct
+models: type ResourceInstanceBlockRead struct, Attributes Attributes
+models: type ResourceInstanceBlockRead struct, Key string
+models: type ResourceInstanceBlockRead struct, Resource string
+models: type ResourceInstanceBlockRead struct, Tenant string
+models: type ResourceInstanceCreate struct
+models: type ResourceInstanceCreate struct, Attributes Attributes
+models: type ResourceInstanceCreate struct, Key string
+models: type ResourceInstanceCreate struct, Resource string
+models: type ResourceInstanceCreate struct, Tenant string
+models: type ResourceInstanceCreateBulkOperation struct
+models: type ResourceInstanceCreateBulkOperation struct, Operations []ResourceInstanceCreate
+models: type ResourceInstanceDeleteBulkOperation struct
+models: type ResourceInstanceDeleteBulkOperation struct, Idents []string
+models: type ResourceInstanceDetailedRead struct
+models: type ResourceInstanceDetailedRead struct, Attributes Attributes
+models: type ResourceInstanceDetailedRead struct, CreatedAt Time
+models: type ResourceInstanceDetailedRead struct, EnvironmentID string
+models: type ResourceInstanceDetailedRead struct, ID string
+models: type ResourceInstanceDetailedRead struct, Key string
+models: type ResourceInstanceDetailedRead struct, OrganizationID string
+models: type ResourceInstanceDetailedRead struct, ProjectID string
+models: type ResourceInstanceDetailedRead struct, Relationships []RelationshipTupleBlockRead
+models: type ResourceInstanceDetailedRead struct, Resource string
+models: type ResourceInstanceDetailedRead struct, ResourceID string
+models: type ResourceInstanceDetailedRead struct, Tenant string
+models: type ResourceInstanceDetailedRead struct, TenantID string
+models: type ResourceInstanceDetailedRead struct, UpdatedAt Time
+models: type ResourceInstanceRead struct
+models: type ResourceInstanceRead struct, Attributes Attributes
+models: type ResourceInstanceRead struct, CreatedAt Time
+models: type ResourceInstanceRead struct, EnvironmentID string
+models: type ResourceInstanceRead struct, ID string
+models: type ResourceInstanceRead struct, Key string
+models: type ResourceInstanceRead struct, OrganizationID string
+models: type ResourceInstanceRead struct, ProjectID string
+models: type ResourceInstanceRead struct, Relationships []RelationshipTupleBlockRead
+models: type ResourceInstanceRead struct, Resource string
+models: type ResourceInstanceRead struct, ResourceID string
+models: type ResourceInstanceRead struct, Tenant string
+models: type ResourceInstanceRead struct, TenantID string
+models: type ResourceInstanceRead struct, UpdatedAt Time
+models: type ResourceInstanceUpdate struct
+models: type ResourceInstanceUpdate struct, Attributes Optional[Attributes]
+models: type ResourceRead struct
+models: type ResourceRead struct, ActionGroups map[string][]string
+models: type ResourceRead struct, Actions map[string]ActionBlockRead
+models: type ResourceRead struct, Attributes map[string]AttributeBlockRead
+models: type ResourceRead struct, CreatedAt Time
+models: type ResourceRead struct, Description string
+models: type ResourceRead struct, EnvironmentID string
+models: type ResourceRead struct, ID string
+models: type ResourceRead struct, Key string
+models: type ResourceRead struct, Name string
+models: type ResourceRead struct, OrganizationID string
+models: type ResourceRead struct, ProjectID string
+models: type ResourceRead struct, Relations map[string]RelationBlockRead
+models: type ResourceRead struct, Roles map[string]ResourceRoleRead
+models: type ResourceRead struct, TypeAttributes Attributes
+models: type ResourceRead struct, URN string
+models: type ResourceRead struct, UpdatedAt Time
+models: type ResourceRead struct, V1CompatName string
+models: type ResourceRead struct, V1CompatPath string
+models: type ResourceRead struct, V1CompatType string
+models: type ResourceReplace struct
+models: type ResourceReplace struct, Actions map[string]ActionBlockEditable
+models: type ResourceReplace struct, Attributes map[string]AttributeBlockEditable
+models: type ResourceReplace struct, Description string
+models: type ResourceReplace struct, Name string
+models: type ResourceReplace struct, Relations map[string]string
+models: type ResourceReplace struct, Roles map[string]RoleBlockEditable
+models: type ResourceReplace struct, TypeAttributes Attributes
+models: type ResourceReplace struct, URN string
+models: type ResourceRoleCreate struct
+models: type ResourceRoleCreate struct, Attributes Attributes
+models: type ResourceRoleCreate struct, Description string
+models: type ResourceRoleCreate struct, Extends []string
+models: type ResourceRoleCreate struct, GrantedTo *DerivedRoleBlockEdit
+models: type ResourceRoleCreate struct, Key string
+models: type ResourceRoleCreate struct, Name string
+models: type ResourceRoleCreate struct, Permissions []string
+models: type ResourceRoleList struct
+models: type ResourceRoleList struct, Roles []ResourceRoleRead
+models: type ResourceRoleRead struct
+models: type ResourceRoleRead struct, Attributes Attributes
+models: type ResourceRoleRead struct, CreatedAt Time
+models: type ResourceRoleRead struct, Description string
+models: type ResourceRoleRead struct, EnvironmentID string
+models: type ResourceRoleRead struct, Extends []string
+models: type ResourceRoleRead struct, GrantedTo *DerivedRoleBlockRead
+models: type ResourceRoleRead struct, ID string
+models: type ResourceRoleRead struct, Key string
+models: type ResourceRoleRead struct, Name string
+models: type ResourceRoleRead struct, OrganizationID string
+models: type ResourceRoleRead struct, Permissions []string
+models: type ResourceRoleRead struct, ProjectID string
+models: type ResourceRoleRead struct, Resource string
+models: type ResourceRoleRead struct, ResourceID string
+models: type ResourceRoleRead struct, UpdatedAt Time
+models: type ResourceRoleUpdate struct
+models: type ResourceRoleUpdate struct, Attributes Optional[Attributes]
+models: type ResourceRoleUpdate struct, Description Optional[string]
+models: type ResourceRoleUpdate struct, Extends []string
+models: type ResourceRoleUpdate struct, GrantedTo Optional[DerivedRoleBlockEdit]
+models: type ResourceRoleUpdate struct, Name string
+models: type ResourceRoleUpdate struct, Permissions []string
+models: type ResourceTypeObj struct
+models: type ResourceTypeObj struct, Attributes []ResourceAttributes
+models: type ResourceTypeObj struct, CreatedAt Time
+models: type ResourceTypeObj struct, ID string
+models: type ResourceTypeObj struct, Key string
+models: type ResourceTypeObj struct, Name string
+models: type ResourceTypeObj struct, UpdatedAt Time
+models: type ResourceUpdate struct
+models: type ResourceUpdate struct, Actions map[string]ActionBlockEditable
+models: type ResourceUpdate struct, Attributes map[string]AttributeBlockEditable
+models: type ResourceUpdate struct, Description Optional[string]
+models: type ResourceUpdate struct, Name string
+models: type ResourceUpdate struct, Relations map[string]string
+models: type ResourceUpdate struct, Roles map[string]RoleBlockEditable
+models: type ResourceUpdate struct, TypeAttributes Attributes
+models: type ResourceUpdate struct, URN string
+models: type RoleAssignmentCreate struct
+models: type RoleAssignmentCreate struct, ResourceInstance string
+models: type RoleAssignmentCreate struct, Role string
+models: type RoleAssignmentCreate struct, Tenant string
+models: type RoleAssignmentCreate struct, User string
+models: type RoleAssignmentDetailedRead struct
+models: type RoleAssignmentDetailedRead struct, CreatedAt Time
+models: type RoleAssignmentDetailedRead struct, EnvironmentID string
+models: type RoleAssignmentDetailedRead struct, ID string
+models: type RoleAssignmentDetailedRead struct, OrganizationID string
+models: type RoleAssignmentDetailedRead struct, ProjectID string
+models: type RoleAssignmentDetailedRead struct, ResourceInstance *RoleAssignmentResourceInstance
+models: type RoleAssignmentDetailedRead struct, Role RoleAssignmentRole
+models: type RoleAssignmentDetailedRead struct, Tenant RoleAssignmentTenant
+models: type RoleAssignmentDetailedRead struct, User RoleAssignmentUser
+models: type RoleAssignmentRead struct
+models: type RoleAssignmentRead struct, CreatedAt Time
+models: type RoleAssignmentRead struct, EnvironmentID string
+models: type RoleAssignmentRead struct, ID string
+models: type RoleAssignmentRead struct, OrganizationID string
+models: type RoleAssignmentRead struct, ProjectID string
+models: type RoleAssignmentRead struct, ResourceInstance string
+models: type RoleAssignmentRead struct, ResourceInstanceID string
+models: type RoleAssignmentRead struct, Role string
+models: type RoleAssignmentRead struct, RoleID string
+models: type RoleAssignmentRead struct, Tenant string
+models: type RoleAssignmentRead struct, TenantID string
+models: type RoleAssignmentRead struct, User string
+models: type RoleAssignmentRead struct, UserID string
+models: type RoleAssignmentRemove struct
+models: type RoleAssignmentRemove struct, ResourceInstance string
+models: type RoleAssignmentRemove struct, Role string
+models: type RoleAssignmentRemove struct, Tenant string
+models: type RoleAssignmentRemove struct, User string
+models: type RoleAssignmentResourceInstance struct
+models: type RoleAssignmentResourceInstance struct, Attributes Attributes
+models: type RoleAssignmentResourceInstance struct, ID string
+models: type RoleAssignmentResourceInstance struct, Key string
+models: type RoleAssignmentResourceInstance struct, Resource string
+models: type RoleAssignmentRole struct
+models: type RoleAssignmentRole struct, ID string
+models: type RoleAssignmentRole struct, Key string
+models: type RoleAssignmentRole struct, Name string
+models: type RoleAssignmentRole struct, Permissions []string
+models: type RoleAssignmentTenant struct
+models: type RoleAssignmentTenant struct, Attributes Attributes
+models: type RoleAssignmentTenant struct, ID string
+models: type RoleAssignmentTenant struct, Key string
+models: type RoleAssignmentTenant struct, Name string
+models: type RoleAssignmentUser struct
+models: type RoleAssignmentUser struct, Attributes Attributes
+models: type RoleAssignmentUser struct, Email string
+models: type RoleAssignmentUser struct, FirstName string
+models: type RoleAssignmentUser struct, ID string
+models: type RoleAssignmentUser struct, Key string
+models: type RoleAssignmentUser struct, LastName string
+models: type RoleBlockEditable struct
+models: type RoleBlockEditable struct, Attributes Attributes
+models: type RoleBlockEditable struct, Description string
+models: type RoleBlockEditable struct, Extends []string
+models: type RoleBlockEditable struct, GrantedTo *DerivedRoleBlockEdit
+models: type RoleBlockEditable struct, Name string
+models: type RoleBlockEditable struct, Permissions []string
+models: type RoleCreate struct
+models: type RoleCreate struct, Attributes Attributes
+models: type RoleCreate struct, Description string
+models: type RoleCreate struct, Extends []string
+models: type RoleCreate struct, GrantedTo *DerivedRoleBlockEdit
+models: type RoleCreate struct, Key string
+models: type RoleCreate struct, Name string
+models: type RoleCreate struct, Permissions []string
+models: type RoleCreateBulk struct
+models: type RoleCreateBulk struct, Attributes Attributes
+models: type RoleCreateBulk struct, Description string
+models: type RoleCreateBulk struct, Extends []string
+models: type RoleCreateBulk struct, GrantedTo *DerivedRoleBlockEdit
+models: type RoleCreateBulk struct, Key string
+models: type RoleCreateBulk struct, Name string
+models: type RoleCreateBulk struct, Permissions []string
+models: type RoleCreateBulk struct, Resource string
+models: type RoleCreateBulkOperation struct
+models: type RoleCreateBulkOperation struct, Operations []RoleCreateBulk
+models: type RoleCreateBulkOperationResult struct
+models: type RoleCreateBulkOperationResult struct, Created []string
+models: type RoleCreateBulkOperationResult struct, Updated []string
+models: type RoleList struct
+models: type RoleList struct, Roles []RoleRead
+models: type RoleRead struct
+models: type RoleRead struct, Attributes Attributes
+models: type RoleRead struct, CreatedAt Time
+models: type RoleRead struct, Description string
+models: type RoleRead struct, EnvironmentID string
+models: type RoleRead struct, Extends []string
+models: type RoleRead struct, GrantedTo *DerivedRoleBlockRead
+models: type RoleRead struct, ID string
+models: type RoleRead struct, Key string
+models: type RoleRead struct, Name string
+models: type RoleRead struct, OrganizationID string
+models: type RoleRead struct, Permissions []string
+models: type RoleRead struct, ProjectID string
+models: type RoleRead struct, UpdatedAt Time
+models: type RoleRead struct, V1CompatAttributes Attributes
+models: type RoleRead struct, V1CompatSettings Attributes
+models: type RoleUpdate struct
+models: type RoleUpdate struct, Attributes Optional[Attributes]
+models: type RoleUpdate struct, Description Optional[string]
+models: type RoleUpdate struct, Extends []string
+models: type RoleUpdate struct, GrantedTo Optional[DerivedRoleBlockEdit]
+models: type RoleUpdate struct, Name string
+models: type RoleUpdate struct, Permissions []string
+models: type Secret struct
+models: type StringOrList struct
+models: type StrippedRelationBlockRead struct
+models: type StrippedRelationBlockRead struct, Description string
+models: type StrippedRelationBlockRead struct, Key string
+models: type StrippedRelationBlockRead struct, Name string
+models: type TaskResultEnvironmentRead struct
+models: type TaskResultEnvironmentRead struct, Error *ErrorDetails
+models: type TaskResultEnvironmentRead struct, Result *EnvironmentRead
+models: type TaskResultEnvironmentRead struct, Status TaskStatus
+models: type TaskResultEnvironmentRead struct, TaskID string
+models: type TaskStatus string
+models: type TenantBlockRead struct
+models: type TenantBlockRead struct, Attributes Attributes
+models: type TenantBlockRead struct, Description string
+models: type TenantBlockRead struct, Key string
+models: type TenantBlockRead struct, Name string
+models: type TenantCreate struct
+models: type TenantCreate struct, Attributes Attributes
+models: type TenantCreate struct, Description string
+models: type TenantCreate struct, Key string
+models: type TenantCreate struct, Name string
+models: type TenantCreateBulkOperation struct
+models: type TenantCreateBulkOperation struct, Operations []TenantCreate
+models: type TenantDeleteBulkOperation struct
+models: type TenantDeleteBulkOperation struct, Idents []string
+models: type TenantObj struct
+models: type TenantObj struct, Attributes Attributes
+models: type TenantObj struct, CreatedAt Time
+models: type TenantObj struct, ID string
+models: type TenantObj struct, Key string
+models: type TenantObj struct, Name string
+models: type TenantObj struct, UpdatedAt Time
+models: type TenantRead struct
+models: type TenantRead struct, Attributes Attributes
+models: type TenantRead struct, CreatedAt Time
+models: type TenantRead struct, Description string
+models: type TenantRead struct, EnvironmentID string
+models: type TenantRead struct, ID string
+models: type TenantRead struct, Key string
+models: type TenantRead struct, LastActionAt Time
+models: type TenantRead struct, Name string
+models: type TenantRead struct, OrganizationID string
+models: type TenantRead struct, ProjectID string
+models: type TenantRead struct, UpdatedAt Time
+models: type TenantUpdate struct
+models: type TenantUpdate struct, Attributes Optional[Attributes]
+models: type TenantUpdate struct, Description Optional[string]
+models: type TenantUpdate struct, Name string
+models: type Time struct
+models: type Time struct, embedded time.Time
+models: type URLType string
+models: type UserCreate struct
+models: type UserCreate struct, Attributes Attributes
+models: type UserCreate struct, Email string
+models: type UserCreate struct, FirstName string
+models: type UserCreate struct, Key string
+models: type UserCreate struct, LastName string
+models: type UserCreate struct, RoleAssignments []UserRoleCreate
+models: type UserCreateBulkOperation struct
+models: type UserCreateBulkOperation struct, Operations []UserCreate
+models: type UserDeleteBulkOperation struct
+models: type UserDeleteBulkOperation struct, Idents []string
+models: type UserInTenant struct
+models: type UserInTenant struct, ResourceInstanceRoles []UserResourceInstanceRole
+models: type UserInTenant struct, Roles []string
+models: type UserInTenant struct, Status UserStatus
+models: type UserInTenant struct, Tenant string
+models: type UserInviteStatus string
+models: type UserLoginRequestInput struct
+models: type UserLoginRequestInput struct, TenantID string
+models: type UserLoginRequestInput struct, UserID string
+models: type UserObj struct
+models: type UserObj struct, AssignedRoles []string
+models: type UserObj struct, Attributes Attributes
+models: type UserObj struct, CreatedAt Time
+models: type UserObj struct, Email string
+models: type UserObj struct, FirstName string
+models: type UserObj struct, ID string
+models: type UserObj struct, Key string
+models: type UserObj struct, LastName string
+models: type UserObj struct, UpdatedAt Time
+models: type UserRead struct
+models: type UserRead struct, AssociatedTenants []UserInTenant
+models: type UserRead struct, Attributes Attributes
+models: type UserRead struct, CreatedAt Time
+models: type UserRead struct, Email string
+models: type UserRead struct, EnvironmentID string
+models: type UserRead struct, FirstName string
+models: type UserRead struct, ID string
+models: type UserRead struct, Key string
+models: type UserRead struct, LastName string
+models: type UserRead struct, OrganizationID string
+models: type UserRead struct, ProjectID string
+models: type UserRead struct, UpdatedAt Time
+models: type UserReplaceBulkOperation struct
+models: type UserReplaceBulkOperation struct, Operations []UserCreate
+models: type UserResourceInstanceRole struct
+models: type UserResourceInstanceRole struct, Resource string
+models: type UserResourceInstanceRole struct, ResourceInstance string
+models: type UserResourceInstanceRole struct, Role string
+models: type UserRoleCreate struct
+models: type UserRoleCreate struct, ResourceInstance string
+models: type UserRoleCreate struct, Role string
+models: type UserRoleCreate struct, Tenant string
+models: type UserRoleRemove struct
+models: type UserRoleRemove struct, ResourceInstance string
+models: type UserRoleRemove struct, Role string
+models: type UserRoleRemove struct, Tenant string
+models: type UserStatus string
+models: type UserUpdate struct
+models: type UserUpdate struct, Attributes Optional[Attributes]
+models: type UserUpdate struct, Email Optional[string]
+models: type UserUpdate struct, FirstName Optional[string]
+models: type UserUpdate struct, LastName Optional[string]
+permit: const SyncPolicyFail SyncPolicy = "fail"
+permit: const SyncPolicyIgnore SyncPolicy = "ignore"
+permit: const Version = "2.0.0"
+permit: func AttributeEquals[T string | bool | int | int64 | float64](name string, value T) AttributeFilter
+permit: func New(opts ...Option) (*Client, error)
+permit: func WithAPIKey(apiKey string) Option
+permit: func WithAPIURL(apiURL string) Option
+permit: func WithDecisionContext(decisionContext map[string]any) CheckOption
+permit: func WithFactsViaPDP() Option
+permit: func WithHTTPClient(httpClient *http.Client) Option
+permit: func WithLogger(logger *slog.Logger) Option
+permit: func WithPDPURL(pdpURL string) Option
+permit: func WithResourceTypes(resourceTypes ...string) PermissionsOption
+permit: func WithResources(resources ...string) PermissionsOption
+permit: func WithRetry(policy RetryPolicy) Option
+permit: func WithScope(project string, environment string) Option
+permit: func WithSyncPolicy(policy SyncPolicy) SyncOption
+permit: func WithTenants(tenants ...string) PermissionsOption
+permit: func WithTimeout(timeout time.Duration) Option
+permit: method (*APIKeysService) All(ctx context.Context, opts *APIKeysListOptions) iter.Seq2[models.APIKeyRead, error]
+permit: method (*APIKeysService) Create(ctx context.Context, key models.APIKeyCreate) (*models.APIKeyRead, error)
+permit: method (*APIKeysService) Delete(ctx context.Context, apiKeyID string) error
+permit: method (*APIKeysService) Get(ctx context.Context, apiKeyID string) (*models.APIKeyRead, error)
+permit: method (*APIKeysService) GetEnvironmentKey(ctx context.Context, projectKey string, environmentKey string) (*models.APIKeyRead, error)
+permit: method (*APIKeysService) List(ctx context.Context, opts *APIKeysListOptions) (*Page[models.APIKeyRead], error)
+permit: method (*APIKeysService) RotateSecret(ctx context.Context, apiKeyID string) (*models.APIKeyRead, error)
+permit: method (*AuditLogsService) All(ctx context.Context, opts *AuditLogsListOptions) iter.Seq2[models.AuditLogModel, error]
+permit: method (*AuditLogsService) Get(ctx context.Context, logID string) (*models.DetailedAuditLogModel, error)
+permit: method (*AuditLogsService) List(ctx context.Context, opts *AuditLogsListOptions) (*Page[models.AuditLogModel], error)
+permit: method (*Client) AllTenantsCheck(ctx context.Context, user User, action string, resource Resource, opts ...CheckOption) ([]TenantDetails, error)
+permit: method (*Client) AuthorizedUsers(ctx context.Context, action string, resource Resource, opts ...CheckOption) (AuthorizedUsersResult, error)
+permit: method (*Client) BulkCheck(ctx context.Context, checks []CheckRequest) ([]bool, error)
+permit: method (*Client) Check(ctx context.Context, user User, action string, resource Resource, opts ...CheckOption) (bool, error)
+permit: method (*Client) CheckURL(ctx context.Context, user User, method string, url string, tenant string, opts ...CheckOption) (bool, error)
+permit: method (*Client) Close() error
+permit: method (*Client) FilterObjects(ctx context.Context, user User, action string, resources []Resource, opts ...CheckOption) ([]Resource, error)
+permit: method (*Client) Format(f fmt.State, verb rune)
+permit: method (*Client) GoString() string
+permit: method (*Client) LocalRoleAssignments(ctx context.Context, opts *LocalRoleAssignmentsOptions) (*Page[LocalRoleAssignment], error)
+permit: method (*Client) LocalRoleAssignmentsAll(ctx context.Context, opts *LocalRoleAssignmentsOptions) iter.Seq2[LocalRoleAssignment, error]
+permit: method (*Client) LogValue() slog.Value
+permit: method (*Client) Scope(ctx context.Context) (Scope, error)
+permit: method (*Client) String() string
+permit: method (*Client) UserPermissions(ctx context.Context, user User, opts ...PermissionsOption) (map[string]ObjectPermissions, error)
+permit: method (*Client) UserTenants(ctx context.Context, user User, opts ...CheckOption) ([]TenantDetails, error)
+permit: method (*ConditionSetRulesService) All(ctx context.Context, opts *ConditionSetRulesListOptions) iter.Seq2[models.ConditionSetRuleRead, error]
+permit: method (*ConditionSetRulesService) Create(ctx context.Context, rule models.ConditionSetRuleCreate) ([]models.ConditionSetRuleRead, error)
+permit: method (*ConditionSetRulesService) Delete(ctx context.Context, rule models.ConditionSetRuleRemove) error
+permit: method (*ConditionSetRulesService) List(ctx context.Context, opts *ConditionSetRulesListOptions) (*Page[models.ConditionSetRuleRead], error)
+permit: method (*ConditionSetsService) All(ctx context.Context, opts *ConditionSetsListOptions) iter.Seq2[models.ConditionSetRead, error]
+permit: method (*ConditionSetsService) Ancestors(ctx context.Context, conditionSetKey string, opts *ListOptions) (*Page[models.ConditionSetRead], error)
+permit: method (*ConditionSetsService) AncestorsAll(ctx context.Context, conditionSetKey string, opts *ListOptions) iter.Seq2[models.ConditionSetRead, error]
+permit: method (*ConditionSetsService) Create(ctx context.Context, set models.ConditionSetCreate) (*models.ConditionSetRead, error)
+permit: method (*ConditionSetsService) Delete(ctx context.Context, conditionSetKey string) error
+permit: method (*ConditionSetsService) Descendants(ctx context.Context, conditionSetKey string, opts *ListOptions) (*Page[models.ConditionSetRead], error)
+permit: method (*ConditionSetsService) DescendantsAll(ctx context.Context, conditionSetKey string, opts *ListOptions) iter.Seq2[models.ConditionSetRead, error]
+permit: method (*ConditionSetsService) Get(ctx context.Context, conditionSetKey string) (*models.ConditionSetRead, error)
+permit: method (*ConditionSetsService) List(ctx context.Context, opts *ConditionSetsListOptions) (*Page[models.ConditionSetRead], error)
+permit: method (*ConditionSetsService) Update(ctx context.Context, conditionSetKey string, update models.ConditionSetUpdate) (*models.ConditionSetRead, error)
+permit: method (*ElementsService) LoginAs(ctx context.Context, login models.UserLoginRequestInput) (*models.EmbeddedLoginRequestOutput, error)
+permit: method (*EnvironmentsService) All(ctx context.Context, projectKey string, opts *ListOptions) iter.Seq2[models.EnvironmentReadWithEmailConfig, error]
+permit: method (*EnvironmentsService) Copy(ctx context.Context, projectKey string, environmentKey string, environmentCopy models.EnvironmentCopy) (*models.EnvironmentRead, error)
+permit: method (*EnvironmentsService) CopyAsync(ctx context.Context, projectKey string, environmentKey string, environmentCopy models.EnvironmentCopy) (*models.TaskResultEnvironmentRead, error)
+permit: method (*EnvironmentsService) CopyResult(ctx context.Context, projectKey string, environmentKey string, taskID string, opts *CopyResultOptions) (*models.TaskResultEnvironmentRead, error)
+permit: method (*EnvironmentsService) Create(ctx context.Context, projectKey string, environment models.EnvironmentCreate) (*models.EnvironmentRead, error)
+permit: method (*EnvironmentsService) Delete(ctx context.Context, projectKey string, environmentKey string) error
+permit: method (*EnvironmentsService) Get(ctx context.Context, projectKey string, environmentKey string) (*models.EnvironmentReadWithEmailConfig, error)
+permit: method (*EnvironmentsService) List(ctx context.Context, projectKey string, opts *ListOptions) (*Page[models.EnvironmentReadWithEmailConfig], error)
+permit: method (*EnvironmentsService) Stats(ctx context.Context, projectKey string, environmentKey string) (*models.EnvironmentStats, error)
+permit: method (*EnvironmentsService) Update(ctx context.Context, projectKey string, environmentKey string, update models.EnvironmentUpdate) (*models.EnvironmentRead, error)
+permit: method (*Error) Error() string
+permit: method (*Error) Is(target error) bool
+permit: method (*Error) Unwrap() error
+permit: method (*GroupsService) All(ctx context.Context, opts *GroupsListOptions) iter.Seq2[models.GroupReadSchema, error]
+permit: method (*GroupsService) AllChildren(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupReadSchema, error]
+permit: method (*GroupsService) AllParents(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupReadSchema, error]
+permit: method (*GroupsService) AllRoles(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupRoleReadSchema, error]
+permit: method (*GroupsService) AllUsers(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupUserReadSchema, error]
+permit: method (*GroupsService) AssignGroup(ctx context.Context, groupInstanceKey string, assignment models.GroupAssignment) (*models.GroupRead, error)
+permit: method (*GroupsService) AssignRole(ctx context.Context, groupInstanceKey string, role models.GroupAddRole) (*models.GroupRead, error)
+permit: method (*GroupsService) AssignUser(ctx context.Context, groupInstanceKey string, userKey string, membership models.GroupAssignUser) (*models.GroupRead, error)
+permit: method (*GroupsService) Create(ctx context.Context, group models.GroupCreate) (*models.GroupRead, error)
+permit: method (*GroupsService) Delete(ctx context.Context, groupInstanceKey string) error
+permit: method (*GroupsService) Get(ctx context.Context, groupInstanceKey string) (*models.GroupReadSchema, error)
+permit: method (*GroupsService) List(ctx context.Context, opts *GroupsListOptions) (*Page[models.GroupReadSchema], error)
+permit: method (*GroupsService) ListChildren(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupReadSchema], error)
+permit: method (*GroupsService) ListParents(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupReadSchema], error)
+permit: method (*GroupsService) ListRoles(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupRoleReadSchema], error)
+permit: method (*GroupsService) ListUsers(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupUserReadSchema], error)
+permit: method (*GroupsService) RemoveGroup(ctx context.Context, groupInstanceKey string, assignment models.GroupAssignment) error
+permit: method (*GroupsService) RemoveRole(ctx context.Context, groupInstanceKey string, role models.GroupAddRole) error
+permit: method (*GroupsService) RemoveUser(ctx context.Context, groupInstanceKey string, userKey string, membership models.GroupAssignUser) error
+permit: method (*ImplicitGrantsService) Create(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleCreate) (*models.DerivedRoleRuleRead, error)
+permit: method (*ImplicitGrantsService) Delete(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleDelete) error
+permit: method (*ImplicitGrantsService) UpdateConditions(ctx context.Context, resourceKey string, roleKey string, settings models.DerivationSettings) (*models.DerivationSettings, error)
+permit: method (*PDPsService) Refresh(ctx context.Context, refresh models.PDPDataRefreshRequest) (*models.PDPDataRefreshResponse, error)
+permit: method (*PDPsService) RefreshPDP(ctx context.Context, pdpID string, refresh models.PDPDataRefreshRequest) (*models.PDPDataRefreshResponse, error)
+permit: method (*ProjectsService) All(ctx context.Context, opts *ListOptions) iter.Seq2[models.ProjectRead, error]
+permit: method (*ProjectsService) Create(ctx context.Context, project models.ProjectCreate) (*models.ProjectRead, error)
+permit: method (*ProjectsService) Delete(ctx context.Context, projectKey string) error
+permit: method (*ProjectsService) Get(ctx context.Context, projectKey string) (*models.ProjectRead, error)
+permit: method (*ProjectsService) List(ctx context.Context, opts *ListOptions) (*Page[models.ProjectRead], error)
+permit: method (*ProjectsService) Update(ctx context.Context, projectKey string, update models.ProjectUpdate) (*models.ProjectRead, error)
+permit: method (*ProxyConfigsService) All(ctx context.Context, opts *ListOptions) iter.Seq2[models.ProxyConfigRead, error]
+permit: method (*ProxyConfigsService) Create(ctx context.Context, config models.ProxyConfigCreate) (*models.ProxyConfigRead, error)
+permit: method (*ProxyConfigsService) Delete(ctx context.Context, proxyConfigKey string) error
+permit: method (*ProxyConfigsService) Get(ctx context.Context, proxyConfigKey string) (*models.ProxyConfigRead, error)
+permit: method (*ProxyConfigsService) List(ctx context.Context, opts *ListOptions) (*Page[models.ProxyConfigRead], error)
+permit: method (*ProxyConfigsService) Update(ctx context.Context, proxyConfigKey string, update models.ProxyConfigUpdate) (*models.ProxyConfigRead, error)
+permit: method (*RelationshipTuplesService) All(ctx context.Context, opts *RelationshipTuplesListOptions) iter.Seq2[models.RelationshipTupleRead, error]
+permit: method (*RelationshipTuplesService) AllDetailed(ctx context.Context, opts *RelationshipTuplesListOptions) iter.Seq2[models.RelationshipTupleDetailedRead, error]
+permit: method (*RelationshipTuplesService) BulkCreate(ctx context.Context, tuples []models.RelationshipTupleCreate) error
+permit: method (*RelationshipTuplesService) BulkDelete(ctx context.Context, tuples []models.RelationshipTupleDelete) error
+permit: method (*RelationshipTuplesService) Create(ctx context.Context, tuple models.RelationshipTupleCreate) (*models.RelationshipTupleRead, error)
+permit: method (*RelationshipTuplesService) Delete(ctx context.Context, tuple models.RelationshipTupleDelete) error
+permit: method (*RelationshipTuplesService) List(ctx context.Context, opts *RelationshipTuplesListOptions) (*Page[models.RelationshipTupleRead], error)
+permit: method (*RelationshipTuplesService) ListDetailed(ctx context.Context, opts *RelationshipTuplesListOptions) (*Page[models.RelationshipTupleDetailedRead], error)
+permit: method (*RelationshipTuplesService) WaitForSync(timeout time.Duration, opts ...SyncOption) *RelationshipTuplesService
+permit: method (*ResourceActionGroupsService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.ResourceActionGroupRead, error]
+permit: method (*ResourceActionGroupsService) Create(ctx context.Context, resourceKey string, group models.ResourceActionGroupCreate) (*models.ResourceActionGroupRead, error)
+permit: method (*ResourceActionGroupsService) Delete(ctx context.Context, resourceKey string, actionGroupKey string) error
+permit: method (*ResourceActionGroupsService) Get(ctx context.Context, resourceKey string, actionGroupKey string) (*models.ResourceActionGroupRead, error)
+permit: method (*ResourceActionGroupsService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceActionGroupRead], error)
+permit: method (*ResourceActionGroupsService) Update(ctx context.Context, resourceKey string, actionGroupKey string, update models.ResourceActionGroupUpdate) (*models.ResourceActionGroupRead, error)
+permit: method (*ResourceActionsService) All(ctx context.Context, resourceKey string, opts *ResourceActionsListOptions) iter.Seq2[models.ResourceActionRead, error]
+permit: method (*ResourceActionsService) Create(ctx context.Context, resourceKey string, action models.ResourceActionCreate) (*models.ResourceActionRead, error)
+permit: method (*ResourceActionsService) Delete(ctx context.Context, resourceKey string, actionKey string) error
+permit: method (*ResourceActionsService) Get(ctx context.Context, resourceKey string, actionKey string) (*models.ResourceActionRead, error)
+permit: method (*ResourceActionsService) List(ctx context.Context, resourceKey string, opts *ResourceActionsListOptions) (*Page[models.ResourceActionRead], error)
+permit: method (*ResourceActionsService) Update(ctx context.Context, resourceKey string, actionKey string, update models.ResourceActionUpdate) (*models.ResourceActionRead, error)
+permit: method (*ResourceAttributesService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.ResourceAttributeRead, error]
+permit: method (*ResourceAttributesService) Create(ctx context.Context, resourceKey string, attribute models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error)
+permit: method (*ResourceAttributesService) Delete(ctx context.Context, resourceKey string, attributeKey string) error
+permit: method (*ResourceAttributesService) Get(ctx context.Context, resourceKey string, attributeKey string) (*models.ResourceAttributeRead, error)
+permit: method (*ResourceAttributesService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
+permit: method (*ResourceAttributesService) Update(ctx context.Context, resourceKey string, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
+permit: method (*ResourceInstancesService) All(ctx context.Context, opts *ResourceInstancesListOptions) iter.Seq2[models.ResourceInstanceRead, error]
+permit: method (*ResourceInstancesService) AllDetailed(ctx context.Context, opts *ResourceInstancesListOptions) iter.Seq2[models.ResourceInstanceDetailedRead, error]
+permit: method (*ResourceInstancesService) BulkDelete(ctx context.Context, instances []string) error
+permit: method (*ResourceInstancesService) BulkReplace(ctx context.Context, instances []models.ResourceInstanceCreate) error
+permit: method (*ResourceInstancesService) Create(ctx context.Context, instance models.ResourceInstanceCreate) (*models.ResourceInstanceRead, error)
+permit: method (*ResourceInstancesService) Delete(ctx context.Context, instance string) error
+permit: method (*ResourceInstancesService) Get(ctx context.Context, instance string) (*models.ResourceInstanceRead, error)
+permit: method (*ResourceInstancesService) List(ctx context.Context, opts *ResourceInstancesListOptions) (*Page[models.ResourceInstanceRead], error)
+permit: method (*ResourceInstancesService) ListDetailed(ctx context.Context, opts *ResourceInstancesListOptions) (*Page[models.ResourceInstanceDetailedRead], error)
+permit: method (*ResourceInstancesService) Update(ctx context.Context, instance string, update models.ResourceInstanceUpdate) (*models.ResourceInstanceRead, error)
+permit: method (*ResourceInstancesService) WaitForSync(timeout time.Duration, opts ...SyncOption) *ResourceInstancesService
+permit: method (*ResourceRelationsService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.RelationRead, error]
+permit: method (*ResourceRelationsService) Create(ctx context.Context, resourceKey string, relation models.RelationCreate) (*models.RelationRead, error)
+permit: method (*ResourceRelationsService) Delete(ctx context.Context, resourceKey string, relationKey string) error
+permit: method (*ResourceRelationsService) Get(ctx context.Context, resourceKey string, relationKey string) (*models.RelationRead, error)
+permit: method (*ResourceRelationsService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.RelationRead], error)
+permit: method (*ResourceRolesService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.ResourceRoleRead, error]
+permit: method (*ResourceRolesService) Ancestors(ctx context.Context, resourceKey string, roleKey string) ([]models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) AssignPermissions(ctx context.Context, resourceKey string, roleKey string, permissions []string) (*models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) Create(ctx context.Context, resourceKey string, role models.ResourceRoleCreate) (*models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) Delete(ctx context.Context, resourceKey string, roleKey string) error
+permit: method (*ResourceRolesService) Descendants(ctx context.Context, resourceKey string, roleKey string) ([]models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) Get(ctx context.Context, resourceKey string, roleKey string) (*models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) List(ctx context.Context, resourceKey string, opts *ListOptions) (*Page[models.ResourceRoleRead], error)
+permit: method (*ResourceRolesService) RemovePermissions(ctx context.Context, resourceKey string, roleKey string, permissions []string) (*models.ResourceRoleRead, error)
+permit: method (*ResourceRolesService) Update(ctx context.Context, resourceKey string, roleKey string, update models.ResourceRoleUpdate) (*models.ResourceRoleRead, error)
+permit: method (*ResourcesService) All(ctx context.Context, opts *ResourcesListOptions) iter.Seq2[models.ResourceRead, error]
+permit: method (*ResourcesService) Create(ctx context.Context, resource models.ResourceCreate) (*models.ResourceRead, error)
+permit: method (*ResourcesService) Delete(ctx context.Context, resourceKey string) error
+permit: method (*ResourcesService) Get(ctx context.Context, resourceKey string) (*models.ResourceRead, error)
+permit: method (*ResourcesService) List(ctx context.Context, opts *ResourcesListOptions) (*Page[models.ResourceRead], error)
+permit: method (*ResourcesService) Replace(ctx context.Context, resourceKey string, resource models.ResourceReplace) (*models.ResourceRead, error)
+permit: method (*ResourcesService) Update(ctx context.Context, resourceKey string, update models.ResourceUpdate) (*models.ResourceRead, error)
+permit: method (*RoleAssignmentsService) All(ctx context.Context, opts *RoleAssignmentsListOptions) iter.Seq2[models.RoleAssignmentRead, error]
+permit: method (*RoleAssignmentsService) AllDetailed(ctx context.Context, opts *RoleAssignmentsListOptions) iter.Seq2[models.RoleAssignmentDetailedRead, error]
+permit: method (*RoleAssignmentsService) Assign(ctx context.Context, assignment models.RoleAssignmentCreate) (*models.RoleAssignmentRead, error)
+permit: method (*RoleAssignmentsService) BulkAssign(ctx context.Context, assignments []models.RoleAssignmentCreate, opts *RoleAssignmentsBulkAssignOptions) (*models.BulkRoleAssignmentReport, error)
+permit: method (*RoleAssignmentsService) BulkUnassign(ctx context.Context, unassignments []models.RoleAssignmentRemove) (*models.BulkRoleUnAssignmentReport, error)
+permit: method (*RoleAssignmentsService) List(ctx context.Context, opts *RoleAssignmentsListOptions) (*Page[models.RoleAssignmentRead], error)
+permit: method (*RoleAssignmentsService) ListDetailed(ctx context.Context, opts *RoleAssignmentsListOptions) (*Page[models.RoleAssignmentDetailedRead], error)
+permit: method (*RoleAssignmentsService) Unassign(ctx context.Context, assignment models.RoleAssignmentRemove) error
+permit: method (*RoleAssignmentsService) WaitForSync(timeout time.Duration, opts ...SyncOption) *RoleAssignmentsService
+permit: method (*RolesService) All(ctx context.Context, opts *RolesListOptions) iter.Seq2[models.RoleRead, error]
+permit: method (*RolesService) Ancestors(ctx context.Context, roleKey string) ([]models.RoleRead, error)
+permit: method (*RolesService) AssignPermissions(ctx context.Context, roleKey string, permissions []string) (*models.RoleRead, error)
+permit: method (*RolesService) BulkReplace(ctx context.Context, roles []models.RoleCreateBulk) (*models.RoleCreateBulkOperationResult, error)
+permit: method (*RolesService) Create(ctx context.Context, role models.RoleCreate) (*models.RoleRead, error)
+permit: method (*RolesService) Delete(ctx context.Context, roleKey string) error
+permit: method (*RolesService) Descendants(ctx context.Context, roleKey string) ([]models.RoleRead, error)
+permit: method (*RolesService) Get(ctx context.Context, roleKey string) (*models.RoleRead, error)
+permit: method (*RolesService) List(ctx context.Context, opts *RolesListOptions) (*Page[models.RoleRead], error)
+permit: method (*RolesService) RemovePermissions(ctx context.Context, roleKey string, permissions []string) (*models.RoleRead, error)
+permit: method (*RolesService) Update(ctx context.Context, roleKey string, update models.RoleUpdate) (*models.RoleRead, error)
+permit: method (*TenantsService) AddUser(ctx context.Context, tenantKey string, user models.UserCreate) (*models.UserRead, error)
+permit: method (*TenantsService) All(ctx context.Context, opts *TenantsListOptions) iter.Seq2[models.TenantRead, error]
+permit: method (*TenantsService) AllUsers(ctx context.Context, tenantKey string, opts *TenantUsersListOptions) iter.Seq2[models.UserRead, error]
+permit: method (*TenantsService) BulkCreate(ctx context.Context, tenants []models.TenantCreate) error
+permit: method (*TenantsService) BulkDelete(ctx context.Context, tenantKeys []string) error
+permit: method (*TenantsService) Create(ctx context.Context, tenant models.TenantCreate) (*models.TenantRead, error)
+permit: method (*TenantsService) Delete(ctx context.Context, tenantKey string) error
+permit: method (*TenantsService) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error)
+permit: method (*TenantsService) List(ctx context.Context, opts *TenantsListOptions) (*Page[models.TenantRead], error)
+permit: method (*TenantsService) ListUsers(ctx context.Context, tenantKey string, opts *TenantUsersListOptions) (*Page[models.UserRead], error)
+permit: method (*TenantsService) RemoveUser(ctx context.Context, tenantKey string, userKey string) error
+permit: method (*TenantsService) Update(ctx context.Context, tenantKey string, update models.TenantUpdate) (*models.TenantRead, error)
+permit: method (*TenantsService) WaitForSync(timeout time.Duration, opts ...SyncOption) *TenantsService
+permit: method (*UserAttributesService) All(ctx context.Context, opts *ListOptions) iter.Seq2[models.ResourceAttributeRead, error]
+permit: method (*UserAttributesService) Create(ctx context.Context, attribute models.ResourceAttributeCreate) (*models.ResourceAttributeRead, error)
+permit: method (*UserAttributesService) Delete(ctx context.Context, attributeKey string) error
+permit: method (*UserAttributesService) Get(ctx context.Context, attributeKey string) (*models.ResourceAttributeRead, error)
+permit: method (*UserAttributesService) List(ctx context.Context, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
+permit: method (*UserAttributesService) Update(ctx context.Context, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
+permit: method (*UserInvitesService) All(ctx context.Context, opts *UserInvitesListOptions) iter.Seq2[models.ElementsUserInviteRead, error]
+permit: method (*UserInvitesService) Approve(ctx context.Context, userInviteID string, approval models.ElementsUserInviteApprove) (*models.UserRead, error)
+permit: method (*UserInvitesService) Create(ctx context.Context, invite models.ElementsUserInviteCreate) (*models.ElementsUserInviteRead, error)
+permit: method (*UserInvitesService) Delete(ctx context.Context, userInviteID string) error
+permit: method (*UserInvitesService) Get(ctx context.Context, userInviteID string) (*models.ElementsUserInviteRead, error)
+permit: method (*UserInvitesService) List(ctx context.Context, opts *UserInvitesListOptions) (*Page[models.ElementsUserInviteRead], error)
+permit: method (*UserInvitesService) Update(ctx context.Context, userInviteID string, update models.ElementsUserInviteUpdate) (*models.ElementsUserInviteRead, error)
+permit: method (*UsersService) All(ctx context.Context, opts *UsersListOptions) iter.Seq2[models.UserRead, error]
+permit: method (*UsersService) AssignRole(ctx context.Context, userKey string, role models.UserRoleCreate) (*models.RoleAssignmentRead, error)
+permit: method (*UsersService) BulkCreate(ctx context.Context, users []models.UserCreate) error
+permit: method (*UsersService) BulkDelete(ctx context.Context, userKeys []string) error
+permit: method (*UsersService) BulkReplace(ctx context.Context, users []models.UserCreate) error
+permit: method (*UsersService) Create(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
+permit: method (*UsersService) Delete(ctx context.Context, userKey string) error
+permit: method (*UsersService) Get(ctx context.Context, userKey string) (*models.UserRead, error)
+permit: method (*UsersService) List(ctx context.Context, opts *UsersListOptions) (*Page[models.UserRead], error)
+permit: method (*UsersService) Sync(ctx context.Context, user models.UserCreate) (*UserSyncResult, error)
+permit: method (*UsersService) UnassignRole(ctx context.Context, userKey string, role models.UserRoleRemove) error
+permit: method (*UsersService) Update(ctx context.Context, userKey string, update models.UserUpdate) (*models.UserRead, error)
+permit: method (*UsersService) WaitForSync(timeout time.Duration, opts ...SyncOption) *UsersService
+permit: method (Option) Format(f fmt.State, verb rune)
+permit: method (Option) GoString() string
+permit: method (Option) LogValue() slog.Value
+permit: method (Option) String() string
+permit: type APIKeysListOptions struct
+permit: type APIKeysListOptions struct, ObjectType models.MemberAccessObj
+permit: type APIKeysListOptions struct, Project string
+permit: type APIKeysListOptions struct, embedded ListOptions
+permit: type APIKeysService struct
+permit: type AttributeFilter struct
+permit: type AuditLogsListOptions struct
+permit: type AuditLogsListOptions struct, Action string
+permit: type AuditLogsListOptions struct, Decision *bool
+permit: type AuditLogsListOptions struct, PDPID string
+permit: type AuditLogsListOptions struct, Query models.AuditLogQueryType
+permit: type AuditLogsListOptions struct, Resources []string
+permit: type AuditLogsListOptions struct, SortBy models.AuditLogSortKey
+permit: type AuditLogsListOptions struct, Tenant string
+permit: type AuditLogsListOptions struct, TimestampFrom *int64
+permit: type AuditLogsListOptions struct, TimestampTo *int64
+permit: type AuditLogsListOptions struct, Users []string
+permit: type AuditLogsListOptions struct, embedded ListOptions
+permit: type AuditLogsService struct
+permit: type AuthorizedUserAssignment struct
+permit: type AuthorizedUserAssignment struct, Resource string
+permit: type AuthorizedUserAssignment struct, Role string
+permit: type AuthorizedUserAssignment struct, Tenant string
+permit: type AuthorizedUserAssignment struct, User string
+permit: type AuthorizedUsersRequest struct
+permit: type AuthorizedUsersRequest struct, Action string
+permit: type AuthorizedUsersRequest struct, Context map[string]any
+permit: type AuthorizedUsersRequest struct, Resource Resource
+permit: type AuthorizedUsersResult struct
+permit: type AuthorizedUsersResult struct, Resource string
+permit: type AuthorizedUsersResult struct, Tenant string
+permit: type AuthorizedUsersResult struct, Users map[string][]AuthorizedUserAssignment
+permit: type CheckOption struct
+permit: type CheckRequest struct
+permit: type CheckRequest struct, Action string
+permit: type CheckRequest struct, Context map[string]any
+permit: type CheckRequest struct, Resource Resource
+permit: type CheckRequest struct, User User
+permit: type CheckURLRequest struct
+permit: type CheckURLRequest struct, Context map[string]any
+permit: type CheckURLRequest struct, HTTPMethod string
+permit: type CheckURLRequest struct, Tenant string
+permit: type CheckURLRequest struct, URL string
+permit: type CheckURLRequest struct, User User
+permit: type Client struct
+permit: type Client struct, APIKeys *APIKeysService
+permit: type Client struct, AuditLogs *AuditLogsService
+permit: type Client struct, ConditionSetRules *ConditionSetRulesService
+permit: type Client struct, ConditionSets *ConditionSetsService
+permit: type Client struct, Elements *ElementsService
+permit: type Client struct, Environments *EnvironmentsService
+permit: type Client struct, Groups *GroupsService
+permit: type Client struct, ImplicitGrants *ImplicitGrantsService
+permit: type Client struct, PDPs *PDPsService
+permit: type Client struct, Projects *ProjectsService
+permit: type Client struct, ProxyConfigs *ProxyConfigsService
+permit: type Client struct, RelationshipTuples *RelationshipTuplesService
+permit: type Client struct, ResourceActionGroups *ResourceActionGroupsService
+permit: type Client struct, ResourceActions *ResourceActionsService
+permit: type Client struct, ResourceAttributes *ResourceAttributesService
+permit: type Client struct, ResourceInstances *ResourceInstancesService
+permit: type Client struct, ResourceRelations *ResourceRelationsService
+permit: type Client struct, ResourceRoles *ResourceRolesService
+permit: type Client struct, Resources *ResourcesService
+permit: type Client struct, RoleAssignments *RoleAssignmentsService
+permit: type Client struct, Roles *RolesService
+permit: type Client struct, Tenants *TenantsService
+permit: type Client struct, UserAttributes *UserAttributesService
+permit: type Client struct, UserInvites *UserInvitesService
+permit: type Client struct, Users *UsersService
+permit: type ConditionSetRulesListOptions struct
+permit: type ConditionSetRulesListOptions struct, Permission string
+permit: type ConditionSetRulesListOptions struct, ResourceSet string
+permit: type ConditionSetRulesListOptions struct, UserSet string
+permit: type ConditionSetRulesListOptions struct, embedded ListOptions
+permit: type ConditionSetRulesService struct
+permit: type ConditionSetsListOptions struct
+permit: type ConditionSetsListOptions struct, Search string
+permit: type ConditionSetsListOptions struct, Type models.ConditionSetType
+permit: type ConditionSetsListOptions struct, embedded ListOptions
+permit: type ConditionSetsService struct
+permit: type CopyResultOptions struct
+permit: type CopyResultOptions struct, Wait time.Duration
+permit: type ElementsService struct
+permit: type EnvironmentsService struct
+permit: type Error struct
+permit: type Error struct, Body []byte
+permit: type Error struct, Code string
+permit: type Error struct, Detail string
+permit: type Error struct, Err error
+permit: type Error struct, Method string
+permit: type Error struct, Op string
+permit: type Error struct, RequestID string
+permit: type Error struct, Route string
+permit: type Error struct, StatusCode int
+permit: type Error struct, Title string
+permit: type GroupsListOptions struct
+permit: type GroupsListOptions struct, Resource string
+permit: type GroupsListOptions struct, Search string
+permit: type GroupsListOptions struct, Tenant string
+permit: type GroupsListOptions struct, embedded ListOptions
+permit: type GroupsService struct
+permit: type ImplicitGrantsService struct
+permit: type ListOptions struct
+permit: type ListOptions struct, Page int
+permit: type ListOptions struct, PerPage int
+permit: type LocalRoleAssignment struct
+permit: type LocalRoleAssignment struct, ResourceInstance *string
+permit: type LocalRoleAssignment struct, Role string
+permit: type LocalRoleAssignment struct, Tenant string
+permit: type LocalRoleAssignment struct, User string
+permit: type LocalRoleAssignmentsOptions struct
+permit: type LocalRoleAssignmentsOptions struct, Resource string
+permit: type LocalRoleAssignmentsOptions struct, ResourceInstance string
+permit: type LocalRoleAssignmentsOptions struct, Role string
+permit: type LocalRoleAssignmentsOptions struct, Tenant string
+permit: type LocalRoleAssignmentsOptions struct, User string
+permit: type LocalRoleAssignmentsOptions struct, embedded ListOptions
+permit: type ObjectPermissions struct
+permit: type ObjectPermissions struct, Permissions []string
+permit: type ObjectPermissions struct, Resource *ResourceDetails
+permit: type ObjectPermissions struct, Roles []string
+permit: type ObjectPermissions struct, Tenant *TenantDetails
+permit: type Option struct
+permit: type PDPsService struct
+permit: type Page[T any] struct
+permit: type Page[T any] struct, Data []T
+permit: type Page[T any] struct, Page int
+permit: type Page[T any] struct, PageCount *int
+permit: type Page[T any] struct, PerPage int
+permit: type Page[T any] struct, TotalCount *int
+permit: type PermissionsOption interface
+permit: type ProjectsService struct
+permit: type ProxyConfigsService struct
+permit: type RelationshipTuplesListOptions struct
+permit: type RelationshipTuplesListOptions struct, Object string
+permit: type RelationshipTuplesListOptions struct, ObjectType string
+permit: type RelationshipTuplesListOptions struct, Relation string
+permit: type RelationshipTuplesListOptions struct, Subject string
+permit: type RelationshipTuplesListOptions struct, SubjectType string
+permit: type RelationshipTuplesListOptions struct, Tenant string
+permit: type RelationshipTuplesListOptions struct, embedded ListOptions
+permit: type RelationshipTuplesService struct
+permit: type Resource struct
+permit: type Resource struct, Attributes map[string]any
+permit: type Resource struct, Context map[string]any
+permit: type Resource struct, Key string
+permit: type Resource struct, Tenant string
+permit: type Resource struct, Type string
+permit: type ResourceActionGroupsService struct
+permit: type ResourceActionsListOptions struct
+permit: type ResourceActionsListOptions struct, Attributes []AttributeFilter
+permit: type ResourceActionsListOptions struct, embedded ListOptions
+permit: type ResourceActionsService struct
+permit: type ResourceAttributesService struct
+permit: type ResourceDetails struct
+permit: type ResourceDetails struct, Attributes map[string]any
+permit: type ResourceDetails struct, Key string
+permit: type ResourceDetails struct, Type string
+permit: type ResourceInstancesListOptions struct
+permit: type ResourceInstancesListOptions struct, Resource string
+permit: type ResourceInstancesListOptions struct, Search []string
+permit: type ResourceInstancesListOptions struct, Tenant string
+permit: type ResourceInstancesListOptions struct, embedded ListOptions
+permit: type ResourceInstancesService struct
+permit: type ResourceRelationsService struct
+permit: type ResourceRolesService struct
+permit: type ResourcesListOptions struct
+permit: type ResourcesListOptions struct, Search string
+permit: type ResourcesListOptions struct, embedded ListOptions
+permit: type ResourcesService struct
+permit: type RetryPolicy struct
+permit: type RetryPolicy struct, MaxBackoff time.Duration
+permit: type RetryPolicy struct, MaxRetries int
+permit: type RoleAssignmentsBulkAssignOptions struct
+permit: type RoleAssignmentsBulkAssignOptions struct, MissingUserPolicy models.MissingUserPolicy
+permit: type RoleAssignmentsListOptions struct
+permit: type RoleAssignmentsListOptions struct, ResourceInstance string
+permit: type RoleAssignmentsListOptions struct, Roles []string
+permit: type RoleAssignmentsListOptions struct, Tenants []string
+permit: type RoleAssignmentsListOptions struct, Users []string
+permit: type RoleAssignmentsListOptions struct, embedded ListOptions
+permit: type RoleAssignmentsService struct
+permit: type RolesListOptions struct
+permit: type RolesListOptions struct, Attributes []AttributeFilter
+permit: type RolesListOptions struct, embedded ListOptions
+permit: type RolesService struct
+permit: type Scope struct
+permit: type Scope struct, Environment string
+permit: type Scope struct, Project string
+permit: type SyncOption struct
+permit: type SyncPolicy string
+permit: type TenantDetails struct
+permit: type TenantDetails struct, Attributes map[string]any
+permit: type TenantDetails struct, Key string
+permit: type TenantUsersListOptions struct
+permit: type TenantUsersListOptions struct, Role string
+permit: type TenantUsersListOptions struct, Search string
+permit: type TenantUsersListOptions struct, embedded ListOptions
+permit: type TenantsListOptions struct
+permit: type TenantsListOptions struct, Attributes []AttributeFilter
+permit: type TenantsListOptions struct, embedded ListOptions
+permit: type TenantsService struct
+permit: type User struct
+permit: type User struct, Attributes map[string]any
+permit: type User struct, Email string
+permit: type User struct, FirstName string
+permit: type User struct, Key string
+permit: type User struct, LastName string
+permit: type UserAttributesService struct
+permit: type UserInvitesListOptions struct
+permit: type UserInvitesListOptions struct, Role string
+permit: type UserInvitesListOptions struct, Search string
+permit: type UserInvitesListOptions struct, Tenant string
+permit: type UserInvitesListOptions struct, embedded ListOptions
+permit: type UserInvitesService struct
+permit: type UserPermissionsRequest struct
+permit: type UserPermissionsRequest struct, Context map[string]any
+permit: type UserPermissionsRequest struct, ResourceTypes []string
+permit: type UserPermissionsRequest struct, Resources []string
+permit: type UserPermissionsRequest struct, Tenants []string
+permit: type UserPermissionsRequest struct, User User
+permit: type UserSyncResult struct
+permit: type UserSyncResult struct, Created bool
+permit: type UserSyncResult struct, User models.UserRead
+permit: type UserTenantsRequest struct
+permit: type UserTenantsRequest struct, Context map[string]any
+permit: type UserTenantsRequest struct, User User
+permit: type UsersListOptions struct
+permit: type UsersListOptions struct, Role string
+permit: type UsersListOptions struct, Search string
+permit: type UsersListOptions struct, embedded ListOptions
+permit: type UsersService struct
+permit: var ErrClosed = errors.New("permit: the client is closed")
+permit: var ErrConflict = errors.New("permit: conflict")
+permit: var ErrContainerPDPOnly = errors.New("permit: only the PDP container serves this route")
+permit: var ErrForbidden = errors.New("permit: forbidden")
+permit: var ErrInvalidConfig = errors.New("permit: invalid configuration")
+permit: var ErrMalformedDecision = errors.New("permit: malformed decision")
+permit: var ErrNotFound = errors.New("permit: not found")
+permit: var ErrRateLimited = errors.New("permit: rate limited")
+permit: var ErrUnauthorized = errors.New("permit: unauthorized")

@@ -1,0 +1,124 @@
+{
+  "image": "permitio/pdp-v2:0.9.16",
+  "mounts": [
+    {
+      "prefix": "/v2/facts/{proj_id}/{env_id}",
+      "same_as": "/facts",
+      "source": "horizon/pdp.py:515"
+    }
+  ],
+  "repository": "https://github.com/permitio/PDP",
+  "routes": [
+    {
+      "group": "authzen",
+      "methods": [
+        "GET"
+      ],
+      "path": "/.well-known/authzen-configuration",
+      "source": "pdp-server/src/api/authzen/mod.rs:19"
+    },
+    {
+      "group": "authzen",
+      "methods": [
+        "POST"
+      ],
+      "path": "/access/v1/evaluation",
+      "source": "pdp-server/src/api/authzen/mod.rs:23"
+    },
+    {
+      "group": "authzen",
+      "methods": [
+        "POST"
+      ],
+      "path": "/access/v1/evaluations",
+      "source": "pdp-server/src/api/authzen/mod.rs:27"
+    },
+    {
+      "group": "authzen",
+      "methods": [
+        "POST"
+      ],
+      "path": "/access/v1/search/action",
+      "source": "pdp-server/src/api/authzen/mod.rs:39"
+    },
+    {
+      "group": "authzen",
+      "methods": [
+        "POST"
+      ],
+      "path": "/access/v1/search/resource",
+      "source": "pdp-server/src/api/authzen/mod.rs:35"
+    },
+    {
+      "group": "authzen",
+      "methods": [
+        "POST"
+      ],
+      "path": "/access/v1/search/subject",
+      "source": "pdp-server/src/api/authzen/mod.rs:31"
+    },
+    {
+      "group": "facts",
+      "methods": [
+        "DELETE",
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "path": "/facts/{full_path}",
+      "source": "horizon/facts/router.py:387"
+    },
+    {
+      "group": "health",
+      "methods": [
+        "GET"
+      ],
+      "path": "/health",
+      "source": "pdp-server/src/api/health/handlers.rs:193"
+    },
+    {
+      "group": "health",
+      "methods": [
+        "GET"
+      ],
+      "path": "/healthy",
+      "source": "pdp-server/src/api/health/handlers.rs:195"
+    },
+    {
+      "group": "health",
+      "methods": [
+        "GET"
+      ],
+      "path": "/ready",
+      "source": "pdp-server/src/api/health/handlers.rs:194"
+    },
+    {
+      "group": "trino",
+      "methods": [
+        "POST"
+      ],
+      "path": "/trino/allowed",
+      "source": "pdp-server/src/api/trino/mod.rs:14"
+    },
+    {
+      "group": "trino",
+      "methods": [
+        "POST"
+      ],
+      "path": "/trino/batch-column-masking",
+      "source": "pdp-server/src/api/trino/mod.rs:17"
+    },
+    {
+      "group": "trino",
+      "methods": [
+        "POST"
+      ],
+      "path": "/trino/row-filter",
+      "source": "pdp-server/src/api/trino/mod.rs:15"
+    }
+  ],
+  "tag": "0.9.16"
+}

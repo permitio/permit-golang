@@ -1,0 +1,147 @@
+# Reports a version tag that the release rules did not publish, such as one pushed by hand by an
+# admin who bypasses or disables a tag ruleset. release.yml is the one way to publish a v2
+# version, and a v1 version is published with a GitHub release once CI succeeded on its commit;
+# tools/cmd/releasecheck watchdog checks every tag of the repository against these rules and
+# .github/accepted-tags.txt, as Releases in CONTRIBUTING.md says. A v2 tag passes on the
+# attestation that release.yml's verify job made of the module zip of its release, which GitHub
+# keeps, as it deletes workflow runs after the retention period.
+#
+# The security mode of ci.yml calls it twice a week (SECURITY_CRON), from master, which checks
+# every tag whatever its commit: that is the run to rely on. It also runs on a push of a tag v*,
+# from the tagged commit's own workflows, which build releasecheck and read accepted-tags.txt from
+# that commit; a tag on a commit that has no tag-watchdog.yml, such as a v1 commit, starts no
+# run. A finding, or a check that did not run, posts to the security channel,
+# SECURITY_SLACK_WEBHOOK_URL, and fails the job.
+name: tag-watchdog
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_call:
+    secrets:
+      SECURITY_SLACK_WEBHOOK_URL:
+        description: The incoming webhook of the security channel
+        required: false
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+jobs:
+  # The first step reads the tags, the releases and the runs with the job's token, and runs
+  # nothing of the repository; the next builds and runs releasecheck without it, and the last
+  # posts the result when a step failed, with the webhook alone. The runs of ci.yml are those of a
+  # push of each v1 tag's commit, which the v1 tags need. For each published v2 release, the
+  # first step downloads its module zip, permit-golang-<tag>.zip, and records the zip's SHA-256
+  # and the attestations that gh attestation verify finds signed by release.yml from master, or
+  # why the download or the verification failed, which releasecheck then reports for that tag.
+  watchdog:
+    name: tag-watchdog
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read  # the tags, the releases and their assets
+      actions: read  # the runs of release.yml and of ci.yml
+      attestations: read  # the attestations of the module zips of the v2 releases
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read the tags, the releases, the runs and the attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          dir=$RUNNER_TEMP/watchdog
+          mkdir "$dir"
+          gh api --paginate "repos/$REPOSITORY/tags?per_page=100" >"$dir/tags.json"
+          gh api --paginate "repos/$REPOSITORY/releases?per_page=100" >"$dir/releases.json"
+          runs="repos/$REPOSITORY/actions/workflows"
+          gh api --paginate "$runs/release.yml/runs?per_page=100" >"$dir/release-runs.json"
+          echo '{"total_count": 0, "workflow_runs": []}' >"$dir/ci-runs.json"
+          jq -r '.[] | select(.name | startswith("v1.")) | .commit.sha' "$dir/tags.json" |
+            sort -u >"$dir/v1-commits.txt"
+          while read -r sha; do
+            if [[ ! $sha =~ ^[0-9a-f]{40}$ ]]; then
+              echo "The tags list a v1 tag whose commit is \"$sha\", not a commit hash."
+              exit 1
+            fi
+            gh api "$runs/ci.yml/runs?head_sha=$sha&event=push&per_page=100" \
+              >>"$dir/ci-runs.json"
+          done <"$dir/v1-commits.txt"
+          jq -r '.[] | select(.draft | not) | .tag_name | select(test("^v2\\.[0-9A-Za-z.-]+$"))' \
+            "$dir/releases.json" | sort -u >"$dir/v2-releases.txt"
+          mkdir "$dir/zips"
+          : >"$dir/attestations.jsonl"
+          while read -r tag; do
+            zip=$dir/zips/permit-golang-$tag.zip
+            sum=''
+            error=''
+            echo null >"$dir/verified.json"
+            if ! gh release download "$tag" --repo "$REPOSITORY" --pattern "${zip##*/}" \
+              --dir "$dir/zips" </dev/null 2>"$dir/error.txt"; then
+              error="gh release download failed: $(cat "$dir/error.txt")"
+            else
+              sum=$(sha256sum -- "$zip" | cut -d ' ' -f 1)
+              if ! gh attestation verify "$zip" --repo "$REPOSITORY" \
+                --signer-workflow "$REPOSITORY/.github/workflows/release.yml" \
+                --source-ref refs/heads/master --format json </dev/null >"$dir/verified.json" \
+                2>"$dir/error.txt"; then
+                error="gh attestation verify failed: $(cat "$dir/error.txt")"
+                echo null >"$dir/verified.json"
+              fi
+            fi
+            jq -n --arg tag "$tag" --arg sum "$sum" --arg error "$error" \
+              --slurpfile verified "$dir/verified.json" \
+              '{tag: $tag, sha256: $sum, error: $error, verified: $verified[0]}' \
+              >>"$dir/attestations.jsonl"
+          done <"$dir/v2-releases.txt"
+          jq -s . "$dir/attestations.jsonl" >"$dir/attestations.json"
+      - name: Check the tags
+        id: check
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o ../bin/releasecheck ./cmd/releasecheck
+          dir=$RUNNER_TEMP/watchdog
+          code=0
+          bin/releasecheck watchdog -repo "$GITHUB_REPOSITORY" -tags "$dir/tags.json" \
+            -release-runs "$dir/release-runs.json" -releases "$dir/releases.json" \
+            -ci-runs "$dir/ci-runs.json" -attestations "$dir/attestations.json" |
+            tee "$dir/watchdog.txt" || code=$?
+          echo "code=$code" >>"$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Post the result
+        if: failure()
+        env:
+          SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
+          CHECK_EXIT: ${{ steps.check.outputs.code }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          result="DID NOT RUN"
+          details="the tags, the releases, the runs or the attestations could not be read or"
+          details="$details checked"
+          if [[ $CHECK_EXIT == 1 ]]; then
+            result=FAIL
+            tags=$(sed -n 's/^releasecheck: FAIL: \([^ ]*\) .*/\1/p' \
+              "$RUNNER_TEMP/watchdog/watchdog.txt" | sort -u | paste -sd ',' - | sed 's/,/, /g')
+            details="tags that the release rules did not publish: $tags; the run says why"
+          fi
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel security -repo "$GITHUB_REPOSITORY" -check tag-watchdog \
+            -result "$result" -details "$details" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

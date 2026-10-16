@@ -1,0 +1,1 @@
+{"key":"idp|alice","email":"alice@example.com","first_name":"<Alice> & B","last_name":"a\u2028b","attributes":{"list":["a",1],"n":9007199254740993,"nested":{}},"role_assignments":[{"role":"viewer"},{"role":"owner","tenant":"tenant-a","resource_instance":"document:doc-1"}]}

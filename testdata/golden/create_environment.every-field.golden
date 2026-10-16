@@ -1,0 +1,1 @@
+{"key":"e","name":"<E> & F","description":"a\u2028b","custom_branch_name":"b","jwks":{"audience":"aud","issuer":["i1","i2"],"jwks":{"keys":[{"kid":"k"}]},"ttl":60,"url":"https://example.com/jwks"},"settings":{"n":9007199254740993}}

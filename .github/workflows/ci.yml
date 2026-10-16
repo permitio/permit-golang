@@ -1,209 +1,1661 @@
-# CI for the v1 line. It reads no secrets, so pull requests from forks run the
-# same checks. The tests in pkg/tests need live Permit credentials and build
-# only with -tags integration; integration.yml runs them, and nothing here
-# depends on it.
-#
-# Go versions are pinned by hand; Dependabot does not bump go-version:
-#   1.19.13, the go.mod floor: fmt, vet and the test matrix in this file.
-#   1.27.1: the test matrix and govulncheck in this file, verify-release.yml and
-#   integration.yml.
-#
-# The module is small, so setup-go's cache is off in every job (cache: false):
-# each run downloads and builds from scratch and restores nothing saved by
-# another run.
+# Every check of this repository. The ci job at the end, named CI, is the one check the ruleset
+# requires: it fails unless every job it needs succeeded or was not selected for the run.
+# CONTRIBUTING.md describes the jobs and how to run each check locally.
 name: CI
 
+# Pull requests into any branch, with no path filter, so a stacked pull request is checked and a
+# required check always starts. Pushes to master, so a regression shows there. workflow_dispatch
+# and workflow_call take a mode: pr runs the pull request checks, release (which release.yml
+# passes) runs them and the end-to-end jobs for a release, e2e runs the end-to-end jobs, which
+# a push to master runs too and e2e-pr.yml calls on a pull request, and security and weekly run
+# the periodic jobs. Each cron in on.schedule is declared once more as <MODE>_CRON in env, which
+# cicheck and ci-aggregate.sh read; GitHub does not allow expressions in on:.
 on:
   pull_request:
   push:
-    branches: [master, 'release/**']
+    branches: [master]
+  schedule:
+    - cron: "23 4 * * 1,4"
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Which jobs to run
+        type: choice
+        options: [pr, e2e, security, weekly]
+        default: pr
+  workflow_call:
+    inputs:
+      mode:
+        description: Which jobs to run; release.yml passes release
+        type: string
+        required: true
 
 permissions: {}
 
+# One run per pull request: a new push cancels the older run. Other runs wait for each other per
+# commit and mode. The group starts with a literal prefix because a called run has its caller's
+# github.workflow, and a group shared with the caller would deadlock; release.yml uses release-.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: >-
+    ci-${{ inputs.mode || github.event_name }}-${{
+    github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && !inputs.mode }}
 
 defaults:
   run:
     shell: bash --noprofile --norc -euo pipefail {0}
 
 env:
-  # Each job tests the Go version it installs, never a toolchain that go.mod asks for.
-  GOTOOLCHAIN: local
+  # The Go releases the test legs run, as exact patch releases: the minimum that go.mod's go line
+  # allows, and the newest patch of each supported Go release that is at least 7 days old.
+  GO_FLOOR: "1.26.0"
+  GO_126: "1.26.9"
+  GO_127: "1.27.2"
+  # The crons in on.schedule, by mode: security twice a week, weekly once a week.
+  SECURITY_CRON: "23 4 * * 1,4"
+  WEEKLY_CRON: "41 6 * * 1"
+  # The number of hooks in .pre-commit-config.yaml that run on every file; change it when a hook
+  # is added or removed.
+  EXPECTED_HOOKS: "28"
+  # A proxy address that refuses connections. The tests run with it, so a request that tries to
+  # leave the runner fails; requests to loopback addresses, such as httptest servers, go direct.
+  OFFLINE_PROXY: http://127.0.0.1:9
+  # The container PDP of the e2e job, pinned by digest. Dependabot does not update it.
+  PDP_IMAGE_PINNED_TAG: permitio/pdp-v2:0.9.16
+  PDP_IMAGE_PINNED_DIGEST: sha256:e3cf30794ec2d256636b4714641df46e51ee58a3f1f0d24c606e214e0bf8669a
+  # The container PDP of the advisory e2e-latest job: the newest release, by tag.
+  PDP_IMAGE_LATEST: permitio/pdp-v2:latest
 
 jobs:
-  fmt:
-    name: fmt
+  # Checks the workflows with cicheck, runs every hook in .pre-commit-config.yaml on every file,
+  # and on a pull request checks the message of each of its commits. setup-go installs the
+  # toolchain line of go.mod; the hooks that build Go programs use it. zizmor runs its online
+  # audits with GH_TOKEN.
+  prek:
+    name: prek
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
-      - name: Check out
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
         with:
-          # gofmt output changes between Go releases, so the check uses the go.mod floor.
-          go-version: '1.19.13'
+          go-version-file: go.mod
           cache: false
-      - name: Check formatting
+      - name: Check the workflows
         run: |
-          unformatted=$(gofmt -l .)
-          if [[ -n "$unformatted" ]]; then
-            echo "These files are not formatted with gofmt from Go 1.19.13:" >&2
-            echo "$unformatted" >&2
-            echo "Format them with that gofmt:" >&2
-            echo "  go install golang.org/dl/go1.19.13@latest && go1.19.13 download" >&2
-            echo "  \"\$(go1.19.13 env GOROOT)/bin/gofmt\" -w <files>" >&2
-            exit 1
-          fi
-      - name: Check that the CI job needs every other job
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o ../bin/cicheck ./cmd/cicheck
+          bin/cicheck
+      - name: Install prek
         run: |
-          ci=.github/workflows/ci.yml
-          # The parentheses matter: yq reads a - b - c as a - (b - c).
-          unlisted=$(yq -r '((.jobs | keys) - ["ci"]) - .jobs.ci.needs | .[]' "$ci")
-          unknown=$(yq -r '.jobs.ci.needs - ((.jobs | keys) - ["ci"]) | .[]' "$ci")
-          if [[ -n "$unlisted" ]]; then
-            echo "Add these jobs to the needs list of the CI job in $ci:" >&2
-            echo "$unlisted" >&2
-          fi
-          if [[ -n "$unknown" ]]; then
-            echo "These names in the needs list of the CI job in $ci are not jobs:" >&2
-            echo "$unknown" >&2
-          fi
-          if [[ -n "$unlisted" || -n "$unknown" ]]; then
-            exit 1
-          fi
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh prek
+      - name: Run the hooks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/prek-count.sh
+      # The commits of a pull request only. A check on a push to master could only turn master
+      # red after the merge, and master is never rewritten: a rebase merge keeps the commits
+      # checked here, and a maintainer who squashes writes the message to the same rules.
+      - name: Check the commit messages
+        if: >-
+          !inputs.mode && github.event_name == 'pull_request'
+        env:
+          RANGE_BASE: ${{ github.event.pull_request.base.sha }}
+          RANGE_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: .github/scripts/commits-check.sh "$RANGE_BASE" "$RANGE_HEAD"
 
-  vet:
-    name: vet
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Check out
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: '1.19.13'
-          cache: false
-      - name: Vet
-        # No file is excluded by the integration tag, so this also vets the default build.
-        run: go vet -tags integration ./...
-      - name: Check that go.mod and go.sum are tidy
-        # A requirement that no package imports would slip past the module guard below and
-        # govulncheck, yet still raise the minimum versions of every application using the SDK.
-        run: |
-          go mod tidy
-          if ! git diff --exit-code -- go.mod go.sum; then
-            echo "go.mod or go.sum is not tidy. Run go mod tidy with Go 1.19.13 and commit it." >&2
-            exit 1
-          fi
-      - name: Check that the removed modules stay out
-        run: |
-          removed=(golang.org/x/net golang.org/x/oauth2 google.golang.org/appengine
-            google.golang.org/protobuf github.com/golang/protobuf)
-          modules=$(go list -deps -test -tags integration \
-            -f '{{with .Module}}{{.Path}}{{end}}' ./...)
-          found=()
-          for module in "${removed[@]}"; do
-            if grep -qFx "$module" <<<"$modules"; then
-              found+=("$module")
-            fi
-          done
-          if (( ${#found[@]} > 0 )); then
-            echo "The packages or tests import these modules again: ${found[*]}" >&2
-            echo "v1.3.0 removed them: the SDK's old minimum versions of x/net and x/oauth2" >&2
-            echo "had published advisories, and every application that uses the SDK" >&2
-            echo "inherits its minimum versions. Use the standard library instead (for" >&2
-            echo "example context, not golang.org/x/net/context); go mod why -m <module>" >&2
-            echo "shows which import brings a module in." >&2
-            exit 1
-          fi
-
+  # The tests of both modules on the minimum Go release and the newest patch of each supported
+  # release. The floor legs use go.mod and go.sum as committed; the ceiling legs first move every
+  # dependency to its newest version in the runner's copy, as an application that requires newer
+  # versions would. GOTOOLCHAIN=local keeps the go command from switching to go.mod's toolchain.
+  # The end-to-end dry run of tools/e2e, the dry run of the upgrade test of tools/upgrade, in
+  # which v1.3.0 writes and v2 reads, and the tests of the scanner of the migration skill in
+  # skills/permit-golang-v2-migration run with them. checkgotest checks all five outputs, and the
+  # upgrade dry run's against tools/upgrade/required.txt as well, the list of the e2e job. The
+  # ceiling legs tidy tools/upgrade too, which builds the root and tools modules through its
+  # replace directives. The modules, and the gitleaks that the tests of gitleaks-range.sh run,
+  # are downloaded first, and the tests then run offline. Then each leg checks that the tests of
+  # tools/scripts kept within SCRIPTS_TEST_SECONDS, and the benchmarks of the root package run 100
+  # times each, so that each compiles and runs; the bench job measures them.
   test:
-    name: test (Go ${{ matrix.go }})
+    name: test (${{ matrix.go }}, ${{ matrix.deps }} tree)
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        go: ['1.19.13', '1.27.1']
+        include:
+          - {go: GO_FLOOR, deps: floor}
+          - {go: GO_126, deps: floor}
+          - {go: GO_127, deps: floor}
+          - {go: GO_126, deps: ceiling}
+          - {go: GO_127, deps: ceiling}
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      # The tests of tools/scripts run the scripts hundreds of times, in parallel; they take 15
+      # to 35 seconds on a laptop. A leg fails when they take longer than this, half the 5-minute
+      # -timeout that AGENTS.md gives go test in both modules, so that a slowdown shows here before
+      # it makes the tests time out on a busy machine.
+      SCRIPTS_TEST_SECONDS: "150"
     steps:
-      - name: Check out
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
         with:
-          go-version: ${{ matrix.go }}
+          go-version: ${{ env[matrix.go] }}
           cache: false
+      # checkgotest exits 1 when a test failed or skipped, and 2 when a required test or a
+      # module's tests did not run. go test's own exit code is reported after it, and then
+      # whether the tests of tools/scripts kept within SCRIPTS_TEST_SECONDS.
       - name: Test
-        # Keep the JSON report for the next step and print the plain test output.
+        env:
+          GO_VERSION: ${{ env[matrix.go] }}
+          DEPS: ${{ matrix.deps }}
         run: |
-          go test -race -count=1 -shuffle=on -json ./... \
-            | tee "$RUNNER_TEMP/go-test.json" \
-            | jq -Rrj 'fromjson? // {Output: "\(.)\n"} | .Output // empty'
-      - name: Check that every package ran tests and none were skipped
-        run: .github/scripts/check-test-report.sh "$RUNNER_TEMP/go-test.json"
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          have=$(go env GOVERSION)
+          echo "Go: $have, dependencies: $DEPS"
+          if [[ $have != "go$GO_VERSION" ]]; then
+            echo "This leg must run go$GO_VERSION, but go env GOVERSION is $have."
+            exit 2
+          fi
+          if [[ $DEPS == ceiling ]]; then
+            go get -u -t ./...
+            go mod tidy
+            go -C tools mod tidy
+            go -C tools/upgrade mod tidy
+            git diff --stat
+          fi
+          go mod download
+          go -C tools mod download
+          go -C tools/upgrade mod download
+          .github/scripts/fetch-tool.sh gitleaks
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          root=0 tools=0 e2e=0 upgrade=0 skill=0
+          go test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/root.json" || root=$?
+          go -C tools test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/tools.json" ||
+            tools=$?
+          go -C tools test -race -shuffle=on -count=1 -json -tags e2e ./e2e -args -e2e.dryrun \
+            >"$RUNNER_TEMP/e2e.json" || e2e=$?
+          go -C tools/upgrade test -race -shuffle=on -count=1 -json ./... -args -upgrade.dryrun \
+            >"$RUNNER_TEMP/upgrade.json" || upgrade=$?
+          go -C skills/permit-golang-v2-migration test -race -shuffle=on -count=1 -json ./... \
+            >"$RUNNER_TEMP/skill.json" || skill=$?
+          "$RUNNER_TEMP/checkgotest" -require-file .github/required-tests.txt \
+            -allow-skips .github/allowed-skips.txt \
+            "$RUNNER_TEMP/root.json" "$RUNNER_TEMP/tools.json" "$RUNNER_TEMP/e2e.json" \
+            "$RUNNER_TEMP/upgrade.json" "$RUNNER_TEMP/skill.json"
+          "$RUNNER_TEMP/checkgotest" -require-file tools/upgrade/required.txt \
+            "$RUNNER_TEMP/upgrade.json"
+          if [[ $root -ne 0 || $tools -ne 0 || $e2e -ne 0 || $upgrade -ne 0 || $skill -ne 0 ]]; then
+            echo "go test exited $root in the root module, $tools in tools/, $e2e in the" \
+              "end-to-end dry run, $upgrade in the dry run of the upgrade test and $skill in" \
+              "skills/permit-golang-v2-migration."
+            exit 1
+          fi
+          scripts=$(jq -r 'select(.Action == "pass" and .Test == null and
+            .Package == "github.com/permitio/permit-golang/v2/tools/scripts") | .Elapsed' \
+            "$RUNNER_TEMP/tools.json")
+          if ! [[ $scripts =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+            echo "go test reported no single time for the tests of tools/scripts: '$scripts'."
+            exit 2
+          fi
+          echo "The tests of tools/scripts took ${scripts}s, of at most ${SCRIPTS_TEST_SECONDS}s."
+          awk -v took="$scripts" -v most="$SCRIPTS_TEST_SECONDS" \
+            'BEGIN { exit !(took + 0 <= most + 0) }' || {
+            echo "The tests of tools/scripts took longer than $SCRIPTS_TEST_SECONDS seconds: run" \
+              "them in parallel, and link the scripts and stubs that they run, as linkScripts" \
+              "in tools/scripts/run_test.go says."
+            exit 1
+          }
+          go test -count=1 -run '^$' -bench . -benchtime 100x .
 
-  govulncheck:
-    name: govulncheck
+  # Compiles the SDK for every platform that applications commonly build for.
+  crossbuild:
+    name: crossbuild (${{ matrix.goos }}/${{ matrix.goarch }})
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOFLAGS: -mod=readonly
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          echo "$(go env GOVERSION) for $GOOS/$GOARCH"
+          go build ./...
+
+  # Checks the SDK from an application's side with consumer/, a module of its own that requires
+  # the SDK and replaces it with the repository root: go vet, then its tests, whose output
+  # checkgotest checks. They check that the module graph holds only the SDK and its own
+  # requirements, that go doc resolves the SDK's packages and finds no deprecated identifier, and
+  # that each fixture in consumer/mustfail fails to compile with its expected message. The prek
+  # job lints consumer/ with golangci-lint, staticcheck's SA1019 included. go mod download all
+  # first fetches every module of the graph, which go list -m all reads; without all it fetches
+  # nothing, as the consumer's one requirement is replaced. The checks then run offline.
+  consumer:
+    name: consumer
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the consumer module
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C consumer mod download all
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          go -C consumer vet ./...
+          code=0
+          go -C consumer test -count=1 -shuffle=on -json ./... >"$RUNNER_TEMP/consumer.json" ||
+            code=$?
+          "$RUNNER_TEMP/checkgotest" -require 'example.com/consumer TestModuleGraph' \
+            -require 'example.com/consumer TestGoDoc' \
+            -require 'example.com/consumer TestCountDeprecated' \
+            -require 'example.com/consumer TestMustFail' "$RUNNER_TEMP/consumer.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code in consumer/."
+            exit 1
+          fi
+
+  # Checks the API reference, the documentation that pkg.go.dev shows. go vet runs on each package
+  # outside internal/, and its tests analyzer checks that every Example names an identifier that
+  # exists; go doc -all must read each of them, at least the permit and models packages. Then
+  # the tests of doc_test.go and readme_test.go run, and checkgotest checks their output: every
+  # doc link resolves, every exported identifier has a doc comment, every service type and
+  # decision method has an Example with an output comment, every Example has one, each method
+  # says the phrases of docRules, and every go block of README.md after a <!-- compile --> line
+  # compiles. The modules are downloaded first, and the checks then run offline. A second step
+  # builds and runs the zapslog example of WithLogger's documentation.
+  docs:
+    name: docs
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the API reference
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          listed=$(go list ./...)
+          public=()
+          while IFS= read -r pkg; do
+            [[ /$pkg/ != */internal/* ]] || continue
+            public+=("$pkg")
+          done <<<"$listed"
+          if [[ ${#public[@]} -lt 2 ]]; then
+            echo "go list found ${#public[@]} packages outside internal/, want at least permit" \
+              "and models."
+            exit 2
+          fi
+          go vet "${public[@]}"
+          for pkg in "${public[@]}"; do
+            go doc -all "$pkg" >/dev/null
+          done
+          echo "go vet and go doc -all checked ${#public[@]} packages: ${public[*]}"
+          code=0
+          go test -count=1 -shuffle=on -json -run '^Test(Doc|Readme)' . \
+            >"$RUNNER_TEMP/docs.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require 'github.com/permitio/permit-golang/v2 TestDocLinks' \
+            -require 'github.com/permitio/permit-golang/v2 TestDocComments' \
+            -require 'github.com/permitio/permit-golang/v2 TestDocExamples' \
+            -require 'github.com/permitio/permit-golang/v2 TestDocRules' \
+            -require 'github.com/permitio/permit-golang/v2 TestDocLLMsTxt' \
+            -require 'github.com/permitio/permit-golang/v2 TestReadmeBlocksCompile' \
+            -require 'github.com/permitio/permit-golang/v2 TestReadmeTables' \
+            -require 'github.com/permitio/permit-golang/v2 TestReadmeQuotesTheScopeError' \
+            -require 'github.com/permitio/permit-golang/v2 TestReadmeGoVersions' \
+            "$RUNNER_TEMP/docs.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      # No go.mod of the repository requires zap, so the zapslog example of WithLogger,
+      # internal/logging/testdata/zapslog_example.go.txt, builds in a module of its own outside
+      # the checkout: it requires zap and zapslog, at the versions below, and replaces the SDK
+      # with the checkout. The example plants a fake API key and fails when zap's JSON output
+      # holds it, or holds no marker. This step downloads the modules from the module proxy; the
+      # example then runs offline.
+      - name: Check the zapslog example
+        env:
+          ZAP_VERSION: v1.28.0
+          ZAP_EXP_VERSION: v0.3.0
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          dir=$RUNNER_TEMP/zapslog-example
+          mkdir "$dir"
+          cp internal/logging/testdata/zapslog_example.go.txt "$dir/main.go"
+          go -C "$dir" mod init example.com/zapslogexample
+          go -C "$dir" mod edit -require=github.com/permitio/permit-golang/v2@v2.0.0 \
+            -replace=github.com/permitio/permit-golang/v2="$GITHUB_WORKSPACE"
+          go -C "$dir" get "go.uber.org/zap@$ZAP_VERSION" "go.uber.org/zap/exp@$ZAP_EXP_VERSION"
+          go -C "$dir" mod tidy
+          go -C "$dir" build -o "$RUNNER_TEMP/zapslog-example-bin" .
+          HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY "$RUNNER_TEMP/zapslog-example-bin"
+
+  # Builds the module zip of the commit with tools/cmd/zipcheck, the way the Go module proxy
+  # builds it from the repository, and checks what it holds: only the files on its allow list,
+  # LICENSE among them, no file over its cap, and a compressed size within the budget in
+  # tools/cmd/zipcheck/limits.go. It prints the 10 largest files. zipcheck is built first, and
+  # then runs offline.
+  zipcheck:
+    name: zipcheck
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the module zip
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/zipcheck" ./cmd/zipcheck
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          "$RUNNER_TEMP/zipcheck"
+
+  # Runs the root package's tests offline with PERMIT_API_COVERAGE_RECORD set, so that they
+  # record the requests they send to the mockpermit servers, and TestCloud of tools/e2e in its
+  # dry run with -e2e.record, then checks both records and tools/specs/coverage.yaml against the
+  # committed specs and testdata/operation-map.json with tools/cmd/apicoverage, which writes its
+  # report to the job summary. -advisory tools/e2e/advisory.txt marks the operations of the
+  # methods whose scenario is advisory. The records hold no live request, so the report's e2e
+  # column is dry run or advisory. apicoverage exits 1 when a decision of coverage.yaml does not
+  # hold, and 2 when a record is incomplete or an input is malformed.
+  api-coverage:
+    name: api-coverage
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Record the requests of the tests and report the API coverage
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools mod download
+          go -C tools build -o "$RUNNER_TEMP/apicoverage" ./cmd/apicoverage
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          record=$RUNNER_TEMP/api-coverage.jsonl
+          PERMIT_API_COVERAGE_RECORD=$record go test -count=1 -shuffle=on .
+          dryrun=$RUNNER_TEMP/e2e-dryrun.jsonl
+          go -C tools test -count=1 -tags e2e -run '^TestCloud$' ./e2e -args -e2e.dryrun \
+            -e2e.record "$dryrun"
+          "$RUNNER_TEMP/apicoverage" -advisory tools/e2e/advisory.txt \
+            -summary "$GITHUB_STEP_SUMMARY" "$record" "$dryrun"
+
+  # Scans for known vulnerabilities with govulncheck and Trivy through .github/scripts/vuln.sh:
+  # the SDK's floor (go.mod as committed), its ceiling (every dependency at its newest version)
+  # and tools/. secreport decides the result and writes the job summary; on a pull request from
+  # this repository it also keeps a comment up to date, which needs pull-requests: write. A
+  # fork's token is read-only, so secreport skips the comment there with a notice.
+  vuln:
+    name: vuln
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write  # secreport posts and updates its comment on the pull request
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Scan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: .github/scripts/vuln.sh
+
+  # Scans the commits that are new in the run for secrets, with .github/scripts/gitleaks-range.sh
+  # and the gitleaks that tools/binaries.lock pins. The script gives gitleaks its own configuration
+  # and reads none from the checkout. The range depends on the run:
+  #   - a pull request: its commits, from its base to its head. A pull request always adds a
+  #     commit, so a range without one did not run.
+  #   - a push: from before to after. A push may add no commit, which passes with a notice. A push
+  #     sends the zero SHA as before only when it creates master, and the script fails on it: the
+  #     commits not on master would be none, so nothing would be scanned.
+  #   - the pr mode, a manual run: the commits that are not on master. A run on master has none,
+  #     which passes with a notice.
+  #   - the release mode: the commits since the last release, from the newest tag that matches
+  #     v[0-9]* and comes before the release commit (--since-last-tag), as the commits of a
+  #     release are on master already. The range always holds the release commit, and no such tag
+  #     fails the scan; fetch-depth: 0 fetches the tags too.
+  secrets:
+    name: secrets
+    if: >-
+      (!inputs.mode && (github.event_name == 'pull_request' || github.event_name == 'push'))
+      || inputs.mode == 'pr' || inputs.mode == 'release'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      - name: Check out
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install gitleaks
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh gitleaks
+      - name: Scan the new commits
+        if: inputs.mode != 'release'
+        env:
+          RANGE_BASE: >-
+            ${{ inputs.mode && 'origin/master'
+            || github.event.pull_request.base.sha || github.event.before }}
+          RANGE_HEAD: >-
+            ${{ inputs.mode && 'HEAD'
+            || github.event.pull_request.head.sha || github.event.after }}
+          IF_EMPTY: >-
+            ${{ !inputs.mode && github.event_name == 'pull_request' && 'error' || 'notice' }}
+        run: .github/scripts/gitleaks-range.sh --if-empty "$IF_EMPTY" "$RANGE_BASE" "$RANGE_HEAD"
+      - name: Scan the commits since the last release
+        if: inputs.mode == 'release'
+        run: .github/scripts/gitleaks-range.sh --since-last-tag HEAD
+
+  # On a pull request only: mutation tests of the Go lines that changed in both modules, in
+  # tools/upgrade and in skills/permit-golang-v2-migration, the module of the migration skill's
+  # scanner, with tools/cmd/mutationgate and the gremlins that tools/binaries.lock pins. The
+  # range starts at the newest commit of the pull request whose mutation check succeeded, or at
+  # the merge base when none did (.github/scripts/mutation-range.sh, which reads the check runs
+  # with GH_TOKEN in a step of its own), so the lines of a run that a newer push cancelled are in
+  # the next one. The job has no name:, so its check run is named by its id, which the range step
+  # passes the script as ${{ github.job }}. The job fails when the tests detect fewer than 90% of
+  # the mutants that ran, and tests a sample of the changed lines, fixed by the head commit, with
+  # a budget of 400 mutants. Every test process is bounded to 3 minutes, 4096 MiB and 64 MiB of
+  # output, two at a time. The tests run offline, without GH_TOKEN, skipping the live tests and
+  # the tests that read files outside their module, which fail in the module copies gremlins
+  # tests mutants in. The report is in the job summary.
+  mutation:
+    if: >-
+      !inputs.mode && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      checks: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install gremlins
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh gremlins
+      - name: Find the start of the range
+        id: range
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHECK_NAME: ${{ github.job }}
+        run: |
+          .github/scripts/mutation-range.sh "$REPOSITORY" "$PULL_REQUEST" "$BASE_SHA" "$HEAD_SHA" \
+            "$CHECK_NAME"
+      - name: Run the mutation tests
+        env:
+          START_SHA: ${{ steps.range.outputs.start }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools mod download
+          go -C tools/upgrade mod download
+          go -C tools build -o "$RUNNER_TEMP/mutationgate" ./cmd/mutationgate
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          "$RUNNER_TEMP/mutationgate" -base "$START_SHA" -threshold 90 -max-mutants 400 \
+            -skip '^(TestLive|TestRepository)' -gremlins bin/gremlins -workers 2 \
+            -timeout-coefficient 5 -cap 3m -memory-mib 4096 -summary "$GITHUB_STEP_SUMMARY" \
+            . tools tools/upgrade skills/permit-golang-v2-migration
+
+  # On a pull request only: fails when the pull request adds a dependency with a known
+  # vulnerability of high or critical severity, from GitHub's dependency graph, and on a failure
+  # comments the summary on the pull request, which needs pull-requests: write. A fork's token is
+  # read-only: the action then warns that it cannot comment, and the result is still the review's.
+  # It reads no configuration file from the checkout, and checks out nothing.
+  dependency-review:
+    name: dependency-review
+    if: >-
+      !inputs.mode && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write  # the action comments its summary on the pull request on a failure
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+
+  # On a pull request only: tools/cmd/apisurface in pull request mode. While the base names
+  # another module path than the pull request, as on the pull request that moves the SDK to v2,
+  # it runs migration mode: an entry of MIGRATION.md or a line of tools/migration/pending.txt
+  # covers each part of the v1 API in tools/migration/v1-surface.txt, and no commit of the pull
+  # request removes an entry ID from tools/migration/ids.txt. Otherwise it runs diff mode:
+  # apidiff, which tools/go.mod pins, compares the module with the base, a new rule in
+  # testdata/validation-rules.txt and a field turned required in tools/drift/model-map.yaml count
+  # as breaking too, and a breaking change fails unless the pull request has the breaking label.
+  # A step of its own reads the labels with the API, which needs pull-requests: read, so that a
+  # re-run after the label is added sees it, before anything of the pull request is checked out;
+  # it passes on only whether the breaking label is there, and the step that builds and runs code
+  # of the pull request has no GH_TOKEN. It runs online: apidiff may download the base's
+  # dependencies.
+  api-surface:
+    name: api-surface
+    if: >-
+      !inputs.mode && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read  # the labels of the pull request, for the breaking label
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - name: Read the breaking label
+        id: labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          labels=$(gh api --paginate "repos/$REPOSITORY/issues/$PULL_REQUEST/labels" \
+            --jq '.[].name')
+          breaking=false
+          if grep -qx breaking <<<"$labels"; then
+            breaking=true
+          fi
+          echo "breaking=$breaking" >>"$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Check the public surface
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BREAKING: ${{ steps.labels.outputs.breaking }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/apisurface" ./cmd/apisurface
+          go -C tools build -o "$RUNNER_TEMP/apidiff" golang.org/x/exp/cmd/apidiff
+          breaking=()
+          if [ "$BREAKING" = true ]; then
+            breaking=(-breaking-label)
+          fi
+          "$RUNNER_TEMP/apisurface" -mode pr -base "$BASE_SHA" -apidiff "$RUNNER_TEMP/apidiff" \
+            "${breaking[@]}"
+
+  # On a pull request only: the checks of a release that need no release, on the pull request's
+  # head, through .github/scripts/release-dryrun.sh: releasecheck validate, as release.yml runs
+  # it, with a release candidate of the committed version, and with a run of CI and harness
+  # evidence that it makes up to pass, so that the tree decides; apisurface -mode migration;
+  # zipcheck, which builds the module zip for the version v<Version>-dryrun; and
+  # release-verify.sh, which downloads that version from a module proxy in a directory,
+  # GOPROXY=file://, with GOSUMDB=off. It never tags, creates a release or reads a secret. The
+  # tools are built first, and the dry run then runs offline.
+  release-dryrun:
+    name: release-dryrun
+    if: >-
+      !inputs.mode && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Dry-run the release
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          for tool in releasecheck apisurface zipcheck; do
+            go -C tools build -o "../bin/$tool" "./cmd/$tool"
+          done
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          .github/scripts/release-dryrun.sh "$HEAD_SHA"
+
+  # Weekly, runs every hook twice: with prek's built-in versions of the pre-commit-hooks hooks,
+  # as the prek job does, and with PREK_NO_FAST_PATH=1, the upstream hooks. It fails when the
+  # two runs report a hook differently. A called run sees its caller's schedule, so the cron
+  # selects the job only in a run without a mode.
+  prek-upstream:
+    name: prek (upstream hooks)
+    if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
         with:
-          go-version: '1.27.1'
+          go-version-file: go.mod
           cache: false
-      - name: Install govulncheck
-        # Built with this job's Go, so it can load that Go's standard library.
-        run: GOBIN="$RUNNER_TEMP/bin" go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
-      - name: Scan
+      - name: Install prek
         run: |
-          .github/scripts/govulncheck.sh "$RUNNER_TEMP/bin/govulncheck" \
-            "$RUNNER_TEMP/govulncheck.json" ./...
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh prek
+      - name: Compare the built-in hooks with the upstream ones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/prek-count.sh --upstream
 
+  # Weekly, mutation tests of every Go file of both modules, of tools/upgrade and of
+  # skills/permit-golang-v2-migration, with the limits of the mutation job and no threshold or
+  # budget: it reports the efficacy in the job summary, posts each module's efficacy and count of
+  # mutants that lived to the ops channel, and fails only when the run does not complete or its
+  # result cannot be posted.
+  mutation-weekly:
+    name: mutation (weekly)
+    if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install gremlins
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          .github/scripts/fetch-tool.sh gremlins
+      - name: Run the mutation tests on every Go file
+        id: mutation
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools mod download
+          go -C tools/upgrade mod download
+          go -C tools build -o "$RUNNER_TEMP/mutationgate" ./cmd/mutationgate
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          "$RUNNER_TEMP/mutationgate" -all -threshold 0 -skip '^(TestLive|TestRepository)' \
+            -gremlins bin/gremlins -workers 2 -timeout-coefficient 5 -cap 3m -memory-mib 4096 \
+            -summary "$GITHUB_STEP_SUMMARY" . tools tools/upgrade \
+            skills/permit-golang-v2-migration | tee "$RUNNER_TEMP/mutation.txt"
+      # notify posts one line to the ops channel, SLACK_WEBHOOK_URL: each module's efficacy and
+      # count of mutants that lived, or that the run did not complete; without the webhook it
+      # warns and posts nothing. mutationgate prints "### Mutation tests: `<dir>` (<module>)" for
+      # each module, then "**<verdict>**: The tests detected <D> of the <N> mutants that ran:
+      # <efficacy>%, ...". The step fails when it finds no efficacy.
+      - name: Post the result
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          OUTCOME: ${{ steps.mutation.outcome }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          result="DID NOT RUN"
+          details="the mutation tests did not complete ($OUTCOME)"
+          if [[ $OUTCOME == success ]]; then
+            efficacy=$(awk '/^### Mutation tests: / {
+                module = $4; gsub(/`/, "", module); if (module == ".") module = "the root module"
+              }
+              /^\*\*(PASS|FAIL)\*\*: The tests detected [0-9]+ of the [0-9]+ mutants/ {
+                percent = $12; sub(/,$/, "", percent)
+                line = line (line == "" ? "" : "; ") module " " percent ", " ($8 - $5) " lived"
+              }
+              END { print line }' "$RUNNER_TEMP/mutation.txt")
+            result=PASS
+            details="efficacy and mutants that lived: $efficacy"
+            if [[ -z $efficacy ]]; then
+              result="DID NOT RUN"
+              details="mutationgate printed no efficacy; the job summary has its report"
+            fi
+          fi
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" \
+            -check "mutation (weekly)" -result "$result" -details "$details" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          [[ $result == PASS ]]
+
+  # Twice a week (SECURITY_CRON) and in the security mode: .github/scripts/security-scan.sh scans
+  # master's floor, ceiling and tools/, the SDK's latest release as an application resolves it,
+  # the open Dependabot alerts and the full history, writes the report to the job summary and
+  # posts it to SECURITY_SLACK_WEBHOOK_URL. Findings are reported and pass; a source that did not
+  # complete fails the job, and so does a secret that TruffleHog verified. TruffleHog runs only in
+  # a manual run. The job runs in the security-scan environment, which deploys only from master
+  # and holds DEPENDABOT_ALERTS_TOKEN, a token that can read the alerts, which the GITHUB_TOKEN
+  # cannot; the job's own token only checks out the repository. Only the step that runs the
+  # script gets the secrets, and the script passes each to the one command that needs it.
+  security-scan:
+    name: security-scan
+    if: (!inputs.mode && github.event.schedule == '23 4 * * 1,4') || inputs.mode == 'security'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: security-scan
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Scan and report
+        env:
+          TRUFFLEHOG: ${{ github.event_name == 'workflow_dispatch' && 'run' || 'skip' }}
+          DEPENDABOT_ALERTS_TOKEN: ${{ secrets.DEPENDABOT_ALERTS_TOKEN }}
+          GITLEAKS_HISTORY_ACCEPT_SHA256: ${{ secrets.GITLEAKS_HISTORY_ACCEPT_SHA256 }}
+          SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
+        run: .github/scripts/security-scan.sh --trufflehog "$TRUFFLEHOG"
+
+  # Twice a week (SECURITY_CRON) and in the security mode: .github/workflows/tag-watchdog.yml,
+  # which checks that the release rules published every version tag, whatever its commit, and
+  # posts a finding to SECURITY_SLACK_WEBHOOK_URL. A push of a tag runs that workflow too,
+  # outside CI.
+  tag-watchdog:
+    if: (!inputs.mode && github.event.schedule == '23 4 * * 1,4') || inputs.mode == 'security'
+    # The workflow of the same commit, by its path, which cicheck and actionlint read.
+    uses: ./.github/workflows/tag-watchdog.yml  # zizmor: ignore[self-repository]
+    permissions:
+      contents: read
+      actions: read  # the runs of release.yml and of ci.yml
+      attestations: read  # the attestations of the module zips of the v2 releases
+    secrets:
+      SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
+
+  # Weekly: .github/scripts/digest.sh posts the security digest to SECURITY_SLACK_WEBHOOK_URL,
+  # even when nothing needs attention: the open Dependabot pull requests, the accepted
+  # vulnerabilities whose last day is near, the last security scan, and newer Go and release
+  # binary versions that are at least 7 days old. The job's token reads the pull requests and the
+  # runs.
+  digest:
+    name: digest
+    if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read  # the open Dependabot pull requests
+      actions: read  # the runs of CI, for the last security scan
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Write and post the digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
+        run: .github/scripts/digest.sh
+
+  # Weekly: tools/cmd/specsnap -check-live fetches the control plane's and the cloud PDP's
+  # published specs, pre-fixes and canonicalizes them, and compares them with the snapshots in
+  # tools/specs, and Docker Hub's latest permitio/pdp-v2 with the image the container PDP's
+  # snapshot was taken from. The live snapshots are uploaded as the spec-snapshots artifact, and
+  # the drift tests of tools/drift check the models against them. The result goes to the ops
+  # channel, SLACK_WEBHOOK_URL: on drift with the owner and the day by which a pull request must
+  # refresh tools/specs, or fix the models, "did not complete" when specsnap exits 2, and "did
+  # not run" when a drift test prints DID NOT RUN, such as for a schema keyword that tools/drift
+  # does not implement. The job fails on drift, when the models do not match the live specs, and
+  # when a check did not complete. specsnap prints its verdict as its last line: PASS, FAIL or
+  # DID NOT RUN, a colon and what it found.
+  spec-drift:
+    name: spec-drift
+    if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Compare the live specs with the snapshots
+        id: drift
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/specsnap" ./cmd/specsnap
+          "$RUNNER_TEMP/specsnap" -check-live -out "$RUNNER_TEMP/spec-snapshots" |
+            tee "$RUNNER_TEMP/spec-drift.txt"
+      # The drift tests of tools/drift, offline, against the live snapshots that the step above
+      # wrote: a model, an operation's models or a reply fixture that the published specs no
+      # longer describe fails here before tools/specs is refreshed. A snapshot that the step did
+      # not write, such as the container PDP's, is read from tools/specs. The last step posts
+      # the result with the drift's, from the output in models.txt: a test that prints DID NOT
+      # RUN, such as when the step above wrote no snapshot directory, did not run.
+      - name: Check the models against the live specs
+        id: models
+        if: always()
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools mod download
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          go -C tools test -count=1 ./drift -args -specs "$RUNNER_TEMP/spec-snapshots" |
+            tee "$RUNNER_TEMP/models.txt"
+      # Report only: as the api-coverage job does, but with apicoverage -live, which reads the
+      # control plane's and the cloud PDP's specs from the live snapshots the step above wrote.
+      # An operation that the live specs add, change the stage of or drop shows in the job
+      # summary before tools/specs is refreshed. The drift decides the job's result, so this
+      # step's result does not change it.
+      - name: Report the API coverage against the live specs
+        if: always()
+        continue-on-error: true
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools build -o "$RUNNER_TEMP/apicoverage" ./cmd/apicoverage
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          record=$RUNNER_TEMP/api-coverage.jsonl
+          PERMIT_API_COVERAGE_RECORD=$record go test -count=1 .
+          "$RUNNER_TEMP/apicoverage" -live "$RUNNER_TEMP/spec-snapshots" \
+            -summary "$GITHUB_STEP_SUMMARY" "$record"
+      - name: Upload the live snapshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: spec-snapshots
+          path: ${{ runner.temp }}/spec-snapshots
+          if-no-files-found: warn
+      - name: Post the result
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          OUTCOME: ${{ steps.drift.outcome }}
+          MODELS: ${{ steps.models.outcome }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          verdict=''
+          if [[ -s $RUNNER_TEMP/spec-drift.txt ]]; then
+            verdict=$(tail -n 1 "$RUNNER_TEMP/spec-drift.txt")
+          fi
+          deadline=$(date -u -d '+7 days' +%Y-%m-%d)
+          owner='owner @permitio/r-d'
+          result="DID NOT RUN"
+          details="the spec drift check did not complete ($OUTCOME); $owner"
+          case $OUTCOME:$verdict in
+          "success:PASS: "*)
+            result=PASS
+            details=${verdict#PASS: }
+            ;;
+          "failure:FAIL: "*)
+            result=FAIL
+            details="${verdict#FAIL: }; $owner: refresh tools/specs in a pull request by $deadline"
+            ;;
+          "failure:DID NOT RUN: "*)
+            details="the spec drift check did not complete: ${verdict#DID NOT RUN: }; $owner"
+            ;;
+          esac
+          output=$RUNNER_TEMP/models.txt
+          checked=$MODELS
+          if [[ $MODELS == failure ]]; then
+            checked=incomplete
+            if [[ -s $output ]] && grep -q 'DID NOT RUN: ' "$output"; then
+              checked=missed
+            elif [[ -s $output ]] && grep -q '^--- FAIL: ' "$output"; then
+              checked=failure
+            fi
+          fi
+          case $checked in
+          success)
+            if [[ $result == "DID NOT RUN" ]]; then
+              details="$details; the models match the specs that specsnap wrote, and tools/specs"
+              details="$details for the rest"
+            else
+              details="$details; the models match the live specs"
+            fi
+            ;;
+          failure)
+            details="$details; the models do not match the live specs, see tools/drift in the run"
+            if [[ $result == PASS ]]; then
+              result=FAIL
+              details="$details; $owner: fix the models or the allowlist by $deadline"
+            fi
+            ;;
+          missed)
+            line=$(grep -m 1 -o 'DID NOT RUN: .*' "$output")
+            details="$details; the model drift check did not run: ${line#DID NOT RUN: }"
+            if [[ $result == PASS ]]; then
+              result="DID NOT RUN"
+            fi
+            ;;
+          *)
+            details="$details; the model drift check did not complete ($MODELS)"
+            if [[ $result == PASS ]]; then
+              result="DID NOT RUN"
+            fi
+            ;;
+          esac
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" -check spec-drift \
+            -result "$result" -details "$details" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          [[ $result == PASS ]]
+
+  # On a push to master, weekly and in the mode weekly: runs the benchmarks of the decision
+  # calls, 6 times each, offline, and compares the output with the previous result through
+  # tools/cmd/benchreport, which writes its report to the job summary. The output is kept as the
+  # artifact bench-<Go version>, such as bench-go1.27.1, since allocs/op depends on the Go
+  # version: the first run on a new one has no previous result. The previous result is the
+  # artifact of the same name of the newest earlier run of this repository's master that has
+  # one, as the artifacts API lists them; a run uploads it only after benchreport accepted it.
+  # Without one, such as once the artifacts expired, the report says so and the job passes. A
+  # median over 20% higher in ns/op or allocs/op is posted to the ops channel, SLACK_WEBHOOK_URL,
+  # and the job passes: it reports, and does not gate. The job fails when the benchmarks or the
+  # report did not complete, which is posted too, or the result cannot be uploaded or posted. It
+  # is in ADVISORY_JOBS, so CI only warns when it fails; that is why it may run on a push, which
+  # no pull request checks first. Reading another run's artifacts needs actions: read.
+  bench:
+    name: bench
+    if: >-
+      (!inputs.mode && (github.event_name == 'push' || github.event.schedule == '41 6 * * 1'))
+      || inputs.mode == 'weekly'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read  # the artifacts of earlier runs, for the previous result
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Run the benchmarks
+        id: bench
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          echo "artifact=bench-$(go env GOVERSION)" >>"$GITHUB_OUTPUT"
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          mkdir "$RUNNER_TEMP/bench"
+          go test -count=6 -run '^$' -bench . -timeout 10m . | tee "$RUNNER_TEMP/bench/bench.txt"
+      # Only runs of this repository's master, not of a fork's branch of that name, and only
+      # earlier runs, whose ids are lower: two pushes in a row can run at the same time.
+      - name: Find the previous result
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          ARTIFACT: ${{ steps.bench.outputs.artifact }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          listed=$(gh api "repos/$REPOSITORY/actions/artifacts?name=$ARTIFACT&per_page=100")
+          run=$(jq -r --argjson current "$RUN_ID" '[.artifacts[] | select(.expired | not)
+              | select(.workflow_run.head_branch == "master"
+                and .workflow_run.head_repository_id == .workflow_run.repository_id
+                and .workflow_run.id < $current)]
+            | sort_by(.workflow_run.id) | last | .workflow_run.id // empty' <<<"$listed")
+          echo "The previous result is the $ARTIFACT artifact of run ${run:-(none)}."
+          echo "run-id=$run" >>"$GITHUB_OUTPUT"
+      - name: Download the previous result
+        if: steps.previous.outputs.run-id != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: ${{ steps.bench.outputs.artifact }}
+          path: ${{ runner.temp }}/previous
+          run-id: ${{ steps.previous.outputs.run-id }}
+          github-token: ${{ github.token }}
+      # benchreport exits 1 on a regression, which the next step posts, and 2 when it did not run.
+      - name: Compare with the previous result
+        id: report
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/benchreport" ./cmd/benchreport
+          report=$RUNNER_TEMP/bench-report.txt
+          code=0
+          "$RUNNER_TEMP/benchreport" "$RUNNER_TEMP/previous/bench.txt" \
+            "$RUNNER_TEMP/bench/bench.txt" >"$report" || code=$?
+          cat "$report"
+          {
+            echo "### Decision benchmarks"
+            echo
+            echo '```'
+            cat "$report"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+          [[ $code -le 1 ]]
+      # Only once benchreport accepted the output, exit 0 or 1, so that output it cannot read
+      # never becomes the next run's previous result. overwrite: a re-run of the job replaces the
+      # artifact of its first attempt.
+      - name: Upload the result
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: ${{ steps.bench.outputs.artifact }}
+          path: ${{ runner.temp }}/bench/bench.txt
+          if-no-files-found: error
+          overwrite: true
+      # notify posts one line to the ops channel, SLACK_WEBHOOK_URL: the regressions that
+      # benchreport's verdict lists, or that the benchmarks or the report did not complete; without
+      # the webhook it warns and posts nothing. A report without a regression posts nothing.
+      - name: Post the result
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          OUTCOME: ${{ steps.report.outcome }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          verdict=''
+          if [[ -s $RUNNER_TEMP/bench-report.txt ]]; then
+            verdict=$(tail -n 1 "$RUNNER_TEMP/bench-report.txt")
+          fi
+          result="DID NOT RUN"
+          details="the benchmarks or their report did not complete ($OUTCOME)"
+          case $OUTCOME:$verdict in
+          "success:benchreport: PASS: "* | "success:benchreport: NO PREVIOUS RESULT: "*)
+            echo "Nothing to post: ${verdict#benchreport: }"
+            exit 0
+            ;;
+          "success:benchreport: REGRESSION: "*)
+            result=REGRESSION
+            details="over 20% above the previous result on master:"
+            details="$details ${verdict#benchreport: REGRESSION: }"
+            ;;
+          "failure:benchreport: DID NOT RUN: "*)
+            details="the benchmark report did not complete: ${verdict#benchreport: DID NOT RUN: }"
+            ;;
+          esac
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" -check bench \
+            -result "$result" -details "$details" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          [[ $result == REGRESSION ]]
+
+  # On a push to master, in the mode e2e and in a release: the end-to-end scenarios of tools/e2e
+  # against Permit, with the container PDP pinned by digest. The mode e2e runs from a manual run,
+  # and from e2e-pr.yml, which calls CI with it on a pull request from a branch of this
+  # repository. The job runs in the integration environment, which holds the secret
+  # PERMIT_E2E_PROJECT_KEY, a project-level API key of the project that its variable
+  # PERMIT_PROJECT names; only the steps that call the Permit API get the key. It sweeps the
+  # project's scratch environments older than 24 hours, those of the legs and those that the
+  # scenarios create, whose keys start with a run prefix (sweep-envs.sh), then creates the leg's
+  # own, gosdk-ci-<run>-<attempt>-pinned (e2e-env.sh create), and exports its API key once it is
+  # masked. Without the secret, a pull request and a manual run from a ref other than master,
+  # such as a release/* branch, pass with a notice, and a push to master, a release and a manual
+  # run from master fail. pdp-up.sh starts the PDP as a step with the environment's key, on
+  # 127.0.0.1:7766, and waits up to 300 seconds for /healthy. The tests run in that environment,
+  # and checkgotest checks their output against tools/e2e/required.txt and
+  # tools/e2e/allowed-skips.txt; their request record is uploaded as the artifact
+  # e2e-record-pinned. Then the upgrade test of tools/upgrade runs in the same environment, and
+  # checkgotest checks it against tools/upgrade/required.txt. specsnap -check-pdp checks that
+  # the PDP serves the spec of its snapshot, tools/specs/pdp-container.json. On a failure the
+  # PDP's log is printed without the health checks, and at the end the container is removed and
+  # the environment deleted, with a warning when it leaked. Runs of the job do not wait for each
+  # other: each works in an environment of its own, and the sweep deletes only environments older
+  # than 24 hours. A failure on a push to master or in a release fails CI: notify-gate-failure
+  # posts it on master, and the notify-failure job of release.yml in a release. The environment
+  # deploys from master, pull requests and release/* branches only: a manual run from another
+  # branch fails before its first step.
+  e2e:
+    name: e2e (pinned PDP)
+    if: >-
+      (!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e'
+      || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: integration
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+      LEG: pinned
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Sweep the scratch environments older than 24 hours
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+        run: .github/scripts/sweep-envs.sh
+      - name: Create the scratch environment
+        id: env
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          MODE: ${{ inputs.mode }}
+        run: .github/scripts/e2e-env.sh create "$LEG"
+      - name: Start the PDP
+        id: pdp
+        if: steps.env.outputs.created == 'true'
+        env:
+          PDP_IMAGE: ${{ env.PDP_IMAGE_PINNED_TAG }}@${{ env.PDP_IMAGE_PINNED_DIGEST }}
+        run: .github/scripts/pdp-up.sh up
+      - name: Run the end-to-end tests
+        id: tests
+        if: steps.env.outputs.created == 'true'
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          PERMIT_PDP_URL: http://127.0.0.1:7766
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          code=0
+          go -C tools test -count=1 -timeout 20m -json -tags e2e ./e2e -args -e2e.leg "$LEG" \
+            -e2e.record "$RUNNER_TEMP/e2e-record.jsonl" >"$RUNNER_TEMP/e2e.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require-file tools/e2e/required.txt \
+            -allow-skips tools/e2e/allowed-skips.txt "$RUNNER_TEMP/e2e.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      # After the end-to-end tests, in the same scratch environment: the upgrade test of
+      # tools/upgrade, in which v1.3.0, the v1 release that the test pins, writes objects of
+      # every kind that v1 writes in an environment, and v2 reads each of them, field by field.
+      # It reads the environment's API key and IDs that e2e-env.sh exported, and no secret;
+      # checkgotest checks its output against tools/upgrade/required.txt. The job's timeout
+      # covers the sweep, the create, the PDP's start, and the 20 and 5 minutes of the two test
+      # steps.
+      - name: Run the upgrade test
+        if: steps.env.outputs.created == 'true'
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          code=0
+          go -C tools/upgrade test -count=1 -timeout 5m -json ./... \
+            >"$RUNNER_TEMP/upgrade.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require-file tools/upgrade/required.txt \
+            "$RUNNER_TEMP/upgrade.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      # The models and the dry run's fake PDP are checked against tools/specs/pdp-container.json,
+      # so the pinned PDP must serve that spec: specsnap -check-pdp fetches its /openapi.json,
+      # makes its snapshot and fails on any difference, and on an image other than the one that
+      # lock.json records for the snapshot. It runs whatever the tests did.
+      - name: Check the PDP's spec against its snapshot
+        if: always() && steps.pdp.outcome == 'success'
+        env:
+          PDP_IMAGE: ${{ env.PDP_IMAGE_PINNED_TAG }}@${{ env.PDP_IMAGE_PINNED_DIGEST }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/specsnap" ./cmd/specsnap
+          "$RUNNER_TEMP/specsnap" -check-pdp http://127.0.0.1:7766 -image "$PDP_IMAGE"
+      - name: Upload the request record
+        if: always() && steps.tests.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: e2e-record-pinned
+          path: ${{ runner.temp }}/e2e-record.jsonl
+          if-no-files-found: error
+          overwrite: true
+      - name: Print the PDP's log
+        if: failure() && steps.pdp.outcome != 'skipped'
+        run: .github/scripts/pdp-up.sh logs
+      - name: Remove the PDP
+        if: always() && steps.pdp.outcome != 'skipped'
+        run: .github/scripts/pdp-up.sh down
+      - name: Delete the scratch environment
+        if: always()
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+        run: .github/scripts/e2e-env.sh delete "$LEG"
+
+  # Advisory, in the runs that run e2e: the scenarios against Permit with the newest release of
+  # the container PDP, PDP_IMAGE_LATEST, by tag, so that a release that breaks the SDK shows
+  # before the pin moves to it; pdp-up.sh prints the digest that the tag resolved to in the run.
+  # The job runs as e2e does, with the same scripts, the same rule for a missing secret and
+  # tools/e2e/required.txt, in a scratch environment of its own, gosdk-ci-<run>-<attempt>-latest.
+  # It sweeps nothing: the e2e job of the same run sweeps the old environments of every leg.
+  # specsnap -check-pdp, without -image, compares the spec that this PDP serves with
+  # tools/specs/pdp-container.json, the snapshot of the pinned image: a difference fails this job
+  # only, and shows what moving the pin must change. The request record is uploaded as the
+  # artifact e2e-record-latest. The job is in ADVISORY_JOBS, so CI only warns when it fails, and
+  # its environment sets deployment: false, so that it makes no deployment: a pull request into
+  # master needs a successful deployment to integration, which the e2e job makes.
+  e2e-latest:
+    name: e2e (latest PDP)
+    if: >-
+      (!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e'
+      || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: integration
+      deployment: false
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+      LEG: latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Create the scratch environment
+        id: env
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          MODE: ${{ inputs.mode }}
+        run: .github/scripts/e2e-env.sh create "$LEG"
+      - name: Start the PDP
+        id: pdp
+        if: steps.env.outputs.created == 'true'
+        env:
+          PDP_IMAGE: ${{ env.PDP_IMAGE_LATEST }}
+        run: .github/scripts/pdp-up.sh up
+      - name: Run the end-to-end tests
+        id: tests
+        if: steps.env.outputs.created == 'true'
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          PERMIT_PDP_URL: http://127.0.0.1:7766
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          code=0
+          go -C tools test -count=1 -timeout 20m -json -tags e2e ./e2e -args -e2e.leg "$LEG" \
+            -e2e.record "$RUNNER_TEMP/e2e-record.jsonl" >"$RUNNER_TEMP/e2e.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require-file tools/e2e/required.txt \
+            -allow-skips tools/e2e/allowed-skips.txt "$RUNNER_TEMP/e2e.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      - name: Check the PDP's spec against the snapshot of the pinned image
+        if: always() && steps.pdp.outcome == 'success'
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/specsnap" ./cmd/specsnap
+          "$RUNNER_TEMP/specsnap" -check-pdp http://127.0.0.1:7766
+      - name: Upload the request record
+        if: always() && steps.tests.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: e2e-record-latest
+          path: ${{ runner.temp }}/e2e-record.jsonl
+          if-no-files-found: error
+          overwrite: true
+      - name: Print the PDP's log
+        if: failure() && steps.pdp.outcome != 'skipped'
+        run: .github/scripts/pdp-up.sh logs
+      - name: Remove the PDP
+        if: always() && steps.pdp.outcome != 'skipped'
+        run: .github/scripts/pdp-up.sh down
+      - name: Delete the scratch environment
+        if: always()
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+        run: .github/scripts/e2e-env.sh delete "$LEG"
+
+  # Advisory, in the runs that run e2e: the scenarios against Permit with the cloud PDP, at the
+  # origin of the url of the pdp-cloud entry of tools/specs/lock.json, and no container: those of
+  # every PDP, and the cloud PDP's own, which checks that each route that only the container PDP
+  # serves fails there with ErrContainerPDPOnly. It runs as e2e-latest does, in
+  # gosdk-ci-<run>-<attempt>-cloudpdp, and checkgotest checks its run against
+  # tools/e2e/required-cloudpdp.txt. Its request record stays on the runner, out of the API
+  # coverage: its one request to POST /allowed_url, of CheckURL, gets a 404 from a PDP that does
+  # not serve that route, which is no end-to-end check of it.
+  e2e-cloudpdp:
+    name: e2e (cloud PDP)
+    if: >-
+      (!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e'
+      || inputs.mode == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: integration
+      deployment: false
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+      LEG: cloudpdp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Create the scratch environment
+        id: env
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          MODE: ${{ inputs.mode }}
+        run: .github/scripts/e2e-env.sh create "$LEG"
+      - name: Run the end-to-end tests
+        if: steps.env.outputs.created == 'true'
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+          PERMIT_PDP_URL: https://cloudpdp.api.permit.io
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          code=0
+          go -C tools test -count=1 -timeout 20m -json -tags e2e ./e2e -args -e2e.leg "$LEG" \
+            >"$RUNNER_TEMP/e2e.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require-file tools/e2e/required-cloudpdp.txt \
+            -allow-skips tools/e2e/allowed-skips.txt "$RUNNER_TEMP/e2e.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      - name: Delete the scratch environment
+        if: always()
+        env:
+          PERMIT_E2E_PROJECT_KEY: ${{ secrets.PERMIT_E2E_PROJECT_KEY }}
+          PERMIT_E2E_PROJECT: ${{ vars.PERMIT_PROJECT }}
+        run: .github/scripts/e2e-env.sh delete "$LEG"
+
+  # The one check to require. It runs whatever happened to the jobs it needs, since GitHub counts
+  # a skipped required check as passing. ci-aggregate.sh says how it decides; in short, each job
+  # must succeed in the runs that select it: the pull request checks on pull_request, push and
+  # the pr and release modes, and each job in SCHEDULED_JOBS (job:mode) on its cron or mode only.
+  # PULL_REQUEST_JOBS run on pull requests only, E2E_JOBS on a push and in the modes e2e and
+  # release only, and a job in ADVISORY_JOBS may fail. cicheck fails when needs leaves out a job
+  # other than notify-gate-failure, which runs after CI, EXPECTED_JOBS is not the number of jobs
+  # in needs, or a job's if: is not the one its list calls for. e2e-pr.yml, the pull request lane
+  # of the end-to-end jobs, calls this workflow in the mode e2e, so that its CI decides that
+  # lane. The lane is outside the check the ruleset requires, but a pull request into master
+  # also needs the successful deployment to the integration environment that the lane makes.
   ci:
-    # Branch protection requires only this check, so the jobs above and their
-    # matrix entries can be renamed without editing the branch rule. always():
-    # GitHub counts a skipped required check as passing, so this job must run,
-    # and fail, when a needed job fails or is cancelled.
     name: CI
     if: always()
-    needs: [fmt, vet, test, govulncheck]
+    needs:
+      - prek
+      - test
+      - crossbuild
+      - consumer
+      - docs
+      - zipcheck
+      - api-coverage
+      - vuln
+      - secrets
+      - mutation
+      - dependency-review
+      - api-surface
+      - release-dryrun
+      - prek-upstream
+      - mutation-weekly
+      - security-scan
+      - tag-watchdog
+      - digest
+      - spec-drift
+      - bench
+      - e2e
+      - e2e-latest
+      - e2e-cloudpdp
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - name: Require every job to succeed
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the needed jobs
         env:
           NEEDS: ${{ toJSON(needs) }}
+          EVENT: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
+          EXPECTED_JOBS: 23
+          PULL_REQUEST_JOBS: mutation dependency-review api-surface release-dryrun
+          SCHEDULED_JOBS: >-
+            prek-upstream:weekly mutation-weekly:weekly security-scan:security
+            tag-watchdog:security digest:weekly spec-drift:weekly bench:weekly
+          E2E_JOBS: e2e e2e-latest e2e-cloudpdp
+          ADVISORY_JOBS: bench e2e-latest e2e-cloudpdp
+        run: .github/scripts/ci-aggregate.sh
+
+  # After CI, when CI failed on a push to master or in a release. On master it posts one line to
+  # the ops channel, SLACK_WEBHOOK_URL, that names the check and links the run. A release passes
+  # no secret to the CI it calls, so here notify only warns that it has no webhook, and the
+  # notify-failure job of release.yml posts the failure. A pull request, a scheduled run and a
+  # manual run post nothing here; each scheduled job posts its own result, and a failed scheduled
+  # run is red in Actions. This job needs CI, so CI does not need it, and a pull request never
+  # runs it or reads its secret.
+  notify-gate-failure:
+    name: notify-gate-failure
+    needs: ci
+    if: >-
+      failure() && ((!inputs.mode && github.event_name == 'push') ||
+      inputs.mode == 'release')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Post the failure
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          MODE: ${{ inputs.mode || github.event_name }}
         run: |
-          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<<"$NEEDS"
-          # fmt checks that needs lists every other job, so fmt must stay in needs.
-          if ! jq -e 'has("fmt")' <<<"$NEEDS" >/dev/null; then
-            echo "Keep fmt in the needs list of this job: it checks that list." >&2
-            exit 1
-          fi
-          if ! jq -e 'all(.[]; .result == "success")' <<<"$NEEDS" >/dev/null; then
-            echo "A required job did not succeed." >&2
-            exit 1
-          fi
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" -check CI -result FAIL \
+            -details "a job that CI needs did not succeed in a $MODE run of $GITHUB_REF_NAME" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

@@ -1,0 +1,18 @@
+deps: bump golang.org/x/net from 0.45.0 to 0.45.1 in the security group
+
+Bumps the security group with 1 update: [golang.org/x/net](https://github.com/golang/net).
+
+
+Updates `golang.org/x/net` from 0.45.0 to 0.45.1
+- [Commits](https://github.com/golang/net/compare/v0.45.0...v0.45.1)
+
+---
+updated-dependencies:
+- dependency-name: golang.org/x/net
+  dependency-version: 0.45.1
+  dependency-type: direct:production
+  update-type: version-update:semver-patch
+  dependency-group: security
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>

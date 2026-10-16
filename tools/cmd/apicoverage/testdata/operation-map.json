@@ -1,0 +1,10 @@
+{
+  "methods": {
+    "Client.Check": [
+      "allowed_handler"
+    ],
+    "UsersService.Get": [
+      "get_user"
+    ]
+  }
+}

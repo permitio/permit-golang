@@ -1,0 +1,11 @@
+# typos configuration (https://github.com/crate-ci/typos). Add a word here only when it is spelled
+# as intended, with a comment that says why.
+[files]
+# The three snapshots in tools/specs hold the API's own names, misspellings included (the
+# container PDP's Kong input requires "procotol"); a fix there would change the API they describe.
+extend-exclude = [
+  "go.sum",
+  "tools/specs/control-plane.json",
+  "tools/specs/pdp-cloud.json",
+  "tools/specs/pdp-container.json",
+]

@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("GET / HTTP/1.1\r\nAuthorization: Bearer x\r\nAccept: */*\r\n")
+uint(0)
+string("proxy-value")

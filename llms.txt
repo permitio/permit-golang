@@ -1,0 +1,26 @@
+# Go SDK for Permit.io
+
+> The module github.com/permitio/permit-golang/v2, the Go client of Permit.io. Package permit
+> asks the policy decision point (PDP) for authorization decisions, and manages the policy and
+> its data, such as users, tenants, roles and resources, through the Permit API. Package models
+> holds the bodies of its requests and replies. v2 is under development and is not released.
+
+Read the README first. The API reference documents every type and method: what a call sends,
+the URL it uses, the level of API key it needs, how it retries and the errors it returns.
+
+## Docs
+
+- [README](README.md): quick start, configuration, which URL each call uses, the PDP container
+  and the cloud PDP, facts through the PDP container, API key levels, retries, errors, lists,
+  logging and redaction, and the support policy
+- [package permit](https://pkg.go.dev/github.com/permitio/permit-golang/v2): its API reference,
+  the text that go doc -all github.com/permitio/permit-golang/v2 prints
+- [package models](https://pkg.go.dev/github.com/permitio/permit-golang/v2/models): its API
+  reference, the text that go doc -all github.com/permitio/permit-golang/v2/models prints
+- [Migration guide](MIGRATION.md): each change from v1, the module
+  github.com/permitio/permit-golang, and what to use instead
+
+## Optional
+
+- [Changelog](CHANGELOG.md): what each release changes
+- [Security policy](SECURITY.md): the supported versions, and how to report a vulnerability

@@ -1,0 +1,6 @@
+{"type":"header","format":1}
+{"type":"request","mode":"wire","target":"api","method":"GET","template":"/v2/facts/{proj_id}/{env_id}/users/{user_id}","path":"/v2/facts/p/e/users/a%2Fb","status":200,"test":"TestUsers/get"}
+{"type":"request","mode":"dryrun","target":"api","method":"DELETE","template":"/v2/facts/{proj_id}/{env_id}/users/{user_id}","path":"/v2/facts/p/e/users/u","status":204,"test":"TestE2EUsers/delete"}
+{"type":"request","mode":"live","target":"pdp","method":"POST","template":"/allowed","path":"/allowed","status":0,"test":"TestLiveCheck"}
+{"type":"request","mode":"local","target":"pdp","method":"POST","path":"/facts/users","status":200,"test":"pdp.facts"}
+{"type":"session","exit_status":0,"tests":4}

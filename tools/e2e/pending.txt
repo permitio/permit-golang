@@ -1,0 +1,10 @@
+# Public methods that no end-to-end scenario calls yet, each with the area of the scenarios that
+# will call it. TestE2ESurfaceComplete (completeness_test.go) checks that every method of
+# testdata/operation-map.json is in exactly one end-to-end state: covered by a cloud scenario, or
+# listed here, in local-only.txt or in advisory.txt. A release refuses this file while it has a
+# line that is not blank or a comment (tools/cmd/releasecheck validate). When a cloud scenario
+# covers a method, remove its line in the same commit: a line of a method that a cloud scenario
+# covers fails the gate.
+#
+# One method per line: <Type>.<Method> e2e-pending <area>, such as
+# Client.Check e2e-pending pdp-decisions. Blank lines and lines that start with # are ignored.

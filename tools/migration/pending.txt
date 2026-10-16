@@ -1,0 +1,12 @@
+# Parts of the v1 API (tools/migration/v1-surface.txt) that no entry of MIGRATION.md covers yet,
+# each with the area of v2 that will write its entry: the service or package it moves to, or
+# the part of the guide that will say why v2 drops it. apisurface's migration mode checks that
+# every line of v1-surface.txt is in exactly one entry or one line here.
+#
+# One per line: <id or pattern> <area>. A pattern is a path.Match pattern of ids, such as
+# api.Users.*; it must match at least one id. When you write the entry for an id, remove it
+# from here in the same commit, splitting a pattern where the entry covers only part of it. A
+# models type that v2 exports under the same name needs no line: remove an id that names one,
+# while a pattern may keep matching it along with other ids. apisurface's release mode fails
+# while this file has a line that is not blank or a comment, since the release needs every v1
+# item to have its entry. Blank lines and lines that start with # are ignored.

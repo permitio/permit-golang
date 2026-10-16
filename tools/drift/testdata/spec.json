@@ -1,0 +1,159 @@
+{
+  "openapi": "3.1.0",
+  "components": {
+    "schemas": {
+      "Color": {"enum": ["red", "green", "blue"], "type": "string"},
+      "EnvRead": {
+        "additionalProperties": false,
+        "properties": {"id": {"format": "uuid", "type": "string"}, "key": {"type": "string"}},
+        "required": ["id", "key"],
+        "type": "object"
+      },
+      "EnvReadWithEmailConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "email_from": {"format": "email", "type": "string"},
+          "id": {"format": "uuid", "type": "string"},
+          "key": {"type": "string"}
+        },
+        "required": ["id", "key"],
+        "type": "object"
+      },
+      "Node": {
+        "properties": {
+          "children": {"items": {"$ref": "#/components/schemas/Node"}, "type": "array"},
+          "key": {"type": "string"},
+          "parent": {"$ref": "#/components/schemas/Node"}
+        },
+        "required": ["key"],
+        "type": "object"
+      },
+      "Note": {
+        "additionalProperties": false,
+        "properties": {"note": {"type": ["string", "null"]}},
+        "type": "object"
+      },
+      "Odd":{"not": {"type": "string"}, "type": "object"},
+      "PaginatedResult_EnvRead_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {"items": {"$ref": "#/components/schemas/EnvRead"}, "type": "array"},
+          "page_count": {"default": 0, "minimum": 0.0, "type": "integer"},
+          "total_count": {"minimum": 0.0, "type": "integer"}
+        },
+        "required": ["data", "total_count"],
+        "type": "object"
+      },
+      "Scope": {
+        "additionalProperties": false,
+        "properties": {
+          "organization_id": {"format": "uuid", "type": "string"},
+          "project_id": {"format": "uuid", "type": "string"}
+        },
+        "required": ["organization_id"],
+        "type": "object"
+      },
+      "Thing": {
+        "additionalProperties": false,
+        "properties": {
+          "attributes": {"default": {}, "type": "object"},
+          "audience": {"anyOf": [{"type": "string"}, {"items": {"type": "string"}, "type": "array"}]},
+          "color": {"allOf": [{"$ref": "#/components/schemas/Color"}], "default": "red"},
+          "count": {"minimum": 0, "type": "integer"},
+          "created_at": {"format": "date-time", "type": "string"},
+          "enabled": {"type": "boolean"},
+          "key": {"pattern": "^[A-Za-z0-9\\-_]+$", "type": "string"},
+          "labels": {"additionalProperties": {"type": "string"}, "type": "object"},
+          "note": {"type": ["string", "null"]},
+          "parent_id": {"anyOf": [{"type": "string"}, {"format": "uuid", "type": "string"}]},
+          "ratio": {"type": "number"},
+          "roles": {"patternProperties": {"^[A-Za-z0-9\\-_]+$": {"type": "string"}}, "type": "object"},
+          "scope": {"$ref": "#/components/schemas/Scope"},
+          "tags": {"items": {"type": "string"}, "type": "array"}
+        },
+        "required": ["key", "count"],
+        "type": "object"
+      },
+      "ThingUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {"type": "string"},
+          "labels": {"additionalProperties": {"type": "string"}, "type": "object"}
+        },
+        "type": "object"
+      }
+    }
+  },
+  "paths": {
+    "/envs": {
+      "get": {
+        "operationId": "list_envs",
+        "responses": {
+          "200": {"content": {"application/json": {"schema": {"anyOf": [
+            {"items": {"$ref": "#/components/schemas/EnvRead"}, "type": "array"},
+            {"$ref": "#/components/schemas/PaginatedResult_EnvRead_"}
+          ]}}}}
+        }
+      },
+      "post": {
+        "operationId": "create_env",
+        "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Scope"}}}},
+        "responses": {
+          "201": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/EnvRead"}}}},
+          "422": {"content": {"application/json": {"schema": {"type": "object"}}}}
+        }
+      }
+    },
+    "/envs/{env_id}": {
+      "delete": {"operationId": "delete_env", "responses": {"204": {}}},
+      "get": {
+        "operationId": "get_env",
+        "responses": {
+          "200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/EnvReadWithEmailConfig"}}}}
+        }
+      },
+      "patch": {
+        "operationId": "update_env",
+        "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/ThingUpdate"}}}, "required": true},
+        "responses": {
+          "200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/EnvRead"}}}}
+        }
+      }
+    },
+    "/nodes/{key}": {
+      "get": {
+        "operationId": "get_node",
+        "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Node"}}}}}
+      }
+    },
+    "/odd": {
+      "get": {
+        "operationId": "get_odd",
+        "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Odd"}}}}}
+      }
+    },
+    "/things": {
+      "post": {
+        "operationId": "create_thing",
+        "requestBody": {"content": {"application/json": {"schema": {"anyOf": [
+          {"$ref": "#/components/schemas/Scope"}, {"$ref": "#/components/schemas/Thing"}
+        ]}}}},
+        "responses": {
+          "200": {"content": {"application/json": {"schema": {"anyOf": [
+            {"$ref": "#/components/schemas/Thing"}, {"$ref": "#/components/schemas/Scope"}
+          ]}}}}
+        }
+      }
+    },
+    "/things/{key}": {
+      "get": {
+        "operationId": "get_thing",
+        "responses": {
+          "200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Thing"}}}},
+          "202": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/Thing"}}}},
+          "204": {}
+        }
+      }
+    }
+  }
+}

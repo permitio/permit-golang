@@ -1,0 +1,287 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.75.0"
+  },
+  "ArtifactName": "go.mod",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod",
+      "Packages": [
+        {
+          "ID": "example.com/plant/xnet",
+          "Name": "example.com/plant/xnet",
+          "Relationship": "root",
+          "DependsOn": [
+            "golang.org/x/net@v0.23.0"
+          ],
+          "AnalyzedBy": "gomod"
+        },
+        {
+          "ID": "golang.org/x/net@v0.23.0",
+          "Name": "golang.org/x/net",
+          "Version": "v0.23.0",
+          "Relationship": "direct",
+          "AnalyzedBy": "gomod"
+        }
+      ],
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2024-45338",
+          "VendorIDs": [
+            "GHSA-w32m-9786-jp63",
+            "GO-2024-3333"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.33.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2024-45338",
+          "Title": "golang.org/x/net/html: Non-linear parsing of case-insensitive content in golang.org/x/net/html",
+          "Severity": "HIGH"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-25681",
+          "VendorIDs": [
+            "GO-2026-5029"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.55.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-25681",
+          "Title": "golang.org/x/net/html: golang.org/x/net/html: Arbitrary code execution via Cross-Site Scripting",
+          "Severity": "HIGH"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-27136",
+          "VendorIDs": [
+            "GO-2026-5030"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.55.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-27136",
+          "Title": "golang.org/x/net/html: golang: golang.org/x/net/html: Cross-Site Scripting via HTML parsing bypass",
+          "Severity": "HIGH"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-33814",
+          "VendorIDs": [
+            "GO-2026-4918"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.53.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-33814",
+          "Title": "net/http/internal/http2: golang: golang.org/x/net: Go HTTP/2: Denial of Service via malformed SETTINGS_MAX_FRAME_SIZE frame",
+          "Severity": "HIGH"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-39821",
+          "VendorIDs": [
+            "GO-2026-5026"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.55.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-39821",
+          "Title": "golang.org/x/net/idna: golang: net/http: golang.org/x/net/idna: Privilege escalation via incorrect Punycode label processing",
+          "Severity": "HIGH"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-46600",
+          "VendorIDs": [
+            "GO-2026-5942"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.56.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-46600",
+          "Title": "golang.org/x/net/dns/dnsmessage: golang.org/x/net/dns/dnsmessage: Denial of Service via invalid DNS record parsing",
+          "Severity": "HIGH"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78669",
+          "VendorIDs": [
+            "GO-2026-6611"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.60.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-78669",
+          "Title": "net/http: net/http/internal/http2: golang: golang.org/x/net/http2: net/http: Denial of Service via excessive HTTP/2 SETTINGS frames",
+          "Severity": "HIGH"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-22870",
+          "VendorIDs": [
+            "GHSA-qxp5-gwg8-xv66",
+            "GO-2025-3503"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.36.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2025-22870",
+          "Title": "golang.org/x/net/proxy: golang.org/x/net/http/httpproxy: HTTP Proxy bypass using IPv6 Zone IDs in golang.org/x/net",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-22872",
+          "VendorIDs": [
+            "GO-2025-3595"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.38.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2025-22872",
+          "Title": "golang.org/x/net/html: Incorrect Neutralization of Input During Web Page Generation in x/net in golang.org/x/net",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-47911",
+          "VendorIDs": [
+            "GO-2026-4440"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.45.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2025-47911",
+          "Title": "golang.org/x/net/html: Quadratic parsing complexity in golang.org/x/net/html",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-58190",
+          "VendorIDs": [
+            "GO-2026-4441"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.45.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2025-58190",
+          "Title": "golang.org/x/net/html: Infinite parsing loop in golang.org/x/net",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-25680",
+          "VendorIDs": [
+            "GO-2026-5028"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.55.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-25680",
+          "Title": "golang.org/x/net/html: golang.org/x/net/html: Denial of Service due to excessive HTML parsing",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-42502",
+          "VendorIDs": [
+            "GO-2026-5027"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.55.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42502",
+          "Title": "golang.org/x/net/html: golang: golang.org/x/net/html: Cross-Site Scripting via unexpected HTML tree rendering",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-42506",
+          "VendorIDs": [
+            "GO-2026-5025"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.55.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42506",
+          "Title": "golang.org/x/net/html: golang.org/x/net/html: Cross-Site Scripting (XSS) via arbitrary HTML parsing",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78663",
+          "VendorIDs": [
+            "GO-2026-6612"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.60.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-78663",
+          "Title": "net/http: net/http/internal/http2: golang: golang.org/x/net/http2: golang: flow control limit bypass via double refund in HTTP/2 server",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-97032",
+          "VendorIDs": [
+            "GO-2026-6617"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.60.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-97032",
+          "Title": "net/http: net/http/internal/http2: golang: golang.org/x/net/http2: net/http: Denial of Service via concurrent HPACK encoder modification",
+          "Severity": "MEDIUM"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78659",
+          "VendorIDs": [
+            "GO-2026-6603"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.60.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-78659",
+          "Severity": "UNKNOWN"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78660",
+          "VendorIDs": [
+            "GO-2026-6610"
+          ],
+          "PkgID": "golang.org/x/net@v0.23.0",
+          "PkgName": "golang.org/x/net",
+          "InstalledVersion": "v0.23.0",
+          "FixedVersion": "0.60.0",
+          "Status": "fixed",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-78660",
+          "Severity": "UNKNOWN"
+        }
+      ]
+    }
+  ]
+}

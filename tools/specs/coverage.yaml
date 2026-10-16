@@ -1,0 +1,496 @@
+# The SDK's decision for every operation of the API specs in this directory, which
+# tools/cmd/apicoverage checks against the specs and against the requests that the tests record.
+# The "API coverage" section of CONTRIBUTING.md says how to classify an operation and how to run
+# the report.
+#
+# control-plane has a row for each operation of control-plane.json. pdp has a row for each route
+# of the PDP: those of pdp-container.json, pdp-cloud.json and pdp-container.extra.json, with one
+# row for a route that more than one of them lists. Either may also have a row for a route that
+# none of the files lists and the SDK sends. A row has these keys:
+#
+#   op              The operationId of the route: pdp-container.json's when it lists the route,
+#                   else pdp-cloud.json's. A row that the SDK sends and no spec lists has an id
+#                   of its own, and a route of pdp-container.extra.json that the SDK does not
+#                   send has none.
+#   route           The method and the path, as the spec writes them. ANY stands for each
+#                   method that pdp-container.extra.json lists for the route.
+#   stage           The spec's stage: deprecated when the spec marks the operation deprecated,
+#                   else EAP when one of its tags says EAP, else GA. A route that no spec lists
+#                   is GA.
+#   status          covered: a public method sends it, and an offline test records the request.
+#                   planned: the SDK is to send it, and no public method does yet.
+#                   excluded: the SDK does not send it, for the reason that reason names.
+#                   deferred: the SDK does not send it yet; reason says why, and trigger when to
+#                   decide again.
+#   reason          For an excluded row, a key of reasons below; for a deferred row, a sentence.
+#   trigger         For a deferred row: when to decide again.
+#   sdk_only        Why the SDK sends a route that no spec lists. Only a covered or planned row
+#                   whose route no spec lists has it, and each such row has it.
+#   stage_override  The stage the SDK treats the operation as, with the reason, when the spec
+#                   marks its stage in a way that the snapshot does not keep, such as in a
+#                   summary.
+#
+# sdk_only_params lists the query parameters that the SDK sends to an operation whose spec does
+# not list them: param is a name, or a prefix followed by *.
+
+# The reasons an excluded row may give.
+reasons:
+  account-admin: "Account and organization administration: organizations, members, invites, the API history, the activity log and data export, which the dashboard and the CLI cover."
+  dashboard-only: "Setup forms and helpers of the dashboard: email configurations and templates, and the check of a JWKS URL."
+  deprecated: "Deprecated in the spec; the SDK uses the route that replaces it, where there is one."
+  eap: "In early access (EAP); the SDK adds an EAP feature once it is generally available."
+  elements-session: "Routes of Permit Elements that need the session of an Elements user; an API key cannot call them."
+  integration: "Routes that an API gateway or a database integration calls directly (Kong, nginx, Trino), not an application."
+  operator: "Routes for whoever runs a PDP: its configuration and keys, callbacks, reloads, connectivity and health checks; an application does not call them."
+  project-setup: "One-time setup of a project: policy Git repositories and the OPAL scope configuration, which the CLI and Terraform cover."
+  testing-tool: "A testing tool that only selected organizations can use."
+
+control-plane:
+  # Access Requests (EAP)
+  - {op: list_access_requests_v2_elements__proj_id___env_id__config__elements_config_id__access_requests_get, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/access_requests", stage: EAP, status: excluded, reason: eap}
+  - {op: create_access_request_v2_elements__proj_id___env_id__config__elements_config_id__access_requests_post, route: "POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/access_requests", stage: EAP, status: excluded, reason: eap}
+  - {op: get_access_request_v2_elements__proj_id___env_id__config__elements_config_id__access_requests__access_request_id__get, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/access_requests/{access_request_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: approve_access_request_v2_elements__proj_id___env_id__config__elements_config_id__access_requests__access_request_id__approve_put, route: "PUT /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/access_requests/{access_request_id}/approve", stage: EAP, status: excluded, reason: eap}
+  - {op: cancel_access_request_v2_elements__proj_id___env_id__config__elements_config_id__access_requests__access_request_id__cancel_put, route: "PUT /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/access_requests/{access_request_id}/cancel", stage: EAP, status: excluded, reason: eap}
+  - {op: deny_access_request_v2_elements__proj_id___env_id__config__elements_config_id__access_requests__access_request_id__deny_put, route: "PUT /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/access_requests/{access_request_id}/deny", stage: EAP, status: excluded, reason: eap}
+  - {op: update_access_request_reviewer_v2_elements__proj_id___env_id__config__elements_config_id__access_requests__access_request_id__reviewer_patch, route: "PATCH /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/access_requests/{access_request_id}/reviewer", stage: EAP, status: excluded, reason: eap}
+  - {op: list_access_requests, route: "GET /v2/facts/{proj_id}/{env_id}/access_requests/{elements_config_id}/user/{user_id}/tenant/{tenant_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: create_access_request, route: "POST /v2/facts/{proj_id}/{env_id}/access_requests/{elements_config_id}/user/{user_id}/tenant/{tenant_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: get_access_request, route: "GET /v2/facts/{proj_id}/{env_id}/access_requests/{elements_config_id}/user/{user_id}/tenant/{tenant_id}/{access_request_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: approve_access_request, route: "PUT /v2/facts/{proj_id}/{env_id}/access_requests/{elements_config_id}/user/{user_id}/tenant/{tenant_id}/{access_request_id}/approve", stage: EAP, status: excluded, reason: eap}
+  - {op: cancel_access_request, route: "PUT /v2/facts/{proj_id}/{env_id}/access_requests/{elements_config_id}/user/{user_id}/tenant/{tenant_id}/{access_request_id}/cancel", stage: EAP, status: excluded, reason: eap}
+  - {op: deny_access_request, route: "PUT /v2/facts/{proj_id}/{env_id}/access_requests/{elements_config_id}/user/{user_id}/tenant/{tenant_id}/{access_request_id}/deny", stage: EAP, status: excluded, reason: eap}
+  - {op: update_access_request_reviewer, route: "PATCH /v2/facts/{proj_id}/{env_id}/access_requests/{elements_config_id}/user/{user_id}/tenant/{tenant_id}/{access_request_id}/reviewer", stage: EAP, status: excluded, reason: eap}
+  # Activity Log
+  - {op: list_activity_events, route: "GET /v2/activity", stage: GA, status: excluded, reason: account-admin}
+  - {op: list_activity_types, route: "GET /v2/activity/types", stage: GA, status: excluded, reason: account-admin}
+  # API History
+  - {op: list_api_events_v2_history_get, route: "GET /v2/history", stage: GA, status: excluded, reason: account-admin}
+  - {op: get_api_event_v2_history__event_id__get, route: "GET /v2/history/{event_id}", stage: GA, status: excluded, reason: account-admin}
+  - {op: get_request_body_v2_history__event_id__request_get, route: "GET /v2/history/{event_id}/request", stage: GA, status: excluded, reason: account-admin}
+  - {op: get_response_body_v2_history__event_id__response_get, route: "GET /v2/history/{event_id}/response", stage: GA, status: excluded, reason: account-admin}
+  # API Keys
+  - {op: list_api_keys, route: "GET /v2/api-key", stage: GA, status: covered}
+  - {op: create_api_key, route: "POST /v2/api-key", stage: GA, status: covered}
+  - {op: get_api_key_scope, route: "GET /v2/api-key/scope", stage: GA, status: covered}
+  - {op: get_api_key, route: "GET /v2/api-key/{api_key_id}", stage: GA, status: covered}
+  - {op: delete_api_key, route: "DELETE /v2/api-key/{api_key_id}", stage: GA, status: covered}
+  - {op: rotate_api_key, route: "POST /v2/api-key/{api_key_id}/rotate-secret", stage: GA, status: covered}
+  - {op: get_environment_api_key, route: "GET /v2/api-key/{proj_id}/{env_id}", stage: GA, status: covered}
+  # Audit Elements Data
+  - {op: elements_list_audit_logs, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/audit_logs", stage: GA, status: excluded, reason: elements-session}
+  # Audit Log Replay
+  - {op: run_audit_log_replay, route: "POST /v2/audit-log-replay", stage: GA, status: excluded, reason: testing-tool}
+  # Audit Logs
+  - {op: list_audit_logs, route: "GET /v2/pdps/{proj_id}/{env_id}/audit_logs", stage: GA, status: covered}
+  - {op: get_detailed_audit_log, route: "GET /v2/pdps/{proj_id}/{env_id}/audit_logs/{log_id}", stage: GA, status: covered}
+  # Bulk Operations
+  - {op: bulk_replace_resource_instances, route: "PUT /v2/facts/{proj_id}/{env_id}/bulk/resource_instances", stage: GA, status: covered}
+  - {op: bulk_delete_resource_instances, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/resource_instances", stage: GA, status: covered}
+  - {op: bulk_create_tenants, route: "POST /v2/facts/{proj_id}/{env_id}/bulk/tenants", stage: GA, status: covered}
+  - {op: bulk_delete_tenants, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/tenants", stage: GA, status: covered}
+  - {op: bulk_create_users, route: "POST /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: covered}
+  - {op: bulk_replace_users, route: "PUT /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: covered}
+  - {op: bulk_delete_users, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: covered}
+  - {op: bulk_create_or_replace_roles, route: "PUT /v2/schema/{proj_id}/{env_id}/bulk/roles", stage: GA, status: covered}
+  # Condition Set Rules
+  - {op: list_set_permissions, route: "GET /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: covered}
+  - {op: assign_set_permissions, route: "POST /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: covered}
+  - {op: unassign_set_permissions, route: "DELETE /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: covered}
+  # Condition Sets
+  - {op: list_condition_sets, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets", stage: GA, status: covered}
+  - {op: create_condition_set, route: "POST /v2/schema/{proj_id}/{env_id}/condition_sets", stage: GA, status: covered}
+  - {op: get_condition_set, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: covered}
+  - {op: update_condition_set, route: "PATCH /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: covered}
+  - {op: delete_condition_set, route: "DELETE /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}", stage: GA, status: covered}
+  - {op: get_condition_set_ancestors, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/ancestors", stage: GA, status: covered}
+  - {op: get_condition_set_descendants, route: "GET /v2/schema/{proj_id}/{env_id}/condition_sets/{condition_set_id}/descendants", stage: GA, status: covered}
+  # Data Export
+  - {op: start_organization_export, route: "POST /v2/data-export", stage: GA, status: excluded, reason: account-admin}
+  - {op: get_organization_export, route: "GET /v2/data-export/{task_id}", stage: GA, status: excluded, reason: account-admin}
+  # Elements Configs (EAP)
+  - {op: list_elements_configs, route: "GET /v2/elements/{proj_id}/{env_id}/config", stage: EAP, status: excluded, reason: eap}
+  - {op: create_elements_config, route: "POST /v2/elements/{proj_id}/{env_id}/config", stage: EAP, status: excluded, reason: eap}
+  - {op: get_elements_config, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: update_elements_config, route: "PATCH /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: get_elements_config_runtime, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/runtime", stage: EAP, status: excluded, reason: eap}
+  - {op: delete_elements_config, route: "DELETE /v2/elements/{proj_id}/{env_id}/{elements_config_id}", stage: EAP, status: excluded, reason: eap}
+  # Email Configurations
+  - {op: get_email_configuration, route: "GET /v2/facts/{proj_id}/{env_id}/email_configurations", stage: GA, status: excluded, reason: dashboard-only}
+  - {op: create_or_update_email_configuration, route: "POST /v2/facts/{proj_id}/{env_id}/email_configurations", stage: GA, status: excluded, reason: dashboard-only}
+  - {op: send_test_email, route: "POST /v2/facts/{proj_id}/{env_id}/email_configurations/send_test_email", stage: GA, status: excluded, reason: dashboard-only}
+  # Email Templates
+  - {op: list_templates, route: "GET /v2/facts/{proj_id}/{env_id}/email_templates/", stage: GA, status: excluded, reason: dashboard-only}
+  - {op: get_template_by_type, route: "GET /v2/facts/{proj_id}/{env_id}/email_templates/{template_type}", stage: GA, status: excluded, reason: dashboard-only}
+  - {op: update_template_by_type, route: "POST /v2/facts/{proj_id}/{env_id}/email_templates/{template_type}", stage: GA, status: excluded, reason: dashboard-only}
+  - {op: send_test_email_by_type, route: "POST /v2/facts/{proj_id}/{env_id}/email_templates/{template_type}/send_test_email", stage: GA, status: excluded, reason: dashboard-only}
+  # Environments
+  - {op: list_environments, route: "GET /v2/projects/{proj_id}/envs", stage: GA, status: covered}
+  - {op: create_environment, route: "POST /v2/projects/{proj_id}/envs", stage: GA, status: covered}
+  - {op: get_environment, route: "GET /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
+  - {op: update_environment, route: "PATCH /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
+  - {op: delete_environment, route: "DELETE /v2/projects/{proj_id}/envs/{env_id}", stage: GA, status: covered}
+  - {op: copy_environment, route: "POST /v2/projects/{proj_id}/envs/{env_id}/copy", stage: GA, status: covered}
+  - {op: copy_environment_async, route: "POST /v2/projects/{proj_id}/envs/{env_id}/copy/async", stage: GA, status: covered}
+  - {op: get_copy_environment_async_result, route: "GET /v2/projects/{proj_id}/envs/{env_id}/copy/async/{task_id}/result", stage: GA, status: covered}
+  - {op: stats_environments, route: "GET /v2/projects/{proj_id}/envs/{env_id}/stats", stage: GA, status: covered}
+  - {op: test_jwks_by_url, route: "POST /v2/projects/{proj_id}/envs/{env_id}/test_jwks", stage: GA, status: excluded, reason: dashboard-only}
+  # Groups
+  - {op: list_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups", stage: deprecated, status: excluded, reason: deprecated}
+  - {op: create_group, route: "POST /v2/schema/{proj_id}/{env_id}/groups", stage: GA, status: covered}
+  - {op: list_direct_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/direct", stage: GA, status: covered}
+  - {op: get_direct_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/direct/{group_instance_key}", stage: GA, status: covered}
+  - {op: get_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", stage: deprecated, status: excluded, reason: deprecated}
+  - {op: delete_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", stage: GA, status: covered}
+  - {op: assign_group_to_group, route: "PUT /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group", stage: GA, status: covered}
+  - {op: remove_group_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group", stage: GA, status: covered}
+  - op: list_group_children
+    route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/children"
+    stage: GA
+    status: covered
+    stage_override:
+      stage: GA
+      reason: "The spec's summary calls it EAP, which the snapshot does not keep, while its tag is GA; the SDK treats it as GA, as it does the other Groups routes."
+  - op: list_group_parents
+    route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/parents"
+    stage: GA
+    status: covered
+    stage_override:
+      stage: GA
+      reason: "The spec's summary calls it EAP, which the snapshot does not keep, while its tag is GA; the SDK treats it as GA, as it does the other Groups routes."
+  - op: list_group_roles
+    route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles"
+    stage: GA
+    status: covered
+    stage_override:
+      stage: GA
+      reason: "The spec's summary calls it EAP, which the snapshot does not keep, while its tag is GA; the SDK treats it as GA, as it does the other Groups routes."
+  - {op: assign_role_to_group, route: "POST /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", stage: GA, status: covered}
+  - {op: remove_role_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", stage: GA, status: covered}
+  - op: list_group_users
+    route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users"
+    stage: GA
+    status: covered
+    stage_override:
+      stage: GA
+      reason: "The spec's summary calls it EAP, which the snapshot does not keep, while its tag is GA; the SDK treats it as GA, as it does the other Groups routes."
+  - {op: assign_user_to_group, route: "PUT /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}", stage: GA, status: covered}
+  - {op: remove_user_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}", stage: GA, status: covered}
+  # Implicit Grants
+  - {op: create_implicit_grant, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants", stage: GA, status: covered}
+  - {op: delete_implicit_grant, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants", stage: GA, status: covered}
+  - {op: update_implicit_grants_conditions, route: "PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants/conditions", stage: GA, status: covered}
+  # Invites
+  - {op: list_organization_invites, route: "GET /v2/orgs/{org_id}/invites", stage: GA, status: excluded, reason: account-admin}
+  - {op: invite_members_to_organization, route: "POST /v2/orgs/{org_id}/invites", stage: GA, status: excluded, reason: account-admin}
+  - {op: cancel_invite, route: "DELETE /v2/orgs/{org_id}/invites/{invite_id}", stage: GA, status: excluded, reason: account-admin}
+  # Members
+  - {op: list_organization_members, route: "GET /v2/members", stage: GA, status: excluded, reason: account-admin}
+  - {op: create_organization_members, route: "POST /v2/members", stage: GA, status: excluded, reason: account-admin}
+  - {op: delete_organization_permissions, route: "DELETE /v2/members", stage: GA, status: excluded, reason: account-admin}
+  - {op: get_authenticated_member, route: "GET /v2/members/me", stage: GA, status: excluded, reason: account-admin}
+  - {op: get_organization_member, route: "GET /v2/members/{member_id}", stage: GA, status: excluded, reason: account-admin}
+  - {op: update_organization_member, route: "PATCH /v2/members/{member_id}", stage: GA, status: excluded, reason: account-admin}
+  - {op: delete_organization_member, route: "DELETE /v2/members/{member_id}", stage: GA, status: excluded, reason: account-admin}
+  # OPAL Data ( EAP )
+  - {op: get_all_data, route: "GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: get_all_data_optimized, route: "GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/optimized", stage: EAP, status: excluded, reason: eap}
+  - {op: get_all_relationships_data, route: "GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/relationships", stage: EAP, status: excluded, reason: eap}
+  - {op: get_all_resource_instances_data, route: "GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/resource_instances", stage: EAP, status: excluded, reason: eap}
+  - {op: get_all_role_assignments_data, route: "GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/role_assignments", stage: EAP, status: excluded, reason: eap}
+  - {op: get_all_users_data, route: "GET /v2/internal/opal_data/{org_id}/{proj_id}/{env_id}/users", stage: EAP, status: excluded, reason: eap}
+  # Operation Approval (EAP)
+  - {op: list_operation_approvals, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/operation_approval", stage: EAP, status: excluded, reason: eap}
+  - {op: create_operation_approval, route: "POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/operation_approval", stage: EAP, status: excluded, reason: eap}
+  - {op: get_operation_approval, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/operation_approval/{operation_approval_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: approve_operation_approval, route: "PUT /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/operation_approval/{operation_approval_id}/approve", stage: EAP, status: excluded, reason: eap}
+  - {op: cancel_operation_approval, route: "PUT /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/operation_approval/{operation_approval_id}/cancel", stage: EAP, status: excluded, reason: eap}
+  - {op: deny_operation_approval, route: "PUT /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/operation_approval/{operation_approval_id}/deny", stage: EAP, status: excluded, reason: eap}
+  - {op: update_operation_approval_reviewer, route: "PATCH /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/operation_approval/{operation_approval_id}/reviewer", stage: EAP, status: excluded, reason: eap}
+  # Organizations
+  - {op: list_organizations, route: "GET /v2/orgs", stage: GA, status: excluded, reason: account-admin}
+  - {op: create_organization, route: "POST /v2/orgs", stage: GA, status: excluded, reason: account-admin}
+  - {op: get_active_organization, route: "GET /v2/orgs/active/org", stage: GA, status: excluded, reason: account-admin}
+  - {op: get_organization, route: "GET /v2/orgs/{org_id}", stage: GA, status: excluded, reason: account-admin}
+  - {op: update_organization, route: "PATCH /v2/orgs/{org_id}", stage: GA, status: excluded, reason: account-admin}
+  - {op: delete_organization, route: "DELETE /v2/orgs/{org_id}", stage: GA, status: excluded, reason: account-admin}
+  - {op: restore_organization, route: "POST /v2/orgs/{org_id}/restore", stage: GA, status: excluded, reason: account-admin}
+  - {op: stats_organization, route: "GET /v2/orgs/{org_id}/stats", stage: GA, status: excluded, reason: account-admin}
+  # Policy Decision Points
+  - op: list_pdp_configs
+    route: "GET /v2/pdps/{proj_id}/{env_id}/configs"
+    stage: GA
+    status: deferred
+    reason: "The API is due to change what this route returns."
+    trigger: "Decide again once that change to the API ships."
+  - {op: migrate_shards, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/migrate-shards", stage: GA, status: excluded, reason: operator}
+  - {op: refresh_environment_pdp_data, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/refresh", stage: GA, status: covered}
+  - {op: disable_debug_audit_logs, route: "PUT /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/debug-audit-logs/disable", stage: GA, status: excluded, reason: operator}
+  - {op: enable_debug_audit_logs, route: "PUT /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/debug-audit-logs/enable", stage: GA, status: excluded, reason: operator}
+  - {op: refresh_pdp_data, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/refresh", stage: GA, status: covered}
+  - {op: rotate_pdp_api_key, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/rotate-api-key", stage: GA, status: excluded, reason: operator}
+  - {op: get_pdp_config_values, route: "GET /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/values", stage: GA, status: excluded, reason: operator}
+  # Policy Git Repositories
+  - {op: list_policy_repos, route: "GET /v2/projects/{proj_id}/repos", stage: GA, status: excluded, reason: project-setup}
+  - {op: create_policy_repo, route: "POST /v2/projects/{proj_id}/repos", stage: GA, status: excluded, reason: project-setup}
+  - {op: get_active_policy_repo, route: "GET /v2/projects/{proj_id}/repos/active", stage: GA, status: excluded, reason: project-setup}
+  - {op: disable_active_policy_repo, route: "PUT /v2/projects/{proj_id}/repos/disable", stage: GA, status: excluded, reason: project-setup}
+  - {op: get_policy_repo, route: "GET /v2/projects/{proj_id}/repos/{repo_id}", stage: GA, status: excluded, reason: project-setup}
+  - {op: delete_policy_repo, route: "DELETE /v2/projects/{proj_id}/repos/{repo_id}", stage: GA, status: excluded, reason: project-setup}
+  - {op: activate_policy_repo, route: "PUT /v2/projects/{proj_id}/repos/{repo_id}/activate", stage: GA, status: excluded, reason: project-setup}
+  # Policy Guards (EAP)
+  - {op: list_policy_guard_scopes, route: "GET /v2/policy_guards/scopes", stage: EAP, status: excluded, reason: eap}
+  - {op: create_policy_guard_scope, route: "POST /v2/policy_guards/scopes", stage: EAP, status: excluded, reason: eap}
+  - {op: get_policy_guard_scope, route: "GET /v2/policy_guards/scopes/{policy_guard_scope_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: delete_policy_guard_scope, route: "DELETE /v2/policy_guards/scopes/{policy_guard_scope_id}", stage: EAP, status: excluded, reason: eap}
+  - {op: associate_policy_guard_scope, route: "POST /v2/policy_guards/scopes/{policy_guard_scope_id}/associate", stage: EAP, status: excluded, reason: eap}
+  - {op: disassociate_policy_guard_scope, route: "DELETE /v2/policy_guards/scopes/{policy_guard_scope_id}/disassociate", stage: EAP, status: excluded, reason: eap}
+  - {op: list_policy_guard_rules, route: "GET /v2/policy_guards/scopes/{policy_guard_scope_id}/rules", stage: EAP, status: excluded, reason: eap}
+  - {op: create_policy_guard_rule, route: "POST /v2/policy_guards/scopes/{policy_guard_scope_id}/rules", stage: EAP, status: excluded, reason: eap}
+  - {op: delete_policy_guard_rule, route: "DELETE /v2/policy_guards/scopes/{policy_guard_scope_id}/rules", stage: EAP, status: excluded, reason: eap}
+  # Projects
+  - {op: list_projects, route: "GET /v2/projects", stage: GA, status: covered}
+  - {op: create_project, route: "POST /v2/projects", stage: GA, status: covered}
+  - {op: get_project, route: "GET /v2/projects/{proj_id}", stage: GA, status: covered}
+  - {op: update_project, route: "PATCH /v2/projects/{proj_id}", stage: GA, status: covered}
+  - {op: delete_project, route: "DELETE /v2/projects/{proj_id}", stage: GA, status: covered}
+  # Proxy Config
+  - {op: list_proxy_configs, route: "GET /v2/facts/{proj_id}/{env_id}/proxy_configs", stage: GA, status: covered}
+  - {op: create_proxy_config, route: "POST /v2/facts/{proj_id}/{env_id}/proxy_configs", stage: GA, status: covered}
+  - {op: get_proxy_config, route: "GET /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: covered}
+  - {op: update_proxy_config, route: "PATCH /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: covered}
+  - {op: delete_proxy_config, route: "DELETE /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: covered}
+  # Relationship tuples
+  - {op: list_relationship_tuples, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
+  - {op: create_relationship_tuple, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
+  - {op: delete_relationship_tuple, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
+  - {op: bulk_create_relationship_tuples, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: covered}
+  - {op: bulk_delete_relationship_tuples, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: covered}
+  - {op: list_relationship_tuples_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed", stage: GA, status: covered}
+  # Resource Action Groups
+  - {op: list_resource_action_groups, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: covered}
+  - {op: create_resource_action_group, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: covered}
+  - {op: get_resource_action_group, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: covered}
+  - {op: update_resource_action_group, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: covered}
+  - {op: delete_resource_action_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups/{action_group_id}", stage: GA, status: covered}
+  # Resource Actions
+  - {op: list_resource_actions, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", stage: GA, status: covered}
+  - {op: create_resource_action, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions", stage: GA, status: covered}
+  - {op: get_resource_action, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: covered}
+  - {op: update_resource_action, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: covered}
+  - {op: delete_resource_action, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions/{action_id}", stage: GA, status: covered}
+  # Resource Attributes
+  - {op: list_resource_attributes, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", stage: GA, status: covered}
+  - {op: create_resource_attribute, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes", stage: GA, status: covered}
+  - {op: get_resource_attribute, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: covered}
+  - {op: update_resource_attribute, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: covered}
+  - {op: delete_resource_attribute, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/attributes/{attribute_id}", stage: GA, status: covered}
+  # Resource Instances
+  - {op: list_resource_instances, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances", stage: GA, status: covered}
+  - {op: create_resource_instance, route: "POST /v2/facts/{proj_id}/{env_id}/resource_instances", stage: GA, status: covered}
+  - {op: list_resource_instances_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed", stage: GA, status: covered}
+  - {op: get_resource_instance, route: "GET /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: covered}
+  - {op: update_resource_instance, route: "PATCH /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: covered}
+  - {op: delete_resource_instance, route: "DELETE /v2/facts/{proj_id}/{env_id}/resource_instances/{instance_id}", stage: GA, status: covered}
+  # Resource Relations
+  - {op: list_resource_relations, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations", stage: GA, status: covered}
+  - {op: create_resource_relation, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations", stage: GA, status: covered}
+  - {op: get_resource_relation, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}", stage: GA, status: covered}
+  - {op: delete_resource_relation, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations/{relation_id}", stage: GA, status: covered}
+  # Resource Roles
+  - {op: list_resource_roles, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", stage: GA, status: covered}
+  - {op: create_resource_role, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", stage: GA, status: covered}
+  - {op: get_resource_role, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: update_resource_role, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: delete_resource_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: get_resource_role_ancestors, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/ancestors", stage: GA, status: covered}
+  - {op: get_resource_role_descendants, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/descendants", stage: GA, status: covered}
+  - {op: assign_permissions_to_resource_role, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions", stage: GA, status: covered}
+  - {op: remove_permissions_from_resource_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/permissions", stage: GA, status: covered}
+  # Resources
+  - {op: list_resources, route: "GET /v2/schema/{proj_id}/{env_id}/resources", stage: GA, status: covered}
+  - {op: create_resource, route: "POST /v2/schema/{proj_id}/{env_id}/resources", stage: GA, status: covered}
+  - {op: get_resource, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
+  - {op: replace_resource, route: "PUT /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
+  - {op: update_resource, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
+  - {op: delete_resource, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
+  # Role Assignments
+  - {op: list_role_assignments, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
+  - {op: assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
+  - {op: unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
+  - {op: bulk_assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: covered}
+  - {op: bulk_unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: covered}
+  - {op: list_role_assignments_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed", stage: GA, status: covered}
+  # Roles
+  - {op: list_roles, route: "GET /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: covered}
+  - {op: create_role, route: "POST /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: covered}
+  - {op: get_role, route: "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: update_role, route: "PATCH /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: delete_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}", stage: GA, status: covered}
+  - {op: get_role_ancestors, route: "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}/ancestors", stage: GA, status: covered}
+  - {op: get_role_descendants, route: "GET /v2/schema/{proj_id}/{env_id}/roles/{role_id}/descendants", stage: GA, status: covered}
+  - {op: assign_permissions_to_role, route: "POST /v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", stage: GA, status: covered}
+  - {op: remove_permissions_from_role, route: "DELETE /v2/schema/{proj_id}/{env_id}/roles/{role_id}/permissions", stage: GA, status: covered}
+  # Scope Configurations
+  - {op: get_scope_config, route: "GET /v2/projects/{proj_id}/{env_id}/opal_scope", stage: GA, status: excluded, reason: project-setup}
+  - {op: set_scope_config, route: "PUT /v2/projects/{proj_id}/{env_id}/opal_scope", stage: GA, status: excluded, reason: project-setup}
+  - {op: reset_scope_config, route: "DELETE /v2/projects/{proj_id}/{env_id}/opal_scope", stage: GA, status: excluded, reason: project-setup}
+  # Tenants
+  - {op: list_tenants, route: "GET /v2/facts/{proj_id}/{env_id}/tenants", stage: GA, status: covered}
+  - {op: create_tenant, route: "POST /v2/facts/{proj_id}/{env_id}/tenants", stage: GA, status: covered}
+  - {op: get_tenant, route: "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
+  - {op: update_tenant, route: "PATCH /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
+  - {op: delete_tenant, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
+  - {op: list_tenant_users, route: "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: covered}
+  - {op: add_user_to_tenant, route: "POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: covered}
+  - {op: delete_tenant_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}", stage: GA, status: covered}
+  # User Attributes
+  - {op: list_user_attributes, route: "GET /v2/schema/{proj_id}/{env_id}/users/attributes", stage: GA, status: covered}
+  - {op: create_user_attribute, route: "POST /v2/schema/{proj_id}/{env_id}/users/attributes", stage: GA, status: covered}
+  - {op: get_user_attribute, route: "GET /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: covered}
+  - {op: update_user_attribute, route: "PATCH /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: covered}
+  - {op: delete_user_attribute, route: "DELETE /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: covered}
+  # User Invites
+  - {op: list_user_invites, route: "GET /v2/facts/{proj_id}/{env_id}/user_invites", stage: GA, status: covered}
+  - {op: create_user_invite, route: "POST /v2/facts/{proj_id}/{env_id}/user_invites", stage: GA, status: covered}
+  - {op: get_user_invite, route: "GET /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: covered}
+  - {op: update_user_invite, route: "PATCH /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: covered}
+  - {op: delete_user_invite, route: "DELETE /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: covered}
+  - {op: approve_user_invite, route: "POST /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}/approve", stage: GA, status: covered}
+  # Users
+  - {op: list_users, route: "GET /v2/facts/{proj_id}/{env_id}/users", stage: GA, status: covered}
+  - {op: create_user, route: "POST /v2/facts/{proj_id}/{env_id}/users", stage: GA, status: covered}
+  - {op: get_user, route: "GET /v2/facts/{proj_id}/{env_id}/users/{user_id}", stage: GA, status: covered}
+  - {op: replace_user, route: "PUT /v2/facts/{proj_id}/{env_id}/users/{user_id}", stage: GA, status: covered}
+  - {op: update_user, route: "PATCH /v2/facts/{proj_id}/{env_id}/users/{user_id}", stage: GA, status: covered}
+  - {op: delete_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}", stage: GA, status: covered}
+  - {op: assign_role_to_user, route: "POST /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", stage: GA, status: covered}
+  - {op: unassign_role_from_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", stage: GA, status: covered}
+  # Users Elements Data
+  - {op: set_config_active, route: "POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/active", stage: GA, status: excluded, reason: elements-session}
+  - {op: elements_list_roles, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/roles", stage: GA, status: excluded, reason: elements-session}
+  - {op: list_elements_user_invites, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/user-invites", stage: GA, status: excluded, reason: elements-session}
+  - {op: elements_list_users, route: "GET /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users", stage: GA, status: excluded, reason: elements-session}
+  - {op: elements_create_user, route: "POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users", stage: GA, status: excluded, reason: elements-session}
+  - {op: elements_delete_user, route: "DELETE /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}", stage: GA, status: excluded, reason: elements-session}
+  - {op: elements_assign_role_to_user, route: "POST /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles", stage: GA, status: excluded, reason: elements-session}
+  - {op: elements_unassign_role_from_user, route: "DELETE /v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/users/{user_id}/roles", stage: GA, status: excluded, reason: elements-session}
+  # (no tag)
+  - {op: list_activity_events_v2_deprecated_activity_get, route: "GET /v2/deprecated/activity", stage: deprecated, status: excluded, reason: deprecated}
+  - {op: list_activity_types_v2_deprecated_activity_types_get, route: "GET /v2/deprecated/activity/types", stage: deprecated, status: excluded, reason: deprecated}
+  - {op: list_api_events, route: "GET /v2/deprecated/history", stage: deprecated, status: excluded, reason: deprecated}
+  - {op: get_api_event, route: "GET /v2/deprecated/history/{event_id}", stage: deprecated, status: excluded, reason: deprecated}
+  - {op: get_request_body, route: "GET /v2/deprecated/history/{event_id}/request", stage: deprecated, status: excluded, reason: deprecated}
+  - {op: get_response_body, route: "GET /v2/deprecated/history/{event_id}/response", stage: deprecated, status: excluded, reason: deprecated}
+  # Not in the spec
+  - op: elements_login_as
+    route: "POST /v2/auth/elements_login_as"
+    stage: GA
+    status: covered
+    sdk_only: "The login-as route of Permit Elements, which every Permit SDK has, is not in the published spec."
+
+pdp:
+  # Authorization API
+  - {op: is_allowed_allowed_post, route: "POST /allowed", stage: GA, status: covered}
+  - {op: is_allowed_all_tenants_allowed_all_tenants_post, route: "POST /allowed/all-tenants", stage: GA, status: covered}
+  - {op: is_allowed_bulk_allowed_bulk_post, route: "POST /allowed/bulk", stage: GA, status: covered}
+  - {op: is_allowed_url_allowed_url_post, route: "POST /allowed_url", stage: GA, status: covered}
+  - {op: authorized_users_authorized_users_post, route: "POST /authorized_users", stage: GA, status: covered}
+  - {op: is_allowed_kong_kong_post, route: "POST /kong", stage: GA, status: excluded, reason: integration}
+  - {op: is_allowed_nginx_nginx_allowed_post, route: "POST /nginx_allowed", stage: GA, status: excluded, reason: integration}
+  - {op: Get_User_Permissions_user_permissions_post, route: "POST /user-permissions", stage: GA, status: covered}
+  - {op: Get_User_Tenants_user_tenants_post, route: "POST /user-tenants", stage: GA, status: covered}
+  # authzen
+  - op: authzen_metadata_handler
+    route: "GET /.well-known/authzen-configuration"
+    stage: GA
+    status: deferred
+    reason: "AuthZEN is an interface over the checks that the SDK already has, and the SDKs do not expose it yet."
+    trigger: "Decide again when the Permit SDKs are to expose AuthZEN, with search routes that page their results."
+  - op: access_evaluation_handler
+    route: "POST /access/v1/evaluation"
+    stage: GA
+    status: deferred
+    reason: "AuthZEN is an interface over the checks that the SDK already has, and the SDKs do not expose it yet."
+    trigger: "Decide again when the Permit SDKs are to expose AuthZEN, with search routes that page their results."
+  - op: access_evaluations_handler
+    route: "POST /access/v1/evaluations"
+    stage: GA
+    status: deferred
+    reason: "AuthZEN is an interface over the checks that the SDK already has, and the SDKs do not expose it yet."
+    trigger: "Decide again when the Permit SDKs are to expose AuthZEN, with search routes that page their results."
+  - op: search_action_handler
+    route: "POST /access/v1/search/action"
+    stage: GA
+    status: deferred
+    reason: "AuthZEN is an interface over the checks that the SDK already has, and the SDKs do not expose it yet."
+    trigger: "Decide again when the Permit SDKs are to expose AuthZEN, with search routes that page their results."
+  - op: search_resource_handler
+    route: "POST /access/v1/search/resource"
+    stage: GA
+    status: deferred
+    reason: "AuthZEN is an interface over the checks that the SDK already has, and the SDKs do not expose it yet."
+    trigger: "Decide again when the Permit SDKs are to expose AuthZEN, with search routes that page their results."
+  - op: search_subject_handler
+    route: "POST /access/v1/search/subject"
+    stage: GA
+    status: deferred
+    reason: "AuthZEN is an interface over the checks that the SDK already has, and the SDKs do not expose it yet."
+    trigger: "Decide again when the Permit SDKs are to expose AuthZEN, with search routes that page their results."
+  # Callbacks
+  - {op: list_callbacks_callbacks_get, route: "GET /callbacks", stage: GA, status: excluded, reason: operator}
+  - {op: register_callback_callbacks_post, route: "POST /callbacks", stage: GA, status: excluded, reason: operator}
+  - {op: get_callback_by_key_callbacks__key__get, route: "GET /callbacks/{key}", stage: GA, status: excluded, reason: operator}
+  - {op: get_callback_by_key_callbacks__key__delete, route: "DELETE /callbacks/{key}", stage: GA, status: excluded, reason: operator}
+  # Cloud API Proxy
+  - {op: health_opa_healthcheck_healthchecks_opa_healthy_get, route: "GET /healthchecks/opa/healthy", stage: GA, status: excluded, reason: operator}
+  - {op: ready_opa_healthcheck_healthchecks_opa_ready_get, route: "GET /healthchecks/opa/ready", stage: GA, status: excluded, reason: operator}
+  - {op: system_opa_healthcheck_healthchecks_opa_system_get, route: "GET /healthchecks/opa/system", stage: GA, status: excluded, reason: operator}
+  # Data Updater
+  - {op: trigger_data_update_data_updater_trigger_post, route: "POST /data-updater/trigger", stage: GA, status: excluded, reason: operator}
+  # Health
+  - {route: "GET /health", stage: GA, status: excluded, reason: operator}
+  - {route: "GET /healthy", stage: GA, status: excluded, reason: operator}
+  - {route: "GET /ready", stage: GA, status: excluded, reason: operator}
+  # Local Facts API
+  - {op: create_relationship_tuple_facts_relationship_tuples_post, route: "POST /facts/relationship_tuples", stage: GA, status: covered}
+  - {op: create_resource_instance_facts_resource_instances_post, route: "POST /facts/resource_instances", stage: GA, status: covered}
+  - {op: update_resource_instance_facts_resource_instances__instance_id__patch, route: "PATCH /facts/resource_instances/{instance_id}", stage: GA, status: covered}
+  - {op: create_role_assignment_facts_role_assignments_post, route: "POST /facts/role_assignments", stage: GA, status: covered}
+  - {op: delete_role_assignment_facts_role_assignments_delete, route: "DELETE /facts/role_assignments", stage: GA, status: covered}
+  - {op: create_tenant_facts_tenants_post, route: "POST /facts/tenants", stage: GA, status: covered}
+  - {op: create_user_facts_users_post, route: "POST /facts/users", stage: GA, status: covered}
+  - {op: sync_user_facts_users__user_id__put, route: "PUT /facts/users/{user_id}", stage: GA, status: covered}
+  - {op: update_user_facts_users__user_id__patch, route: "PATCH /facts/users/{user_id}", stage: GA, status: covered}
+  - {op: assign_user_role_facts_users__user_id__roles_post, route: "POST /facts/users/{user_id}/roles", stage: GA, status: covered}
+  - {op: unassign_user_role_facts_users__user_id__roles_delete, route: "DELETE /facts/users/{user_id}/roles", stage: GA, status: covered}
+  - op: forward_remaining_requests
+    route: "ANY /facts/{full_path}"
+    stage: GA
+    status: covered
+    sdk_only: "With facts sent through the PDP container, every facts route but the 11 that its spec lists goes to this catch-all, which forwards it to the API without waiting for the PDP to sync. The PDP's spec does not list it."
+  # Local Queries
+  - {op: list_role_assignments_local_role_assignments_get, route: "GET /local/role_assignments", stage: GA, status: covered}
+  # OPAL Server Connectivity
+  - {op: get_connectivity_status_opal_server_connectivity_get, route: "GET /opal-server/connectivity", stage: GA, status: excluded, reason: operator}
+  - {op: disable_connectivity_opal_server_connectivity_disable_post, route: "POST /opal-server/connectivity/disable", stage: GA, status: excluded, reason: operator}
+  - {op: enable_connectivity_opal_server_connectivity_enable_post, route: "POST /opal-server/connectivity/enable", stage: GA, status: excluded, reason: operator}
+  # Policy Store
+  - {op: get_policy_store_details_policy_store_config_get, route: "GET /policy-store/config", stage: deprecated, status: excluded, reason: deprecated}
+  # Policy Updater
+  - {op: trigger_policy_update_policy_updater_trigger_post, route: "POST /policy-updater/trigger", stage: GA, status: excluded, reason: operator}
+  # Trino
+  - {route: "POST /trino/allowed", stage: GA, status: excluded, reason: integration}
+  - {route: "POST /trino/batch-column-masking", stage: GA, status: excluded, reason: integration}
+  - {route: "POST /trino/row-filter", stage: GA, status: excluded, reason: integration}
+
+sdk_only_params:
+  - op: list_resource_actions
+    param: "attr_*"
+    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; a check against the local stack showed that the API applies a string attribute filter to the actions of a resource."
+  - op: list_roles
+    param: "attr_*"
+    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; a check against the local stack showed that the API applies a string attribute filter to the roles of an environment."
+  - op: list_tenants
+    param: "attr_*"
+    reason: "Typed attribute filters, sent as attr_<name> query parameters, which v1 had and the spec does not list; a check against the local stack showed that the API applies them, so the SDK keeps them."

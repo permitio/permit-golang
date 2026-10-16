@@ -1,0 +1,6 @@
+go test fuzz v1
+string("")
+string("")
+int64(-1)
+float64(-0)
+bool(true)

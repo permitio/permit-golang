@@ -523,7 +523,7 @@ func TestRunDidNotRun(t *testing.T) {
 		want string
 	}{
 		{"no subcommand", nil, "releasecheck: DID NOT RUN: usage: releasecheck " +
-			"validate|e2e|notes [flags];"},
+			"validate|e2e|notes|watchdog|lanes [flags];"},
 		{"an unknown subcommand", []string{"publish"}, "unknown subcommand \"publish\"; usage:"},
 		{"validate without flags", []string{"validate"}, "releasecheck: DID NOT RUN: " +
 			"releasecheck validate needs -ci-runs, -evidence, -master, -sha, -tag\n"},
@@ -546,6 +546,61 @@ func TestRunDidNotRun(t *testing.T) {
 			exit, stdout := runCheck(tt.args...)
 
 			assertResult(t, exit, exitDidNotRun, stdout, tt.want)
+		})
+	}
+}
+
+// lanes prints the Go release of each test leg of ci.yml, the lanes that validate requires in
+// the harness evidence, one per line and in order.
+func TestLanes(t *testing.T) {
+	dir := t.TempDir()
+	writeTree(t, dir, map[string]string{ciFile: "name: CI\nenv:\n  GO_127: \"1.27.2\"\n" +
+		"  GO_FLOOR: \"1.26.0\"\n  GO_126: \"1.26.9\"\n  EXPECTED_HOOKS: \"28\"\n" +
+		"jobs:\n  test:\n    env:\n      GO_128: \"1.28.0\"\n"})
+
+	exit, stdout := runCheck("lanes", "-root", dir)
+
+	if want := "go1.26.0\ngo1.26.9\ngo1.27.2\n"; exit != exitPassed || stdout != want {
+		t.Errorf("lanes exited %d and printed\n%s\nwant 0 and\n%s", exit, stdout, want)
+	}
+}
+
+func TestLanesDidNotRun(t *testing.T) {
+	tests := []struct {
+		name string
+		// ci is the content of ci.yml, which is missing when it is empty.
+		ci   string
+		args []string
+		want string
+	}{
+		{name: "no ci.yml", want: "ci.yml: no such file or directory\n"},
+		{
+			name: "no test leg", ci: "name: CI\nenv:\n  EXPECTED_HOOKS: \"28\"\n",
+			want: "ci.yml: its env has no GO_FLOOR or GO_<n> variable, the Go releases of the " +
+				"test legs\n",
+		},
+		{
+			name: "a test leg that is no exact release", ci: "env:\n  GO_FLOOR: \"1.26\"\n",
+			want: "ci.yml: GO_FLOOR is \"1.26\", not an exact Go release such as 1.27.1\n",
+		},
+		{
+			name: "an argument", ci: repoFiles()[ciFile], args: []string{"ci.yml"},
+			want: "unexpected arguments [\"ci.yml\"]\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if tt.ci != "" {
+				writeTree(t, dir, map[string]string{ciFile: tt.ci})
+			}
+
+			exit, stdout := runCheck(append([]string{"lanes", "-root", dir}, tt.args...)...)
+
+			assertResult(t, exit, exitDidNotRun, stdout, tt.want)
+			if strings.Contains(stdout, "go1.") {
+				t.Errorf("lanes that did not run printed a lane:\n%s", stdout)
+			}
 		})
 	}
 }

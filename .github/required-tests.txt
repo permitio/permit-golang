@@ -279,10 +279,19 @@ github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestValidateDidNotRu
 github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestRunDidNotRun
 github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestE2E
 github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestNotes
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestWatchdog
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestWatchdogDidNotRun
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestWatchdogFlags
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestWatchdogPrintsTagsInVersionOrder
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestRepositoryAcceptedTags
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestLanes
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestLanesDidNotRun
 github.com/permitio/permit-golang/v2/tools/scripts TestReleaseGitHubDraft
 github.com/permitio/permit-golang/v2/tools/scripts TestReleaseGitHubPublish
 github.com/permitio/permit-golang/v2/tools/scripts TestReleaseVerify
 github.com/permitio/permit-golang/v2/tools/scripts TestReleaseVerifyChecksumDatabase
+github.com/permitio/permit-golang/v2/tools/scripts TestReleaseDryrun
+github.com/permitio/permit-golang/v2/tools/scripts TestReleaseDryrunInputs
 
 github.com/permitio/permit-golang/v2 TestSurfaceSnapshot
 github.com/permitio/permit-golang/v2 TestSnapshot

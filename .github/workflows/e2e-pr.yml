@@ -41,7 +41,8 @@ jobs:
       contents: read
       pull-requests: write  # the vuln and dependency-review jobs, which the mode e2e skips
       checks: read  # the mutation job, which the mode e2e skips
-      actions: read  # the bench and digest jobs, which the mode e2e skips
+      actions: read  # the bench, digest and tag-watchdog jobs, which the mode e2e skips
+      attestations: read  # the tag-watchdog job, which the mode e2e skips
 
   # Every other pull request: the negation of the e2e job's if:.
   skipped:

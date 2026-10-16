@@ -377,13 +377,13 @@ func TestReleaseGitHubPublish(t *testing.T) {
 // proxyModule is the module of the proxy fixture.
 var proxyModule = module.Version{Path: "example.com/m/v2", Version: "v2.1.0"}
 
-// moduleZip returns the module zip of proxyModule with the files, and its h1: hash.
-func moduleZip(t *testing.T, files map[string]string) ([]byte, string) {
+// moduleZip returns the module zip of the module version with the files, and its h1: hash.
+func moduleZip(t *testing.T, version module.Version, files map[string]string) ([]byte, string) {
 	t.Helper()
 	dir := t.TempDir()
 	writeFiles(t, dir, files)
 	var data bytes.Buffer
-	if err := modzip.CreateFromDir(&data, proxyModule, dir); err != nil {
+	if err := modzip.CreateFromDir(&data, version, dir); err != nil {
 		t.Fatal(err)
 	}
 	file := filepath.Join(t.TempDir(), "m.zip")
@@ -651,7 +651,7 @@ func TestReleaseVerifyChecksumDatabase(t *testing.T) {
 }
 
 func TestReleaseVerify(t *testing.T) {
-	served, sum := moduleZip(t, moduleFiles)
+	served, sum := moduleZip(t, proxyModule, moduleFiles)
 	tampered := withExtraFile(t, served)
 	const otherSum = "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 	tests := []struct {

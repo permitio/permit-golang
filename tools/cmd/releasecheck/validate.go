@@ -53,14 +53,16 @@ type validateInputs struct {
 }
 
 // workflowRun is a run of a workflow, as the GitHub API lists it: its status and conclusion are
-// those of its latest attempt.
+// those of its latest attempt, and its display title is its run-name.
 type workflowRun struct {
-	ID         int64  `json:"id"`
-	RunAttempt int    `json:"run_attempt"`
-	HeadSHA    string `json:"head_sha"`
-	Event      string `json:"event"`
-	Status     string `json:"status"`
-	Conclusion string `json:"conclusion"`
+	ID           int64  `json:"id"`
+	RunAttempt   int    `json:"run_attempt"`
+	DisplayTitle string `json:"display_title"`
+	HeadSHA      string `json:"head_sha"`
+	HeadBranch   string `json:"head_branch"`
+	Event        string `json:"event"`
+	Status       string `json:"status"`
+	Conclusion   string `json:"conclusion"`
 }
 
 // evidence is the harness evidence: the summary of the report of the maintainer-run local
@@ -338,6 +340,24 @@ func readLocalOnly(file string) (map[string][]string, error) {
 	return phases, nil
 }
 
+// runLanes prints the Go release of each test leg of CI that validate requires in the harness
+// evidence, one per line, so that the dry run of a release reads them from the same file.
+func runLanes(args []string, stdout, stderr io.Writer) int {
+	var root string
+	flags := newFlags("lanes", stderr, &root)
+	if err := parse(flags, args, nil); err != nil {
+		return abort(stdout, err)
+	}
+	lanes, err := readLanes(filepath.Join(root, filepath.FromSlash(ciFile)))
+	if err != nil {
+		return abort(stdout, err)
+	}
+	for _, lane := range lanes {
+		fmt.Fprintln(stdout, lane)
+	}
+	return exitPassed
+}
+
 // readLanes returns the Go release of each test leg of CI: go plus the value of each GO_FLOOR and
 // GO_<n> variable of the env of ci.yml.
 func readLanes(file string) ([]string, error) {
@@ -370,28 +390,29 @@ func readLanes(file string) ([]string, error) {
 	return lanes, nil
 }
 
-// readWorkflowRuns reads the runs of a workflow, as the GitHub API lists them.
+// readWorkflowRuns reads the runs of a workflow, as the GitHub API lists them: one or more pages.
 func readWorkflowRuns(file string) ([]workflowRun, error) {
-	data, err := os.ReadFile(file)
+	pages, err := readPages[struct {
+		WorkflowRuns *[]workflowRun `json:"workflow_runs"`
+	}](file, "a list of workflow runs")
 	if err != nil {
 		return nil, err
 	}
-	var listed struct {
-		WorkflowRuns *[]workflowRun `json:"workflow_runs"`
+	var runs []workflowRun
+	for _, page := range pages {
+		if page.WorkflowRuns == nil {
+			return nil, fmt.Errorf("%s has no workflow_runs: it is not a list of workflow runs",
+				file)
+		}
+		runs = append(runs, *page.WorkflowRuns...)
 	}
-	if err := json.Unmarshal(data, &listed); err != nil {
-		return nil, fmt.Errorf("%s: %w", file, err)
-	}
-	if listed.WorkflowRuns == nil {
-		return nil, fmt.Errorf("%s has no workflow_runs: it is not a list of workflow runs", file)
-	}
-	for _, run := range *listed.WorkflowRuns {
+	for _, run := range runs {
 		if run.ID <= 0 || run.RunAttempt <= 0 {
 			return nil, fmt.Errorf("%s lists a run without an id or a run_attempt: it is not a "+
 				"list of workflow runs", file)
 		}
 	}
-	return *listed.WorkflowRuns, nil
+	return runs, nil
 }
 
 // readEvidence reads the harness evidence.

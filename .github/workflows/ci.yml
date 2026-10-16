@@ -701,6 +701,46 @@ jobs:
           "$RUNNER_TEMP/apisurface" -mode pr -base "$BASE_SHA" -apidiff "$RUNNER_TEMP/apidiff" \
             "${breaking[@]}"
 
+  # On a pull request only: the checks of a release that need no release, on the pull request's
+  # head, through .github/scripts/release-dryrun.sh: releasecheck validate, as release.yml runs
+  # it, with a release candidate of the committed version, and with a run of CI and harness
+  # evidence that it makes up to pass, so that the tree decides; apisurface -mode migration;
+  # zipcheck, which builds the module zip for the version v<Version>-dryrun; and
+  # release-verify.sh, which downloads that version from a module proxy in a directory,
+  # GOPROXY=file://, with GOSUMDB=off. It never tags, creates a release or reads a secret. The
+  # tools are built first, and the dry run then runs offline.
+  release-dryrun:
+    name: release-dryrun
+    if: >-
+      !inputs.mode && github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Dry-run the release
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          for tool in releasecheck apisurface zipcheck; do
+            go -C tools build -o "../bin/$tool" "./cmd/$tool"
+          done
+          export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
+          .github/scripts/release-dryrun.sh "$HEAD_SHA"
+
   # Weekly, runs every hook twice: with prek's built-in versions of the pre-commit-hooks hooks,
   # as the prek job does, and with PREK_NO_FAST_PATH=1, the upstream hooks. It fails when the
   # two runs report a hook differently. A called run sees its caller's schedule, so the cron
@@ -847,6 +887,21 @@ jobs:
           GITLEAKS_HISTORY_ACCEPT_SHA256: ${{ secrets.GITLEAKS_HISTORY_ACCEPT_SHA256 }}
           SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
         run: .github/scripts/security-scan.sh --trufflehog "$TRUFFLEHOG"
+
+  # Twice a week (SECURITY_CRON) and in the security mode: .github/workflows/tag-watchdog.yml,
+  # which checks that the release rules published every version tag, whatever its commit, and
+  # posts a finding to SECURITY_SLACK_WEBHOOK_URL. A push of a tag runs that workflow too,
+  # outside CI.
+  tag-watchdog:
+    if: (!inputs.mode && github.event.schedule == '23 4 * * 1,4') || inputs.mode == 'security'
+    # The workflow of the same commit, by its path, which cicheck and actionlint read.
+    uses: ./.github/workflows/tag-watchdog.yml  # zizmor: ignore[self-repository]
+    permissions:
+      contents: read
+      actions: read  # the runs of release.yml and of ci.yml
+      attestations: read  # the attestations of the module zips of the v2 releases
+    secrets:
+      SECURITY_SLACK_WEBHOOK_URL: ${{ secrets.SECURITY_SLACK_WEBHOOK_URL }}
 
   # Weekly: .github/scripts/digest.sh posts the security digest to SECURITY_SLACK_WEBHOOK_URL,
   # even when nothing needs attention: the open Dependabot pull requests, the accepted
@@ -1198,9 +1253,10 @@ jobs:
   # PDP's log is printed without the health checks, and at the end the container is removed and
   # the environment deleted, with a warning when it leaked. Runs of the job do not wait for each
   # other: each works in an environment of its own, and the sweep deletes only environments older
-  # than 24 hours. A failure on a push to master or in a release fails CI, which
-  # notify-gate-failure posts. The environment deploys from master, pull requests and release/*
-  # branches only: a manual run from another branch fails before its first step.
+  # than 24 hours. A failure on a push to master or in a release fails CI: notify-gate-failure
+  # posts it on master, and the notify-failure job of release.yml in a release. The environment
+  # deploys from master, pull requests and release/* branches only: a manual run from another
+  # branch fails before its first step.
   e2e:
     name: e2e (pinned PDP)
     if: >-
@@ -1508,9 +1564,11 @@ jobs:
       - mutation
       - dependency-review
       - api-surface
+      - release-dryrun
       - prek-upstream
       - mutation-weekly
       - security-scan
+      - tag-watchdog
       - digest
       - spec-drift
       - bench
@@ -1531,20 +1589,22 @@ jobs:
           EVENT: ${{ github.event_name }}
           INPUT_MODE: ${{ inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
-          EXPECTED_JOBS: 21
-          PULL_REQUEST_JOBS: mutation dependency-review api-surface
+          EXPECTED_JOBS: 23
+          PULL_REQUEST_JOBS: mutation dependency-review api-surface release-dryrun
           SCHEDULED_JOBS: >-
-            prek-upstream:weekly mutation-weekly:weekly security-scan:security digest:weekly
-            spec-drift:weekly bench:weekly
+            prek-upstream:weekly mutation-weekly:weekly security-scan:security
+            tag-watchdog:security digest:weekly spec-drift:weekly bench:weekly
           E2E_JOBS: e2e e2e-latest e2e-cloudpdp
           ADVISORY_JOBS: bench e2e-latest e2e-cloudpdp
         run: .github/scripts/ci-aggregate.sh
 
-  # After CI, when CI failed on a push to master or in a release: posts one line to the ops
-  # channel, SLACK_WEBHOOK_URL, that names the check and links the run. A pull request, a
-  # scheduled run and a manual run post nothing here; each scheduled job posts its own result, and
-  # a failed scheduled run is red in Actions. This job needs CI, so CI does not need it, and a
-  # pull request never runs it or reads its secret.
+  # After CI, when CI failed on a push to master or in a release. On master it posts one line to
+  # the ops channel, SLACK_WEBHOOK_URL, that names the check and links the run. A release passes
+  # no secret to the CI it calls, so here notify only warns that it has no webhook, and the
+  # notify-failure job of release.yml posts the failure. A pull request, a scheduled run and a
+  # manual run post nothing here; each scheduled job posts its own result, and a failed scheduled
+  # run is red in Actions. This job needs CI, so CI does not need it, and a pull request never
+  # runs it or reads its secret.
   notify-gate-failure:
     name: notify-gate-failure
     needs: ci

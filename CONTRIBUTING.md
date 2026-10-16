@@ -673,9 +673,11 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, in `tools/upgrade` and in `skills/permit-golang-v2-migration`, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
 | `dependency-review` | Pull requests only: fails when the pull request adds a dependency with a known vulnerability of high or critical severity; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `api-surface` | Pull requests only: checks that `MIGRATION.md` covers the v1 API while the base is v1, and otherwise fails on a breaking change to the API without the `breaking` label; see [Public surface and migration](#public-surface-and-migration). |
+| `release-dryrun` | Pull requests only: the checks of a release that need no release, on the pull request's head, through `.github/scripts/release-dryrun.sh`, offline. It never tags, creates a release or reads a secret; see [Checking a release](#checking-a-release). |
 | `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
 | `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, of `tools/upgrade` and of `skills/permit-golang-v2-migration`, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
 | `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
+| `tag-watchdog` | Twice a week: calls `.github/workflows/tag-watchdog.yml`, which checks that the release rules published every version tag, and posts a finding to Slack; see [Tags created by hand](#tags-created-by-hand). |
 | `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, checks the models against the published specs, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots) and [Model drift](#model-drift). |
 | `bench` | On a push to `master` and weekly: runs the benchmarks of the decision calls, compares them with the previous result on `master`, writes the report to the job summary and posts a regression, or a run that did not complete, to Slack. Advisory: it never fails CI. See [Benchmarks](#benchmarks). |
@@ -689,11 +691,11 @@ Which jobs a run selects depends on its mode:
 
 - A pull request into any branch and a push to `master` run the pull request checks: `prek`,
   `test`, `crossbuild`, `consumer`, `docs`, `zipcheck`, `api-coverage`, `vuln` and `secrets`. A
-  pull request runs `mutation`, `dependency-review` and `api-surface` too, and a push to `master`
-  runs `bench`, `e2e`, `e2e-latest` and `e2e-cloudpdp`.
+  pull request runs `mutation`, `dependency-review`, `api-surface` and `release-dryrun` too, and a
+  push to `master` runs `bench`, `e2e`, `e2e-latest` and `e2e-cloudpdp`.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
-  weekly jobs, `security` the security scan, and `e2e` the end-to-end jobs. The
-  [release workflow](#releases), `.github/workflows/release.yml`, calls CI with the mode
+  weekly jobs, `security` the security scan and the tag watchdog, and `e2e` the end-to-end jobs.
+  The [release workflow](#releases), `.github/workflows/release.yml`, calls CI with the mode
   `release`, which runs the pull request checks and the end-to-end jobs.
 - `.github/workflows/e2e-pr.yml`, the pull request lane of the end-to-end tests, calls CI with
   the mode `e2e` on a pull request from a branch of this repository; see
@@ -1038,6 +1040,7 @@ post names the owner and the day, 7 days on, by which a pull request must fix it
 | Job | When | Channel |
 | --- | --- | --- |
 | `security-scan` | Mondays and Thursdays (`SECURITY_CRON`), and in a manual run with the mode `security` | `SECURITY_SLACK_WEBHOOK_URL` |
+| `tag-watchdog` | A push of a tag `v*`, Mondays and Thursdays, and in the mode `security`, when a tag was not published by the release rules or the check did not run | `SECURITY_SLACK_WEBHOOK_URL` |
 | `digest` | Mondays (`WEEKLY_CRON`), and in the mode `weekly` | `SECURITY_SLACK_WEBHOOK_URL` |
 | `mutation (weekly)` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
 | `spec-drift` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
@@ -2244,9 +2247,10 @@ does before `v2.0.0`. Before a release, in a pull request:
 
 The release workflow, `.github/workflows/release.yml`, is the one way to publish a version: it
 publishes with the token of the release GitHub App, whose key the `release` environment holds.
-A watchdog that reports a tag pushed outside it, and a dry run of the release on every pull
-request, are *(added in a later commit on this branch)*. Once `CI` of the push to `master`
-succeeded on the commit to release:
+The `release-dryrun` job of CI runs the checks of a release that need no release on every pull
+request, and the tag watchdog reports a tag created outside the workflow; see
+[Checking a release](#checking-a-release) and [Tags created by hand](#tags-created-by-hand). Once
+`CI` of the push to `master` succeeded on the commit to release:
 
 1. Run the local full-stack suite on that commit, on the Go releases of the test legs of CI
    (`GO_FLOOR`, `GO_126` and `GO_127` in the `env` of `ci.yml`), and write the summary of its
@@ -2279,7 +2283,7 @@ Its jobs run in order, and each stops the release when it fails, except `gates`,
 | `coverage` | `releasecheck e2e`, below; `apicoverage -release` with the record of the `e2e` job, which fails on a planned row and on a covered row without end-to-end evidence (see [API coverage](#api-coverage)); and the [vulnerability scan](#vulnerability-scan), whose report the release keeps. |
 | `draft` | Builds the module zip of the commit for the tag with `zipcheck -version -out`, which checks it and prints its `h1:` hash; writes the SBOM with `go list -m -json all`, the notes from the version's section of `CHANGELOG.md`, and `SHA256SUMS`; and creates a draft release at the commit with these assets and the vulnerability report, through `.github/scripts/release-github.sh draft`. A draft creates no tag, and its assets can be checked before publishing locks them. |
 | `publish` | Publishes the draft with the token of the release GitHub App, through `release-github.sh publish`, which creates the tag at the commit: a release candidate as a prerelease that is never the latest release, any other version as the latest. |
-| `verify` | Checks the version as an application gets it, through `.github/scripts/release-verify.sh`, attests the provenance of the zip and the SBOM, and posts the result to Slack: a version that does not verify, which must be retracted, or a check that did not run, such as when `sum.golang.org` does not answer, after which the `verify` job is run again. |
+| `verify` | Checks the version as an application gets it, through `.github/scripts/release-verify.sh`, attests the provenance of the zip and the SBOM, and posts the result to Slack: a version that does not verify, which must be retracted, or a check that did not run, such as when `sum.golang.org` does not answer, after which the `verify` job is run again. The tag watchdog checks a v2 tag by the attestation of its zip; see [Tags created by hand](#tags-created-by-hand). |
 | `notify-failure` | When a job before `verify` failed, `coverage` on a failure of `CI` or the `e2e` job included: posts the failure to Slack, which the `notify-gate-failure` job of the called CI, without a webhook, does not. |
 
 The workflow reads these settings by name: the `release` environment and its reviewers, which
@@ -2306,6 +2310,10 @@ every rule:
   did, and the request record of the `e2e` job is of a run that passed and holds at least as many
   live requests as `tools/e2e/required.txt` lists scenarios (a count sentinel).
 - `notes`: prints the release notes.
+- `watchdog`, in `.github/workflows/tag-watchdog.yml`: the release rules published each version
+  tag, as [Tags created by hand](#tags-created-by-hand) says.
+- `lanes`: prints the Go releases of the test legs of `ci.yml`, which `validate` requires in the
+  harness evidence, for the dry run below.
 
 It exits 0 when every check passed, 1 when one failed, and 2 when it did not run, such as on empty
 or malformed harness evidence. Run it from the repository root:
@@ -2337,6 +2345,106 @@ GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org \
   .github/scripts/release-verify.sh github.com/permitio/permit-golang/v2@v2.1.0 h1:...
 gh attestation verify permit-golang-v2.1.0.zip --repo permitio/permit-golang
 ```
+
+`.github/scripts/release-dryrun.sh <sha>` runs the checks of a release that need no release, on
+the commit `<sha>`, which must be `HEAD`, and the `release-dryrun` job runs it on every pull
+request, on its head. It never tags, creates a release or reads a secret, and needs no network:
+
+- `releasecheck validate` with the tag `v<Version>-rc.1`, a release candidate of the committed
+  version, whose section of `CHANGELOG.md` may still say `(unreleased)`, and with a run of CI and
+  harness evidence that it makes up to pass, so that the tree decides: the version, the
+  changelog, `tools/e2e/pending.txt` and the lists that `validate` reads. The evidence names the
+  Go releases that `releasecheck lanes` prints, those of the `GO_FLOOR` and `GO_<n>` variables of
+  the `env` of the commit's `ci.yml`, which `validate` requires, and each phase of
+  `tools/e2e/local-only.txt`;
+- `apisurface -mode migration`;
+- `migration-pending`: `tools/migration/pending.txt` has no line other than blank lines and
+  comments, as `apisurface -mode release` requires;
+- `zipcheck -version v<Version>-dryrun -out`, which builds the module zip of `HEAD` for a version
+  that is never published;
+- `release-verify.sh` against a module proxy in a directory that serves that zip,
+  `GOPROXY=file://`, with `GOSUMDB=off`, when zipcheck passed.
+
+Each check runs whatever the others did. It exits 0 when every check passed, 1 when one failed,
+such as when the proxy serves a zip whose hash is not the one zipcheck printed, and 2 when one
+did not run, or when `<sha>` is not `HEAD`. Run it from the repository root:
+
+```sh
+for tool in releasecheck apisurface zipcheck; do
+  go -C tools build -o "../bin/$tool" "./cmd/$tool"
+done
+.github/scripts/release-dryrun.sh "$(git rev-parse HEAD)"
+```
+
+### Tags created by hand
+
+A v2 tag is created by the release workflow, through the release GitHub App, and a v1 tag by its
+GitHub release. Creating a version tag by hand, by an admin who bypasses or disables a tag
+ruleset, is break-glass only: for a version that must be published when the release workflow
+cannot publish it. The tag watchdog, `.github/workflows/tag-watchdog.yml`, reports every such
+tag. CI calls it twice a week, and in a manual run with the mode `security`, from `master`, and
+it checks every tag: that is the run to rely on. It also runs on a push of a tag `v*`, from the
+tagged commit's own workflows, which build `releasecheck` and read `.github/accepted-tags.txt`
+from that commit; a tag on a commit without the workflow, such as a v1 commit, starts no run. It
+runs `releasecheck watchdog`, which checks each tag that is a semantic version:
+
+- a tag that `.github/accepted-tags.txt` lists names the commit that the file gives it;
+- any other v2 tag has a published GitHub release whose module zip, `permit-golang-<tag>.zip`,
+  has a build provenance attestation signed by `.github/workflows/release.yml` of this
+  repository at `refs/heads/master`, for the tag's commit: the one that `verify` makes. While a
+  run of `release.yml` named `release <tag>`, from `master`, for the tag's commit is in
+  progress, as when `publish` has just created the tag and `verify` has not attested the zip
+  yet, the tag is pending and passes, and the next run checks it;
+- any other v1 tag has a published GitHub release, and `CI` succeeded for a push of its commit to
+  `release/v1`, or to `master` for a tag up to v1.3.0, the last v1 version released from
+  `master`;
+- no other tag exists, such as `v0.0.20` or `v3.0.0`: no workflow publishes it.
+
+GitHub deletes workflow runs, with their checks and statuses, after the Actions retention
+period, at most 90 days on a public repository, and keeps releases and attestations. So the
+watchdog checks a v2 tag by its attestation, and reads the runs of `release.yml` only to say why
+a tag has none. A v1 tag has no attestation, and is checked by the runs of `CI`: once the
+watchdog passes a new v1 tag, a maintainer adds it to `.github/accepted-tags.txt`, with its
+commit and a reason, within the retention period, as v1.3.0 is. The file also lists the tags
+published before these rules, v0 and v1 up to v1.2.8, each at its commit.
+
+On a finding, or when it could not read or check the tags, the releases, the runs or the
+attestations, it posts to `SECURITY_SLACK_WEBHOOK_URL` and fails. When a release run of a v2 tag
+published it and then failed, as when `verify` failed, the zip has no attestation yet, and the
+watchdog names that run and its conclusion: re-run its failed jobs, as the `verify` row above
+says, and the tag passes once `verify` attests the zip; when `verify` cannot pass, go to step 2
+below. After a tag created by hand:
+
+1. For a v2 tag, run the release workflow for the same tag while the tag's commit is the head of
+   `master`, as [Publishing a release](#publishing-a-release) says. This works only while the
+   module proxy does not list the version, as gorelease rejects a version that exists already,
+   so in practice only for the first v2 version; only for a lightweight tag, as `publish`
+   compares the commit with what the tag's ref names; and only while the tag has no GitHub
+   release, as `draft` creates one. When its checks pass, it publishes the release of the tag,
+   and `verify` attests the zip, which is what the watchdog asks for. Otherwise go to step 2.
+   For a v1 tag, publish its GitHub release once `CI` succeeded for a push of its commit to
+   `release/v1`, and add the tag to `.github/accepted-tags.txt` once the watchdog passes it.
+2. When that cannot be done, because `master` has moved, a check fails or the version must not be
+   used, retract the version, as [Withdrawing a version](#withdrawing-a-version) says, and add the
+   tag to `.github/accepted-tags.txt` with its commit and the reason, such as
+   `retracted in v2.1.1`.
+
+A tag is never moved or deleted, and the watchdog reports a tag of `.github/accepted-tags.txt`
+that names another commit. To run the watchdog from the repository root, read into `bin/` what
+the first step of `tag-watchdog.yml` reads with `gh`: the lists of the GitHub API, the runs of
+`ci.yml` for the commit of each v1 tag, and, as `attestations.json`, the SHA-256 of the module
+zip of each published v2 release and its attestations that `gh attestation verify` verifies.
+Then:
+
+```sh
+go -C tools build -o ../bin/releasecheck ./cmd/releasecheck
+bin/releasecheck watchdog -repo permitio/permit-golang -tags bin/tags.json \
+  -release-runs bin/release-runs.json -releases bin/releases.json -ci-runs bin/ci-runs.json \
+  -attestations bin/attestations.json
+```
+
+It exits 0 when every tag passes, 1 on a finding, and 2 when it did not run, such as on a list
+that is not the GitHub API's.
 
 ### Withdrawing a version
 

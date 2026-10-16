@@ -1,0 +1,56 @@
+# The version tags that the tag watchdog accepts without the release that the rules ask for, each
+# at the commit it names (tools/cmd/releasecheck watchdog, .github/workflows/tag-watchdog.yml).
+# These are the tags published before the release rules: v0, and v1 up to v1.2.8, which were
+# tagged by hand, without the checks that the watchdog reads. Then each v1 tag that the watchdog
+# passed, from v1.3.0 on: the watchdog checks a v1 tag by the runs of CI, which GitHub deletes
+# after the retention period, so a maintainer adds the tag here before then. And a tag created
+# by hand under the break-glass procedure of Releases in CONTRIBUTING.md, once a maintainer has
+# handled it, with the reason. The watchdog reports a tag listed here that names another
+# commit, since a published version never moves.
+#
+# One tag per line: <tag> <commit> <reason>, where the commit is the full commit hash that the tag
+# names. Blank lines and lines that start with # are ignored.
+
+v0.0.1  2c99a638fbdfc80a0f9e7614280877ca64ee29a3 published before the release rules
+v0.0.2  8a5944ba51cc29be68d6b7df2fb21cfed441ff98 published before the release rules
+v0.0.3  a24fb2911e821f57eb9bfef9f2ab73fdb069da9a published before the release rules
+v0.0.4  75e9ece3e063245e5ebeed5ba11bb671e4f29b2e published before the release rules
+v0.0.5  da4b55c79a1e132115572ecfea9345ea8ab792e9 published before the release rules
+v0.0.6  428e9a59d0cad45e16939fab4308e8a4ab646719 published before the release rules
+v0.0.7  9d06532e1a00187647cb6d758bdb9f37cc82ebf7 published before the release rules
+v0.0.8  2d2c85fccfb85e329543f56eb8808b562161c6b4 published before the release rules
+v0.0.9  9de98a83627e266bac9366b2346e3c53db18e405 published before the release rules
+v0.0.10 7d1e5121263855e81312de71867c832ae4c93dc8 published before the release rules
+v0.0.11 7d1c562491f29a1ff2cab5e45254088bc2cc749c published before the release rules
+v0.0.12 39a94beec889b3c392cfe8d6e96fd16de0e2f9cd published before the release rules
+v0.0.13 50ab270553d7596b054e6ace4a824e4fb3c4f581 published before the release rules
+v0.0.14 a5939c4d92d7e229ca9cd67ccb3ce8ed6ddaa396 published before the release rules
+v0.0.15 7793786e55e3b9e56e6ab7b9a1b79550a8818197 published before the release rules
+v0.0.16 230b62b07f7b94085b4bec63954562fab1aebc3d published before the release rules
+v0.0.17 9ffc444bb8e3992995860d2dadfbc4702dca65a4 published before the release rules
+v0.0.18 9ffc444bb8e3992995860d2dadfbc4702dca65a4 published before the release rules
+v0.0.19 75859e458bf503e6f796d64289e5cfe74f4bf51a published before the release rules
+v1.0.0  0ef191aab913e53fca8f2ceec4e035852a624ee9 published before the release rules
+v1.0.1  58fc9611362cee9d4cddf4087f628bfa637641e7 published before the release rules
+v1.0.2  015a81d14bf3b5d9f82532e57aa98ce8ab48965a published before the release rules
+v1.0.3  5510071f6d822f507588e1d773bec6367e23de98 published before the release rules
+v1.0.4  b77cfcb8dfffbd7ee82b1cd8fdc13c1664003ac8 published before the release rules
+v1.0.5  a27d3d694b6c672191fe04b160d1c164abd44302 published before the release rules
+v1.0.6  a9e214b20d4e6f78fe399e580ae13abfad9dfdd5 published before the release rules
+v1.0.7  82ddd9a0e5d28dddd74ebc870042c650025af985 published before the release rules
+v1.0.8  37bf6ff2a264fee7ffec53c1e8a0864a7a8cae9a published before the release rules
+v1.0.9  9392959fed69850f53ae430bf271526abdf2a252 published before the release rules
+v1.1.0  fefe90707d10a0ba1a5ad4a7fe7f6aeeb9d3046a published before the release rules
+v1.1.1  edb6071b14d230d088b8fe72eea7cd6a73896f04 published before the release rules
+v1.1.2  4b8ad56bd48a96787cb3e8fa3b4b72972c3776dc published before the release rules
+v1.1.3  581774c7f97315b894bb98b5a973baf65d652132 published before the release rules
+v1.1.4  a9263952a85ced504a89ef77afcbe0c3975b5881 published before the release rules
+v1.2.0  1cba500efe283d11af159dd1d884e80b0b762929 published before the release rules
+v1.2.2  fcfbc8e4d6cb4bd8c050d64faf75738a6204d1ff published before the release rules
+v1.2.3  f181291a46b444c0a80e1585c3c2d21443268f3d published before the release rules
+v1.2.4  227584a4ae2f74c5317213bf394a3db6d5d38699 published before the release rules
+v1.2.5  459292e0381a57dce467bd7f7f69855d20f9f425 published before the release rules
+v1.2.6  9d29cffc9ad2c0524b3d296dfc39835a45188322 published before the release rules
+v1.2.7  553fd001d6d3b759a574c42848d51e3023f63dc4 published before the release rules
+v1.2.8  78500657b487c63cba5fde8247d53d3bbc83fee7 published before the release rules
+v1.3.0  47047d7ff66e00d162f4c5ba8352adff389f3683 release published after CI of its master push

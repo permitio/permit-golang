@@ -125,7 +125,8 @@ jobs:
       contents: read
       pull-requests: write  # vuln, which comments only on a pull request, and three skipped jobs
       checks: read  # the mutation job, which the mode release skips
-      actions: read  # the bench and digest jobs, which the mode release skips
+      actions: read  # the bench, digest and tag-watchdog jobs, which the mode release skips
+      attestations: read  # the tag-watchdog job, which the mode release skips
 
   # Runs after gates whatever its result: a failed advisory job fails the called run but not its
   # CI job, so releasecheck e2e reads the result of each job of the run with the job's token, and

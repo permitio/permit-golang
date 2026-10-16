@@ -4,9 +4,17 @@ package main
 // is wanted, and give the reason next to it in the same change; CONTRIBUTING.md says how.
 var zipLimits = limits{
 	fileCap: 256 << 10,
-	// Files that need more than the per-file cap, each with its own cap and the reason. None
-	// does yet.
-	exceptions: nil,
+	// Files that need more than the per-file cap, each with its own cap and the reason.
+	exceptions: []exception{
+		{
+			path:     "MIGRATION.md",
+			maxBytes: 320 << 10,
+			reason: "The migration guide has an entry for each identifier, operation and models " +
+				"type of v1.3.0, 822 in all, and an appendix that maps each models type, so " +
+				"that code moving from v1 finds every name it uses. It was 283961 bytes when it " +
+				"was finished, and it changes after v2.0.0 only to correct an entry.",
+		},
+	},
 	budget: budget{
 		baseline: 1231982,
 		measured: "2026-10-16",

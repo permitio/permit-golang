@@ -10,33 +10,3 @@
 # while a pattern may keep matching it along with other ids. apisurface's release mode fails
 # while this file has a line that is not blank or a comment, since the release needs every v1
 # item to have its entry. Blank lines and lines that start with # are ignored.
-
-# Block b: operations of pkg/openapi
-openapi.AuthenticationApiService.DevLogin auth
-openapi.AuthenticationApiService.Login auth
-openapi.AuthenticationApiService.LoginElements auth
-openapi.AuthenticationApiService.LogoutGet auth
-openapi.AuthenticationApiService.LogoutPost auth
-openapi.AuthenticationApiService.Me auth
-openapi.AuthenticationApiService.SwitchOrganization auth
-openapi.DecisionLogsIngressApiService.* decision-logs
-openapi.DefaultApiService.* stress
-openapi.ElementsConfigsApiService.* elements-configs
-openapi.ElementsDataApiService.* elements-data
-openapi.InstructionsApiService.* instructions
-openapi.MembersApiService.* members
-openapi.OPALDataApiService.* opal-data
-openapi.PolicyApiService.* opal-data
-openapi.OrganizationsApiService.CancelInvite invites
-openapi.OrganizationsApiService.InviteMembersToOrganization invites
-openapi.OrganizationsApiService.ListOrganizationInvites invites
-openapi.OrganizationsApiService.CreateOrganization organizations
-openapi.OrganizationsApiService.DeleteOrganization organizations
-openapi.OrganizationsApiService.GetActiveOrganization organizations
-openapi.OrganizationsApiService.GetOrganization organizations
-openapi.OrganizationsApiService.ListOrganizations organizations
-openapi.OrganizationsApiService.UpdateOrganization organizations
-openapi.PolicyGitRepositoriesApiService.* policy-repos
-
-# Block c: pkg/models
-models.* models

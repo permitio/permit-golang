@@ -2,12 +2,13 @@
 
 v2 of the Go SDK for Permit.io is the module `github.com/permitio/permit-golang/v2`. It replaces
 v1, the module `github.com/permitio/permit-golang`, with a new client: the packages, the
-identifiers and some requests change. v2 is under development and is not released; this guide
-grows with it, and lists every change from v1 when v2 is released.
+identifiers and some requests change. This guide lists each part of the API of v1.3.0, the latest
+v1 release, and what takes its place in v2.
 
 ## Staying on v1
 
-Until you move to v2, pin v1.3.x, the latest v1 release:
+Until you move to v2, stay on the latest v1 release: pin v1.3.x now, and v1.4.x once v1.4.0 is
+released.
 
 ```sh
 go get github.com/permitio/permit-golang@v1.3
@@ -15,6 +16,12 @@ go get github.com/permitio/permit-golang@v1.3
 
 v1.4.0 will be the last v1 release, and v1 gets no fixes after it, security fixes included. See
 [SECURITY.md](SECURITY.md).
+
+If your application printed the SDK's configuration or a client, or logged the SDK's errors or
+its log output, with v1.2.8 or earlier, those logs may hold your Permit API key: rotate the API
+key and delete those logs. If it read proxy configs whose credential is a set of headers, and
+logged `PermitError.ResponseBody` or the debug output, rotate the values of those headers too. The
+first section of the [release notes of v1.3.0](CHANGELOG.md#v130-2026-10-13) says the same.
 
 ## How to read this guide
 
@@ -35,6 +42,59 @@ The entries are in three buckets:
 
 An entry marked "Bug fix: could never work before" changes a v1 feature that could never work as
 documented. Code that used it did not get what it asked for, so check what it relied on.
+[Calls that could never work in v1](#calls-that-could-never-work-in-v1) lists them, with those
+that v1.3.0 fixed and v1's OPA mode, which v2 drops. The [appendix](#appendix-v1-models-types)
+maps each type of v1's `pkg/models` to the v2 type or the entry that takes its place.
+
+## Check these first
+
+The compiler reports none of these changes:
+
+- **`UsersService.Sync` replaces the whole user: the email, the names and the attributes that it
+  leaves out are cleared, where v1's `SyncUser` kept them.** Give `Sync` the whole user, or change
+  some fields with `UsersService.Update` ([M-users-5](#M-users-5)).
+- A request is sent again after a 429, and after a 500, 502, 503 or 504 reply or a failed
+  connection when sending it twice does what sending it once does ([M-wire-5](#M-wire-5)).
+- `permit.WithTimeout` bounds a whole call, 30 seconds by default, where v1's default of 5
+  seconds bounded each request ([M-client-8](#M-client-8)).
+- `permit.New` reads `PERMIT_API_KEY`, `PERMIT_API_URL` and `PERMIT_PDP_URL` when no option gives
+  them ([M-client-1](#M-client-1)).
+- A delete by a key or an ID, such as `UsersService.Delete`, returns nil when the object is gone,
+  where v1 returned an error ([M-users-7](#M-users-7)).
+- A number in an attribute is a `json.Number`, not a `float64` ([M-models-1](#M-models-1)).
+- The client logs nothing without `permit.WithLogger` ([M-logging-1](#M-logging-1)).
+
+## Calls that could never work in v1
+
+These v1 calls never did what their documentation said, in every v1 release, up to v1.2.8, or from
+v1.2.8 on. Code that used one of them did not get what it asked for, so check what it relied on:
+
+- Up to v1.2.8, `ResourceActionGroups.Delete` deleted the action whose key was the key of the
+  group, or failed, and left the group in place; v1.3.0 deletes the group
+  ([M-action-groups-6](#M-action-groups-6)).
+- `ResourceActionGroups.ListByAttributes` never sent its filter, and listed every action group
+  ([M-action-groups-4](#M-action-groups-4)).
+- From v1.2.8 on, `WithProxyFactsViaPDP(true)` did not send the facts to the PDP container: each
+  facts request went to the Permit API ([M-facts-2](#M-facts-2)).
+- `Roles.AddParentRole`, `Roles.RemoveParentRole`, `ResourceRoles.AddParent` and
+  `ResourceRoles.RemoveParent` sent a route that the API does not serve, so each call failed with
+  an error and changed no role ([M-roles-10](#M-roles-10),
+  [M-resource-roles-9](#M-resource-roles-9)).
+- Up to v1.2.8, `FilterObjects` sent no key for its resources, and `Check`, `BulkCheck` and
+  `AllTenantsCheck` none for a resource built with `WithID` and without `WithKey`, so the PDP
+  decided for the type of the resource, not for the instance; v1.3.0 sends the key, or the ID in
+  its place ([M-checks-8](#M-checks-8)).
+- With `WithOpaUrl`, `BulkCheck` and `FilterObjects` sent their checks to OPA in an input that
+  Permit's bulk policy does not read, and failed for each call with a check
+  ([M-checks-13](#M-checks-13)).
+- Up to v1.2.8, `WaitForSync` sent its timeout in whole seconds, so a timeout under one second
+  was sent as 0; v1.3.0 sends decimal seconds ([M-facts-7](#M-facts-7)).
+- `ResourceInstances.ListDetailed` never returned the relationships that it asked for
+  ([M-resource-instances-3](#M-resource-instances-3)).
+- Up to v1.2.8, `AllTenantsCheck` also returned the tenants in which the PDP denied the check;
+  v1.3.0 returns only those in which it allows it ([M-checks-23](#M-checks-23)).
+- Up to v1.2.8, `ConditionSets.List` always returned an empty list, as it did not read the JSON
+  array that the API answers with; v1.3.0 reads it ([M-condition-sets-3](#M-condition-sets-3)).
 
 ## Compatibility
 
@@ -106,149 +166,6 @@ or a password, a query or a fragment. The error names the option or the environm
 removed.
 
 ## API
-
-<a id="M-errors-1"></a>
-### M-errors-1: PermitError becomes *permit.Error
-
-- v1: `errors.PermitError`
-- v1: `errors.PermitError.Unwrap`
-- v2: `permit.Error`
-
-A call whose request fails returns a `*permit.Error`, or an error that wraps one. It is a
-pointer: read it with `errors.AsType[*permit.Error](err)`, or with `errors.As` and a
-`*permit.Error` target, instead of a `PermitError` value.
-
-- `StatusCode` keeps its name.
-- `ResponseBody`, a string, becomes `Body`, a `[]byte` that holds the body of a reply whose
-  status is not in 200-299, cut to 8 KiB, with credentials replaced.
-- `ErrorCode` and `ErrorType` give way to `Code`, the error code of the API's error body, and to
-  the sentinels of the entries below.
-- New fields name the request: `Op`, the ID of the operation, `Method` and `Route`, the route
-  template. Others say what the reply said: `Title`, `Detail` and `RequestID`, the id of the
-  API's error body. `Err` is the cause, which `Unwrap` returns.
-
-The text of the error has the operation, the method, the route, the status, the code and the
-detail, and never the body.
-
-<a id="M-errors-2"></a>
-### M-errors-2: Check for a missing object with ErrNotFound
-
-- v1: `errors.NotFound`
-- v2: `permit.ErrNotFound`
-
-`errors.Is(err, permit.ErrNotFound)` reports a reply with status 404, unless the error wraps
-`permit.ErrContainerPDPOnly`: a route that only the PDP container serves is not a missing object.
-Use it instead of comparing `ErrorCode` with `NotFound`.
-
-<a id="M-errors-3"></a>
-### M-errors-3: Check for a conflict with ErrConflict
-
-- v1: `errors.Conflict`
-- v1: `errors.DuplicateEntity`
-- v2: `permit.ErrConflict`
-
-`errors.Is(err, permit.ErrConflict)` reports a reply with status 409, such as the reply to a
-create of an object that exists already.
-
-<a id="M-errors-4"></a>
-### M-errors-4: Check for a rejected API key with ErrUnauthorized
-
-- v1: `errors.Unauthorized`
-- v2: `permit.ErrUnauthorized`
-
-`errors.Is(err, permit.ErrUnauthorized)` reports a reply with status 401.
-
-<a id="M-errors-5"></a>
-### M-errors-5: Check for a forbidden request with ErrForbidden
-
-- v1: `errors.ForbiddenAccess`
-- v2: `permit.ErrForbidden`
-
-`errors.Is(err, permit.ErrForbidden)` reports a reply with status 403.
-
-<a id="M-errors-6"></a>
-### M-errors-6: A request without a reply keeps its cause
-
-- v1: `errors.ConnectionError`
-- v2: `permit.Error.Err`
-
-A request that gets no reply, such as one whose connection fails or whose context ends, returns a
-`*permit.Error` whose `StatusCode` is 0 and whose `Err` wraps the cause. `errors.Is(err,
-context.DeadlineExceeded)` and `errors.Is(err, context.Canceled)` report the end of the context,
-and `errors.As` finds a `*url.Error` or a `*net.OpError`.
-
-<a id="M-errors-7"></a>
-### M-errors-7: Error codes are the API's
-
-- v1: `errors.ErrorCode`
-- v1: `errors.UnexpectedError`
-- v1: `errors.EmptyDecisionLogs`
-- v1: `errors.MissingRequestAttribute`
-- v1: `errors.InvalidPermissionFormat`
-- v1: `errors.MissingPermissions`
-- v1: `errors.UnsupportedAttributeType`
-- v1: `errors.MissingResourceAttribute`
-- v1: `errors.InvalidPolicyRepoStatus`
-- v1: `errors.MismatchAttributesTypes`
-- v2: `permit.Error.Code`
-
-`Code` is a string: the `error_code` of the API's error body as the API spells it, such as
-`MISSING_PERMISSIONS` for v1's `MissingPermissions`, or empty when the body has none. For a status
-that has no sentinel, such as 400 or 500, which v1 reported as `UnexpectedError`, read
-`StatusCode`. A reply with status 429 matches `permit.ErrRateLimited`.
-
-<a id="M-errors-8"></a>
-### M-errors-8: A validation error lists its fields in Detail
-
-- v1: `errors.UnprocessableEntityError`
-- v2: `permit.Error.Detail`
-
-A request that the API rejects with status 422 returns a `*permit.Error` whose `StatusCode` is 422
-and whose `Detail` lists the first 10 fields that failed, each with its message, such as
-`body.email: value is not a valid email address`, and then how many more failed.
-
-<a id="M-errors-9"></a>
-### M-errors-9: Options and arguments that cannot work match ErrInvalidConfig
-
-- v1: `errors.PaginationError`
-- v1: `errors.ContextError`
-- v2: `permit.ErrInvalidConfig`
-
-An option of the client or an argument of a call that the SDK cannot use fails before any request
-is sent, with an error that matches `permit.ErrInvalidConfig`.
-
-<a id="M-errors-10"></a>
-### M-errors-10: Errors have no type
-
-- v1: `errors.ErrorType`
-- v1: `errors.*_ERROR`
-- v1: `errors.TeapotError`
-- v2: not exposed in v2
-
-v2 does not sort errors into types. A `*permit.Error` whose `StatusCode` is not 0 holds a reply of
-the API or the PDP, and one whose `StatusCode` is 0 holds a request that got no reply. A call that
-sends nothing, because an option or an argument is not valid or the client is closed, returns an
-error that matches the sentinel `permit.ErrInvalidConfig` or `permit.ErrClosed`, without a status.
-v1 never returned `TeapotError`.
-
-<a id="M-errors-11"></a>
-### M-errors-11: Error messages are not constants
-
-- v1: `errors.*Message`
-- v2: not exposed in v2
-
-The text of a `*permit.Error` is written from its fields, with the API's detail. Do not match the
-text: use `errors.Is` with the sentinels, or read `StatusCode` and `Code`.
-
-<a id="M-errors-12"></a>
-### M-errors-12: Only the SDK creates its errors
-
-- v1: `errors.NewPermit*`
-- v1: `errors.HttpErrorHandle`
-- v2: not exposed in v2
-
-A test that needs an error of the SDK builds a `*permit.Error` literal, such as
-`&permit.Error{StatusCode: 404}`, which matches `permit.ErrNotFound`.
 
 <a id="M-client-3"></a>
 ### M-client-3: New and options replace the configuration builder
@@ -373,93 +290,6 @@ it.
 `api.NewClientConfig` built the configuration of v1's generated API client. v2 has no generated
 client: `permit.New` builds what the client needs from its options.
 
-<a id="M-logging-1"></a>
-### M-logging-1: WithLogger takes a *slog.Logger
-
-- v1: `config.PermitConfig.WithLogger`
-- v1: `config.PermitConfig.GetLogger`
-- v2: `permit.WithLogger`
-
-`permit.WithLogger` takes a `*slog.Logger` of the standard library's `log/slog` instead of a
-`*zap.Logger`, and v2's module does not require zap. Without the option, the client logs nothing,
-and so it does with a nil `*slog.Logger` or the zero `slog.Logger`; v1's builder logged to a zap
-production logger on standard error when it was given no logger. The client keeps its logger to
-itself, so v2 has no getter.
-
-An application that logs with zap gives the client a `*slog.Logger` whose handler is zapslog's,
-the package `go.uber.org/zap/exp/zapslog` of the module `go.uber.org/zap/exp` (v0.3.0, which needs
-zap v1.26.0 or later):
-
-```go
-client, err := permit.New(
-	permit.WithAPIKey(apiKey),
-	permit.WithLogger(slog.New(zapslog.NewHandler(zapLogger.Core()))),
-)
-```
-
-zapslog adds a stack trace to each record at Error level and above by default; its option
-`zapslog.AddStacktraceAt` changes the level.
-
-<a id="M-logging-2"></a>
-### M-logging-2: The handler's level replaces WithDebug
-
-- v1: `config.PermitConfig.WithDebug`
-- v1: `config.PermitConfig.GetDebug`
-- v1: `config.DefaultDebugMode`
-- v2: `permit.WithLogger`, with a handler at `slog.LevelDebug`
-
-v2 has no debug switch. The client writes its Debug lines to the logger of `permit.WithLogger`,
-and the logger's handler keeps them when its level is `slog.LevelDebug` or lower. There is no dump
-of a request or a reply: a Debug line names the route template, the status, the attempt, the
-duration and the error of a request, never its headers or its body.
-
-<a id="M-logging-3"></a>
-### M-logging-3: The client writes one Debug line for each attempt of a request
-
-- v1: the lines that methods wrote, such as `user created` and `User does not exist, creating it...`
-- v2: a Debug line for each attempt of a request, and Warn lines about the configuration
-
-v1's methods wrote lines of their own, such as a Debug line after a create and an Info line when
-`SyncUser` created a user. In v2, the client writes one Debug line for each attempt of a request,
-whatever the method, with the attributes `route`, the route template, `status`, `attempt`,
-`duration` and `error`. Warn lines are warnings about the configuration, which `permit.New` writes
-once, such as for an API URL that uses `http://` to a host that is not loopback. Every line has a
-fixed message that starts with `permit: `, and the client replaces its credentials in each line
-before the handler gets it.
-
-<a id="M-models-1"></a>
-### M-models-1: Numbers in attributes are json.Number
-
-- v1: attribute values and other values of type `interface{}` decoded with each number as a `float64`
-- v2: `models.Attributes`, whose numbers decode as `json.Number`
-
-v1 decoded each number in an attribute map, and in every other value of type `interface{}` in a
-reply, as a `float64`, which cannot hold every integer beyond 2^53: 9007199254740993 became
-9007199254740992. v2 keeps each such number as a `json.Number`, the number's text with every
-digit, in `models.Attributes`, in their nested objects and arrays, and in every other value of
-type `any` that a reply holds. Replace a type assertion to `float64`, such as `v.(float64)`, with
-one to `json.Number`, and read the number with its `Int64`, `Float64` or `String` method. A
-`json.Number` encodes as its text, so a number read from a reply is sent back unchanged.
-
-v2's `models.Attributes` is a whole attribute map. v1's `models.Attributes` was one value of such
-a map, a bool, an int32 or a string, in the `map[string]models.Attributes` of `models.UserData`.
-In v2, put the value itself, such as `true`, `30` or `"gold"`, in a `models.Attributes`.
-
-<a id="M-lists-1"></a>
-### M-lists-1: List methods take ListOptions and return a page
-
-- v1: `api.DefaultPerPageLimit`
-- v2: `permit.ListOptions`
-
-v1's list methods took the page and the number of items on it as two int arguments, failed when
-that number was above `api.DefaultPerPageLimit` (100) on every route, and returned a slice of the
-items. v2's List methods take a `permit.ListOptions{Page, PerPage}` and return a
-`*permit.Page[T]`: the items in `Data`, and `TotalCount` and `PageCount` when the reply reports
-them. The client sends `PerPage` as given, without a limit of its own, as the largest page
-differs from route to route; above a route's limit, the API may reject the request or give fewer
-items on a page. An `All` method reads every page and returns an `iter.Seq2[T, error]` of the
-items, so a loop over the pages is no longer needed.
-
 <a id="M-scope-1"></a>
 ### M-scope-1: SetContext and WithContext become WithScope
 
@@ -542,6 +372,357 @@ Pass `permit.WithFactsViaPDP()`, which takes no argument, to `permit.New` instea
 `WithProxyFactsViaPDP(false)`, the default. v2 has no getter: the client keeps its configuration
 to itself, as [M-client-3](#M-client-3) says. With the option, the calls of the facts API go to
 the PDP container, as [M-facts-2](#M-facts-2) says.
+
+<a id="M-facts-3"></a>
+### M-facts-3: WaitForSyncOptions becomes SyncOption
+
+- v1: `api.WaitForSyncOptions`
+- v2: `permit.SyncOption`
+
+Pass `permit.WithSyncPolicy(policy)` to the `WaitForSync` method of a service, such as
+`client.Tenants.WaitForSync(10*time.Second, permit.WithSyncPolicy(permit.SyncPolicyFail))`, in
+place of `api.WaitForSyncOptions{Policy: policy}`. Without the option, the call sends no
+`X-Timeout-Policy`, and the PDP container decides; v1 sent the policy of the configuration then,
+when it had one. A policy other than `permit.SyncPolicyFail` and `permit.SyncPolicyIgnore`, and the
+zero `permit.SyncOption`, in any place among the options, are errors that match
+`permit.ErrInvalidConfig` when a call is made through the copy, and no request is sent.
+
+<a id="M-facts-4"></a>
+### M-facts-4: FactsSyncTimeoutPolicy becomes SyncPolicy
+
+- v1: `config.FactsSyncTimeoutPolicy`
+- v1: `config.FactsSyncTimeoutPolicyFail`
+- v1: `config.FactsSyncTimeoutPolicyIgnore`
+- v2: `permit.SyncPolicy`
+
+Use `permit.SyncPolicyFail` and `permit.SyncPolicyIgnore`, of the type `permit.SyncPolicy`, in
+place of `config.FactsSyncTimeoutPolicyFail` and `config.FactsSyncTimeoutPolicyIgnore`; they send
+the same values, `fail` and `ignore`.
+
+<a id="M-facts-5"></a>
+### M-facts-5: The configuration has no wait for sync
+
+- v1: `config.DefaultFactsSyncTimeout`
+- v1: `config.PermitConfig.WithFactsSyncTimeout`
+- v1: `config.PermitConfig.GetFactsSyncTimeout`
+- v1: `config.PermitConfig.GetFactsSyncTimeoutPolicy`
+- v2: not exposed in v2
+
+v1 kept a timeout and a policy of the wait for sync in its configuration, a timeout of 10 seconds
+in one that `config.NewConfigBuilder` built, which `WaitForSync` used when it got no timeout or no
+policy. v2 has no such setting: give the timeout, and the policy when you want one, to each
+`WaitForSync` call, such as `client.Tenants.WaitForSync(10*time.Second)` for the timeout of v1's
+builder.
+
+<a id="M-facts-6"></a>
+### M-facts-6: The base type of the facts APIs has no counterpart
+
+- v1: `api.IPermitBaseFactsApi`
+- v1: `api.PermitBaseFactsApi`
+- v1: `api.PermitBaseFactsApi.WaitForSync`
+- v1: `api.NewPermitBaseFactsApi`
+- v1: `api.NewFactsClientConfig`
+- v2: not exposed in v2
+
+v1's facts APIs, such as `api.Tenants`, embedded `api.PermitBaseFactsApi`, whose `WaitForSync`
+returned the base type. In v2, each service of the facts API has a `WaitForSync` method of its
+own that returns a copy of that service, such as `permit.TenantsService.WaitForSync`.
+`api.NewFactsClientConfig` built a configuration of the generated client for the PDP URL, which
+v1 did not use; pass `permit.WithFactsViaPDP()` to `permit.New` to send the facts to the PDP
+container.
+
+<a id="M-logging-1"></a>
+### M-logging-1: WithLogger takes a *slog.Logger
+
+- v1: `config.PermitConfig.WithLogger`
+- v1: `config.PermitConfig.GetLogger`
+- v2: `permit.WithLogger`
+
+`permit.WithLogger` takes a `*slog.Logger` of the standard library's `log/slog` instead of a
+`*zap.Logger`, and v2's module does not require zap. Without the option, the client logs nothing,
+and so it does with a nil `*slog.Logger` or the zero `slog.Logger`; v1's builder logged to a zap
+production logger on standard error when it was given no logger. The client keeps its logger to
+itself, so v2 has no getter.
+
+An application that logs with zap gives the client a `*slog.Logger` whose handler is zapslog's,
+the package `go.uber.org/zap/exp/zapslog` of the module `go.uber.org/zap/exp` (v0.3.0, which needs
+zap v1.26.0 or later):
+
+```go
+client, err := permit.New(
+	permit.WithAPIKey(apiKey),
+	permit.WithLogger(slog.New(zapslog.NewHandler(zapLogger.Core()))),
+)
+```
+
+zapslog adds a stack trace to each record at Error level and above by default; its option
+`zapslog.AddStacktraceAt` changes the level.
+
+<a id="M-logging-2"></a>
+### M-logging-2: The handler's level replaces WithDebug
+
+- v1: `config.PermitConfig.WithDebug`
+- v1: `config.PermitConfig.GetDebug`
+- v1: `config.DefaultDebugMode`
+- v2: `permit.WithLogger`, with a handler at `slog.LevelDebug`
+
+v2 has no debug switch. The client writes its Debug lines to the logger of `permit.WithLogger`,
+and the logger's handler keeps them when its level is `slog.LevelDebug` or lower. There is no dump
+of a request or a reply: a Debug line names the route template, the status, the attempt, the
+duration and the error of a request, never its headers or its body.
+
+<a id="M-logging-3"></a>
+### M-logging-3: The client writes one Debug line for each attempt of a request
+
+- v1: the lines that methods wrote, such as `user created` and `User does not exist, creating it...`
+- v2: a Debug line for each attempt of a request, and Warn lines about the configuration
+
+v1's methods wrote lines of their own, such as a Debug line after a create and an Info line when
+`SyncUser` created a user. In v2, the client writes one Debug line for each attempt of a request,
+whatever the method, with the attributes `route`, the route template, `status`, `attempt`,
+`duration` and `error`. Warn lines are warnings about the configuration, which `permit.New` writes
+once, such as for an API URL that uses `http://` to a host that is not loopback. Every line has a
+fixed message that starts with `permit: `, and the client replaces its credentials in each line
+before the handler gets it.
+
+<a id="M-errors-1"></a>
+### M-errors-1: PermitError becomes *permit.Error
+
+- v1: `errors.PermitError`
+- v1: `errors.PermitError.Unwrap`
+- v2: `permit.Error`
+
+A call whose request fails returns a `*permit.Error`, or an error that wraps one. It is a
+pointer: read it with `errors.AsType[*permit.Error](err)`, or with `errors.As` and a
+`*permit.Error` target, instead of a `PermitError` value.
+
+- `StatusCode` keeps its name.
+- `ResponseBody`, a string, becomes `Body`, a `[]byte` that holds the body of a reply whose
+  status is not in 200-299, cut to 8 KiB, with credentials replaced.
+- `ErrorCode` and `ErrorType` give way to `Code`, the error code of the API's error body, and to
+  the sentinels of the entries below.
+- New fields name the request: `Op`, the ID of the operation, `Method` and `Route`, the route
+  template. Others say what the reply said: `Title`, `Detail` and `RequestID`, the id of the
+  API's error body. `Err` is the cause, which `Unwrap` returns.
+
+The text of the error has the operation, the method, the route, the status, the code and the
+detail, and never the body.
+
+<a id="M-errors-2"></a>
+### M-errors-2: Check for a missing object with ErrNotFound
+
+- v1: `errors.NotFound`
+- v2: `permit.ErrNotFound`
+
+`errors.Is(err, permit.ErrNotFound)` reports a reply with status 404, unless the error wraps
+`permit.ErrContainerPDPOnly`: a route that only the PDP container serves is not a missing object.
+Use it instead of comparing `ErrorCode` with `NotFound`.
+
+<a id="M-errors-3"></a>
+### M-errors-3: Check for a conflict with ErrConflict
+
+- v1: `errors.Conflict`
+- v1: `errors.DuplicateEntity`
+- v2: `permit.ErrConflict`
+
+`errors.Is(err, permit.ErrConflict)` reports a reply with status 409, such as the reply to a
+create of an object that exists already.
+
+<a id="M-errors-4"></a>
+### M-errors-4: Check for a rejected API key with ErrUnauthorized
+
+- v1: `errors.Unauthorized`
+- v2: `permit.ErrUnauthorized`
+
+`errors.Is(err, permit.ErrUnauthorized)` reports a reply with status 401.
+
+<a id="M-errors-5"></a>
+### M-errors-5: Check for a forbidden request with ErrForbidden
+
+- v1: `errors.ForbiddenAccess`
+- v2: `permit.ErrForbidden`
+
+`errors.Is(err, permit.ErrForbidden)` reports a reply with status 403.
+
+<a id="M-errors-6"></a>
+### M-errors-6: A request without a reply keeps its cause
+
+- v1: `errors.ConnectionError`
+- v2: `permit.Error.Err`
+
+A request that gets no reply, such as one whose connection fails or whose context ends, returns a
+`*permit.Error` whose `StatusCode` is 0 and whose `Err` wraps the cause. `errors.Is(err,
+context.DeadlineExceeded)` and `errors.Is(err, context.Canceled)` report the end of the context,
+and `errors.As` finds a `*url.Error` or a `*net.OpError`.
+
+<a id="M-errors-7"></a>
+### M-errors-7: Error codes are the API's
+
+- v1: `errors.ErrorCode`
+- v1: `errors.UnexpectedError`
+- v1: `errors.EmptyDecisionLogs`
+- v1: `errors.MissingRequestAttribute`
+- v1: `errors.InvalidPermissionFormat`
+- v1: `errors.MissingPermissions`
+- v1: `errors.UnsupportedAttributeType`
+- v1: `errors.MissingResourceAttribute`
+- v1: `errors.InvalidPolicyRepoStatus`
+- v1: `errors.MismatchAttributesTypes`
+- v2: `permit.Error.Code`
+
+`Code` is a string: the `error_code` of the API's error body as the API spells it, such as
+`MISSING_PERMISSIONS` for v1's `MissingPermissions`, or empty when the body has none. For a status
+that has no sentinel, such as 400 or 500, which v1 reported as `UnexpectedError`, read
+`StatusCode`. A reply with status 429 matches `permit.ErrRateLimited`.
+
+<a id="M-errors-8"></a>
+### M-errors-8: A validation error lists its fields in Detail
+
+- v1: `errors.UnprocessableEntityError`
+- v1: `models.HTTPValidationError`
+- v1: `models.ValidationError`
+- v1: `models.LocationInner`
+- v2: `permit.Error.Detail`
+
+A request that the API rejects with status 422 returns a `*permit.Error` whose `StatusCode` is 422
+and whose `Detail` lists the first 10 fields that failed, each with its message, such as
+`body.email: value is not a valid email address`, and then how many more failed. v2 has no model
+of the body of such a reply, which v1's generated client read into a `models.HTTPValidationError`,
+a list of `models.ValidationError` with the location of each field as `models.LocationInner`
+items: read `Detail`, or the body in `Body`.
+
+<a id="M-errors-9"></a>
+### M-errors-9: Options and arguments that cannot work match ErrInvalidConfig
+
+- v1: `errors.PaginationError`
+- v1: `errors.ContextError`
+- v2: `permit.ErrInvalidConfig`
+
+An option of the client or an argument of a call that the SDK cannot use fails before any request
+is sent, with an error that matches `permit.ErrInvalidConfig`.
+
+<a id="M-errors-10"></a>
+### M-errors-10: Errors have no type
+
+- v1: `errors.ErrorType`
+- v1: `errors.*_ERROR`
+- v1: `errors.TeapotError`
+- v2: not exposed in v2
+
+v2 does not sort errors into types. A `*permit.Error` whose `StatusCode` is not 0 holds a reply of
+the API or the PDP, and one whose `StatusCode` is 0 holds a request that got no reply. A call that
+sends nothing, because an option or an argument is not valid or the client is closed, returns an
+error that matches the sentinel `permit.ErrInvalidConfig` or `permit.ErrClosed`, without a status.
+v1 never returned `TeapotError`.
+
+<a id="M-errors-11"></a>
+### M-errors-11: Error messages are not constants
+
+- v1: `errors.*Message`
+- v2: not exposed in v2
+
+The text of a `*permit.Error` is written from its fields, with the API's detail. Do not match the
+text: use `errors.Is` with the sentinels, or read `StatusCode` and `Code`.
+
+<a id="M-errors-12"></a>
+### M-errors-12: Only the SDK creates its errors
+
+- v1: `errors.NewPermit*`
+- v1: `errors.HttpErrorHandle`
+- v2: not exposed in v2
+
+A test that needs an error of the SDK builds a `*permit.Error` literal, such as
+`&permit.Error{StatusCode: 404}`, which matches `permit.ErrNotFound`.
+
+<a id="M-models-1"></a>
+### M-models-1: Numbers in attributes are json.Number
+
+- v1: attribute values and other values of type `interface{}` decoded with each number as a `float64`
+- v2: `models.Attributes`, whose numbers decode as `json.Number`
+
+v1 decoded each number in an attribute map, and in every other value of type `interface{}` in a
+reply, as a `float64`, which cannot hold every integer beyond 2^53: 9007199254740993 became
+9007199254740992. v2 keeps each such number as a `json.Number`, the number's text with every
+digit, in `models.Attributes`, in their nested objects and arrays, and in every other value of
+type `any` that a reply holds. Replace a type assertion to `float64`, such as `v.(float64)`, with
+one to `json.Number`, and read the number with its `Int64`, `Float64` or `String` method. A
+`json.Number` encodes as its text, so a number read from a reply is sent back unchanged.
+
+v2's `models.Attributes` is a whole attribute map. v1's `models.Attributes` was one value of such
+a map, a bool, an int32 or a string, in the `map[string]models.Attributes` of `models.UserData`.
+In v2, put the value itself, such as `true`, `30` or `"gold"`, in a `models.Attributes`.
+
+<a id="M-models-2"></a>
+### M-models-2: The Nullable types become models.Optional
+
+- v1: `models.Nullable*`
+- v2: `models.Optional`
+
+v1's `pkg/models` had a type `NullableX` for each of its models and for `bool`, `int`, `int32`,
+`int64`, `float32`, `float64`, `string` and `time.Time`, such as `models.NullableUserRead`, which
+held a pointer to a value and whether it was set. No field of a v1 model and no method of v1 took
+or returned one. v2 has no such types: a field of an update model that the API accepts null for is
+a `models.Optional[T]`, whose zero value leaves the field out of the request, while
+`models.Null[T]()` sends null and `models.Some(v)` sends `v`.
+
+<a id="M-models-3"></a>
+### M-models-3: MappedNullable and the ToMap methods have no counterpart
+
+- v1: `models.MappedNullable`
+- v2: not exposed in v2
+
+`models.MappedNullable` was the interface of the v1 models that had a `ToMap` method, which the
+generated client of `pkg/openapi` used to write a model into a query or a header. v2's models have
+no `ToMap` method: encode a model with `encoding/json`, as the client does for the body of a
+request.
+
+<a id="M-models-4"></a>
+### M-models-4: The models that no call of v1 used are not in v2
+
+- v1: `models.ConditionSetData`
+- v1: `models.DerivedRole`
+- v1: `models.DerivedRoleRule`
+- v1: `models.PdpValues`
+- v1: `models.PermitBackendSchemasSchemaOpalDataDerivationSettings`
+- v1: `models.RelationshipTupleObj`
+- v1: `models.RoleBlock`
+- v2: not exposed in v2
+
+v1's `pkg/models` had these types, but no method of v1 and no operation of its generated client
+sent or returned one, or a model that holds one. v2 has none of them.
+
+<a id="M-lists-1"></a>
+### M-lists-1: List methods take ListOptions and return a page
+
+- v1: `api.DefaultPerPageLimit`
+- v2: `permit.ListOptions`
+
+v1's list methods took the page and the number of items on it as two int arguments, failed when
+that number was above `api.DefaultPerPageLimit` (100) on every route, and returned a slice of the
+items. v2's List methods take a `permit.ListOptions{Page, PerPage}` and return a
+`*permit.Page[T]`: the items in `Data`, and `TotalCount` and `PageCount` when the reply reports
+them. The client sends `PerPage` as given, without a limit of its own, as the largest page
+differs from route to route; above a route's limit, the API may reject the request or give fewer
+items on a page. An `All` method reads every page and returns an `iter.Seq2[T, error]` of the
+items, so a loop over the pages is no longer needed.
+
+<a id="M-lists-2"></a>
+### M-lists-2: The models of a page of a list become permit.Page
+
+- v1: `models.PaginatedResultAPIKeyRead`
+- v1: `models.PaginatedResultConditionSetRead`
+- v1: `models.PaginatedResultRelationRead`
+- v1: `models.PaginatedResultUserRead`
+- v1: `models.ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet`
+- v1: `models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet`
+- v2: `permit.Page`
+
+v1's generated client read a page of a list into a model for each kind of item, such as
+`models.PaginatedResultUserRead`, with `Data`, `TotalCount` and `PageCount`, and a list that the
+API answers as a JSON array or as a page into a model that held either form, such as
+`models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet`. v2 has one generic type,
+`permit.Page[T]`, which each `List` method returns, with the items in `Data`, as
+[M-lists-1](#M-lists-1) says, and it reads a list in either form.
 
 <a id="M-checks-1"></a>
 ### M-checks-1: Check takes a context.Context and returns every failure as an error
@@ -681,7 +862,9 @@ returns such a resource with its `Tenant` still empty.
 
 Give the key of a resource instance in `Key`, which the PDP reads to check that instance. v1 sent
 the value of `WithID` in `id`, and from v1.3.0 in `key` too when the resource had no key; v2 has no
-ID and sends no `id`.
+ID and sends no `id`. Up to v1.2.8, the PDP got no key for a resource built with `WithID` and
+without `WithKey`, and `FilterObjects` sent no key for any of its resources, so the PDP decided
+for the type of the resource, and each instance of the type got the same decision.
 
 <a id="M-checks-9"></a>
 ### M-checks-9: CheckRequest is a struct literal
@@ -733,6 +916,11 @@ the timeout of `permit.WithTimeout`, 30 seconds by default.
 v2 sends every decision to the PDP at the PDP URL, `permit.WithPDPURL`. v1's `WithOpaUrl` sent the
 checks to OPA at its `/v1/data/` routes instead, in the shape of OPA's input. Run a PDP container,
 which serves the decisions of your policy, and give its URL to `permit.WithPDPURL`.
+
+With `WithOpaUrl`, v1's `BulkCheck` and `FilterObjects` could never return decisions: they sent
+their checks to OPA's `permit/bulk` package as a list in `input`, which is not the input that
+Permit's bulk policy reads, so OPA returned no decisions, and each call with a check failed with
+an error.
 
 <a id="M-checks-15"></a>
 ### M-checks-15: GetUserPermissions becomes UserPermissions
@@ -875,6 +1063,9 @@ It returns an error for every failure, and never tenants with it:
   with an `allow` that is `true` or `false` and a `tenant` with a `key`: a `*permit.Error` that
   matches `permit.ErrMalformedDecision`. v1 read a decision without `allow`, or with `allow`
   null, as a denial, and a reply without `allowed_tenants` as no tenants.
+
+Up to v1.2.8, v1's `AllTenantsCheck` also returned the tenants whose decision was
+`"allow": false`. v1.3.0 returns only the tenants in which the PDP allows the check, as v2 does.
 
 A later version of the PDP may drop the route. `Client.UserPermissions`, which every PDP serves,
 returns the permissions of a user in each tenant, under the key `__tenant:<tenant>`.
@@ -1162,14 +1353,54 @@ literal:
 - `Scope` is a `models.EnvironmentCopyScope`, left out when it is the zero value, in place of
   v1's `*models.Scope`. Each of its filters, `Resources`, `Roles`, `UserSets`, `ResourceSets` and
   the new `CustomPolicies`, is a `models.EnvironmentCopyScopeFilters` in place of v1's
-  `models.Resources`, `models.UserSets`, `models.ResourceSets`, `models.CopyEnvironmentScopeRoles`
-  and the `*models.Roles` of v1's `Scope`, which held resource roles and not a filter. A nil
+  `*models.Resources`, `*models.UserSets` and `*models.ResourceSets`, and the `*models.Roles` of
+  v1's `Scope`, which held resource roles and not a filter, as
+  [M-environments-11](#M-environments-11) says. A nil
   `Include` or `Exclude` is left out, and an empty list that is not nil sends `[]`.
 
 `Copy` is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have copied
 the environment when a request got no complete reply. It needs a project-level API key, or an
 organization-level one. `EnvironmentsService.CopyAsync` and `EnvironmentsService.CopyResult`,
 which v1 did not have, submit a copy that runs in the background and read its task.
+
+<a id="M-environments-11"></a>
+### M-environments-11: The models of an environment copy are renamed
+
+- v1: `models.TargetEnv`
+- v1: `models.New`
+- v1: `models.Jwks`
+- v1: `models.Scope`
+- v1: `models.Resources`
+- v1: `models.UserSets`
+- v1: `models.ResourceSets`
+- v1: `models.CopyEnvironmentScopeRoles`
+- v2: `models.EnvironmentCopy`
+
+v1's `models.EnvironmentCopy` took its target as a `models.TargetEnv` and its scope as a
+`*models.Scope`. In v2's `models.EnvironmentCopy`, as [M-environments-10](#M-environments-10)
+says:
+
+- `TargetEnv` is a `models.EnvironmentCopyTarget`, whose `New`, a `*models.New` in v1, is a
+  `*models.EnvironmentCreate`. The keys of v1's `models.Jwks` go in the `JWKS` of its `JWKS`, a
+  `*models.JwksConfig` that holds a `*models.JwksObj`.
+- `Scope` is a `models.EnvironmentCopyScope`, whose filters are each a
+  `models.EnvironmentCopyScopeFilters`. v1's `*models.Scope` held its `Resources`, `UserSets` and
+  `ResourceSets` in a `*models.Resources`, a `*models.UserSets` and a `*models.ResourceSets`, with
+  the same `Include` and `Exclude`, and its `Roles` in a `*models.Roles`, which held resource
+  roles and not a filter, as [M-resource-roles-12](#M-resource-roles-12) says.
+  `models.CopyEnvironmentScopeRoles` was the roles filter of v1's `models.EnvironmentCopyScope`,
+  which no request sent.
+
+<a id="M-environments-12"></a>
+### M-environments-12: models.Statistics becomes models.EnvironmentStatistics
+
+- v1: `models.Statistics`
+- v2: `models.EnvironmentStatistics`
+
+The `Stats` of the `models.EnvironmentStats` that `EnvironmentsService.Stats` returns is a
+`models.EnvironmentStatistics` in place of v1's `models.Statistics`: its counts are `int` in place
+of `int32`, and `MAU`, the number of monthly active users, is new, as
+[M-environments-9](#M-environments-9) says.
 
 <a id="M-apikeys-1"></a>
 ### M-apikeys-1: GetEnvironmentApiKey becomes Client.APIKeys.GetEnvironmentKey
@@ -1186,12 +1417,12 @@ it sends no request for the scope of the API key and reads none of `permit.WithS
 
 The calls return a `*models.APIKeyRead`, whose fields change: `ID`, `OrganizationID`, `ProjectID`
 and `EnvironmentID` in place of `Id`, `OrganizationId`, `ProjectId` and `EnvironmentId`; its
-optional fields are plain values, empty when the reply has none, in place of pointers;
-`CreatedAt` and `LastUsedAt` are `models.Time`, which embeds `time.Time`; `Name`, `Env`, a
-`*models.EnvironmentRead`, and `Project` are new; and `CreatedByMember` is not in the v2 model. The credential of the key, a `*string` in
-v1, is a type that prints a marker in its place with `fmt`, `log/slog` and `encoding/json`: call
-its `Value` method to read it. The client keeps each credential that its calls return out of its
-errors and its log lines, as it does its own API key.
+optional fields are plain values, empty when the reply has none, in place of pointers; `CreatedAt`
+and `LastUsedAt` are `models.Time`, which embeds `time.Time`; `Name`, `Env`, a
+`*models.EnvironmentRead`, and `Project` are new; and `CreatedByMember` is not in the v2 model. The
+credential of the key, a `*string` in v1, is a type that prints a marker in its place with `fmt`,
+`log/slog` and `encoding/json`: call its `Value` method to read it. The client keeps each credential
+that its calls return out of its errors and its log lines, as it does its own API key.
 
 <a id="M-apikeys-2"></a>
 ### M-apikeys-2: ListApiKeys returns a page, and All reads every page
@@ -1564,64 +1795,6 @@ again only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have creat
 request got no complete reply. The PDP container answers it without waiting for sync, so a call
 through the copy that `TenantsService.WaitForSync` returns is an error that matches
 `permit.ErrInvalidConfig`, and no request is sent.
-
-<a id="M-facts-3"></a>
-### M-facts-3: WaitForSyncOptions becomes SyncOption
-
-- v1: `api.WaitForSyncOptions`
-- v2: `permit.SyncOption`
-
-Pass `permit.WithSyncPolicy(policy)` to the `WaitForSync` method of a service, such as
-`client.Tenants.WaitForSync(10*time.Second, permit.WithSyncPolicy(permit.SyncPolicyFail))`, in
-place of `api.WaitForSyncOptions{Policy: policy}`. Without the option, the call sends no
-`X-Timeout-Policy`, and the PDP container decides; v1 sent the policy of the configuration then,
-when it had one. A policy other than `permit.SyncPolicyFail` and `permit.SyncPolicyIgnore`, and the
-zero `permit.SyncOption`, in any place among the options, are errors that match
-`permit.ErrInvalidConfig` when a call is made through the copy, and no request is sent.
-
-<a id="M-facts-4"></a>
-### M-facts-4: FactsSyncTimeoutPolicy becomes SyncPolicy
-
-- v1: `config.FactsSyncTimeoutPolicy`
-- v1: `config.FactsSyncTimeoutPolicyFail`
-- v1: `config.FactsSyncTimeoutPolicyIgnore`
-- v2: `permit.SyncPolicy`
-
-Use `permit.SyncPolicyFail` and `permit.SyncPolicyIgnore`, of the type `permit.SyncPolicy`, in
-place of `config.FactsSyncTimeoutPolicyFail` and `config.FactsSyncTimeoutPolicyIgnore`; they send
-the same values, `fail` and `ignore`.
-
-<a id="M-facts-5"></a>
-### M-facts-5: The configuration has no wait for sync
-
-- v1: `config.DefaultFactsSyncTimeout`
-- v1: `config.PermitConfig.WithFactsSyncTimeout`
-- v1: `config.PermitConfig.GetFactsSyncTimeout`
-- v1: `config.PermitConfig.GetFactsSyncTimeoutPolicy`
-- v2: not exposed in v2
-
-v1 kept a timeout and a policy of the wait for sync in its configuration, a timeout of 10 seconds
-in one that `config.NewConfigBuilder` built, which `WaitForSync` used when it got no timeout or no
-policy. v2 has no such setting: give the timeout, and the policy when you want one, to each
-`WaitForSync` call, such as `client.Tenants.WaitForSync(10*time.Second)` for the timeout of v1's
-builder.
-
-<a id="M-facts-6"></a>
-### M-facts-6: The base type of the facts APIs has no counterpart
-
-- v1: `api.IPermitBaseFactsApi`
-- v1: `api.PermitBaseFactsApi`
-- v1: `api.PermitBaseFactsApi.WaitForSync`
-- v1: `api.NewPermitBaseFactsApi`
-- v1: `api.NewFactsClientConfig`
-- v2: not exposed in v2
-
-v1's facts APIs, such as `api.Tenants`, embedded `api.PermitBaseFactsApi`, whose `WaitForSync`
-returned the base type. In v2, each service of the facts API has a `WaitForSync` method of its
-own that returns a copy of that service, such as `permit.TenantsService.WaitForSync`.
-`api.NewFactsClientConfig` built a configuration of the generated client for the PDP URL, which
-v1 did not use; pass `permit.WithFactsViaPDP()` to `permit.New` to send the facts to the PDP
-container.
 
 <a id="M-resource-actions-1"></a>
 ### M-resource-actions-1: ResourceActions becomes Client.ResourceActions, which acts on the environment of the scope
@@ -2237,10 +2410,10 @@ a permission that the role does not have.
 - Bug fix: could never work before
 
 v1's parent methods sent `PUT` and `DELETE` to `/v2/schema/{proj_id}/{env_id}/roles/{role_id}/parents/{parent_role_id}`,
-a route that the API's documentation does not list. A role's parents are the roles that it
-extends: read the role with `RolesService.Get`, and send its `Extends` with the parent added or
-removed in `models.RoleUpdate.Extends` with `RolesService.Update`, as the update replaces the
-whole list:
+a route that the API does not serve, so each call failed with an error and changed no role. A
+role's parents are the roles that it extends: read the role with `RolesService.Get`, and send its
+`Extends` with the parent added or removed in `models.RoleUpdate.Extends` with
+`RolesService.Update`, as the update replaces the whole list:
 
 ```go
 role, err := client.Roles.Get(ctx, "editor")
@@ -2384,10 +2557,11 @@ have.
 
 v1's parent methods sent `PUT` and `DELETE` to
 `/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/parents/{parent_role_id}`,
-a route that the API's documentation does not list. A role's parents are the roles of its
-resource that it extends: read the role with `ResourceRolesService.Get`, and send its `Extends`
-with the parent added or removed in `models.ResourceRoleUpdate.Extends` with
-`ResourceRolesService.Update`, as the update replaces the whole list:
+a route that the API does not serve, so each call failed with an error and changed no role. A
+role's parents are the roles of its resource that it extends: read the role with
+`ResourceRolesService.Get`, and send its `Extends` with the parent added or removed in
+`models.ResourceRoleUpdate.Extends` with `ResourceRolesService.Update`, as the update replaces the
+whole list:
 
 ```go
 role, err := client.ResourceRoles.Get(ctx, "document", "editor")
@@ -2430,6 +2604,22 @@ does, and returns an empty slice, not nil, for a reply whose roles are empty, nu
 reply in 200-299 with an empty body is an error, where v1.3.0 returned an empty list. A 404 is a
 `*permit.Error` that matches `permit.ErrNotFound`. It is sent again after a 500, 502, 503 or 504
 reply or a failed connection, as it changes nothing.
+
+<a id="M-resource-roles-12"></a>
+### M-resource-roles-12: models.Roles becomes the Roles of models.ResourceRoleList
+
+- v1: `models.Roles`
+- v1: `models.PaginatedResultResourceRoleRead`
+- v2: `models.ResourceRoleList`
+
+v1's `models.Roles` held the roles of a resource either as a `[]models.ResourceRoleRead` or as a
+`models.PaginatedResultResourceRoleRead`, the two forms of a reply that lists the ancestors or the
+descendants of a role. v2's `models.ResourceRoleList` holds them in `Roles`, a
+`[]models.ResourceRoleRead`, read from either form, and `ResourceRolesService.Ancestors` and
+`ResourceRolesService.Descendants` return that slice, as
+[M-resource-roles-10](#M-resource-roles-10) says. The `Roles` of the scope of an environment
+copy, a `*models.Roles` in v1, is a `models.EnvironmentCopyScopeFilters` in v2, as
+[M-environments-10](#M-environments-10) says.
 
 <a id="M-implicit-grants-1"></a>
 ### M-implicit-grants-1: ImplicitGrants becomes Client.ImplicitGrants, which acts on the environment of the scope
@@ -2504,6 +2694,18 @@ the conditions as a `*models.DerivationSettings`. It always sends `no_direct_rol
 `{"no_direct_roles_on_object":false}` for false, as v1's constructor of the settings did, since
 the PUT replaces the conditions. It is sent again after a 500, 502, 503 or 504 reply or a failed
 connection, as sending the same conditions twice sets the same conditions.
+
+<a id="M-implicit-grants-5"></a>
+### M-implicit-grants-5: The derivation settings become models.DerivationSettings
+
+- v1: `models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings`
+- v2: `models.DerivationSettings`
+
+`models.DerivationSettings` takes the place of
+`models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings`, the conditions of the
+implicit grants of a role, in the `When` of each rule and in
+`ImplicitGrantsService.UpdateConditions`. Its `NoDirectRolesOnObject` is a `bool` in place of a
+`*bool`, as [M-implicit-grants-1](#M-implicit-grants-1) says.
 
 <a id="M-user-attributes-1"></a>
 ### M-user-attributes-1: ListUserAttributes of the generated client becomes Client.UserAttributes.List
@@ -2663,9 +2865,10 @@ sends the number as given, and the API answers above 100 with an error. The `Typ
 `iter.Seq2[models.ConditionSetRead, error]` that reads every page, 100 sets at a time.
 
 The API answers the list with a JSON array of sets or with the paginated object, and List reads
-both, as v1.3.0 does; the page holds the counts of the paginated object. v1.3.0 returned an empty
-list for a reply in 200-299 whose body was empty or `null`; v2 returns a `*permit.Error` that
-names the model for such a body, and for an object without a `data` array, and never an empty
+both, as v1.3.0 does; the page holds the counts of the paginated object. v1.2.8 and earlier read
+only the paginated object, so their `List` returned an empty list for a JSON array. v1.3.0 returned
+an empty list for a reply in 200-299 whose body was empty or `null`; v2 returns a `*permit.Error`
+that names the model for such a body, and for an object without a `data` array, and never an empty
 page for it.
 
 <a id="M-condition-sets-4"></a>
@@ -2693,12 +2896,13 @@ no complete reply.
 - v2: `permit.ConditionSetsService.Update`
 
 Build the change as a struct literal of `models.ConditionSetUpdate`, in place of
-`models.NewConditionSetUpdate` and its setters. The request holds only the fields that are set:
-an empty name, description or parent is left out, and the set keeps it, and nil conditions are
-left out, while an empty map that is not nil sends `{}`, in place of the set's conditions. v1
-sent an empty description given through `SetDescription("")`; v2 leaves an empty description
-out, so an update cannot send one. Like v1, v2 cannot send null for a field of the update. An update is sent again after a 500, 502, 503 or 504 reply or a failed connection, as
-sending it twice sets the same fields.
+`models.NewConditionSetUpdate` and its setters. The request holds only the fields that are set: an
+empty name, description or parent is left out, and the set keeps it, and nil conditions are left
+out, while an empty map that is not nil sends `{}`, in place of the set's conditions. v1 sent an
+empty description given through `SetDescription("")`; v2 leaves an empty description out, so an
+update cannot send one. Like v1, v2 cannot send null for a field of the update. An update is sent
+again after a 500, 502, 503 or 504 reply or a failed connection, as sending it twice sets the same
+fields.
 
 <a id="M-condition-sets-6"></a>
 ### M-condition-sets-6: ConditionSets.Delete of a set that is gone returns nil
@@ -2742,6 +2946,19 @@ a route that the API's documentation does not list, and no method of v1's `api` 
 it. v2 has no counterpart. The parent of a set is the `ParentID` of its
 `models.ConditionSetCreate` or `models.ConditionSetUpdate`, the ID of another set of the
 environment, which `ConditionSetsService.All` lists.
+
+<a id="M-condition-sets-9"></a>
+### M-condition-sets-9: models.ResourceId and models.ParentId become strings
+
+- v1: `models.ResourceId`
+- v1: `models.ParentId`
+- v2: `models.ConditionSetRead.ResourceID`, `models.ConditionSetRead.ParentID` and the same strings of the other condition set models
+
+v1's `models.ConditionSetCreate` and `models.ConditionSetRead` held the resource of a resource set
+in a `*models.ResourceId`, and they and `models.ConditionSetUpdate` held the parent of a set in a
+`*models.ParentId`, each a wrapper of a `*string`. v2's models hold them as the plain strings
+`ResourceID` and `ParentID`, empty when the set has none, as
+[M-condition-sets-1](#M-condition-sets-1) says.
 
 <a id="M-condition-set-rules-1"></a>
 ### M-condition-set-rules-1: AssignSetPermissions becomes ConditionSetRules.Create
@@ -3005,6 +3222,17 @@ connection, as after a 429, as removing a role twice leaves it removed; when an 
 complete reply removed the role, the next attempt can get a 404, which `UnassignRole` returns. With
 `permit.WithFactsViaPDP()`, it goes to the PDP container, `DELETE /facts/users/{user_id}/roles`,
 which can wait for sync, as [M-users-8](#M-users-8) says.
+
+<a id="M-users-12"></a>
+### M-users-12: models.UserRole has no counterpart
+
+- v1: `models.UserRole`
+- v2: not exposed in v2: deprecated upstream
+
+v1's `models.UserRead` held the roles of a user in `Roles`, each a `models.UserRole` with a role
+and a tenant. The API's spec marks that field deprecated, and v2's `models.UserRead` does not have
+it, as [M-users-1](#M-users-1) says: read the roles of the user in each tenant from
+`AssociatedTenants`, or list them with `RoleAssignmentsService.List`.
 
 <a id="M-role-assignments-1"></a>
 ### M-role-assignments-1: RoleAssignments becomes Client.RoleAssignments, which assigns and unassigns roles too
@@ -3628,6 +3856,16 @@ something. Any other error status is a `*permit.Error` with the status and the b
 again after a 500, 502, 503 or 504 reply or a failed connection, as deleting a config twice
 leaves it deleted.
 
+<a id="M-proxy-configs-7"></a>
+### M-proxy-configs-7: models.UrlMatchType becomes models.URLType
+
+- v1: `models.UrlMatchType`
+- v2: `models.URLType`
+
+The `URLType` of a `models.MappingRule` is a `models.URLType` in place of v1's
+`*models.UrlMatchType`, and its constant `models.URLTypeRegex` takes the place of
+`URLMatchTypeRegex`, as [M-proxy-configs-1](#M-proxy-configs-1) says.
+
 <a id="M-groups-1"></a>
 ### M-groups-1: Client.Groups is new: v1 had no call of the groups
 
@@ -3687,13 +3925,44 @@ with its ID, in `PDPConfigs`, as [M-environments-9](#M-environments-9) says.
 - v1: `openapi.PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValuesLegacy`
 - v1: `openapi.PolicyDecisionPointsApiService.GetPdpConfigValues`
 - v1: `openapi.PolicyDecisionPointsApiService.RotatePdpApiKey`
+- v1: `models.RemoteConfig`
+- v1: `models.OPALClient`
+- v1: `models.Pdp`
+- v1: `models.PDPContext`
+- v1: `models.PDPStateUpdate`
+- v1: `models.PDPState`
 - v2: not exposed in v2: operator route
 
 These operations of the generated client of `pkg/openapi` read the values that a PDP runs with,
 and rotate the API key of a PDP: a PDP, or whoever runs it, calls them, not an application. v2
-has no generated client and does not send them. `permit.PDPsService`, which v1 did not have, asks
-the PDPs of an environment to read their data again: `PDPsService.Refresh` every PDP of the
-environment, and `PDPsService.RefreshPDP` one by its ID.
+has no generated client and does not send them. Their models are not in v2 either: the
+`models.RemoteConfig` that the reads return, with its `models.OPALClient`, `models.Pdp` and
+`models.PDPContext`, and the `models.PDPStateUpdate`, with its `models.PDPState`, that a PDP sends
+with `POST /v2/pdps/me/config`. `permit.PDPsService`, which v1 did not have, asks the PDPs of an
+environment to read their data again: `PDPsService.Refresh` every PDP of the environment, and
+`PDPsService.RefreshPDP` one by its ID.
+
+<a id="M-pdps-3"></a>
+### M-pdps-3: The data that a PDP reads and the decision logs that it sends are not in v2
+
+- v1: `openapi.OPALDataApiService.*`
+- v1: `openapi.PolicyApiService.*`
+- v1: `openapi.DecisionLogsIngressApiService.InsertOpaDecisionLogs`
+- v1: `models.DataSourceConfig`
+- v1: `models.DataSourceEntry`
+- v1: `models.FullData`
+- v1: `models.RoleData`
+- v1: `models.UserData`
+- v2: not exposed in v2: operator route
+
+These operations of the generated client of `pkg/openapi` serve the PDPs: they give a PDP the data
+of an environment, under `/v2/internal/opal_data/`, and the sources of that data, at
+`/v2/opal/data/config` and `/opal/data/config`, and take the decision logs that a PDP sends, at
+`POST /v2/decision-logs/ingress`. An application does not call them, and no method of v1's
+`pkg/api` did. The models that only they send or return, such as `models.FullData` and
+`models.DataSourceConfig`, are not in v2 either. `PDPsService.Refresh` asks the PDPs of an
+environment to read their data again, and `client.AuditLogs` reads their decisions, as
+[M-audit-logs-1](#M-audit-logs-1) says.
 
 <a id="M-audit-logs-1"></a>
 ### M-audit-logs-1: ListPdpDecisionLogs of the generated client becomes AuditLogs.List
@@ -3709,6 +3978,21 @@ every page, and `AuditLogsService.Get` reads one audit log with the objects that
 names. Each acts on the environment of the client's scope, as [M-scope-2](#M-scope-2) says. A
 filter that is set is sent, `false` and `0` too: `Decision` is a `*bool`, and `TimestampFrom`
 and `TimestampTo` are each an `*int64`.
+
+<a id="M-audit-logs-2"></a>
+### M-audit-logs-2: The decision logs of a PDP become audit logs
+
+- v1: `models.OPADecisionLog`
+- v1: `models.Labels`
+- v1: `models.PaginatedResultOPADecisionLog`
+- v2: `models.AuditLogModel`
+
+v1's `ListPdpDecisionLogs` returned a `models.PaginatedResultOPADecisionLog` of
+`models.OPADecisionLog` items, each with its `models.Labels`. `AuditLogsService.List` returns a
+`*permit.Page[models.AuditLogModel]` in their place, as [M-audit-logs-1](#M-audit-logs-1) says.
+An audit log has the user, the action, the resource type, the tenant and the decision; the
+`Input`, the `Result` and the `Context` of the decision as `json.RawMessage`; and the
+`PDPConfigID` of the PDP that made it.
 
 <a id="M-user-invites-1"></a>
 ### M-user-invites-1: Client.UserInvites is new: v1 had no call of the user invites
@@ -3769,7 +4053,161 @@ URL stay in the client's set of credentials for the life of the client, so a ser
 many users in through one client keeps the credentials of each login in that set, and scrubs
 each later error and log line of all of them.
 
+<a id="M-elements-2"></a>
+### M-elements-2: The Elements configs of the generated client are not in v2
+
+- v1: `openapi.ElementsConfigsApiService.CreateElementsConfig`
+- v1: `openapi.ElementsConfigsApiService.DeleteElementsConfig`
+- v1: `openapi.ElementsConfigsApiService.GetElementsConfig`
+- v1: `openapi.ElementsConfigsApiService.ListElementsConfigs`
+- v1: `openapi.ElementsConfigsApiService.UpdateElementsConfig`
+- v1: `models.ElementsConfigCreate`
+- v1: `models.ElementsConfigRead`
+- v1: `models.ElementsConfigUpdate`
+- v1: `models.ElementsType`
+- v1: `models.PaginatedResultElementsConfigRead`
+- v1: `models.PermissionLevelRoleRead`
+- v1: `models.Settings`
+- v1: `models.Webhook*`
+- v2: not exposed in v2: EAP
+
+These operations of the generated client of `pkg/openapi` create, list, read, change and delete
+the configs of Permit Elements, the components of a user interface that an application embeds,
+under `/v2/elements/{proj_id}/{env_id}/`; no method of v1's `pkg/api` called them. The API's spec
+marks them as early access (EAP), and v2 adds an EAP feature once it is generally available. Set
+up the Elements in the dashboard. `models.Settings` and the webhook models were parts of a config.
+
+<a id="M-elements-3"></a>
+### M-elements-3: The Elements permission levels of an environment are not in v2
+
+- v1: `openapi.ElementsConfigsApiService.GetEnvConfig`
+- v1: `openapi.ElementsConfigsApiService.UpdateElementsEnv`
+- v1: `models.ElementsEnvRead`
+- v1: `models.ElementsEnvUpdate`
+- v2: not exposed in v2: dashboard or CLI helper
+
+These operations of the generated client of `pkg/openapi` read and change which roles of an
+environment hold each permission level of Permit Elements, with `GET` and
+`PATCH /v2/elements/{proj_id}/{env_id}`, a route that the API's spec does not list; no method of
+v1's `pkg/api` called them. Set the permission levels in the dashboard.
+
+<a id="M-elements-4"></a>
+### M-elements-4: The Elements data routes of the generated client are not in v2
+
+- v1: `openapi.ElementsDataApiService.*`
+- v1: `models.ElementsPermissionLevel`
+- v1: `models.ElementsRoleRead`
+- v1: `models.ElementsUserCreate`
+- v1: `models.ElementsUserRoleCreate`
+- v1: `models.ElementsUserRoleRemove`
+- v2: not exposed in v2: Elements back-end
+
+These operations of the generated client of `pkg/openapi` list the users and the roles that an
+Elements component shows, create and delete its users, assign and remove their roles, and set a
+config active, under `/v2/elements/{proj_id}/{env_id}/config/{elements_config_id}/data/`; no
+method of v1's `pkg/api` called them. They are the back end of the components, which call them
+with the session of a user who logged in to Elements, and an API key cannot call them. Manage the
+users and their roles with `client.Users` and `client.RoleAssignments`, and log a user in to
+Elements with `client.Elements.LoginAs`, as [M-elements-1](#M-elements-1) says.
+
+<a id="M-auth-1"></a>
+### M-auth-1: The login routes of the generated client are not in v2
+
+- v1: `openapi.AuthenticationApiService.DevLogin`
+- v1: `openapi.AuthenticationApiService.Login`
+- v1: `openapi.AuthenticationApiService.LoginElements`
+- v1: `openapi.AuthenticationApiService.LogoutGet`
+- v1: `openapi.AuthenticationApiService.LogoutPost`
+- v1: `openapi.AuthenticationApiService.Me`
+- v1: `openapi.AuthenticationApiService.SwitchOrganization`
+- v1: `models.Actor`
+- v1: `models.AuthnMe*`
+- v1: `models.DevLogin`
+- v1: `models.InviteAttemptResult`
+- v1: `models.LoginResult`
+- v2: not exposed in v2: dashboard or CLI helper
+
+These operations of the generated client of `pkg/openapi` log a person in to Permit and out of it,
+switch the organization of the session and read who made the request, under `/v2/auth/`, for the
+dashboard and the CLI; the API's spec does not list their routes, and no method of v1's `pkg/api`
+called them. v2 calls the API with its API key, without a session. The models that only they send
+or return, such as `models.LoginResult` and `models.AuthnMeRead`, are not in v2 either.
+`Client.Scope` returns the project and the environment of the API key, and
+`client.Elements.LoginAs` logs a user of your application in to Permit Elements, as
+[M-elements-1](#M-elements-1) says.
+
+<a id="M-organizations-1"></a>
+### M-organizations-1: The organizations, their members and their invites are not in v2
+
+- v1: `openapi.OrganizationsApiService.*`
+- v1: `openapi.MembersApiService.*`
+- v1: `models.Organization*`
+- v1: `models.OrgMember*`
+- v1: `models.IdentityRead`
+- v1: `models.OnboardingStep`
+- v1: `models.InviteCreate`
+- v1: `models.InviteRead`
+- v1: `models.InviteStatus`
+- v1: `models.MultiInviteResult`
+- v1: `models.FailedInvite`
+- v2: not exposed in v2: account administration
+
+These operations of the generated client of `pkg/openapi` create, list, read, change and delete
+the organizations of Permit, list, read, change and remove their members, and invite people to an
+organization; no method of v1's `pkg/api` called them. v2 leaves the administration of an account
+to the dashboard and the CLI. `client.Projects` manages the projects of the organization of the API
+key, and `client.APIKeys` its API keys. `client.UserInvites` invites the users of your application
+to an environment, not members to an organization.
+
+<a id="M-policy-repos-1"></a>
+### M-policy-repos-1: The policy repositories of a project are not in v2
+
+- v1: `openapi.PolicyGitRepositoriesApiService.*`
+- v1: `models.PolicyRepoCreate`
+- v1: `models.PolicyRepoRead`
+- v1: `models.PolicyRepoStatus`
+- v1: `models.SSHAuthData`
+- v2: not exposed in v2: dashboard or CLI helper
+
+These operations of the generated client of `pkg/openapi` connect a Git repository of policies to
+a project, activate and disable it, and list, read and delete the repositories of the project,
+under `/v2/projects/{proj_id}/repos`; no method of v1's `pkg/api` called them. A policy repository
+is part of the setup of a project, which the dashboard, the CLI and Terraform do.
+
+<a id="M-instructions-1"></a>
+### M-instructions-1: The setup instructions of the generated client are not in v2
+
+- v1: `openapi.InstructionsApiService.ListLanguageInstructions`
+- v1: `models.LanguageInstructions`
+- v1: `models.ProgrammingLanguage`
+- v2: not exposed in v2: dashboard or CLI helper
+
+`ListLanguageInstructions` of the generated client of `pkg/openapi` read the instructions to set
+up an SDK of each programming language in an environment, for the dashboard, from
+`GET /v2/{proj_id}/{env_id}/get_instructions`, a route that the API's spec does not list; no method
+of v1's `pkg/api` called it.
+
+<a id="M-stress-1"></a>
+### M-stress-1: The stress routes of the generated client are not in v2
+
+- v1: `openapi.DefaultApiService.*`
+- v2: not exposed in v2
+
+These operations of the generated client of `pkg/openapi`, such as `Dummy` and `DummyDb`, send
+requests to routes under `/v2/stress/`, which the API's spec does not list; no method of v1's
+`pkg/api` called them, and v2 has no counterpart.
+
 ## Wire behaviour
+
+For the same call, v2 can send other requests than v1 did: it sends a request again after a 429,
+and after a failure when that is safe ([M-wire-5](#M-wire-5)); names the SDK in the headers of
+each request ([M-wire-4](#M-wire-4)); sends the facts to the PDP container under `/facts/` with
+`permit.WithFactsViaPDP` ([M-facts-2](#M-facts-2)); sends the timeout of a wait for sync in
+decimal seconds ([M-facts-7](#M-facts-7)); and reads each detailed list from its own route, in
+place of the deprecated query parameter `detailed`
+([M-role-assignments-8](#M-role-assignments-8), [M-resource-instances-9](#M-resource-instances-9),
+[M-relationship-tuples-7](#M-relationship-tuples-7)). Check a proxy, a firewall rule, a log
+filter or a test that matches the requests of v1.
 
 <a id="M-wire-1"></a>
 ### M-wire-1: Request bodies keep `<`, `>` and `&` as they are
@@ -3878,6 +4316,19 @@ Only the PDP container serves `/facts/`. The cloud PDP answers each of these cal
 empty body, which the call returns as an error that matches `permit.ErrContainerPDPOnly`, and
 `permit.New` logs a warning when the option is given with the URL of the cloud PDP.
 
+<a id="M-facts-7"></a>
+### M-facts-7: WaitForSync sends its timeout in decimal seconds
+
+- v1: the header `X-Wait-Timeout` in whole seconds up to v1.2.8, such as `0` for 500 milliseconds, and in decimal seconds from v1.3.0
+- v2: the header `X-Wait-Timeout` in decimal seconds, such as `0.5` for 500 milliseconds
+
+A call through the copy that the `WaitForSync` method of a service returns sends its timeout to
+the PDP container in `X-Wait-Timeout`, in seconds. v1.2.8 and earlier cut the timeout to whole
+seconds, so a timeout under one second was sent as `0`, and 1.5 seconds as `1`. v1.3.0 sends
+decimal seconds, and so does v2, with every digit of the `time.Duration`, such as `0.5`, `1.5` or
+`10`. In v2, a negative timeout is an error that matches `permit.ErrInvalidConfig` when a call is
+made through the copy, and no request is sent.
+
 <a id="M-checks-14"></a>
 ### M-checks-14: BulkCheck sends one request for all its checks
 
@@ -3897,10 +4348,11 @@ requests sees one request for a call.
 
 v1's `GetUserPermissions` sent no context, resources or resource types, so a policy that reads the
 context saw none; `GetUserPermissionsWithOptions` sent them, so for its callers only the rule for a
-filter without keys changes. v2 sends the context of `permit.WithDecisionContext`, with values of any JSON
-type, and the keys of `permit.WithTenants`, `permit.WithResources` and `permit.WithResourceTypes`,
-in `context`, `tenants`, `resources` and `resource_types`. It sends no request for a filter
-without keys, which v1 left out of the body, as [M-checks-16](#M-checks-16) says.
+filter without keys changes. v2 sends the context of `permit.WithDecisionContext`, with values of
+any JSON type, and the keys of `permit.WithTenants`, `permit.WithResources` and
+`permit.WithResourceTypes`, in `context`, `tenants`, `resources` and `resource_types`. It sends no
+request for a filter without keys, which v1 left out of the body, as [M-checks-16](#M-checks-16)
+says.
 
 <a id="M-checks-25"></a>
 ### M-checks-25: AllTenantsCheck sends the context it is given
@@ -3925,10 +4377,11 @@ text of the error. When the user existed, it sent a `PATCH` of the email and the
 empty, and of the attributes when they were not nil, an empty map as `{}`, so the user kept the
 fields that were left out; when it did not, it sent a `POST`, which failed with 409 when another
 call created the user between the read and the create. v2's `Sync` sends one `PUT` of the whole
-user, which creates or replaces it in one request: it reads nothing first, and two syncs of the
-same new user at once each send their own `PUT`, with no read between. The email, the names and
-the attributes that the user leaves out are cleared, as [M-users-5](#M-users-5) says. With `permit.WithFactsViaPDP()`, the `PUT` goes to the PDP container,
-`PUT /facts/users/{user_id}`, which can wait for sync, as [M-users-8](#M-users-8) says.
+user, which creates or replaces it in one request: it reads nothing first, and two syncs of the same
+new user at once each send their own `PUT`, with no read between. The email, the names and the
+attributes that the user leaves out are cleared, as [M-users-5](#M-users-5) says. With
+`permit.WithFactsViaPDP()`, the `PUT` goes to the PDP container, `PUT /facts/users/{user_id}`, which
+can wait for sync, as [M-users-8](#M-users-8) says.
 
 <a id="M-role-assignments-8"></a>
 ### M-role-assignments-8: ListDetailed reads the detailed list in place of the deprecated parameter detailed
@@ -3971,13 +4424,32 @@ page holds its counts. No call of the relationship tuples sends `detailed` or
 
 ## Kept on purpose
 
-What v2 keeps from v1 although a new major version could change it:
+v2 makes these choices on purpose, although a new major version could have made others:
 
 - The name of the package: v2's root package is `permit`, as v1's `pkg/permit` was, so code that
   refers to `permit.` keeps its qualifier.
-- The attribute filters of the tenants: `permit.TenantsListOptions` sends each as the query
-  parameter `attr_<name>`, as v1's `ListByAttributes` did, although the API's spec does not list
-  these parameters: the API applies them.
+- No interfaces: v2 declares no interface for its client or its services, as
+  [M-client-10](#M-client-10) says. To replace them in your tests, declare an interface in your
+  own code with the methods that you call.
+- No raw requests: v2 has no method that sends a request that you build, such as a `Do` method of
+  the client. Each call of the API or the PDP that v2 covers is a method with typed arguments; for
+  a route that it does not cover, send the request with `net/http`.
+- `Client.AllTenantsCheck`, although only the PDP container serves its route: with the cloud PDP,
+  it returns an error that matches `permit.ErrContainerPDPOnly` after one request, as
+  [M-checks-23](#M-checks-23) says.
+- The proxy configs of v1, as `client.ProxyConfigs`, whose credentials print a marker in their
+  place, as [M-proxy-configs-1](#M-proxy-configs-1) says.
+- Identifiers as they are given: v2 sends a key or an ID as one segment of the path, escaped, and
+  does not check its form, such as whether it is a UUID, so a method that takes the key of an
+  object takes its ID too. An empty one, `.` and `..` fail before any request, as
+  [M-wire-3](#M-wire-3) says.
+- The attribute filters of the tenants, the roles and the actions of a resource:
+  `permit.TenantsListOptions`, `permit.RolesListOptions` and `permit.ResourceActionsListOptions`
+  send each as the query parameter `attr_<name>`, as v1's `ListByAttributes` did, although the
+  API's spec does not list these parameters: the API applies them. The action groups have no
+  attribute filter, as v1 never sent theirs ([M-action-groups-4](#M-action-groups-4)).
+- The default PDP URL, `http://localhost:7766`, a PDP container next to the application, as
+  [M-client-5](#M-client-5) says.
 
 ## Appendix: v1 models types
 
@@ -3994,26 +4466,49 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.APIKeyScopeRead` | `models.APIKeyScopeRead` |
 | `models.ActionBlockEditable` | `models.ActionBlockEditable` |
 | `models.ActionBlockRead` | `models.ActionBlockRead` |
+| `models.Actor` | not exposed in v2: dashboard or CLI helper ([M-auth-1](#M-auth-1)) |
 | `models.AddRolePermissions` | `models.AddRolePermissions` |
 | `models.AttributeBlockEditable` | `models.AttributeBlockEditable` |
 | `models.AttributeBlockRead` | `models.AttributeBlockRead` |
 | `models.AttributeType` | `models.AttributeType` |
 | `models.Attributes` | `models.Attributes` |
 | `models.AuthMechanism` | `models.AuthMechanism` |
+| `models.AuthnMeAPIKeyRead` | not exposed in v2: dashboard or CLI helper ([M-auth-1](#M-auth-1)) |
+| `models.AuthnMeMemberRead` | not exposed in v2: dashboard or CLI helper ([M-auth-1](#M-auth-1)) |
+| `models.AuthnMeRead` | not exposed in v2: dashboard or CLI helper ([M-auth-1](#M-auth-1)) |
+| `models.AuthnMeUserRead` | not exposed in v2: dashboard or CLI helper ([M-auth-1](#M-auth-1)) |
 | `models.BulkRoleAssignmentReport` | `models.BulkRoleAssignmentReport` |
 | `models.BulkRoleUnAssignmentReport` | `models.BulkRoleUnAssignmentReport` |
 | `models.ConditionSetCreate` | `models.ConditionSetCreate` |
+| `models.ConditionSetData` | not exposed in v2 ([M-models-4](#M-models-4)) |
 | `models.ConditionSetRead` | `models.ConditionSetRead` |
 | `models.ConditionSetRuleCreate` | `models.ConditionSetRuleCreate` |
 | `models.ConditionSetRuleRead` | `models.ConditionSetRuleRead` |
 | `models.ConditionSetRuleRemove` | `models.ConditionSetRuleRemove` |
 | `models.ConditionSetType` | `models.ConditionSetType` |
 | `models.ConditionSetUpdate` | `models.ConditionSetUpdate` |
+| `models.CopyEnvironmentScopeRoles` | `models.EnvironmentCopy` ([M-environments-11](#M-environments-11)) |
+| `models.DataSourceConfig` | not exposed in v2: operator route ([M-pdps-3](#M-pdps-3)) |
+| `models.DataSourceEntry` | not exposed in v2: operator route ([M-pdps-3](#M-pdps-3)) |
+| `models.DerivedRole` | not exposed in v2 ([M-models-4](#M-models-4)) |
 | `models.DerivedRoleBlockEdit` | `models.DerivedRoleBlockEdit` |
 | `models.DerivedRoleBlockRead` | `models.DerivedRoleBlockRead` |
+| `models.DerivedRoleRule` | not exposed in v2 ([M-models-4](#M-models-4)) |
 | `models.DerivedRoleRuleCreate` | `models.DerivedRoleRuleCreate` |
 | `models.DerivedRoleRuleDelete` | `models.DerivedRoleRuleDelete` |
 | `models.DerivedRoleRuleRead` | `models.DerivedRoleRuleRead` |
+| `models.DevLogin` | not exposed in v2: dashboard or CLI helper ([M-auth-1](#M-auth-1)) |
+| `models.ElementsConfigCreate` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.ElementsConfigRead` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.ElementsConfigUpdate` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.ElementsEnvRead` | not exposed in v2: dashboard or CLI helper ([M-elements-3](#M-elements-3)) |
+| `models.ElementsEnvUpdate` | not exposed in v2: dashboard or CLI helper ([M-elements-3](#M-elements-3)) |
+| `models.ElementsPermissionLevel` | not exposed in v2: Elements back-end ([M-elements-4](#M-elements-4)) |
+| `models.ElementsRoleRead` | not exposed in v2: Elements back-end ([M-elements-4](#M-elements-4)) |
+| `models.ElementsType` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.ElementsUserCreate` | not exposed in v2: Elements back-end ([M-elements-4](#M-elements-4)) |
+| `models.ElementsUserRoleCreate` | not exposed in v2: Elements back-end ([M-elements-4](#M-elements-4)) |
+| `models.ElementsUserRoleRemove` | not exposed in v2: Elements back-end ([M-elements-4](#M-elements-4)) |
 | `models.EmbeddedLoginRequestOutput` | `models.EmbeddedLoginRequestOutput` |
 | `models.EnvironmentCopy` | `models.EnvironmentCopy` |
 | `models.EnvironmentCopyScope` | `models.EnvironmentCopyScope` |
@@ -4023,11 +4518,251 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.EnvironmentRead` | `models.EnvironmentRead` |
 | `models.EnvironmentStats` | `models.EnvironmentStats` |
 | `models.EnvironmentUpdate` | `models.EnvironmentUpdate` |
+| `models.FailedInvite` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.FullData` | not exposed in v2: operator route ([M-pdps-3](#M-pdps-3)) |
+| `models.HTTPValidationError` | `permit.Error.Detail` ([M-errors-8](#M-errors-8)) |
+| `models.IdentityRead` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.InviteAttemptResult` | not exposed in v2: dashboard or CLI helper ([M-auth-1](#M-auth-1)) |
+| `models.InviteCreate` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.InviteRead` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.InviteStatus` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.Jwks` | `models.EnvironmentCopy` ([M-environments-11](#M-environments-11)) |
+| `models.Labels` | `models.AuditLogModel` ([M-audit-logs-2](#M-audit-logs-2)) |
+| `models.LanguageInstructions` | not exposed in v2: dashboard or CLI helper ([M-instructions-1](#M-instructions-1)) |
+| `models.LocationInner` | `permit.Error.Detail` ([M-errors-8](#M-errors-8)) |
+| `models.LoginResult` | not exposed in v2: dashboard or CLI helper ([M-auth-1](#M-auth-1)) |
+| `models.MappedNullable` | not exposed in v2 ([M-models-3](#M-models-3)) |
 | `models.MappingRule` | `models.MappingRule` |
 | `models.MemberAccessLevel` | `models.MemberAccessLevel` |
 | `models.MemberAccessObj` | `models.MemberAccessObj` |
 | `models.Methods` | `models.Methods` |
+| `models.MultiInviteResult` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.New` | `models.EnvironmentCopy` ([M-environments-11](#M-environments-11)) |
+| `models.NullableAPIKeyCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAPIKeyOwnerType` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAPIKeyRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAPIKeyScopeRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableActionBlockEditable` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableActionBlockRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableActor` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAddRolePermissions` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAttributeBlockEditable` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAttributeBlockRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAttributeType` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAttributes` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAuthMechanism` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAuthnMeAPIKeyRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAuthnMeMemberRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAuthnMeRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableAuthnMeUserRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableBool` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableBulkRoleAssignmentReport` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableBulkRoleUnAssignmentReport` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableConditionSetCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableConditionSetData` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableConditionSetRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableConditionSetRuleCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableConditionSetRuleRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableConditionSetRuleRemove` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableConditionSetType` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableConditionSetUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableCopyEnvironmentScopeRoles` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDataSourceConfig` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDataSourceEntry` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDerivedRole` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDerivedRoleBlockEdit` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDerivedRoleBlockRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDerivedRoleRule` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDerivedRoleRuleCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDerivedRoleRuleDelete` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDerivedRoleRuleRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableDevLogin` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsConfigCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsConfigRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsConfigUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsEnvRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsEnvUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsPermissionLevel` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsRoleRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsType` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsUserCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsUserRoleCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableElementsUserRoleRemove` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEmbeddedLoginRequestOutput` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEnvironmentCopy` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEnvironmentCopyScope` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEnvironmentCopyScopeFilters` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEnvironmentCopyTarget` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEnvironmentCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEnvironmentRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEnvironmentStats` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableEnvironmentUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableFailedInvite` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableFloat32` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableFloat64` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableFullData` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableHTTPValidationError` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableIdentityRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableInt` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableInt32` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableInt64` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableInviteAttemptResult` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableInviteCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableInviteRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableInviteStatus` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableJwks` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableLabels` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableLanguageInstructions` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableLocationInner` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableLoginResult` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableMappingRule` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableMemberAccessLevel` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableMemberAccessObj` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableMethods` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableMultiInviteResult` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableNew` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOPADecisionLog` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOPALClient` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOnboardingStep` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOrgMemberRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOrgMemberUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOrganizationCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOrganizationRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOrganizationReadWithAPIKey` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableOrganizationUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePDPConfigRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePDPContext` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePDPState` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePDPStateUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePaginatedResultAPIKeyRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePaginatedResultConditionSetRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePaginatedResultElementsConfigRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePaginatedResultOPADecisionLog` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePaginatedResultRelationRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePaginatedResultResourceRoleRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePaginatedResultUserRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableParentId` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePdp` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePdpValues` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePermissionLevelRoleRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePermitBackendSchemasSchemaOpalDataDerivationSettings` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePolicyRepoCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePolicyRepoRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullablePolicyRepoStatus` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableProgrammingLanguage` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableProjectCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableProjectRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableProjectUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableProxyConfigCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableProxyConfigRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableProxyConfigUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationBlockRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationshipTupleBlockRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationshipTupleCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationshipTupleCreateBulkOperation` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationshipTupleDelete` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationshipTupleDeleteBulkOperation` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationshipTupleObj` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRelationshipTupleRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRemoteConfig` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRemoveRolePermissions` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceActionCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceActionGroupCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceActionGroupRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceActionRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceActionUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceAttributeCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceAttributeRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceAttributeUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceId` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceInstanceBlockRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceInstanceCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceInstanceRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceInstanceUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceReplace` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceRoleCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceRoleList` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceRoleRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceRoleUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceSets` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResourceUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResources` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleAssignmentCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleAssignmentDetailedRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleAssignmentRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleAssignmentRemove` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleAssignmentResourceInstance` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleAssignmentRole` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleAssignmentTenant` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleAssignmentUser` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleBlock` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleData` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoleUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableRoles` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableSSHAuthData` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableScope` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableSettings` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableStatistics` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableString` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableStrippedRelationBlockRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableTargetEnv` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableTenantBlockRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableTenantCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableTenantRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableTenantUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableTime` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserData` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserLoginRequestInput` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserRole` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserRoleCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserRoleRemove` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserSets` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableUserUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableValidationError` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableWebhookCreate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableWebhookRead` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.NullableWebhookUpdate` | `models.Optional` ([M-models-2](#M-models-2)) |
+| `models.OPADecisionLog` | `models.AuditLogModel` ([M-audit-logs-2](#M-audit-logs-2)) |
+| `models.OPALClient` | not exposed in v2: operator route ([M-pdps-2](#M-pdps-2)) |
+| `models.OnboardingStep` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.OrgMemberRead` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.OrgMemberUpdate` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.OrganizationCreate` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.OrganizationRead` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.OrganizationReadWithAPIKey` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
+| `models.OrganizationUpdate` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
 | `models.PDPConfigRead` | `models.PDPConfigRead` |
+| `models.PDPContext` | not exposed in v2: operator route ([M-pdps-2](#M-pdps-2)) |
+| `models.PDPState` | not exposed in v2: operator route ([M-pdps-2](#M-pdps-2)) |
+| `models.PDPStateUpdate` | not exposed in v2: operator route ([M-pdps-2](#M-pdps-2)) |
+| `models.PaginatedResultAPIKeyRead` | `permit.Page` ([M-lists-2](#M-lists-2)) |
+| `models.PaginatedResultConditionSetRead` | `permit.Page` ([M-lists-2](#M-lists-2)) |
+| `models.PaginatedResultElementsConfigRead` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.PaginatedResultOPADecisionLog` | `models.AuditLogModel` ([M-audit-logs-2](#M-audit-logs-2)) |
+| `models.PaginatedResultRelationRead` | `permit.Page` ([M-lists-2](#M-lists-2)) |
+| `models.PaginatedResultResourceRoleRead` | `models.ResourceRoleList` ([M-resource-roles-12](#M-resource-roles-12)) |
+| `models.PaginatedResultUserRead` | `permit.Page` ([M-lists-2](#M-lists-2)) |
+| `models.ParentId` | `models.ConditionSetRead.ResourceID`, `models.ConditionSetRead.ParentID` and the same strings of the other condition set models ([M-condition-sets-9](#M-condition-sets-9)) |
+| `models.Pdp` | not exposed in v2: operator route ([M-pdps-2](#M-pdps-2)) |
+| `models.PdpValues` | not exposed in v2 ([M-models-4](#M-models-4)) |
+| `models.PermissionLevelRoleRead` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.PermitBackendSchemasSchemaDerivedRoleRuleDerivationSettings` | `models.DerivationSettings` ([M-implicit-grants-5](#M-implicit-grants-5)) |
+| `models.PermitBackendSchemasSchemaOpalDataDerivationSettings` | not exposed in v2 ([M-models-4](#M-models-4)) |
+| `models.PolicyRepoCreate` | not exposed in v2: dashboard or CLI helper ([M-policy-repos-1](#M-policy-repos-1)) |
+| `models.PolicyRepoRead` | not exposed in v2: dashboard or CLI helper ([M-policy-repos-1](#M-policy-repos-1)) |
+| `models.PolicyRepoStatus` | not exposed in v2: dashboard or CLI helper ([M-policy-repos-1](#M-policy-repos-1)) |
+| `models.ProgrammingLanguage` | not exposed in v2: dashboard or CLI helper ([M-instructions-1](#M-instructions-1)) |
 | `models.ProjectCreate` | `models.ProjectCreate` |
 | `models.ProjectRead` | `models.ProjectRead` |
 | `models.ProjectUpdate` | `models.ProjectUpdate` |
@@ -4042,7 +4777,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.RelationshipTupleCreateBulkOperation` | `models.RelationshipTupleCreateBulkOperation` |
 | `models.RelationshipTupleDelete` | `models.RelationshipTupleDelete` |
 | `models.RelationshipTupleDeleteBulkOperation` | `models.RelationshipTupleDeleteBulkOperation` |
+| `models.RelationshipTupleObj` | not exposed in v2 ([M-models-4](#M-models-4)) |
 | `models.RelationshipTupleRead` | `models.RelationshipTupleRead` |
+| `models.RemoteConfig` | not exposed in v2: operator route ([M-pdps-2](#M-pdps-2)) |
 | `models.RemoveRolePermissions` | `models.RemoveRolePermissions` |
 | `models.ResourceActionCreate` | `models.ResourceActionCreate` |
 | `models.ResourceActionGroupCreate` | `models.ResourceActionGroupCreate` |
@@ -4053,6 +4790,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceAttributeRead` | `models.ResourceAttributeRead` |
 | `models.ResourceAttributeUpdate` | `models.ResourceAttributeUpdate` |
 | `models.ResourceCreate` | `models.ResourceCreate` |
+| `models.ResourceId` | `models.ConditionSetRead.ResourceID`, `models.ConditionSetRead.ParentID` and the same strings of the other condition set models ([M-condition-sets-9](#M-condition-sets-9)) |
 | `models.ResourceInstanceBlockRead` | `models.ResourceInstanceBlockRead` |
 | `models.ResourceInstanceCreate` | `models.ResourceInstanceCreate` |
 | `models.ResourceInstanceRead` | `models.ResourceInstanceRead` |
@@ -4063,7 +4801,11 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceRoleList` | `models.ResourceRoleList` |
 | `models.ResourceRoleRead` | `models.ResourceRoleRead` |
 | `models.ResourceRoleUpdate` | `models.ResourceRoleUpdate` |
+| `models.ResourceSets` | `models.EnvironmentCopy` ([M-environments-11](#M-environments-11)) |
 | `models.ResourceUpdate` | `models.ResourceUpdate` |
+| `models.Resources` | `models.EnvironmentCopy` ([M-environments-11](#M-environments-11)) |
+| `models.ResponseListConditionSetsV2SchemaProjIdEnvIdConditionSetsGet` | `permit.Page` ([M-lists-2](#M-lists-2)) |
+| `models.ResponseListRoleAssignmentsV2FactsProjIdEnvIdRoleAssignmentsGet` | `permit.Page` ([M-lists-2](#M-lists-2)) |
 | `models.RoleAssignmentCreate` | `models.RoleAssignmentCreate` |
 | `models.RoleAssignmentDetailedRead` | `models.RoleAssignmentDetailedRead` |
 | `models.RoleAssignmentRead` | `models.RoleAssignmentRead` |
@@ -4072,21 +4814,35 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.RoleAssignmentRole` | `models.RoleAssignmentRole` |
 | `models.RoleAssignmentTenant` | `models.RoleAssignmentTenant` |
 | `models.RoleAssignmentUser` | `models.RoleAssignmentUser` |
+| `models.RoleBlock` | not exposed in v2 ([M-models-4](#M-models-4)) |
 | `models.RoleCreate` | `models.RoleCreate` |
+| `models.RoleData` | not exposed in v2: operator route ([M-pdps-3](#M-pdps-3)) |
 | `models.RoleRead` | `models.RoleRead` |
 | `models.RoleUpdate` | `models.RoleUpdate` |
+| `models.Roles` | `models.ResourceRoleList` ([M-resource-roles-12](#M-resource-roles-12)) |
+| `models.SSHAuthData` | not exposed in v2: dashboard or CLI helper ([M-policy-repos-1](#M-policy-repos-1)) |
+| `models.Scope` | `models.EnvironmentCopy` ([M-environments-11](#M-environments-11)) |
+| `models.Settings` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.Statistics` | `models.EnvironmentStatistics` ([M-environments-12](#M-environments-12)) |
 | `models.StrippedRelationBlockRead` | `models.StrippedRelationBlockRead` |
+| `models.TargetEnv` | `models.EnvironmentCopy` ([M-environments-11](#M-environments-11)) |
 | `models.TenantBlockRead` | `models.TenantBlockRead` |
 | `models.TenantCreate` | `models.TenantCreate` |
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
+| `models.UrlMatchType` | `models.URLType` ([M-proxy-configs-7](#M-proxy-configs-7)) |
 | `models.UserCreate` | `models.UserCreate` |
+| `models.UserData` | not exposed in v2: operator route ([M-pdps-3](#M-pdps-3)) |
 | `models.UserLoginRequestInput` | `models.UserLoginRequestInput` |
 | `models.UserRead` | `models.UserRead` |
+| `models.UserRole` | not exposed in v2: deprecated upstream ([M-users-12](#M-users-12)) |
 | `models.UserRoleCreate` | `models.UserRoleCreate` |
 | `models.UserRoleRemove` | `models.UserRoleRemove` |
+| `models.UserSets` | `models.EnvironmentCopy` ([M-environments-11](#M-environments-11)) |
 | `models.UserUpdate` | `models.UserUpdate` |
-
-Not mapped yet: 286 of the 384 types of v1's pkg/models.
+| `models.ValidationError` | `permit.Error.Detail` ([M-errors-8](#M-errors-8)) |
+| `models.WebhookCreate` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.WebhookRead` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
+| `models.WebhookUpdate` | not exposed in v2: EAP ([M-elements-2](#M-elements-2)) |
 
 <!-- apisurface:models:end -->

@@ -2,8 +2,23 @@
 
 ## v2.0.0 (unreleased)
 
-v2 is the module `github.com/permitio/permit-golang/v2`. [MIGRATION.md](MIGRATION.md) lists each
-change from v1 and what to use instead.
+v2 is the module `github.com/permitio/permit-golang/v2`, with a new client: the packages, the
+identifiers and some requests change. [MIGRATION.md](MIGRATION.md) lists each part of the API of
+v1.3.0 and what takes its place in v2, in three buckets: compatibility, API and wire behaviour. It
+starts with [the changes to check first](MIGRATION.md#check-these-first), such as
+`UsersService.Sync`, which replaces the whole user, and lists
+[the calls that could never work in v1](MIGRATION.md#calls-that-could-never-work-in-v1). To stay
+on v1 until you move, pin the latest v1 release (v1.3.x, then v1.4.x), as
+[MIGRATION.md](MIGRATION.md#staying-on-v1) says.
+
+### Compatibility
+
+- The module path ends in `/v2`: import `github.com/permitio/permit-golang/v2`, the package
+  `permit`, and `github.com/permitio/permit-golang/v2/models` in place of the packages under
+  `pkg/`. v1 stays on the Go module proxy, and an application can require v1 and v2 at once and
+  move one package at a time.
+- The go directive of the module is `go 1.26.0`: v2 builds with Go 1.26.0 or later.
+- The module has no package main: v1's example server in `main.go` is not in v2.
 
 ### Client
 
@@ -475,9 +490,9 @@ change from v1 and what to use instead.
   list replaces it. `Description`, `Attributes` and `GrantedTo` are `models.Optional` fields, so
   an update can send null for them, which clears them; v1 could not send null for a description
   or attributes.
-- v1's `AddParentRole` and `RemoveParentRole` are removed: they sent a route that the API's
-  documentation does not list. A role's parents are the roles that it extends: set them with the
-  `Extends` of `Update`.
+- v1's `AddParentRole` and `RemoveParentRole` are removed: they sent a route that the API does
+  not serve, so each call failed with an error and changed no role. A role's parents are the roles
+  that it extends: set them with the `Extends` of `Update`.
 - `Ancestors` and `Descendants` are new: each returns the roles that the API lists as the
   ancestors or the descendants of a role, as a `[]models.RoleRead`, whether the reply holds them
   as a JSON array or as a paginated object, and an empty slice, not nil, when it holds none.
@@ -514,9 +529,9 @@ change from v1 and what to use instead.
   returns the roles that the API lists as the ancestors or the descendants of a role of a
   resource, as a `[]models.ResourceRoleRead`, whether the reply holds them as a JSON array or as a
   paginated object, and an empty slice, not nil, when it holds none.
-- v1's `AddParent` and `RemoveParent` are removed: they sent a route that the API's documentation
-  does not list. A role's parents are the roles of its resource that it extends: set them with
-  the `Extends` of `Update`.
+- v1's `AddParent` and `RemoveParent` are removed: they sent a route that the API does not serve,
+  so each call failed with an error and changed no role. A role's parents are the roles of its
+  resource that it extends: set them with the `Extends` of `Update`.
 - A key of a resource or of a role is sent as one segment of the path, escaped; an empty key, `.`
   or `..` is an error that matches `ErrInvalidConfig`, and no request for the call is sent.
   `Delete` returns nil when the API answers 404, as the role is gone already; a 404 to
@@ -1112,6 +1127,34 @@ change from v1 and what to use instead.
   attempt at once, which matches `ErrRateLimited` for a 429. A call whose context ends while it
   waits returns an error that matches the context's error.
 - Each attempt has its own Debug line, with its number, from 1, in `attempt`.
+
+### Not in v2
+
+- v2 has no generated client: the operations that only v1's `pkg/openapi` sent are methods of the
+  services above when v2 covers them, and the others are not in v2, each for the reason that its
+  entry of MIGRATION.md gives:
+  - the login routes of the dashboard and the CLI ([M-auth-1](MIGRATION.md#M-auth-1));
+  - the organizations, their members and their invites
+    ([M-organizations-1](MIGRATION.md#M-organizations-1));
+  - the configs of Permit Elements, which are in early access, the permission levels of Elements
+    in an environment, and the data routes behind the Elements components
+    ([M-elements-2](MIGRATION.md#M-elements-2), [M-elements-3](MIGRATION.md#M-elements-3),
+    [M-elements-4](MIGRATION.md#M-elements-4));
+  - the routes that serve the PDPs: the values that a PDP runs with, the rotation of its API key,
+    the data that it reads and the decision logs that it sends
+    ([M-pdps-2](MIGRATION.md#M-pdps-2), [M-pdps-3](MIGRATION.md#M-pdps-3));
+  - the list of the PDP configs of an environment, as the API is due to change what the route
+    returns ([M-pdps-1](MIGRATION.md#M-pdps-1));
+  - the policy repositories of a project ([M-policy-repos-1](MIGRATION.md#M-policy-repos-1)), the
+    setup instructions of the dashboard ([M-instructions-1](MIGRATION.md#M-instructions-1)), the
+    routes under `/v2/stress/` ([M-stress-1](MIGRATION.md#M-stress-1)) and the possible parents
+    of a condition set ([M-condition-sets-8](MIGRATION.md#M-condition-sets-8)).
+- The `Nullable` types of v1's `pkg/models` are not in v2: a field of an update model that can send
+  null is a `models.Optional` ([M-models-2](MIGRATION.md#M-models-2)). The appendix of
+  MIGRATION.md maps each type of v1's `pkg/models` to the v2 type or the entry that takes its
+  place.
+- v2 declares no interface for its client or its services, and has no method that sends a request
+  that you build, as [Kept on purpose](MIGRATION.md#kept-on-purpose) in MIGRATION.md says.
 
 ## v1.3.0 (2026-10-13)
 

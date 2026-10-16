@@ -69,6 +69,27 @@ const e2ePR = "name: e2e (pull request)\non:\n  pull_request:\npermissions: {}\n
 // e2ePRFile is the path of the pull request lane.
 const e2ePRFile = ".github/workflows/e2e-pr.yml"
 
+// releaseFile is the path of the release workflow, and releaseCall its job that calls CI in the
+// mode release, which grants contents: read and ends with its permissions.
+const (
+	releaseFile = ".github/workflows/release.yml"
+	releaseCall = "name: release\non: workflow_dispatch\npermissions: {}\n" +
+		"concurrency:\n  group: release-${{ github.sha }}\njobs:\n" +
+		"  gates:\n    uses: ./.github/workflows/ci.yml\n    with:\n      mode: release\n" +
+		"    permissions:\n      contents: read\n"
+)
+
+// withRelease returns the changes that add the e2e job and the pull request lane, make the test
+// job of ci.yml ask for contents: read and pull-requests: write, which the lane grants, and add
+// the release workflow, release.
+func withRelease(release string) []change {
+	return append(withE2E("", ""),
+		inCI("    timeout-minutes: 10\n    strategy:", "    timeout-minutes: 10\n"+
+			"    permissions:\n      contents: read\n      pull-requests: write\n    strategy:"),
+		change{file: e2ePRFile, from: "permissions: {}\n", to: "permissions: write-all\n"},
+		change{file: releaseFile, to: release})
+}
+
 // withE2E returns the changes that add the e2e job to ci.yml, with from replaced with to in the
 // job, the scripts it runs, and the pull request lane.
 func withE2E(from, to string) []change {
@@ -499,6 +520,20 @@ func TestCheckE2E(t *testing.T) {
 					"    permissions:\n      contents: read\n      checks: read\n    strategy:"),
 				inLane("      mode: e2e\n", "      mode: e2e\n    permissions:\n"+
 					"      contents: write\n      checks: read\n")),
+		},
+		{
+			name: "a release workflow that grants what CI asks for", wantExit: exitPassed,
+			changes: withRelease(releaseCall + "      pull-requests: write\n"),
+		},
+		{
+			name:     "a release workflow that does not grant a permission CI asks for",
+			changes:  withRelease(releaseCall),
+			wantExit: exitFailed,
+			wantStdout: []string{
+				"cicheck: " + releaseFile + ":7: job gates calls ./.github/workflows/ci.yml, " +
+					"whose job test asks for pull-requests: write, which job gates does not " +
+					"grant; GitHub refuses to start the call\n",
+			},
 		},
 		{
 			name: "a workflow that grants everything to the call", wantExit: exitPassed,

@@ -123,9 +123,9 @@ func TestRunPasses(t *testing.T) {
 		"  GA 5: 1 covered, 1 planned, 2 excluded, 1 deferred, 0 undecided\n" +
 		"  deprecated 1: 0 covered, 0 planned, 1 excluded, 0 deferred, 0 undecided\n" +
 		"  SDK-only 1: 0 covered, 1 planned, 0 excluded, 0 deferred\n" +
-		"e2e of the 2 covered rows: 0 cloud, 0 local, 0 advisory, 0 dry run, 2 none; dry run: " +
-		"the records hold no live request, and a request of a scenario run offline is no " +
-		"end-to-end evidence\n" +
+		"e2e of the 2 covered rows: 0 cloud, 0 local, 0 local-only, 0 advisory, 0 dry run, " +
+		"2 none; dry run: the records hold no live request, and a request of a scenario run " +
+		"offline is no end-to-end evidence\n" +
 		"covered: control-plane GET /v2/facts/{proj_id}/{env_id}/users/{user_id} (get_user): " +
 		"UsersService.Get; 1 request; e2e none\n" +
 		"covered: pdp POST /allowed (is_allowed_allowed_post): Client.Check; 1 request; e2e " +
@@ -649,8 +649,8 @@ func TestDryRunIsNoLiveEvidence(t *testing.T) {
 		t.Fatalf("apicoverage exited %d, want 0:\n%s", code, out)
 	}
 	for _, want := range []string{
-		"e2e of the 2 covered rows: 0 cloud, 0 local, 0 advisory, 1 dry run, 1 none; dry run: " +
-			"the records hold no live request",
+		"e2e of the 2 covered rows: 0 cloud, 0 local, 0 local-only, 0 advisory, 1 dry run, " +
+			"1 none; dry run: the records hold no live request",
 		"(get_user): UsersService.Get; 2 requests; e2e dry run\n",
 	} {
 		if !strings.Contains(out, want) {
@@ -663,7 +663,8 @@ func TestDryRunIsNoLiveEvidence(t *testing.T) {
 		t.Fatalf("apicoverage exited %d, want 0:\n%s", code, out)
 	}
 	for _, want := range []string{
-		"e2e of the 2 covered rows: 1 cloud, 0 local, 0 advisory, 0 dry run, 1 none\n",
+		"e2e of the 2 covered rows: 1 cloud, 0 local, 0 local-only, 0 advisory, 0 dry run, " +
+			"1 none\n",
 		"(get_user): UsersService.Get; 3 requests; e2e cloud\n",
 		"records: 1 record file, 1 test, 4 requests: 2 wire, 1 dryrun, 1 live\n",
 	} {
@@ -685,7 +686,7 @@ func TestE2EStates(t *testing.T) {
 		t.Fatalf("apicoverage exited %d, want 0:\n%s", code, out)
 	}
 	for _, want := range []string{
-		"e2e of the 2 covered rows: 0 cloud, 1 local, 1 advisory, 0 dry run, 0 none;",
+		"e2e of the 2 covered rows: 0 cloud, 1 local, 0 local-only, 1 advisory, 0 dry run, 0 none;",
 		"(get_user): UsersService.Get; 1 request; e2e local\n",
 		"(is_allowed_allowed_post): Client.Check; 1 request; e2e advisory\n",
 	} {
@@ -760,9 +761,9 @@ func TestRunWritesTheSummary(t *testing.T) {
 		"| pdp | GA | 5 | 1 | 1 | 2 | 1 | 0 |\n" +
 		"| pdp | deprecated | 1 | 0 | 0 | 1 | 0 | 0 |\n" +
 		"| pdp | SDK-only | 1 | 0 | 1 | 0 | 0 |  |\n\n" +
-		"e2e of the 2 covered rows: 0 cloud, 0 local, 0 advisory, 0 dry run, 2 none; dry run: " +
-		"the records hold no live request, and a request of a scenario run offline is no " +
-		"end-to-end evidence.\n\n" +
+		"e2e of the 2 covered rows: 0 cloud, 0 local, 0 local-only, 0 advisory, 0 dry run, " +
+		"2 none; dry run: the records hold no live request, and a request of a scenario run " +
+		"offline is no end-to-end evidence.\n\n" +
 		"| Route | Op | Methods | Requests | e2e (dry run) |\n" +
 		"| --- | --- | --- | ---: | --- |\n" +
 		"| control-plane `GET /v2/facts/{proj_id}/{env_id}/users/{user_id}` | `get_user` | " +

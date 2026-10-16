@@ -80,7 +80,7 @@ func (res *result) e2eCounts() map[string]int {
 }
 
 // e2eStates are the end-to-end states, in the order the report lists them.
-var e2eStates = []string{e2eCloud, e2eLocal, e2eAdvisory, e2eDryRun, e2eNone}
+var e2eStates = []string{e2eCloud, e2eLocal, e2eLocalOnly, e2eAdvisory, e2eDryRun, e2eNone}
 
 // verdict returns the verdict and what it found.
 func (res *result) verdict() (string, string) {

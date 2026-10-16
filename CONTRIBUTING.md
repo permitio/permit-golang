@@ -509,8 +509,7 @@ Release mode checks the version of a release with gorelease, which `tools/go.mod
 against the newest earlier tag of the same major version: with `-base=none` for the first one,
 allowing incompatible changes after a prerelease, and otherwise failing on an incompatible change
 or a version that does not follow from the changes. It also fails while `pending.txt` is not
-empty, as [Pending lines](#pending-lines) says. The release workflow *(added in a later commit on
-this branch)* runs it:
+empty, as [Pending lines](#pending-lines) says. The [release workflow](#releases) runs it:
 
 ```sh
 go -C tools build -o ../bin/gorelease golang.org/x/exp/cmd/gorelease
@@ -620,7 +619,8 @@ before you check it. It checks the whole repository from any directory in it. It
   file that is not in the zip;
 - the zip, compressed, is larger than the budget.
 
-It prints the module's path, its number of files, the zip's size and the budget, and the 10
+It prints the module's path and version with the zip's `h1:` hash, the one that `go.sum` and the
+checksum database record, then its number of files, the zip's size and the budget, and the 10
 largest files with their sizes uncompressed and compressed, on every run that builds the zip. It
 exits 0 when every rule holds, 1 when one does not, and 2 when it could not check, such as when
 `HEAD` has no `go.mod` or the limits are not valid. Run it from the repository root:
@@ -628,6 +628,15 @@ exits 0 when every rule holds, 1 when one does not, and 2 when it could not chec
 ```sh
 go -C tools build -o ../bin/zipcheck ./cmd/zipcheck
 bin/zipcheck
+```
+
+The zip is for `v2.0.0` unless `-version` names another version of v2; `-out` writes it to a
+file. `-zip` checks a zip that exists instead, such as the one the module proxy serves. The
+[release workflow](#releases) uses all three:
+
+```sh
+bin/zipcheck -version v2.1.0 -out bin/permit-golang-v2.1.0.zip
+bin/zipcheck -zip "$(go env GOMODCACHE)/cache/download/github.com/permitio/permit-golang/v2/@v/v2.1.0.zip"
 ```
 
 The limits are in `tools/cmd/zipcheck/limits.go`. Raise one only when the growth is wanted, in the
@@ -674,7 +683,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `e2e-latest` | When `e2e` runs: the same scenarios with the newest release of the container PDP, by tag, and its spec compared with the snapshot of the pinned image. Advisory: it never fails CI. See [Against Permit](#against-permit). |
 | `e2e-cloudpdp` | When `e2e` runs: the scenarios of the cloud PDP's leg, against the cloud PDP. Advisory: it never fails CI. See [Against Permit](#against-permit). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
-| `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: posts one line to Slack. `CI` does not need it. |
+| `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release: on `master`, posts one line to Slack; in a release, which passes no webhook to the CI it calls, it only warns, and the `notify-failure` job of `release.yml` posts the failure. `CI` does not need it. |
 
 Which jobs a run selects depends on its mode:
 
@@ -683,9 +692,9 @@ Which jobs a run selects depends on its mode:
   pull request runs `mutation`, `dependency-review` and `api-surface` too, and a push to `master`
   runs `bench`, `e2e`, `e2e-latest` and `e2e-cloudpdp`.
 - A manual run (`workflow_dispatch`) takes a mode: `pr` runs the pull request checks, `weekly` the
-  weekly jobs, `security` the security scan, and `e2e` the end-to-end jobs. The release workflow
-  *(added in a later commit on this branch)* calls CI with the mode `release`, which runs the
-  pull request checks and the end-to-end jobs.
+  weekly jobs, `security` the security scan, and `e2e` the end-to-end jobs. The
+  [release workflow](#releases), `.github/workflows/release.yml`, calls CI with the mode
+  `release`, which runs the pull request checks and the end-to-end jobs.
 - `.github/workflows/e2e-pr.yml`, the pull request lane of the end-to-end tests, calls CI with
   the mode `e2e` on a pull request from a branch of this repository; see
   [Against Permit](#against-permit). That run's `CI` decides the lane, and is not the check the
@@ -1029,7 +1038,7 @@ post names the owner and the day, 7 days on, by which a pull request must fix it
 | `mutation (weekly)` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
 | `spec-drift` | Mondays, and in the mode `weekly` | `SLACK_WEBHOOK_URL` |
 | `bench` | A push to `master`, Mondays and the mode `weekly`, when the benchmarks regressed or their report did not complete | `SLACK_WEBHOOK_URL` |
-| `notify-gate-failure` | After `CI`, when it failed on a push to `master` or in a release, such as when `e2e` failed | `SLACK_WEBHOOK_URL` |
+| `notify-gate-failure` | After `CI`, when it failed on a push to `master`, such as when `e2e` failed; in a release, the `notify-failure` job of `release.yml` posts the failure instead | `SLACK_WEBHOOK_URL` |
 
 Each post starts with one line, `<repo> <check>: <result>. <details>. <run URL>`, which
 `tools/cmd/notify` writes and posts; the security scan and the digest put their report under it,
@@ -1490,7 +1499,8 @@ bin/apicoverage bin/api-coverage.jsonl
 apicoverage prints the rows of each section by stage and status, each covered row with the
 methods that send it, and every problem, then its verdict. Each covered row also gets an
 end-to-end state: `cloud` when a live request reached it, `local` when the record that `-local`
-names did, `advisory` when one of its methods is on the list that `-advisory` names, `dry run`
+names did, `local-only` when one of its methods is on the list that `-local-only` names,
+`tools/e2e/local-only.txt`, `advisory` when one is on the list that `-advisory` names, `dry run`
 when only a scenario run offline did, and `none`. `-local` takes the record of a run against a
 full local stack in the same JSONL format, with every request in the mode `local`, as that run
 will write it *(added in a later commit on this branch)*. A dry-run request is no end-to-end
@@ -1514,6 +1524,11 @@ go -C tools test -count=1 -tags e2e -run '^TestCloud$' ./e2e -args -e2e.dryrun \
   -e2e.record "$PWD/bin/e2e-dryrun.jsonl"
 bin/apicoverage -advisory tools/e2e/advisory.txt bin/api-coverage.jsonl bin/e2e-dryrun.jsonl
 ```
+
+With `-release`, apicoverage also fails on each planned row, as a release covers every operation
+it plans, and on each covered row whose end-to-end state is `dry run` or `none`. The
+[release workflow](#releases) runs it with the record of its own `e2e` job, whose requests are
+live, and `-local-only tools/e2e/local-only.txt`.
 
 ## End-to-end tests
 
@@ -1648,7 +1663,7 @@ sentinel: the methods add up to the four states.
 | cloud | A cloud scenario lists the method in its `methods`, and its dry run sends each of the method's operations. Two methods may send the same operation, so a request alone makes no method cloud. |
 | local-only | `tools/e2e/local-only.txt`: `<Method> <reason> <phase>`, with the reason `org-key`, `account-level-write`, `needs-pdp-id` or `unverified-response`, and the phase of the local harness that proves the method instead. |
 | advisory | `tools/e2e/advisory.txt`: `<Method> <ticket> <reason>`, for a scenario that may skip while the ticket is open. The scenario skips in the dry run too, with an entry of `.github/allowed-skips.txt` for its test that names the same ticket; the gate fails an advisory line whose ticket no entry for a test of `tools/e2e` names. The `e2e` job checks its live run against `tools/e2e/allowed-skips.txt`, which needs the same entry: checkgotest fails on an entry whose test did not skip, and `.github/allowed-skips.txt` names tests that the live run does not run, so the live run has a file of its own. |
-| pending | `tools/e2e/pending.txt`: `<Method> e2e-pending <area>`, for a method that no scenario calls yet. A release refuses a pending line *(added in a later commit on this branch)*. |
+| pending | `tools/e2e/pending.txt`: `<Method> e2e-pending <area>`, for a method that no scenario calls yet. A [release](#releases) refuses a pending line. |
 
 When a commit adds a public method, it adds a line to `pending.txt`, or a scenario that calls
 it. To move a method from pending to cloud, add a scenario to `cloudScenarios`, or extend one,
@@ -1714,7 +1729,8 @@ API and a stub `docker`, for its leg, `pinned`:
 
 Runs of the job do not wait for each other: each works in a scratch environment of its own, and
 the sweep deletes only environments older than 24 hours. A failure of `e2e` on a push to
-`master` or in a release fails `CI`, which `notify-gate-failure` posts to Slack.
+`master` or in a release fails `CI`, which is posted to Slack: on `master` by
+`notify-gate-failure`; in a release by the `notify-failure` job of `release.yml`.
 
 The job runs in the GitHub environment `integration`, to which a maintainer adds the secret
 before the lane's first run. It deploys from `master`, from pull requests (`refs/pull/*/merge`)
@@ -1839,8 +1855,8 @@ committed, until `go -C tools/upgrade mod tidy` is run and its change pushed.
 | Tier | When | What | Required | Alert |
 | --- | --- | --- | --- | --- |
 | Offline | Every pull request and push to `master` | The tests of both modules, the end-to-end dry run, the dry run of the upgrade test and the tests of the migration skill's scanner, with no network | Yes: `CI` | The pull request's `CI` check |
-| Local full stack | Before a release | A maintainer-run local full-stack suite | For a release *(the release workflow is added in a later commit on this branch)* | The release's harness evidence *(added in a later commit on this branch)* |
-| Production scratch | A push to `master`, a manual run with the mode `e2e`, a release, and a pull request from a branch of this repository | The `e2e` job above, in a scratch environment of Permit's production API | Yes on `master`, in a release and in a manual run; on a pull request into `master`, through the deployment rule | `notify-gate-failure` on `master` and in a release; on a pull request, the lane's `CI` check and its `integration` deployment |
+| Local full stack | Before a release | A maintainer-run local full-stack suite | For a [release](#releases) | The release's harness evidence, which the release workflow checks |
+| Production scratch | A push to `master`, a manual run with the mode `e2e`, a release, and a pull request from a branch of this repository | The `e2e` job above, in a scratch environment of Permit's production API | Yes on `master`, in a release and in a manual run; on a pull request into `master`, through the deployment rule | On `master`, `notify-gate-failure`; in a release, the `notify-failure` job of `release.yml`; on a pull request, the lane's `CI` check and its `integration` deployment |
 | Production scratch, advisory | Whenever the `e2e` job runs | The [advisory legs](#the-advisory-legs): the scenarios with the newest release of the container PDP, `e2e-latest`, and against the cloud PDP, `e2e-cloudpdp`, each in a scratch environment of its own | No: they never fail `CI`, and make no deployment | A warning of `CI`, and the failed job in the run |
 | Post-release smoke | After a release *(added in a later commit on this branch)* | The scenarios against the released module | No | *(Added in a later commit on this branch.)* |
 
@@ -2206,23 +2222,119 @@ lets it do, so a wait of seconds takes no real time and is exact.
 ## Releases
 
 v2 is not released yet. A release of v2 is a version `v2.<minor>.<patch>` that follows the
-support policy of [README.md](README.md#support-policy). Before a release:
+support policy of [README.md](README.md#support-policy). A release candidate of it,
+`v2.<minor>.<patch>-rc.<n>`, comes first when the release needs trying out, as `v2.0.0-rc.1`
+does before `v2.0.0`. Before a release, in a pull request:
 
-- `Version`, in `version.go`, is the version without its `v`, such as `2.1.0`. `TestVersion`
-  checks that it is a semantic version, and `TestVersionMatchesModulePath` that its major version
-  is that of the module path.
-- The version's heading in `CHANGELOG.md` no longer says `(unreleased)`. A release that raises
-  the `go` line of `go.mod` is a minor release, and its entry says so in a compatibility note.
-- `tools/migration/pending.txt` has no line other than blank lines and comments, and
-  `apisurface -mode release` passes: gorelease checks that the version follows from the changes
-  since the newest earlier tag of v2; see [Breaking changes](#breaking-changes).
-- The local full-stack suite passed, as [Test tiers](#test-tiers) says.
+- `Version`, in `version.go`, is the version without its `v`, such as `2.1.0`, also for its
+  release candidates. `TestVersion` checks that it is a semantic version, and
+  `TestVersionMatchesModulePath` that its major version is that of the module path.
+- The version's heading in `CHANGELOG.md` no longer says `(unreleased)`; a release candidate may
+  keep it. A release that raises the `go` line of `go.mod` is a minor release, and its entry says
+  so in a compatibility note.
+- `tools/migration/pending.txt` and `tools/e2e/pending.txt` have no line other than blank lines
+  and comments, and `apisurface -mode release` passes: gorelease checks that the version follows
+  from the changes since the newest earlier tag of v2; see [Breaking changes](#breaking-changes).
 
-The release workflow *(added in a later commit on this branch)* runs `apisurface -mode release`
-and calls CI with the mode `release`, which runs the pull request checks and the end-to-end jobs,
-the [upgrade test](#the-upgrade-test) of the `e2e` job included, and scans the commits since the
-last release for secrets; see [CI](#ci). How a release is published, and how to verify one, are
-added with the workflow.
+### Publishing a release
+
+The release workflow, `.github/workflows/release.yml`, is the one way to publish a version: it
+publishes with the token of the release GitHub App, whose key the `release` environment holds.
+A watchdog that reports a tag pushed outside it, and a dry run of the release on every pull
+request, are *(added in a later commit on this branch)*. Once `CI` of the push to `master`
+succeeded on the commit to release:
+
+1. Run the local full-stack suite on that commit, on the Go releases of the test legs of CI
+   (`GO_FLOOR`, `GO_126` and `GO_127` in the `env` of `ci.yml`), and write the summary of its
+   report, the harness evidence: the commit, the report's SHA-256, the Go releases it ran on and
+   the phases that passed, which include the phase of each line of `tools/e2e/local-only.txt`:
+
+   ```json
+   {"sdk_commit": "<the commit>", "report_sha256": "<the SHA-256 of the report>",
+    "lanes": ["go1.26.0", "go1.26.9", "go1.27.2"], "passed_phases": ["api.api_keys", "api.projects"]}
+   ```
+
+2. Run the workflow from `master` with the tag and the harness evidence:
+
+   ```sh
+   gh workflow run release.yml --ref master -f version=v2.1.0 \
+     -f harness_evidence="$(cat evidence.json)"
+   ```
+
+3. Approve the `draft` job in the `release` environment once the SHA-256 of the report matches
+   the `report_sha256` that the `validate` job printed, and the `publish` job once the draft's
+   notes and assets are right.
+
+Its jobs run in order, and each stops the release when it fails, except `gates`, whose result
+`coverage` decides from `CI` and the `e2e` job. Nothing in it is cached.
+
+| Job | What it does |
+| --- | --- |
+| `validate` | `releasecheck validate`, below, and `apisurface -mode release`, whose list of incompatible changes, allowed after a release candidate, goes to the notes. |
+| `gates` | Calls CI with the mode `release`: the pull request checks and the end-to-end jobs, the [upgrade test](#the-upgrade-test) of the `e2e` job included, and the secret scan of the commits since the last release; see [CI](#ci). |
+| `coverage` | `releasecheck e2e`, below; `apicoverage -release` with the record of the `e2e` job, which fails on a planned row and on a covered row without end-to-end evidence (see [API coverage](#api-coverage)); and the [vulnerability scan](#vulnerability-scan), whose report the release keeps. |
+| `draft` | Builds the module zip of the commit for the tag with `zipcheck -version -out`, which checks it and prints its `h1:` hash; writes the SBOM with `go list -m -json all`, the notes from the version's section of `CHANGELOG.md`, and `SHA256SUMS`; and creates a draft release at the commit with these assets and the vulnerability report, through `.github/scripts/release-github.sh draft`. A draft creates no tag, and its assets can be checked before publishing locks them. |
+| `publish` | Publishes the draft with the token of the release GitHub App, through `release-github.sh publish`, which creates the tag at the commit: a release candidate as a prerelease that is never the latest release, any other version as the latest. |
+| `verify` | Checks the version as an application gets it, through `.github/scripts/release-verify.sh`, attests the provenance of the zip and the SBOM, and posts the result to Slack: a version that does not verify, which must be retracted, or a check that did not run, such as when `sum.golang.org` does not answer, after which the `verify` job is run again. |
+| `notify-failure` | When a job before `verify` failed, `coverage` on a failure of `CI` or the `e2e` job included: posts the failure to Slack, which the `notify-gate-failure` job of the called CI, without a webhook, does not. |
+
+The workflow reads these settings by name: the `release` environment and its reviewers, which
+hold the variable `RELEASE_APP_CLIENT_ID` and the secret `RELEASE_APP_PRIVATE_KEY` of the release
+GitHub App; the `integration` environment of the end-to-end jobs; and the secret
+`SLACK_WEBHOOK_URL`. Without the App's settings, `publish` fails before it asks for a token, and
+the draft stays a draft. A run that fails before `publish` leaves at most a draft, which only
+maintainers see: delete it, fix the cause in a pull request, and run the workflow again.
+
+### Checking a release
+
+`tools/cmd/releasecheck` checks a release, and `go -C tools doc ./cmd/releasecheck` describes
+every rule:
+
+- `validate`, before the gates: the tag is a v2 release tag as a whole string,
+  `^v2\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-rc\.[1-9]\d*)?$`; it is `v` and `Version`, or a release
+  candidate of that version; the commit is the head of `master`; `CI` of its push to `master`
+  succeeded, in the latest attempt of the newest run of `ci.yml` for the push (a scheduled or
+  manual run does not count, as it may skip the pull request checks); `CHANGELOG.md` has the
+  version's section; `tools/e2e/pending.txt` is empty; and the harness evidence is of the commit,
+  covers each Go release of CI's test legs and lists each local-only phase as passed. Empty
+  harness evidence stops it as a check that did not run, exit 2.
+- `e2e`, after the gates: `CI` and the `e2e` job of the run succeeded, whatever the advisory jobs
+  did, and the request record of the `e2e` job is of a run that passed and holds at least as many
+  live requests as `tools/e2e/required.txt` lists scenarios (a count sentinel).
+- `notes`: prints the release notes.
+
+It exits 0 when every check passed, 1 when one failed, and 2 when it did not run, such as on empty
+or malformed harness evidence. Run it from the repository root:
+
+```sh
+go -C tools build -o ../bin/releasecheck ./cmd/releasecheck
+sha=$(git rev-parse HEAD)
+gh api "repos/permitio/permit-golang/actions/workflows/ci.yml/runs?head_sha=$sha&event=push" \
+  >bin/ci-runs.json
+bin/releasecheck validate -tag v2.1.0 -sha "$sha" -master "$(git rev-parse origin/master)" \
+  -ci-runs bin/ci-runs.json -evidence evidence.json
+bin/releasecheck notes -tag v2.1.0
+```
+
+`release-verify.sh` downloads the version with `go mod download` from the module proxy that
+`GOPROXY` names, which checks it against the checksum database, checks that the hash of the zip
+the proxy serves is the one that `draft` built, and checks that zip with `zipcheck -zip`. It
+exits 0 when the version verifies; 1 when it does not, such as when the checksum database rejects
+it with a checksum mismatch, and the version must then be retracted, as below; and 2 when it did
+not run, such as when the checksum database does not answer for the version after its attempts,
+which says nothing of the version: run it again later. Anyone can verify a release the same way,
+with the `h1:` hash that `zipcheck -zip` prints for the zip of the release's assets, and its
+provenance with `gh attestation verify`:
+
+```sh
+go -C tools build -o ../bin/zipcheck ./cmd/zipcheck
+bin/zipcheck -zip permit-golang-v2.1.0.zip
+GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org \
+  .github/scripts/release-verify.sh github.com/permitio/permit-golang/v2@v2.1.0 h1:...
+gh attestation verify permit-golang-v2.1.0.zip --repo permitio/permit-golang
+```
+
+### Withdrawing a version
 
 A version, once published, stays as it is: the Go module proxy and the checksum database keep
 the first content they saw for it, so a tag is never moved or deleted. To withdraw a version that

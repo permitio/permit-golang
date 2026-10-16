@@ -13,11 +13,14 @@ type inputs struct {
 	cov  *coverage
 	seed v1Seed
 	ops  opMap
-	// advisory holds the methods whose end-to-end scenario is advisory, or is nil.
-	advisory map[string]bool
-	records  []*record
+	// advisory holds the methods whose end-to-end scenario is advisory, and localOnly those that
+	// a run against a full local stack proves instead of the cloud lane; either may be nil.
+	advisory, localOnly map[string]bool
+	records             []*record
 	// local is the record of a run against a full local stack, or nil.
 	local *record
+	// release says to check the coverage of a release.
+	release bool
 }
 
 // rowState is what the records and the operation map say about a row.
@@ -66,11 +69,12 @@ type coveredRow struct {
 
 // The end-to-end states of a covered row.
 const (
-	e2eCloud    = "cloud"
-	e2eLocal    = "local"
-	e2eAdvisory = "advisory"
-	e2eDryRun   = "dry run"
-	e2eNone     = "none"
+	e2eCloud     = "cloud"
+	e2eLocal     = "local"
+	e2eLocalOnly = "local-only"
+	e2eAdvisory  = "advisory"
+	e2eDryRun    = "dry run"
+	e2eNone      = "none"
 )
 
 // checker runs the checks.
@@ -415,6 +419,25 @@ func (c *checker) checkDecisions() {
 				row: r, methods: st.methods, requests: recorded, e2e: c.e2e(st),
 			})
 		}
+		if c.in.release {
+			c.checkRelease(r, c.e2e(st))
+		}
+	}
+}
+
+// checkRelease checks a row for a release: it is not planned, and when it is covered, a live
+// request of the e2e job, the run against a full local stack, a local-only method or an advisory
+// method proves it end to end.
+func (c *checker) checkRelease(r *row, e2e string) {
+	switch {
+	case r.Status == statusPlanned:
+		c.problem("%s: planned: a release covers every operation it plans; cover it, or "+
+			"exclude or defer it with a reason", r.name())
+	case r.Status != statusCovered:
+	case e2e == e2eDryRun || e2e == e2eNone:
+		c.problem("%s: e2e %s: a release needs each covered row proven end to end: by a live "+
+			"request of the e2e job, by the run against a full local stack, or by a method on "+
+			"the -local-only or -advisory list", r.name(), e2e)
 	}
 }
 
@@ -427,15 +450,18 @@ func evidence(requests int, methods []string) string {
 }
 
 // e2e returns the end-to-end state of a covered row: cloud when a live request reached it,
-// else local when the run against a full local stack did, else advisory when one of its
-// methods is advisory, else dry run when only an end-to-end scenario run offline reached it.
-// A dry-run request is no end-to-end evidence.
+// else local when the run against a full local stack did, else local-only when that run proves
+// one of its methods instead of the cloud lane, else advisory when one of its methods is
+// advisory, else dry run when only an end-to-end scenario run offline reached it. A dry-run
+// request is no end-to-end evidence.
 func (c *checker) e2e(st *rowState) string {
 	switch {
 	case st.requests[modeLive] > 0:
 		return e2eCloud
 	case st.requests[modeLocal] > 0:
 		return e2eLocal
+	case slices.ContainsFunc(st.methods, func(m string) bool { return c.in.localOnly[m] }):
+		return e2eLocalOnly
 	case slices.ContainsFunc(st.methods, func(m string) bool { return c.in.advisory[m] }):
 		return e2eAdvisory
 	case st.requests[modeDryRun] > 0:

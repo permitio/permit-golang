@@ -267,6 +267,16 @@ github.com/permitio/permit-golang/v2/tools/scripts TestSecurityScanHistoryDigest
 github.com/permitio/permit-golang/v2/tools/scripts TestSecurityScanGitleaksRules
 github.com/permitio/permit-golang/v2/tools/scripts TestDigest
 
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestValidate
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestValidateDidNotRun
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestRunDidNotRun
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestE2E
+github.com/permitio/permit-golang/v2/tools/cmd/releasecheck TestNotes
+github.com/permitio/permit-golang/v2/tools/scripts TestReleaseGitHubDraft
+github.com/permitio/permit-golang/v2/tools/scripts TestReleaseGitHubPublish
+github.com/permitio/permit-golang/v2/tools/scripts TestReleaseVerify
+github.com/permitio/permit-golang/v2/tools/scripts TestReleaseVerifyChecksumDatabase
+
 github.com/permitio/permit-golang/v2 TestSurfaceSnapshot
 github.com/permitio/permit-golang/v2 TestSnapshot
 github.com/permitio/permit-golang/v2 TestSnapshotDiff
@@ -320,6 +330,9 @@ github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestZipLimits
 github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestPrintLargest
 github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestReadZip
 github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestZipVersion
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunBuildsTheZipOfAVersion
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunChecksAGivenZip
+github.com/permitio/permit-golang/v2/tools/cmd/zipcheck TestRunDidNotRunOnAVersionOrAZip
 
 github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestCanonical
 github.com/permitio/permit-golang/v2/tools/cmd/specsnap TestCanonicalIsStable
@@ -394,6 +407,9 @@ github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunIgnoresTheName
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunReportsTheActionGroupTemplateOnAnActionPath
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestDryRunIsNoLiveEvidence
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestE2EStates
+github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRelease
+github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestPlannedRowsPassWithoutRelease
+github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestLocalOnlyListDidNotRun
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunLive
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunWritesTheSummary
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunWritesTheSummaryOfARunThatPassed

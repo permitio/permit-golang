@@ -174,7 +174,7 @@ func TestBuildZip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	version, data, err := buildZip(t.Context(), dir)
+	version, data, err := buildZip(t.Context(), dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestBuildZipWithoutAMajorVersionSuffix(t *testing.T) {
 	files["go.mod"] = "module example.com/m\n\ngo 1.26.0\n"
 	dir := committedRepo(t, files)
 
-	version, data, err := buildZip(t.Context(), dir)
+	version, data, err := buildZip(t.Context(), dir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,13 +273,13 @@ func TestBuildZipIgnoresGitConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := committedRepo(t, validFiles())
-			version, want, err := buildZip(t.Context(), dir)
+			version, want, err := buildZip(t.Context(), dir, "")
 			if err != nil {
 				t.Fatal(err)
 			}
 			tt.configure(t, dir)
 
-			_, got, err := buildZip(t.Context(), dir)
+			_, got, err := buildZip(t.Context(), dir, "")
 			if err != nil {
 				t.Fatal(err)
 			}

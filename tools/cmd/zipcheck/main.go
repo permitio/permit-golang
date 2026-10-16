@@ -4,10 +4,16 @@
 //
 // Usage:
 //
-//	zipcheck [-repo dir]
+//	zipcheck [-repo dir] [-version version] [-out file]
+//	zipcheck -zip file
 //
 // -repo names a directory in the repository, the current directory by default. zipcheck checks
 // the whole repository from any directory in it, so go -C tools run ./cmd/zipcheck checks it too.
+// -version names the version to build the zip for, such as v2.1.0: a canonical semantic version
+// of the module path's major version. Without it the version is v<N>.0.0, as below. -out writes
+// the zip that zipcheck builds to a file, which the release workflow publishes. -zip checks a
+// module zip that exists, such as the one the module proxy serves, instead of building one; its
+// module path and version are those of the prefix <module path>@<version>/ of its files.
 //
 // zipcheck lists the committed files and their content with git archive, as the proxy does, so
 // the commit's .gitattributes applies, and files that are not committed are not in the zip:
@@ -37,9 +43,10 @@
 //   - The zip is no larger, compressed, than the budget in limits.go: a size measured on a given
 //     day plus headroom, with the reason.
 //
-// It prints the module path and version, the number of files, the zip's size and its budget, and
-// then the 10 largest files with their sizes uncompressed and compressed, on every run that
-// builds the zip.
+// It prints the module path and version with the zip's h1: hash, the one that go.sum and the
+// checksum database record for the version, then the number of files, the zip's size and its
+// budget, and the 10 largest files with their sizes uncompressed and compressed, on every run
+// that builds or reads the zip.
 //
 // Exit codes:
 //
@@ -47,8 +54,10 @@
 //	1  a rule does not hold
 //	2  zipcheck did not run: the command line is wrong, the limits in limits.go are not valid,
 //	   the directory is not in a git repository, git cannot archive HEAD, the commit has no
-//	   go.mod at its root or it names no valid module path, the zip cannot be built for a reason
-//	   other than a file it cannot hold, the zip cannot be read, or it holds no file
+//	   go.mod at its root or it names no valid module path, -version is not a version of that
+//	   path, the zip cannot be built for a reason other than a file it cannot hold, the zip
+//	   cannot be written, read or hashed, its files are not under one <module>@<version>/
+//	   prefix, or it holds no file
 //
 // The last line zipcheck prints is its verdict: PASS, FAIL or DID NOT RUN. Build it before use,
 // because go run reports every non-zero exit as 1:
@@ -77,6 +86,8 @@ import (
 
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
+	"golang.org/x/mod/semver"
+	"golang.org/x/mod/sumdb/dirhash"
 	modzip "golang.org/x/mod/zip"
 )
 
@@ -183,18 +194,37 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, lim limit
 	flags := flag.NewFlagSet("zipcheck", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	repo := flags.String("repo", ".", "a `directory` in the repository")
+	wantVersion := flags.String("version", "",
+		"the `version` to build the zip for, such as v2.1.0; v<N>.0.0 without it")
+	out := flags.String("out", "", "write the zip that zipcheck builds to this `file`")
+	given := flags.String("zip", "",
+		"check this module zip `file`, such as the module proxy's, instead of building one")
 	if err := flags.Parse(args); err != nil {
 		return abort(stdout, err)
 	}
-	if flags.NArg() > 0 {
+	switch {
+	case flags.NArg() > 0:
 		return abort(stdout, fmt.Errorf("unexpected arguments %q", flags.Args()))
+	case *given != "" && (*wantVersion != "" || *out != ""):
+		return abort(stdout, errors.New("-zip checks a zip that exists, so it takes neither "+
+			"-version nor -out"))
 	}
 	if err := lim.validate(); err != nil {
 		return abort(stdout, fmt.Errorf("the limits in limits.go are not valid: %w", err))
 	}
-	version, data, err := buildZip(ctx, *repo)
+	var version module.Version
+	var data []byte
+	var err error
+	if *given != "" {
+		version, data, err = openZip(*given)
+	} else {
+		version, data, err = buildZip(ctx, *repo, *wantVersion)
+	}
 	if invalid, ok := errors.AsType[modzip.FileErrorList](err); ok {
 		return reportInvalid(stdout, invalid)
+	}
+	if err == nil && *out != "" {
+		err = os.WriteFile(*out, data, 0o644) //nolint:gosec // G306: a public release asset.
 	}
 	if err != nil {
 		return abort(stdout, err)
@@ -203,7 +233,59 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, lim limit
 	if err != nil {
 		return abort(stdout, err)
 	}
+	sum, err := hashZip(data)
+	if err != nil {
+		return abort(stdout, err)
+	}
+	fmt.Fprintf(stdout, "zipcheck: %s %s\n", version, sum)
 	return report(stdout, version, files, int64(len(data)), lim)
+}
+
+// openZip reads the module zip in file, and returns its module and version, which the prefix
+// <module path>@<version>/ of its first file names, and its content. readZip checks that every
+// other file has the same prefix.
+func openZip(file string) (module.Version, []byte, error) {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return module.Version{}, nil, err
+	}
+	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return module.Version{}, nil, fmt.Errorf("reading the module zip %s: %w", file, err)
+	}
+	if len(r.File) == 0 {
+		return module.Version{}, nil, fmt.Errorf("the module zip %s holds no file", file)
+	}
+	first := r.File[0].Name
+	modulePath, rest, _ := strings.Cut(first, "@")
+	version, _, inside := strings.Cut(rest, "/")
+	if !inside || module.Check(modulePath, version) != nil {
+		return module.Version{}, nil, fmt.Errorf("the module zip %s holds %s, which is not "+
+			"under a <module path>@<version>/ prefix", file, first)
+	}
+	return module.Version{Path: modulePath, Version: version}, data, nil
+}
+
+// hashZip returns the h1: hash of the module zip data, which go.sum and the checksum database
+// record, as golang.org/x/mod/sumdb/dirhash.HashZip computes it from a file.
+func hashZip(data []byte) (string, error) {
+	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return "", fmt.Errorf("reading the module zip to hash it: %w", err)
+	}
+	names := make([]string, 0, len(r.File))
+	byName := map[string]*zip.File{}
+	for _, f := range r.File {
+		names = append(names, f.Name)
+		byName[f.Name] = f
+	}
+	sum, err := dirhash.Hash1(names, func(name string) (io.ReadCloser, error) {
+		return byName[name].Open()
+	})
+	if err != nil {
+		return "", fmt.Errorf("hashing the module zip: %w", err)
+	}
+	return sum, nil
 }
 
 // abort prints why zipcheck stopped before it checked the zip, then the verdict, and returns
@@ -269,9 +351,10 @@ func (l limits) validate() error {
 // buildZip builds the module zip of the commit that HEAD names in the repository that holds the
 // directory repo, from the repository's top level, as the Go module proxy builds it: git archive
 // lists the committed files and their content, and golang.org/x/mod/zip leaves out what a module
-// zip never holds. It returns the zip's module and version, and the zip. zip.CreateFromVCS does
-// the same, but it does not accept a git worktree.
-func buildZip(ctx context.Context, repo string) (module.Version, []byte, error) {
+// zip never holds. The zip is for version, or for v<N>.0.0 when version is empty. It returns the
+// zip's module and version, and the zip. zip.CreateFromVCS does the same, but it does not accept
+// a git worktree.
+func buildZip(ctx context.Context, repo, version string) (module.Version, []byte, error) {
 	out, err := git(ctx, repo, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return module.Version{}, nil, fmt.Errorf("git rev-parse --show-toplevel in %s: %w", repo,
@@ -310,13 +393,19 @@ func buildZip(ctx context.Context, repo string) (module.Version, []byte, error) 
 	if modulePath == "" {
 		return module.Version{}, nil, errors.New("the commit's go.mod names no module path")
 	}
-	version := module.Version{Path: modulePath, Version: zipVersion(modulePath)}
+	if version == "" {
+		version = zipVersion(modulePath)
+	} else if module.Check(modulePath, version) != nil || semver.Canonical(version) != version {
+		return module.Version{}, nil, fmt.Errorf("-version %s is not a canonical semantic "+
+			"version of %s, such as %s", version, modulePath, zipVersion(modulePath))
+	}
+	mv := module.Version{Path: modulePath, Version: version}
 	var zipped bytes.Buffer
-	if err := modzip.Create(&zipped, version, files); err != nil {
+	if err := modzip.Create(&zipped, mv, files); err != nil {
 		return module.Version{}, nil, fmt.Errorf("building the module zip of %s: %w", modulePath,
 			err)
 	}
-	return version, zipped.Bytes(), nil
+	return mv, zipped.Bytes(), nil
 }
 
 // git runs git with args in dir and returns what it printed on stdout. It runs without the

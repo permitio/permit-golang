@@ -2,7 +2,7 @@
 # harness that proves it instead. TestE2ESurfaceComplete (completeness_test.go) checks that every
 # method of testdata/operation-map.json is in exactly one end-to-end state; a line of a method
 # that a cloud scenario covers is stale and fails the gate. A release accepts a line only when the
-# harness evidence lists its phase as passed (added in a later commit on this branch).
+# harness evidence lists its phase as passed (tools/cmd/releasecheck validate).
 #
 # One method per line: <Type>.<Method> <reason> <phase>, such as
 # ProjectsService.List org-key api.projects. The reason is one of:

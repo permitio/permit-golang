@@ -1,0 +1,455 @@
+# The one way to publish a version of v2. A maintainer runs it from master with the tag and the
+# harness evidence, as Releases in CONTRIBUTING.md says. Its jobs run in order, and each stops
+# the release when it fails, except gates, whose result coverage decides from CI and the e2e job:
+#
+#   validate  checks the tag, the commit, CI, the changelog, the end-to-end states and the
+#             harness evidence with tools/cmd/releasecheck, and the version with gorelease
+#             through apisurface -mode release;
+#   gates     calls ci.yml with the mode release: the pull request checks and the end-to-end
+#             jobs, the upgrade test included;
+#   coverage  checks that the end-to-end job of gates proved the release, and the API coverage of
+#             the release, and scans for vulnerabilities to archive the report with the release;
+#   draft     builds the module zip of the commit for the tag, checks it with zipcheck, and
+#             creates a draft release with the zip, the SBOM, the vulnerability report and
+#             SHA256SUMS; a draft creates no tag;
+#   publish   publishes the draft with the token of the release GitHub App, which creates the tag;
+#   verify    checks the version as an application gets it, from the module proxy and the
+#             checksum database, attests the zip and the SBOM, and posts the result.
+#
+# draft and publish run in the release environment, whose reviewer approves each: draft after
+# confirming the harness evidence's report_sha256, which validate prints, against the report;
+# publish after checking the draft. Nothing is cached: every setup-go has cache: false.
+name: release
+run-name: release ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The tag to publish, such as v2.1.0, or v2.1.0-rc.1 for a release candidate
+        type: string
+        required: true
+      harness_evidence:
+        description: Summary of the local suite report
+        type: string
+        required: true
+
+permissions: {}
+
+# One release run per commit; a second run of the same commit waits for the first.
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+env:
+  TAG: ${{ inputs.version }}
+  MODULE: github.com/permitio/permit-golang/v2
+
+jobs:
+  # Fails fast, before the gates run for most of an hour. The first step reads the head of master
+  # and the runs of ci.yml for a push of the commit with the job's token, and runs nothing of the
+  # repository; the next ones build and run releasecheck and apisurface without it. gorelease
+  # needs the tags (fetch-depth: 0) and downloads the version it compares with; its output goes
+  # to the draft's notes, which list the incompatible changes allowed after a release candidate.
+  validate:
+    name: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read  # the runs of ci.yml for the release commit, for the result of CI
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read master and the push runs of CI for the commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          gh api "repos/$REPOSITORY/commits/master" --jq .sha >"$RUNNER_TEMP/master"
+          runs="repos/$REPOSITORY/actions/workflows/ci.yml/runs"
+          gh api "$runs?head_sha=$SHA&event=push&per_page=100" >"$RUNNER_TEMP/ci-runs.json"
+      - name: Check the release
+        env:
+          SHA: ${{ github.sha }}
+          EVIDENCE: ${{ inputs.harness_evidence }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o ../bin/releasecheck ./cmd/releasecheck
+          printf '%s' "$EVIDENCE" >"$RUNNER_TEMP/evidence.json"
+          bin/releasecheck validate -tag "$TAG" -sha "$SHA" -master "$(cat "$RUNNER_TEMP/master")" \
+            -ci-runs "$RUNNER_TEMP/ci-runs.json" -evidence "$RUNNER_TEMP/evidence.json"
+      - name: Check the version with gorelease
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o ../bin/apisurface ./cmd/apisurface
+          go -C tools build -o ../bin/gorelease golang.org/x/exp/cmd/gorelease
+          mkdir "$RUNNER_TEMP/surface"
+          bin/apisurface -mode release -version "$TAG" -gorelease bin/gorelease |
+            tee "$RUNNER_TEMP/surface/surface.txt"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: release-surface
+          path: ${{ runner.temp }}/surface/surface.txt
+          if-no-files-found: error
+
+  # GitHub starts a called workflow only when the caller grants every permission that its jobs
+  # ask for, those that the mode release skips too; cicheck checks that this job does. The e2e
+  # jobs read their secrets in their own environment. No secret is passed: the called
+  # notify-gate-failure warns that it has no webhook, and notify-failure below posts instead.
+  gates:
+    needs: validate
+    # The workflow of the release's own commit, by its path, which cicheck and actionlint read.
+    uses: ./.github/workflows/ci.yml  # zizmor: ignore[self-repository]
+    with:
+      mode: release
+    permissions:
+      contents: read
+      pull-requests: write  # vuln, which comments only on a pull request, and three skipped jobs
+      checks: read  # the mutation job, which the mode release skips
+      actions: read  # the bench and digest jobs, which the mode release skips
+
+  # Runs after gates whatever its result: a failed advisory job fails the called run but not its
+  # CI job, so releasecheck e2e reads the result of each job of the run with the job's token, and
+  # requires CI and the e2e job with the pinned PDP to succeed, and the request record of the
+  # latter to hold at least as many live requests as tools/e2e/required.txt lists scenarios (a
+  # count sentinel). apicoverage -release then fails on a planned row, and on a covered row that
+  # the e2e job's live requests, a local-only method, whose phase validate found in the harness
+  # evidence, or an advisory method does not prove end to end. Last, .github/scripts/vuln.sh
+  # scans again and writes its report to a file, which the draft attaches to the release.
+  coverage:
+    name: coverage
+    needs: [validate, gates]
+    if: ${{ !cancelled() && needs.validate.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read  # the jobs of this run, for the results of CI and the e2e job
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read the jobs of this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          jobs="repos/$REPOSITORY/actions/runs/$RUN_ID/jobs?filter=latest&per_page=100"
+          gh api --paginate "$jobs" >"$RUNNER_TEMP/jobs.json"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: e2e-record-pinned
+          path: ${{ runner.temp }}/e2e
+      - name: Check the end-to-end job
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o ../bin/releasecheck ./cmd/releasecheck
+          bin/releasecheck e2e -jobs "$RUNNER_TEMP/jobs.json" -ci-job "gates / CI" \
+            -e2e-job "gates / e2e (pinned PDP)" -record "$RUNNER_TEMP/e2e/e2e-record.jsonl"
+      - name: Check the API coverage of the release
+        env:
+          GOFLAGS: -mod=readonly
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go mod download
+          go -C tools build -o ../bin/apicoverage ./cmd/apicoverage
+          record=$RUNNER_TEMP/api-coverage.jsonl
+          HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
+            PERMIT_API_COVERAGE_RECORD=$record go test -count=1 -shuffle=on .
+          bin/apicoverage -release -advisory tools/e2e/advisory.txt \
+            -local-only tools/e2e/local-only.txt -summary "$GITHUB_STEP_SUMMARY" "$record" \
+            "$RUNNER_TEMP/e2e/e2e-record.jsonl"
+      - name: Scan for vulnerabilities
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          mkdir "$RUNNER_TEMP/vulnerabilities"
+          report=$RUNNER_TEMP/vulnerabilities/permit-golang-$TAG.vulnerabilities.md
+          GITHUB_STEP_SUMMARY=$report .github/scripts/vuln.sh
+          cat "$report" >>"$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: release-vulnerabilities
+          path: ${{ runner.temp }}/vulnerabilities
+          if-no-files-found: error
+
+  # Builds the module zip of the commit for the tag, as the module proxy will, with zipcheck,
+  # which checks it and prints its h1: hash, the job's output that verify compares the proxy's
+  # with. The SBOM is go list -m -json all. The notes are the changelog's section of the version,
+  # with gorelease's incompatible changes. release-github.sh creates the draft at the commit with
+  # the job's token, a prerelease for a release candidate, and checks it.
+  draft:
+    name: draft
+    needs: [validate, coverage]
+    if: >-
+      ${{ !cancelled() && needs.validate.result == 'success'
+      && needs.coverage.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: release
+    permissions:
+      contents: write  # creates the draft release
+    outputs:
+      h1: ${{ steps.zip.outputs.h1 }}
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: release-vulnerabilities
+          path: ${{ runner.temp }}/dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: release-surface
+          path: ${{ runner.temp }}/surface
+      - name: Build the module zip, the SBOM and the notes
+        id: zip
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o ../bin/zipcheck ./cmd/zipcheck
+          go -C tools build -o ../bin/releasecheck ./cmd/releasecheck
+          dist=$RUNNER_TEMP/dist
+          bin/zipcheck -version "$TAG" -out "$dist/permit-golang-$TAG.zip" |
+            tee "$RUNNER_TEMP/zipcheck.txt"
+          h1=$(sed -n "1s|^zipcheck: $MODULE@$TAG \(h1:[A-Za-z0-9+/=]*\)\$|\1|p" \
+            "$RUNNER_TEMP/zipcheck.txt")
+          if [[ -z $h1 ]]; then
+            echo "zipcheck printed no h1: hash of $MODULE@$TAG"
+            exit 1
+          fi
+          echo "h1=$h1" >>"$GITHUB_OUTPUT"
+          go list -m -json all >"$dist/permit-golang-$TAG.sbom.json"
+          bin/releasecheck notes -tag "$TAG" -surface "$RUNNER_TEMP/surface/surface.txt" \
+            >"$RUNNER_TEMP/notes.md"
+          (cd "$dist" && sha256sum -- * >SHA256SUMS)
+          cat "$dist/SHA256SUMS"
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          NOTES: ${{ runner.temp }}/notes.md
+          DIST: ${{ runner.temp }}/dist
+        run: .github/scripts/release-github.sh draft "$TAG" "$SHA" "$NOTES" "$DIST"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/dist
+          if-no-files-found: error
+
+  # Publishes with the token of the release GitHub App, whose client ID is the variable
+  # RELEASE_APP_CLIENT_ID and private key the secret RELEASE_APP_PRIVATE_KEY of the release
+  # environment; without either the job fails before it asks for a token. The token can write
+  # contents only, and is revoked when the job ends.
+  publish:
+    name: publish
+    needs: draft
+    if: ${{ !cancelled() && needs.draft.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the settings of the release App
+        env:
+          CLIENT_ID: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          HAS_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          echo "::$token::"
+          trap - EXIT
+          if [[ -z $CLIENT_ID || $HAS_KEY != true ]]; then
+            echo "::error title=release::The release environment needs the variable" \
+              "RELEASE_APP_CLIENT_ID and the secret RELEASE_APP_PRIVATE_KEY of the release" \
+              "GitHub App, which publishes the release; the draft stays a draft."
+            exit 1
+          fi
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3.2.0
+        id: app
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          SHA: ${{ github.sha }}
+        run: .github/scripts/release-github.sh publish "$TAG" "$SHA"
+
+  # As an application gets the version: release-verify.sh downloads it from proxy.golang.org,
+  # which checks it against sum.golang.org, and checks that the zip's hash is the one draft
+  # built, and the zip with zipcheck. The provenance of the zip and the SBOM that draft built is
+  # attested through the attestations API. The result goes to the ops channel, SLACK_WEBHOOK_URL,
+  # from the script's exit code: a version that does not verify, exit 1, cannot change, and must
+  # be retracted in the next patch release; a check that did not run, exit 2, such as when
+  # sum.golang.org does not answer, says nothing of the version, and verify is run again.
+  verify:
+    name: verify
+    needs: [draft, publish]
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write  # the attestation's signing certificate
+      attestations: write  # stores the attestation
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build zipcheck and notify
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o ../bin/zipcheck ./cmd/zipcheck
+          go -C tools build -o ../bin/notify ./cmd/notify
+      - name: Verify the version from the module proxy
+        id: verify
+        env:
+          H1: ${{ needs.draft.outputs.h1 }}
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          code=0
+          .github/scripts/release-verify.sh "$MODULE@$TAG" "$H1" || code=$?
+          echo "code=$code" >>"$GITHUB_OUTPUT"
+          exit "$code"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/dist
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
+        id: attest
+        with:
+          subject-path: |
+            ${{ runner.temp }}/dist/*.zip
+            ${{ runner.temp }}/dist/*.sbom.json
+      - name: Post the result
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          VERIFIED: ${{ steps.verify.outcome }}
+          VERIFY_EXIT: ${{ steps.verify.outputs.code }}
+          ATTESTED: ${{ steps.attest.outcome }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          result=PASS
+          details="$TAG is published, the module proxy serves the zip built from the tagged"
+          details="$details commit, sum.golang.org has its hash, and the zip and SBOM are attested"
+          if [[ $VERIFIED != success && $VERIFY_EXIT == 1 ]]; then
+            result=FAIL
+            details="$TAG is published but did not verify; a published version cannot change:"
+            details="$details retract it in the next patch release, as Releases in"
+            details="$details CONTRIBUTING.md says"
+          elif [[ $VERIFIED != success ]]; then
+            result=FAIL
+            details="$TAG is published, but its verification did not run ($VERIFIED, exit"
+            details="$details ${VERIFY_EXIT:-none}), which says nothing of the version: re-run"
+            details="$details the verify job"
+          elif [[ $ATTESTED != success ]]; then
+            result=FAIL
+            details="$TAG verifies, but its attestation failed ($ATTESTED); attest it again"
+          fi
+          echo "::$token::"
+          trap - EXIT
+          bin/notify -channel ops -repo "$GITHUB_REPOSITORY" -check release -result "$result" \
+            -details "$details" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          [[ $result == PASS ]]
+
+  # When a job before verify failed: posts one line to the ops channel, SLACK_WEBHOOK_URL. Until
+  # publish succeeds nothing is public, and the draft of a failed run stays a draft. verify posts
+  # its own result. A failed gates alone is no failure of the release: an advisory job fails the
+  # called run, and coverage, which runs whatever gates did, fails when CI or the e2e job did.
+  notify-failure:
+    name: notify-failure
+    needs: [validate, gates, coverage, draft, publish]
+    if: >-
+      ${{ !cancelled() && (needs.validate.result == 'failure'
+      || needs.coverage.result == 'failure' || needs.draft.result == 'failure'
+      || needs.publish.result == 'failure') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Post the failure
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RESULTS: >-
+            validate ${{ needs.validate.result }}, gates ${{ needs.gates.result }}, coverage
+            ${{ needs.coverage.result }}, draft ${{ needs.draft.result }}, publish
+            ${{ needs.publish.result }}
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/notify" ./cmd/notify
+          echo "::$token::"
+          trap - EXIT
+          "$RUNNER_TEMP/notify" -channel ops -repo "$GITHUB_REPOSITORY" -check release \
+            -result FAIL -details "the release of $TAG did not complete: $RESULTS" \
+            -run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

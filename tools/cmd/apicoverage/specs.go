@@ -372,9 +372,9 @@ func readOperationMap(file string) (opMap, error) {
 // methodName matches a public method, <Type>.<Method>.
 var methodName = regexp.MustCompile(`^[A-Z][A-Za-z0-9_]*\.[A-Z][A-Za-z0-9_]*$`)
 
-// readAdvisory reads the list of methods whose end-to-end scenario is advisory: one method and
-// its reason per line; blank lines and lines that start with # are ignored.
-func readAdvisory(file string) (map[string]bool, error) {
+// readMethods reads a list of methods, such as those whose end-to-end scenario is advisory: one
+// method and its reason per line; blank lines and lines that start with # are ignored.
+func readMethods(file string) (map[string]bool, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, err

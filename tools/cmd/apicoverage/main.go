@@ -4,8 +4,8 @@
 //
 // Usage:
 //
-//	apicoverage [-specs dir] [-live dir] [-map file] [-local file] [-advisory file]
-//	            [-summary file] record...
+//	apicoverage [-specs dir] [-live dir] [-map file] [-local file] [-local-only file]
+//	            [-advisory file] [-release] [-summary file] record...
 //
 // Each record is a request record in the JSONL format that internal/testhook describes, such as
 // the one the root package's tests write when PERMIT_API_COVERAGE_RECORD names a file. Its
@@ -21,9 +21,13 @@
 //     the wire cases of each public method send, which TestOperationMap keeps.
 //   - -local names the record of a run against a full local stack: a record in the same JSONL
 //     format, whose requests all have the mode local, as that run will write it.
+//   - -local-only names the list of the methods that a run against a full local stack proves
+//     instead of the cloud lane, tools/e2e/local-only.txt: one <Type>.<Method>, a space and the
+//     reason and phase per line; blank lines and lines that start with # are ignored.
 //   - -advisory names the list of the methods whose end-to-end scenario is advisory: one
 //     <Type>.<Method>, a space and the reason per line; blank lines and lines that start with #
 //     are ignored.
+//   - -release checks the coverage of a release, as described below.
 //   - -summary names a file to append the report to in Markdown, such as $GITHUB_STEP_SUMMARY.
 //
 // A request matches the row of coverage.yaml for its target, control-plane for the API and pdp
@@ -36,12 +40,17 @@
 // /v2/facts/{proj_id}/{env_id}/users, matches as the path it stands for, /facts/users.
 //
 // Each covered row gets an end-to-end state: cloud when a live request reached it, else local
-// when the -local record did, else advisory when one of its methods is on the -advisory list,
-// else dry run when only an end-to-end scenario run offline did, else none. A dry-run request
-// is no end-to-end evidence, and the report says so when the records hold no live request.
+// when the -local record did, else local-only when one of its methods is on the -local-only
+// list, else advisory when one is on the -advisory list, else dry run when only an end-to-end
+// scenario run offline did, else none. A dry-run request is no end-to-end evidence, and the
+// report says so when the records hold no live request.
 //
 // apicoverage fails, exit 1, on each of these:
 //
+//   - with -release: a planned row, as a release covers every operation it plans, and a covered
+//     row whose end-to-end state is dry run or none. The release workflow passes the records of
+//     the wire tests and of its own e2e job, and the release needs each local-only method's phase
+//     in the harness evidence, which tools/cmd/releasecheck checks;
 //   - an undecided GA operation: a GA operation of a spec without a row;
 //   - a stale row: a planned row that a request or a wire case reaches, which must be covered
 //     now, or an excluded or deferred row that one reaches;
@@ -102,8 +111,9 @@ var errNoRecord = errors.New("no request record given; name the record files aft
 
 // options is the command line.
 type options struct {
-	specs, live, opMap, local, advisory, summary string
-	records                                      []string
+	specs, live, opMap, local, localOnly, advisory, summary string
+	release                                                 bool
+	records                                                 []string
 }
 
 // run runs apicoverage and returns its exit code.
@@ -156,8 +166,12 @@ func parseArgs(args []string, stderr io.Writer) (options, error) {
 	flags.StringVar(&opts.opMap, "map", operationMapFile, "the operation map `file`")
 	flags.StringVar(&opts.local, "local", "",
 		"the record `file` of a run against a local stack, in the JSONL format, mode local")
+	flags.StringVar(&opts.localOnly, "local-only", "",
+		"the `file` that lists the methods that a run against a full local stack proves")
 	flags.StringVar(&opts.advisory, "advisory", "",
 		"the `file` that lists the methods whose end-to-end scenario is advisory")
+	flags.BoolVar(&opts.release, "release", false,
+		"fail on a planned row, and on a covered row without end-to-end evidence")
 	flags.StringVar(&opts.summary, "summary", "", "a `file` to append the Markdown report to")
 	if err := flags.Parse(args); err != nil {
 		return options{}, err
@@ -197,10 +211,16 @@ func readInputs(opts options) (inputs, error) {
 		return inputs{}, err
 	}
 	if opts.advisory != "" {
-		if in.advisory, err = readAdvisory(opts.advisory); err != nil {
+		if in.advisory, err = readMethods(opts.advisory); err != nil {
 			return inputs{}, err
 		}
 	}
+	if opts.localOnly != "" {
+		if in.localOnly, err = readMethods(opts.localOnly); err != nil {
+			return inputs{}, err
+		}
+	}
+	in.release = opts.release
 	for _, file := range opts.records {
 		rec, recErr := readRecord(file, []string{modeWire, modeDryRun, modeLive})
 		if recErr != nil {

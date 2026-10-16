@@ -265,5 +265,7 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("approve_user_invite.200.json")})
 	servers.API.Handle("DELETE "+invites+"/{user_invite_id}",
 		mockpermit.Reply{Status: http.StatusNoContent})
+	servers.API.Handle("POST /v2/auth/elements_login_as",
+		mockpermit.Reply{Body: replyFixture("elements_login_as.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

@@ -15,7 +15,7 @@ type Specs struct {
 }
 
 // ReadSpecs reads the snapshots of the control plane's, the container PDP's and the cloud PDP's
-// specs from dir, such as tools/specs.
+// specs, and the side schema of the login of Permit Elements, from dir, such as tools/specs.
 func ReadSpecs(dir string) (*Specs, error) {
 	specs, _, err := readSpecs(dir, dir)
 	if err != nil {

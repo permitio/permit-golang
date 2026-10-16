@@ -6,7 +6,8 @@
 # models.<Type>: a type that a schema of a spec describes, of package models or of the root
 #   package.
 #   spec: the snapshot that holds the schema: control-plane (when left out), pdp-container or
-#     pdp-cloud.
+#     pdp-cloud; or elements-login, the side schema of the login of Permit Elements, a route
+#     that the published spec does not list.
 #   schema: the name of the schema under components.schemas.
 #   also: the schemas of other specs that describe the type too, each {spec, schema} of a spec of
 #     its own, such as the schema of the cloud PDP of a decision type. The type is compared with
@@ -1692,6 +1693,26 @@ models:
       attributes: {required: false, null_policy: n/a}
       created_at: {required: true, null_policy: n/a}
       updated_at: {required: true, null_policy: n/a}
+  # The login of Permit Elements as a user, as the SDK sends it, and the reply to it, whose
+  # schemas are those of the side schema elements-login, as the published spec does not list the
+  # route. The login rejects null for the user and the tenant, which the schema requires. This
+  # null policy is not measured yet: the phase api.elements of the local harness confirms it.
+  UserLoginRequestInput:
+    spec: elements-login
+    schema: UserLoginRequestInput
+    fields:
+      user_id: {required: true, null_policy: rejects}
+      tenant_id: {required: true, null_policy: rejects}
+  EmbeddedLoginRequestOutput:
+    spec: elements-login
+    schema: EmbeddedLoginRequestOutput
+    fields:
+      error: {required: false, null_policy: n/a}
+      error_code: {required: false, null_policy: n/a}
+      token: {required: false, null_policy: n/a}
+      extra: {required: false, null_policy: n/a}
+      redirect_url: {required: true, null_policy: n/a}
+      element_bearer_token: {required: false, null_policy: n/a}
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property
   Optional: a field that the API accepts null for, whose null policy is accepts

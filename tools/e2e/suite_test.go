@@ -238,6 +238,10 @@ var cloudScenarios = []scenario{
 		run: auditLogOfACheck,
 	},
 	{
+		name: "elements_login_as", methods: []string{"ElementsService.LoginAs"},
+		run: elementsLoginAs,
+	},
+	{
 		name: "group_roles_and_nesting", methods: []string{
 			"GroupsService.AssignRole", "GroupsService.AllRoles", "GroupsService.ListRoles",
 			"GroupsService.RemoveRole", "GroupsService.AssignGroup", "GroupsService.AllChildren",

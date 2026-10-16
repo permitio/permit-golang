@@ -3732,6 +3732,44 @@ escaped. `Create` takes a `models.ElementsUserInviteCreate` and returns a
 returns nil when the API answers 404, as the invite is gone already. The routes start with
 `/v2/facts/`, but a client with `WithFactsViaPDP` sends them to the API too, and never to the PDP.
 
+<a id="M-elements-1"></a>
+### M-elements-1: Elements.LoginAs becomes Client.Elements.LoginAs, without a lookup of the scope
+
+- v1: `api.Elements`
+- v1: `api.Elements.LoginAs`
+- v1: `api.NewElementsApi`
+- v1: `openapi.AuthenticationApiService.ElementsLoginAs`
+- v2: `permit.ElementsService.LoginAs`
+
+Call `client.Elements.LoginAs(ctx, login)` in place of `client.Api.Elements.LoginAs(ctx, login)`;
+`permit.New` builds the service, so nothing takes the place of `api.NewElementsApi`, nor of the
+generated `AuthenticationApiService.ElementsLoginAs` of `pkg/openapi`. Build the login as a struct
+literal, such as `models.UserLoginRequestInput{UserID: "alice", TenantID: "tenant-a"}`, in place
+of `models.NewUserLoginRequestInput`; `UserID` and `TenantID` take the place of `UserId` and
+`TenantId`, and both are sent also when empty.
+
+v1's `LoginAs` first looked up the scope of the API key, with `GET /v2/api-key/scope`, when the
+client had no context, and then returned an error without sending the login when the context had
+neither a project nor an environment, as for an organization-level API key without `SetContext`,
+although the route names no project and no environment. v2 sends only the login,
+`POST /v2/auth/elements_login_as`, reads none of `permit.WithScope`, and sends it to the API with
+`permit.WithFactsViaPDP` too. It is sent with an environment-level API key, and the API answers a
+key that may not log a user in with an error status. It is sent again only after a 429, as
+[M-wire-5](#M-wire-5) says, as the API may have logged the user in when a request got no complete
+reply.
+
+The reply is a `*models.EmbeddedLoginRequestOutput`. Its `Token`, `RedirectURL` and
+`ElementBearerToken` are each a type that prints a marker in its place with `fmt`, `log/slog` and
+`encoding/json`: call its `Value` method to read it, such as `login.RedirectURL.Value()` for the
+URL to send the user's browser to. `ElementBearerToken` is new, as v1's model did not have it and
+dropped it from the reply; `RedirectURL` takes the place of `RedirectUrl`. `Error` and `Extra` are
+plain strings, and `ErrorCode` an `int`, each empty or 0 when the reply has none, in place of
+pointers. The client keeps the token, the bearer token and the redirect URL out of its later
+errors and log lines, as it does its own API key: each login's token, bearer token and redirect
+URL stay in the client's set of credentials for the life of the client, so a server that logs
+many users in through one client keeps the credentials of each login in that set, and scrubs
+each later error and log line of all of them.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>
@@ -3977,6 +4015,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.DerivedRoleRuleCreate` | `models.DerivedRoleRuleCreate` |
 | `models.DerivedRoleRuleDelete` | `models.DerivedRoleRuleDelete` |
 | `models.DerivedRoleRuleRead` | `models.DerivedRoleRuleRead` |
+| `models.EmbeddedLoginRequestOutput` | `models.EmbeddedLoginRequestOutput` |
 | `models.EnvironmentCopy` | `models.EnvironmentCopy` |
 | `models.EnvironmentCopyScope` | `models.EnvironmentCopyScope` |
 | `models.EnvironmentCopyScopeFilters` | `models.EnvironmentCopyScopeFilters` |
@@ -4043,11 +4082,12 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
 | `models.UserCreate` | `models.UserCreate` |
+| `models.UserLoginRequestInput` | `models.UserLoginRequestInput` |
 | `models.UserRead` | `models.UserRead` |
 | `models.UserRoleCreate` | `models.UserRoleCreate` |
 | `models.UserRoleRemove` | `models.UserRoleRemove` |
 | `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 288 of the 384 types of v1's pkg/models.
+Not mapped yet: 286 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

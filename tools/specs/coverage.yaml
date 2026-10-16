@@ -386,7 +386,7 @@ control-plane:
   - op: elements_login_as
     route: "POST /v2/auth/elements_login_as"
     stage: GA
-    status: planned
+    status: covered
     sdk_only: "The login-as route of Permit Elements, which every Permit SDK has, is not in the published spec."
 
 pdp:

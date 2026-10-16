@@ -13,9 +13,11 @@ import (
 	"github.com/permitio/permit-golang/v2/internal/wire"
 )
 
-// specNames are the snapshots of tools/specs that models and operations map to, each in
-// <name>.json.
-var specNames = []string{"control-plane", "pdp-container", "pdp-cloud"}
+// specNames are the specs of tools/specs that models and operations map to, each in
+// <name>.json: the snapshots of the control plane's, the container PDP's and the cloud PDP's
+// specs, and elements-login, the side schema of the login of Permit Elements, a route of the
+// control plane that its published spec does not list, which the SDK sends.
+var specNames = []string{"control-plane", "pdp-container", "pdp-cloud", "elements-login"}
 
 // defaultSpec is the spec of a row of model-map.yaml that names none.
 const defaultSpec = "control-plane"

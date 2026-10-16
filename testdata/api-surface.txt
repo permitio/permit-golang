@@ -360,6 +360,13 @@ models: type ElementsUserInviteUpdate struct, ResourceInstanceID string
 models: type ElementsUserInviteUpdate struct, RoleID string
 models: type ElementsUserInviteUpdate struct, Status UserInviteStatus
 models: type ElementsUserInviteUpdate struct, TenantID string
+models: type EmbeddedLoginRequestOutput struct
+models: type EmbeddedLoginRequestOutput struct, ElementBearerToken Secret
+models: type EmbeddedLoginRequestOutput struct, Error string
+models: type EmbeddedLoginRequestOutput struct, ErrorCode int
+models: type EmbeddedLoginRequestOutput struct, Extra string
+models: type EmbeddedLoginRequestOutput struct, RedirectURL Secret
+models: type EmbeddedLoginRequestOutput struct, Token Secret
 models: type EnvironmentCopy struct
 models: type EnvironmentCopy struct, ConflictStrategy EnvironmentCopyConflictStrategy
 models: type EnvironmentCopy struct, Scope EnvironmentCopyScope
@@ -1005,6 +1012,9 @@ models: type UserInTenant struct, Roles []string
 models: type UserInTenant struct, Status UserStatus
 models: type UserInTenant struct, Tenant string
 models: type UserInviteStatus string
+models: type UserLoginRequestInput struct
+models: type UserLoginRequestInput struct, TenantID string
+models: type UserLoginRequestInput struct, UserID string
 models: type UserObj struct
 models: type UserObj struct, AssignedRoles []string
 models: type UserObj struct, Attributes Attributes
@@ -1107,6 +1117,7 @@ permit: method (*ConditionSetsService) DescendantsAll(ctx context.Context, condi
 permit: method (*ConditionSetsService) Get(ctx context.Context, conditionSetKey string) (*models.ConditionSetRead, error)
 permit: method (*ConditionSetsService) List(ctx context.Context, opts *ConditionSetsListOptions) (*Page[models.ConditionSetRead], error)
 permit: method (*ConditionSetsService) Update(ctx context.Context, conditionSetKey string, update models.ConditionSetUpdate) (*models.ConditionSetRead, error)
+permit: method (*ElementsService) LoginAs(ctx context.Context, login models.UserLoginRequestInput) (*models.EmbeddedLoginRequestOutput, error)
 permit: method (*EnvironmentsService) All(ctx context.Context, projectKey string, opts *ListOptions) iter.Seq2[models.EnvironmentReadWithEmailConfig, error]
 permit: method (*EnvironmentsService) Copy(ctx context.Context, projectKey string, environmentKey string, environmentCopy models.EnvironmentCopy) (*models.EnvironmentRead, error)
 permit: method (*EnvironmentsService) CopyAsync(ctx context.Context, projectKey string, environmentKey string, environmentCopy models.EnvironmentCopy) (*models.TaskResultEnvironmentRead, error)
@@ -1328,6 +1339,7 @@ permit: type Client struct, APIKeys *APIKeysService
 permit: type Client struct, AuditLogs *AuditLogsService
 permit: type Client struct, ConditionSetRules *ConditionSetRulesService
 permit: type Client struct, ConditionSets *ConditionSetsService
+permit: type Client struct, Elements *ElementsService
 permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Groups *GroupsService
 permit: type Client struct, ImplicitGrants *ImplicitGrantsService
@@ -1361,6 +1373,7 @@ permit: type ConditionSetsListOptions struct, embedded ListOptions
 permit: type ConditionSetsService struct
 permit: type CopyResultOptions struct
 permit: type CopyResultOptions struct, Wait time.Duration
+permit: type ElementsService struct
 permit: type EnvironmentsService struct
 permit: type Error struct
 permit: type Error struct, Body []byte

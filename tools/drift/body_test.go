@@ -21,14 +21,15 @@ func fixtureSpecs(t *testing.T) *Specs {
 }
 
 // specsOf returns the Specs of a directory whose control-plane.json is controlPlane, and whose
-// specs of the PDP list no operation.
+// specs of the PDP and side schema of the login of Permit Elements list no operation.
 func specsOf(t *testing.T, controlPlane string) *Specs {
 	t.Helper()
 	dir := t.TempDir()
 	files := map[string]string{
-		"control-plane.json": controlPlane,
-		"pdp-container.json": `{"paths": {}}`,
-		"pdp-cloud.json":     `{"paths": {}}`,
+		"control-plane.json":  controlPlane,
+		"pdp-container.json":  `{"paths": {}}`,
+		"pdp-cloud.json":      `{"paths": {}}`,
+		"elements-login.json": `{"paths": {}}`,
 	}
 	for name, content := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil {
@@ -190,7 +191,8 @@ func TestReadSpecsErrors(t *testing.T) {
 }
 
 // TestRepositoryReadSpecs checks a request body against the committed snapshots, which the
-// end-to-end dry run reads.
+// end-to-end dry run reads, and that ReadSpecs reads the side schema of the login of Permit
+// Elements, which lists that one operation and checks its body.
 func TestRepositoryReadSpecs(t *testing.T) {
 	s, err := ReadSpecs(committedSpecs)
 	if err != nil {
@@ -202,5 +204,15 @@ func TestRepositoryReadSpecs(t *testing.T) {
 	}
 	if len(s.Operations("control-plane")) == 0 {
 		t.Error("the committed control plane's spec lists no operation")
+	}
+	login := []Operation{{"POST", "/v2/auth/elements_login_as", "elements_login_as"}}
+	if got := s.Operations("elements-login"); !slices.Equal(got, login) {
+		t.Errorf("the side schema of the login lists %v, want %v", got, login)
+	}
+	problems, err = s.CheckRequestBody("elements_login_as", []byte(`{"user_id": "u"}`))
+	if want := []string{"# has no property tenant_id, which the schema at " +
+		"#/components/schemas/UserLoginRequestInput requires"}; err != nil ||
+		!slices.Equal(problems, want) {
+		t.Errorf("a login's body without its tenant = %q, %v; want %q", problems, err, want)
 	}
 }

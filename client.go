@@ -134,6 +134,9 @@ type Client struct {
 	// environment of the client's scope.
 	UserInvites *UserInvitesService `json:"-"`
 
+	// Elements logs a user of the application in to Permit Elements.
+	Elements *ElementsService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -244,6 +247,7 @@ func New(opts ...Option) (*Client, error) {
 	c.PDPs = &PDPsService{client: c}
 	c.AuditLogs = &AuditLogsService{client: c}
 	c.UserInvites = &UserInvitesService{client: c}
+	c.Elements = &ElementsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

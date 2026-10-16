@@ -105,6 +105,9 @@
     "ConditionSetsService.Update": [
       "update_condition_set"
     ],
+    "ElementsService.LoginAs": [
+      "elements_login_as"
+    ],
     "EnvironmentsService.All": [
       "list_environments"
     ],

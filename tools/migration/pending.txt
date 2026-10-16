@@ -11,13 +11,7 @@
 # while this file has a line that is not blank or a comment, since the release needs every v1
 # item to have its entry. Blank lines and lines that start with # are ignored.
 
-# Block a: pkg/api
-api.Elements elements
-api.Elements.* elements
-api.NewElementsApi elements
-
 # Block b: operations of pkg/openapi
-openapi.AuthenticationApiService.ElementsLoginAs elements
 openapi.AuthenticationApiService.DevLogin auth
 openapi.AuthenticationApiService.Login auth
 openapi.AuthenticationApiService.LoginElements auth

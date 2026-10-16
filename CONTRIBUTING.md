@@ -1074,6 +1074,7 @@ specs never reach the module that applications download.
 | `pdp-container.json` | The container PDP's spec, from `GET /openapi.json` of a running `permitio/pdp-v2` container. |
 | `lock.json` | Where each of the three came from (the URL, or the image and its digest), the day it was fetched, the sha256 of the spec as fetched and of the snapshot, and its number of operations. |
 | `pdp-container.extra.json` | What the container PDP serves without listing it in its `/openapi.json`: the AuthZEN, health and Trino routes, the facts catch-all and the compatibility mount of the facts routes, each with the file and line of the [PDP repository](https://github.com/permitio/PDP) at the image's tag that declares it. |
+| `elements-login.json` | The side schema of the login of Permit Elements, `POST /v2/auth/elements_login_as`, which the SDK sends and the control plane's published spec does not list: the operation, its request and reply models and its validation error, in the form of a snapshot, written by hand. The [drift tests](#model-drift) read it as the spec `elements-login`. |
 | `v1-routes.json` | The 91 routes of the control plane that v1.2.8 sent and the spec has, each with its operation ID, the line of v1.2.8 that holds the route, and the methods that send it. |
 | `v1-route-fixes.yaml` | The routes that v2 changes on purpose, each with the v1 method, the route v1 sent and v2's route, and the reason. |
 | `coverage.yaml` | The SDK's decision for every operation of the specs; see [API coverage](#api-coverage). |
@@ -1255,13 +1256,14 @@ blocks:
 ```
 
 A row whose schema is in another snapshot than `control-plane.json` names it with `spec`:
-`pdp-container` or `pdp-cloud`. A type that the schemas of two snapshots describe, as the PDP
-container and the cloud PDP both describe a check, lists the others under `also`, one for each
-snapshot, and the tests compare it with each. A property of a schema that the type has no field
-for on purpose goes under `left_out`, with the reason, so that the maximal values of the round
-trip leave it out; the comparison still finds it, and `allow.yaml` accepts that finding with its
-trigger. A property of `left_out` that a field holds, or that none of the row's schemas has,
-fails:
+`pdp-container` or `pdp-cloud`, or `elements-login` for a model of the login of Permit Elements,
+whose schemas are in `tools/specs/elements-login.json`. A type that the schemas of two snapshots
+describe, as the PDP container and the cloud PDP both describe a check, lists the others under
+`also`, one for each snapshot, and the tests compare it with each. A property of a schema that
+the type has no field for on purpose goes under `left_out`, with the reason, so that the maximal
+values of the round trip leave it out; the comparison still finds it, and `allow.yaml` accepts
+that finding with its trigger. A property of `left_out` that a field holds, or that none of the
+row's schemas has, fails:
 
 ```yaml
 models:

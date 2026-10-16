@@ -948,6 +948,28 @@ change from v1 and what to use instead.
   path, escaped; an empty ID, `.` or `..` is an error that matches `ErrInvalidConfig`, and no
   request is sent.
 
+### Elements
+
+- The `Elements` field of the client, a `*permit.ElementsService`, logs in to Permit Elements as
+  a user of the application in a tenant: `LoginAs` takes a `models.UserLoginRequestInput`, whose
+  `UserID` and `TenantID` are both sent also when empty, sends
+  `POST /v2/auth/elements_login_as`, a route that the published spec of the API does not list,
+  and returns the `*models.EmbeddedLoginRequestOutput`.
+- `LoginAs` sends no lookup of the scope of the API key and reads none of `WithScope`, as the
+  route names no project and no environment; v1 looked the scope up first when the client had no
+  context, and returned an error without the login when the context had no project and no
+  environment. It is sent with an environment-level API key, to the API also with
+  `WithFactsViaPDP`, and again after a 429 only.
+- The `Token`, the `RedirectURL` and the `ElementBearerToken` of the reply are each a
+  `models.Secret`, which prints a marker in place of the credential, and `encoding/json` writes
+  the marker for each too: code that sends the login to a browser as JSON builds that JSON from
+  the `Value` of each field. `ElementBearerToken` is new: v1's model dropped it. A reply whose
+  `Error` and `ErrorCode` say that the login failed is returned with no error.
+- The client keeps the three credentials of each login out of its later errors and log lines:
+  each login's token, bearer token and redirect URL stay in the client's set of credentials for
+  the life of the client, so a server that logs many users in through one client keeps the
+  credentials of each login in that set, and scrubs each later error and log line of all of them.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

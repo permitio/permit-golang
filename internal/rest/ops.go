@@ -1090,6 +1090,22 @@ var defaultOps = []Op{
 		ResponseModel: "UserRead",
 	},
 
+	// The login of Permit Elements as a user of an environment, a route that the published spec
+	// does not list: its row of coverage.yaml is SDK-only, and the drift tests read its schemas
+	// from tools/specs/elements-login.json. The route names no project and no environment, so the
+	// call needs no scope; it is sent with an environment-level key, the level that v1 checked
+	// for before it. Its key level is not measured yet: the phase api.elements of the local
+	// harness confirms it. A login is not Idempotent, so it is sent again only after a 429, as a
+	// create is. The reply holds the token under its credential name, token, and two credentials
+	// under other names, which are listed: the bearer token, and the URL that completes the
+	// login, which can hold the token.
+	{
+		ID: "elements_login_as", Method: http.MethodPost, Route: "/v2/auth/elements_login_as",
+		KeyLevel: EnvironmentLevel, RequestModel: "UserLoginRequestInput",
+		ResponseModel:       "EmbeddedLoginRequestOutput",
+		SensitiveBodyFields: []string{"element_bearer_token", "redirect_url"},
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

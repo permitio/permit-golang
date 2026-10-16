@@ -91,6 +91,7 @@ func TestReadSpecs(t *testing.T) {
 		"control-plane: " + filepath.Join(fallback, "control-plane.json"),
 		"pdp-container: " + filepath.Join(fallback, "pdp-container.json"),
 		"pdp-cloud: " + filepath.Join(dir, "pdp-cloud.json"),
+		"elements-login: " + filepath.Join(fallback, "elements-login.json"),
 	}
 	if !slices.Equal(lines, want) {
 		t.Errorf("readSpecs read\n%q\nwant\n%q", lines, want)

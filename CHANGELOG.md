@@ -766,12 +766,12 @@ change from v1 and what to use instead.
   verb, `String`, `GoString` and `MarshalJSON`, so a printed, logged or encoded config holds no
   credential, while the request of a create or an update holds the credentials themselves. A
   `models.ProxySecret` that sets no branch encodes as `null`, as it decodes from `null`. The
-  client adds each credential that a call sends or returns to the credentials that it keeps out
-  of its errors and its log lines, as it does its own API key, the value of each header of a
-  secret of headers too, also where the body of an error reply echoes it. It replaces each of
-  them wherever it appears in a later error or log line of the client, so a secret of headers
-  should hold only credentials: the value of a header that is not one, such as a region or a
-  version, is replaced in those too, also inside a request ID, a path or a status code.
+  client adds each credential of at least 8 bytes that a call sends or returns to the
+  credentials that it keeps out of its errors and its log lines, as it does its own API key, the
+  value of each header of a secret of headers too, also where the body of an error reply echoes
+  it. It replaces each of them wherever it appears in a later error or log line of the client,
+  so a secret of headers should hold only credentials: the value of a header that is not one,
+  such as a region, is replaced in those too, also inside a request ID or a path.
 - An update always sends the secret, as the API answers an update without it with a 422. Create
   and Update are sent again after a 429 only: the API adds the mapping rules of an update to
   those that it stores, and removes one only when its `ShouldDelete` is set, so a second request
@@ -803,6 +803,12 @@ change from v1 and what to use instead.
   Authorization header values, and the values of JSON fields that name a credential, such as
   `token` or `password`. A reply in 200-299 that the SDK cannot decode gives an error that names
   the model and keeps nothing of the body.
+- A client replaces its API key in its errors, its log lines and the URLs that `Client.String`
+  shows only when the key has at least 16 bytes, as v1.3.0 did, and a credential that its calls
+  send or return only when it has at least 8 bytes, so that a short value, such as a header value
+  `2`, is not replaced inside a request ID, a route or a status code. Permit API keys and the
+  values of JSON fields that name a credential are replaced whatever their length, and a
+  `models.Secret` prints `[REDACTED]` whatever its length.
 
 ### Logging
 

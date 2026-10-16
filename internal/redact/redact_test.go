@@ -169,18 +169,102 @@ func TestSecretKeepsItsValue(t *testing.T) {
 }
 
 func TestSetAddAndContains(t *testing.T) {
-	s := NewSet("first", "")
-	s.Add("second", "first", "")
+	const first, second = "first-credential", "second-credential"
+	s := NewSet(first)
+	s.Add(second, first, "")
 
 	for secret, want := range map[string]bool{
-		"first": true, "second": true, "": false, "third": false, "firs": false,
+		first: true, second: true, "": false, "third-credential": false, first[:15]: false,
 	} {
 		if got := s.Contains(secret); got != want {
 			t.Errorf("Contains(%q) = %v, want %v", secret, got, want)
 		}
 	}
-	if diff := cmp.Diff([]string{"first", "second"}, s.secrets); diff != "" {
+	if diff := cmp.Diff([]string{first, second}, s.secrets); diff != "" {
 		t.Errorf("the Set holds each secret once and no empty one (-want +got):\n%s", diff)
+	}
+}
+
+// TestSetMinimumLengths checks how many bytes a value needs to join a Set, and so to be replaced
+// in text: 16 for the API key that NewSet takes, and 8 for a credential that Add or AddFields
+// takes. The lengths count bytes, not characters, so é, which UTF-8 writes in two bytes, counts
+// twice.
+func TestSetMinimumLengths(t *testing.T) {
+	apiKey := func(value string) *Set { return NewSet(value) }
+	added := func(value string) *Set {
+		var s Set
+		s.Add(value)
+		return &s
+	}
+	returned := func(value string) *Set {
+		var s Set
+		s.AddFields([]byte(`{"headers":{"X-Version":"`+value+`"}}`), "headers")
+		return &s
+	}
+	for _, tc := range []struct {
+		name  string
+		build func(value string) *Set
+		value string
+		want  bool
+	}{
+		{"an API key of 1 byte", apiKey, "k", false},
+		{"an API key of 15 bytes", apiKey, "abcdefghijklmno", false},
+		{"an API key of 16 bytes", apiKey, "abcdefghijklmnop", true},
+		{"an API key of 15 bytes in 8 characters", apiKey, strings.Repeat("é", 7) + "k", false},
+		{"an API key of 16 bytes in 8 characters", apiKey, strings.Repeat("é", 8), true},
+		{"an added value of 1 byte", added, "2", false},
+		{"an added value of 7 bytes", added, "abcdefg", false},
+		{"an added value of 8 bytes", added, "abcdefgh", true},
+		{"an added value of 7 bytes in 4 characters", added, "éééa", false},
+		{"an added value of 8 bytes in 4 characters", added, "éééé", true},
+		{"a returned value of 1 byte", returned, "2", false},
+		{"a returned value of 7 bytes", returned, "abcdefg", false},
+		{"a returned value of 8 bytes", returned, "abcdefgh", true},
+		{"a returned value of 8 bytes in 4 characters", returned, "éééé", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := tc.build(tc.value)
+			if got := s.Contains(tc.value); got != tc.want {
+				t.Errorf("Contains(%q) = %v, want %v", tc.value, got, tc.want)
+			}
+			text := "id " + tc.value + " v2"
+			want := text
+			if tc.want {
+				want = "id " + Marker + " v2"
+			}
+			if got := ScrubString(s, text); got != want {
+				t.Errorf("ScrubString(%q) = %q, want %q", text, got, want)
+			}
+		})
+	}
+}
+
+// TestSetOfBothRules checks a Set that holds the API key and credentials that calls sent and
+// returned: each value joins under the rule of the way it came in, so a value of 15 bytes that
+// NewSet skips as an API key joins when Add takes it.
+func TestSetOfBothRules(t *testing.T) {
+	const (
+		sent    = "sent-val"
+		sentFew = "sent-v7"
+		read    = "read-val"
+		readFew = "read-v7"
+	)
+	key, shortKey := strings.Repeat("k", 16), strings.Repeat("k", 15)
+	s := NewSet(key)
+	s.Add(sent, sentFew)
+	s.AddFields([]byte(`{"token":"` + read + `","secret":"` + readFew + `"}`))
+	other := NewSet(shortKey)
+	if other.Contains(shortKey) {
+		t.Errorf("NewSet(%q) holds the key of 15 bytes", shortKey)
+	}
+	other.Add(shortKey)
+	if !other.Contains(shortKey) {
+		t.Errorf("Add(%q) did not add the value of 15 bytes", shortKey)
+	}
+	text := strings.Join([]string{key, sent, sentFew, read, readFew}, " ")
+	want := strings.Join([]string{Marker, Marker, sentFew, Marker, readFew}, " ")
+	if got := ScrubString(s, text); got != want {
+		t.Errorf("ScrubString(%q) = %q, want %q", text, got, want)
 	}
 }
 
@@ -220,74 +304,80 @@ func TestSetAddFields(t *testing.T) {
 	}{
 		{
 			name: "fields at any depth",
-			data: `{"signing_value":"a","nested":{"Signing-Value":"b","other":"x"},` +
-				`"list":[{"signingValue":"c"},"y"],"other":"z"}`,
+			data: `{"signing_value":"opaque-a",` +
+				`"nested":{"Signing-Value":"opaque-b","other":"opaque-x"},` +
+				`"list":[{"signingValue":"opaque-c"},"opaque-y"],"other":"opaque-z"}`,
 			fields: []string{"signing_value"},
-			want:   []string{"a", "b", "c"},
+			want:   []string{"opaque-a", "opaque-b", "opaque-c"},
 		},
 		{
-			name:   "an object and a list under a field",
-			data:   `{"headers":{"Authorization":"d","X-Extra":["e",1,true,null]},"id":"w"}`,
+			name: "an object and a list under a field",
+			data: `{"headers":{"Authorization":"opaque-d","X-Extra":["opaque-e",1,true,null]},` +
+				`"id":"opaque-w"}`,
 			fields: []string{"headers"},
-			want:   []string{"d", "e"},
+			want:   []string{"opaque-d", "opaque-e"},
 		},
 		{
 			name:   "a key that only contains a field",
-			data:   `{"secret_type":"headers","secret":"f"}`,
+			data:   `{"secret_type":"headers-type","secret":"opaque-f"}`,
 			fields: []string{"secret"},
-			want:   []string{"f"},
+			want:   []string{"opaque-f"},
 		},
 		{
 			name:   "two fields",
-			data:   `{"one":"g","two":"h","three":"i"}`,
+			data:   `{"one":"opaque-g","two":"opaque-h","three":"opaque-i"}`,
 			fields: []string{"one", "TWO"},
-			want:   []string{"g", "h"},
+			want:   []string{"opaque-g", "opaque-h"},
 		},
 		{"a number under a field", `{"pin":1234}`, []string{"pin"}, nil},
 		{"an empty string under a field", `{"pin":""}`, []string{"pin"}, nil},
 		{"a body that is not JSON", `pin=j`, []string{"pin"}, nil},
 		{"an empty body", ``, []string{"pin"}, nil},
-		{"no fields", `{"pin":"k"}`, nil, nil},
-		{"empty fields", `{"":"l","_":"m"}`, []string{"", "_-"}, nil},
+		{"no fields", `{"pin":"opaque-k"}`, nil, nil},
+		{"empty fields", `{"":"opaque-l","_":"opaque-m"}`, []string{"", "_-"}, nil},
 		{
 			name: "the secret names without fields",
-			data: `{"secret":"a","Secret-Key":"b","clientSecret":"c","list":[{"SECRET":"d"}]}`,
-			want: []string{"a", "b", "c", "d"},
+			data: `{"secret":"opaque-a","Secret-Key":"opaque-b","clientSecret":"opaque-c",` +
+				`"list":[{"SECRET":"opaque-d"}]}`,
+			want: []string{"opaque-a", "opaque-b", "opaque-c", "opaque-d"},
 		},
 		{
 			name: "the token names without fields",
-			data: `{"token":"a","access_token":"b","RefreshToken":"c","nested":{"Token":"d"}}`,
-			want: []string{"a", "b", "c", "d"},
+			data: `{"token":"opaque-a","access_token":"opaque-b","RefreshToken":"opaque-c",` +
+				`"nested":{"Token":"opaque-d"}}`,
+			want: []string{"opaque-a", "opaque-b", "opaque-c", "opaque-d"},
 		},
 		{
 			name: "the key names without fields",
-			data: `{"api_key":"a","apiKey":"b","Access-Key":"c","private_key":"d"}`,
-			want: []string{"a", "b", "c", "d"},
+			data: `{"api_key":"opaque-a","apiKey":"opaque-b","Access-Key":"opaque-c",` +
+				`"private_key":"opaque-d"}`,
+			want: []string{"opaque-a", "opaque-b", "opaque-c", "opaque-d"},
 		},
 		{
 			name: "the password names without fields",
-			data: `{"password":"a","passwd":"b","PWD":"c"}`,
-			want: []string{"a", "b", "c"},
+			data: `{"password":"opaque-a","passwd":"opaque-b","PWD":"opaque-c"}`,
+			want: []string{"opaque-a", "opaque-b", "opaque-c"},
 		},
 		{
 			name: "the credential names without fields",
-			data: `{"credential":"a","credentials":{"user":"b","password":["c"]}}`,
-			want: []string{"a", "c"},
+			data: `{"credential":"opaque-a",` +
+				`"credentials":{"user":"opaque-b","password":["opaque-c"]}}`,
+			want: []string{"opaque-a", "opaque-c"},
 		},
 		{
 			name: "an object under a credential name is searched by its own keys",
-			data: `{"credentials":{"type":"basic","private_key":"k-1"}}`,
-			want: []string{"k-1"},
+			data: `{"credentials":{"type":"basic-type","private_key":"opaque-k1"}}`,
+			want: []string{"opaque-k1"},
 		},
 		{
 			name: "a list under a credential name",
-			data: `{"token":["x","y",{"z":"w"}]}`,
-			want: []string{"x", "y"},
+			data: `{"token":["opaque-x","opaque-y",{"z":"opaque-w"}]}`,
+			want: []string{"opaque-x", "opaque-y"},
 		},
 		{
 			name: "cookies",
-			data: `{"cookie":"a","Set-Cookie":["b"]}`,
-			want: []string{"a", "b"},
+			data: `{"cookie":"opaque-a","Set-Cookie":["opaque-b"]}`,
+			want: []string{"opaque-a", "opaque-b"},
 		},
 		{
 			name: "the authorization name without fields",
@@ -296,19 +386,20 @@ func TestSetAddFields(t *testing.T) {
 		},
 		{
 			name: "keys that only contain a built-in name",
-			data: `{"token_type":"bearer","secret_type":"headers","tokens":"a","api_key_id":"b",` +
-				`"passwords":"c","has_credentials":"d","access_token_expiry":"e"}`,
+			data: `{"token_type":"bearer-type","secret_type":"headers-type","tokens":"opaque-a",` +
+				`"api_key_id":"opaque-b","passwords":"opaque-c","has_credentials":"opaque-d",` +
+				`"access_token_expiry":"opaque-e"}`,
 			want: nil,
 		},
 		{
 			name:   "a built-in name and a field",
-			data:   `{"token":"a","signing_value":"b","other":"c"}`,
+			data:   `{"token":"opaque-a","signing_value":"opaque-b","other":"opaque-c"}`,
 			fields: []string{"signing_value"},
-			want:   []string{"a", "b"},
+			want:   []string{"opaque-a", "opaque-b"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			s := NewSet()
+			s := new(Set)
 			s.AddFields([]byte(tc.data), tc.fields...)
 			got := s.longestFirst()
 			slices.Sort(got)
@@ -334,7 +425,8 @@ func TestZeroSetIsReady(t *testing.T) {
 }
 
 func TestSetsAreIndependent(t *testing.T) {
-	first := NewSet(canary.Key("first"), "first-client-credential")
+	first := NewSet(canary.Key("first"))
+	first.Add("first-client-credential")
 	second := NewSet(canary.Key("second"))
 	second.Add("second-client-credential")
 
@@ -358,7 +450,7 @@ func TestSetsAreIndependent(t *testing.T) {
 }
 
 func TestSetIsSafeForConcurrentUse(t *testing.T) {
-	s := NewSet()
+	s := new(Set)
 	const calls = 64
 	err := concurrent.Run(t, calls, 30*time.Second, func(_ context.Context, i int) error {
 		secret := "concurrent-credential-" + strconv.Itoa(i)
@@ -380,8 +472,10 @@ func TestSetIsSafeForConcurrentUse(t *testing.T) {
 }
 
 func TestLongestFirst(t *testing.T) {
-	s := NewSet("ab", "abcd", "abc", "cd")
-	if diff := cmp.Diff([]string{"abcd", "abc", "ab", "cd"}, s.longestFirst()); diff != "" {
+	s := new(Set)
+	s.Add("abcdefgh", "abcdefghij", "abcdefghi", "cdefghij")
+	want := []string{"abcdefghij", "abcdefghi", "abcdefgh", "cdefghij"}
+	if diff := cmp.Diff(want, s.longestFirst()); diff != "" {
 		t.Errorf("longestFirst differs (-want +got):\n%s", diff)
 	}
 	var nilSet *Set
@@ -391,7 +485,8 @@ func TestLongestFirst(t *testing.T) {
 }
 
 func TestScrubReplacesALongerSecretFirst(t *testing.T) {
-	s := NewSet("credential", "credential-and-more")
+	s := new(Set)
+	s.Add("credential", "credential-and-more")
 	if got := ScrubString(s, "credential-and-more"); got != Marker {
 		t.Errorf("ScrubString = %q, want %q: the longer secret is replaced whole", got, Marker)
 	}
@@ -403,7 +498,8 @@ var escapedP = string(rune(92)) + "u0070"
 func TestScrub(t *testing.T) {
 	key := canary.Key("scrub")
 	other := canary.Key("other")
-	set := NewSet(key, "proxy-header-value")
+	set := NewSet(key)
+	set.Add("proxy-header-value")
 	escapedKey := escapedP + key[1:]
 	for name, tc := range map[string]struct{ in, want string }{
 		"empty":                  {"", ""},
@@ -589,11 +685,13 @@ func TestScrubSensitiveFields(t *testing.T) {
 }
 
 func TestScrubAMemberThatOverlapsTheMarker(t *testing.T) {
-	s := NewSet("]x")
-	if got := ScrubString(s, "]x]xx"); got != Marker {
-		t.Errorf("ScrubString = %q, want %q: a single pass leaves ]x after the marker", got, Marker)
+	s := new(Set)
+	s.Add("]overlap")
+	if got := ScrubString(s, "]overlapoverlap"); got != Marker {
+		t.Errorf("ScrubString = %q, want %q: a single pass leaves ]overlap after the marker", got,
+			Marker)
 	}
-	if got := ScrubString(s, "a ]x b"); got != "a "+Marker+" b" {
+	if got := ScrubString(s, "a ]overlap b"); got != "a "+Marker+" b" {
 		t.Errorf("ScrubString = %q, want only the member replaced", got)
 	}
 }
@@ -640,22 +738,28 @@ func TestNormalize(t *testing.T) {
 
 // FuzzScrub checks that Scrub never returns a member of the Set or a Permit API key, wherever
 // they are in data and whatever data holds, also in the strings of a result that is JSON once
-// they are decoded. secret is a second member, of any text.
+// they are decoded. secret is a second member, of any text long enough to join the Set.
 func FuzzScrub(f *testing.F) {
 	f.Add([]byte(`{"message":"bad key"}`), uint(15), "proxy-credential")
-	f.Add([]byte(`{"secret":{"h":"v"},"detail":[{"loc":["body"],"msg":"m"}]}`), uint(3), "]x")
-	f.Add([]byte("<html>502</html>"), uint(6), "x")
+	f.Add([]byte(`{"secret":{"h":"v"},"detail":[{"loc":["body"],"msg":"m"}]}`), uint(3),
+		"]overlap")
+	f.Add([]byte("<html>502</html>"), uint(6), "x-member")
 	f.Add([]byte(""), uint(0), "permit_key_")
 	key := canary.Key("fuzz")
 	f.Fuzz(func(t *testing.T, data []byte, at uint, secret string) {
-		if secret == "" || strings.Contains(Marker, secret) {
-			t.Skip("a secret that is empty or part of the marker cannot be told apart from it")
+		if len(secret) < minValueLength {
+			t.Skip("a secret shorter than the minimum does not join the Set")
+		}
+		if strings.Contains(Marker, secret) {
+			t.Skip("a secret that is part of the marker cannot be told apart from it")
 		}
 		cut := int(at % uint(len(data)+1))
 		in := string(data[:cut]) + key + string(data[cut:])
 		in = strings.Replace(in, "x", secret, 1)
 
-		out := string(Scrub(NewSet(key, secret), []byte(in)))
+		set := NewSet(key)
+		set.Add(secret)
+		out := string(Scrub(set, []byte(in)))
 
 		for _, s := range []string{key, secret} {
 			if strings.Contains(out, s) {

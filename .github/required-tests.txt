@@ -510,6 +510,8 @@ github.com/permitio/permit-golang/v2/internal/redact TestSecretInLogs
 github.com/permitio/permit-golang/v2/internal/redact TestEmptySecretPrintsNothing
 github.com/permitio/permit-golang/v2/internal/redact TestSecretKeepsItsValue
 github.com/permitio/permit-golang/v2/internal/redact TestSetAddAndContains
+github.com/permitio/permit-golang/v2/internal/redact TestSetMinimumLengths
+github.com/permitio/permit-golang/v2/internal/redact TestSetOfBothRules
 github.com/permitio/permit-golang/v2/internal/redact TestZeroSetIsReady
 github.com/permitio/permit-golang/v2/internal/redact TestSetsAreIndependent
 github.com/permitio/permit-golang/v2/internal/redact TestSetIsSafeForConcurrentUse
@@ -551,6 +553,7 @@ github.com/permitio/permit-golang/v2 TestCloseClosesIdleConnections
 github.com/permitio/permit-golang/v2 TestCollectedClientClosesIdleConnections
 github.com/permitio/permit-golang/v2 TestCollectedClientLeavesCallerConnections
 github.com/permitio/permit-golang/v2 TestClientString
+github.com/permitio/permit-golang/v2 TestAPIKeyIsReplacedFromSixteenBytes
 github.com/permitio/permit-golang/v2 TestClientInLogsAndJSON
 github.com/permitio/permit-golang/v2 ExampleNew
 github.com/permitio/permit-golang/v2 ExampleNew_invalidConfiguration
@@ -1291,6 +1294,8 @@ github.com/permitio/permit-golang/v2 TestInvalidProxyConfigSecrets
 github.com/permitio/permit-golang/v2 TestProxyConfigErrorsHoldNoSecret
 github.com/permitio/permit-golang/v2 TestMalformedProxyConfigReplies
 github.com/permitio/permit-golang/v2 TestProxyConfigSecretsJoinTheClientSet
+github.com/permitio/permit-golang/v2 TestShortProxySecretValuesKeepDiagnostics
+github.com/permitio/permit-golang/v2 TestProxySecretValuesJoinTheSetFromEightBytes
 github.com/permitio/permit-golang/v2 TestProxyConfigCallsLogNoSecret
 github.com/permitio/permit-golang/v2 TestProxyConfigRetries
 github.com/permitio/permit-golang/v2 TestProxyConfigsAfterClose

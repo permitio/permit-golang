@@ -63,9 +63,10 @@ var (
 // [errors.As].
 //
 // When the SDK creates an Error, it replaces each credential it finds in the fields that come
-// from the reply and in the text of Err with a marker: the client's API key, the credentials that
-// the client's calls returned, Permit API keys, Authorization header values, and the values of
-// JSON fields that name a credential, such as secret, token, password or api_key. Then it cuts
+// from the reply and in the text of Err with a marker: the client's API key when it has at least
+// 16 bytes, the credentials of at least 8 bytes that the client's calls returned or sent in the
+// secret of a proxy config, Permit API keys, Authorization header values, and the values of JSON
+// fields that name a credential, such as secret, token, password or api_key. Then it cuts
 // each of Code, Title, Detail and RequestID to at most 1 KiB: a longer one is cut where a
 // character starts and ends with "...".
 type Error struct {

@@ -3354,9 +3354,10 @@ three fields, one of which is set, as the auth mechanism of the config names it:
 marker in place of the credential with `fmt`, `log/slog` and `encoding/json`, and `Headers`, a map
 of such values by the name of each header. The
 [Proxy configs section of the CHANGELOG](CHANGELOG.md#proxy-configs) names the types. Read a
-credential with the `Value` method of its value. The client keeps each credential that its calls
-send or return out of its errors and its log lines, as it does its own API key, the value of each
-header too, wherever it appears, so a set of headers should hold only credentials.
+credential with the `Value` method of its value. The client keeps each credential of at least 8
+bytes that its calls send or return out of its errors and its log lines, as it does its own API
+key of at least 16 bytes, the value of each header too, wherever it appears, so a set of headers
+should hold only credentials.
 
 In `models.MappingRule`, `URL`, `HTTPMethod` and `URLType` take the place of `Url`, `HttpMethod`
 and `UrlType`; `URLType`, `Headers` and `Action` are values in place of pointers, and `Priority`

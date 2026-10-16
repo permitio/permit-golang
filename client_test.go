@@ -14,9 +14,11 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/permitio/permit-golang/v2/internal/redact"
 	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/testkit/canary"
 	"github.com/permitio/permit-golang/v2/internal/testkit/concurrent"
@@ -450,6 +452,52 @@ func TestClientString(t *testing.T) {
 	zero := `permit.Client{APIKey: "", APIURL: "", PDPURL: "", Timeout: 0s}`
 	if got := new(Client).String(); got != zero {
 		t.Errorf("the zero Client prints as %q, want %q", got, zero)
+	}
+}
+
+// TestAPIKeyIsReplacedFromSixteenBytes checks that a client replaces its API key, here one that
+// no pattern finds, in its settings, its errors and its log lines when the key has 16 bytes, and
+// leaves a key of 15 bytes as it is: a key that short, such as a placeholder in a test, would
+// turn up in unrelated text.
+func TestAPIKeyIsReplacedFromSixteenBytes(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		key      string
+		replaced bool
+	}{
+		{name: "15 bytes", key: "opaque-key-15-b"},
+		{name: "16 bytes", key: "opaque-key-16-by", replaced: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			refuse := func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusUnauthorized)
+				_, _ = io.WriteString(w, `{"detail":"the key `+tc.key+` is not valid"}`)
+			}
+			srv := httptest.NewServer(http.HandlerFunc(refuse))
+			t.Cleanup(srv.Close)
+			logger, logged := debugLog()
+			c := urlClient(t, tc.key, srv.URL+"/"+tc.key, WithLogger(logger))
+			shown := tc.key
+			if tc.replaced {
+				shown = redact.Marker
+			}
+			wantURL := `APIURL: "` + srv.URL + "/" + shown + `"`
+			if !strings.Contains(c.String(), wantURL) {
+				t.Errorf("String() = %s, want it to hold %s", c, wantURL)
+			}
+			_, err := do[testObject](t.Context(), c, get("a"))
+			want := "the key " + shown + " is not valid"
+			if got := mustError(t, err).Detail; got != want {
+				t.Errorf("Detail = %q, want %q", got, want)
+			}
+			lines := jsonLines(t, logged())
+			if len(lines) != 1 {
+				t.Fatalf("the call logged %d lines, want 1: %s", len(lines), logged())
+			}
+			if got, _ := lines[0]["error"].(string); !strings.HasSuffix(got, want) {
+				t.Errorf("the Debug line's error is %q, want it to end with %q", got, want)
+			}
+		})
 	}
 }
 

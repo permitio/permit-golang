@@ -119,8 +119,9 @@ type Client struct {
 	pdpURL  string
 	timeout time.Duration
 
-	// secrets holds the API key, the credentials that the client's calls return, and those of
-	// the secrets of the proxy configs that its calls send, which the client's errors never hold.
+	// secrets holds the API key when it has at least 16 bytes, and each credential of at least 8
+	// bytes that the client's calls return, or send in the secret of a proxy config, which the
+	// client's errors never hold.
 	secrets *redact.Set
 
 	httpClient *http.Client
@@ -306,8 +307,8 @@ func (c *Client) checkOpen() error {
 }
 
 // String returns the client's settings on one line: its API URL, its PDP URL and its timeout,
-// with a marker in place of its API key and of the key in a URL; the Example of [New] shows one.
-// A nil *Client is <nil>.
+// with a marker in place of its API key, and in place of the key in a URL when the key has at
+// least 16 bytes or is a Permit API key; the Example of [New] shows one. A nil *Client is <nil>.
 func (c *Client) String() string {
 	if c == nil {
 		return "<nil>"

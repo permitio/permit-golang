@@ -1,9 +1,12 @@
 // Package redact keeps credentials out of what the SDK prints, logs and keeps in its errors.
 //
-// Each client owns a [Set] that holds its own credentials: its API key, and the credentials that
-// its calls return, which [Set.AddFields] finds in their replies. [Scrub] replaces the members of
-// a Set, and the values that a fixed list of patterns finds, with [Marker]. Nothing here is shared
-// between clients, so a client's credentials are kept only as long as the client's Set.
+// Each client owns a [Set] that holds its own credentials: its API key, which [NewSet] takes, the
+// credentials that its calls send, which [Set.Add] takes, and those that its calls return, which
+// [Set.AddFields] finds in their replies. A value joins a Set only when it is long enough not to
+// turn up by chance in other text: the API key with at least 16 bytes, and each other credential
+// with at least 8. [Scrub] replaces with [Marker] the members of a Set, and the values that a
+// fixed list of patterns finds whatever their length. Nothing here is shared between clients, so
+// a client's credentials are kept only as long as the client's Set.
 package redact
 
 import (
@@ -73,8 +76,29 @@ func (s Secret) LogValue() slog.Value { return slog.StringValue(s.String()) }
 // carries the credential takes [Secret.Value].
 func (s Secret) MarshalJSON() ([]byte, error) { return json.Marshal(s.String()) }
 
-// Set holds the credentials of one client, which [Scrub] replaces. The zero value is an empty Set
-// ready to use. A Set is safe for concurrent use.
+// The fewest bytes that a value needs to join a Set, counted in bytes and not in characters: é,
+// which UTF-8 writes in two bytes, counts as two. [Scrub] replaces each member wherever it
+// appears, so a short value, such as a header value 2, would also be replaced inside unrelated
+// text, such as a request ID, a route or a status code, and make it unreadable. A shorter value
+// still never prints on its own: a [Secret] prints Marker whatever its length, and the stateless
+// patterns of Scrub find their values whatever their length.
+const (
+	// minAPIKeyLength is the fewest bytes of the API key that NewSet takes, the length that
+	// v1.3.0 of the SDK set. A Permit API key is much longer; a shorter key is a placeholder,
+	// such as one in a test.
+	minAPIKeyLength = 16
+
+	// minValueLength is the fewest bytes of a credential that Add and AddFields take: one that a
+	// call sends or that its reply returns, such as a token or the value of a header of the
+	// secret of a proxy config. It is lower than minAPIKeyLength, as such a credential can be
+	// shorter than an API key and still be one.
+	minValueLength = 8
+)
+
+// Set holds the credentials of one client, which [Scrub] replaces: the API key that [NewSet]
+// takes when it has at least 16 bytes, and each credential that [Set.Add] or [Set.AddFields]
+// takes that has at least 8 bytes. A shorter value does not join, so Scrub leaves it in place.
+// The zero value is an empty Set ready to use. A Set is safe for concurrent use.
 //
 // A Set only grows: a client that rotates its API key keeps the old key in its Set too, for as
 // long as the client lives.
@@ -83,21 +107,27 @@ type Set struct {
 	secrets []string
 }
 
-// NewSet returns a Set that holds secrets.
-func NewSet(secrets ...string) *Set {
+// NewSet returns a Set that holds apiKey, the client's API key, when the key has at least 16
+// bytes, and else an empty Set.
+func NewSet(apiKey string) *Set {
 	s := &Set{}
-	s.Add(secrets...)
+	s.add(minAPIKeyLength, apiKey)
 	return s
 }
 
-// Add adds secrets to s. It skips the empty string, which is no credential, and a secret that s
-// holds already.
-func (s *Set) Add(secrets ...string) {
+// Add adds to s each of credentials, such as those that a call sends, that has at least 8 bytes.
+// It skips a shorter one, the empty string too, and one that s holds already.
+func (s *Set) Add(credentials ...string) {
+	s.add(minValueLength, credentials...)
+}
+
+// add adds to s each of values that has at least minLength bytes and that s does not hold.
+func (s *Set) add(minLength int, values ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, secret := range secrets {
-		if secret != "" && !slices.Contains(s.secrets, secret) {
-			s.secrets = append(s.secrets, secret)
+	for _, value := range values {
+		if len(value) >= minLength && !slices.Contains(s.secrets, value) {
+			s.secrets = append(s.secrets, value)
 		}
 	}
 }
@@ -111,7 +141,8 @@ var returnedCredentialNames = []string{
 }
 
 // AddFields adds to s the credentials that data, a JSON document such as the body of a reply,
-// holds under an object key that is one of fields or a credential name:
+// holds under an object key that is one of fields or a credential name, each that has at least 8
+// bytes, as [Set.Add] adds them:
 //
 //   - under one of fields, at any depth: the key's value when it is a string, and every string
 //     inside it when it is an object or a list;

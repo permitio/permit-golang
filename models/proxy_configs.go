@@ -188,12 +188,14 @@ var (
 // GoString, Format with every verb and MarshalJSON show the branch that is set, the names of the
 // headers, and the marker, the word REDACTED in square brackets, in place of each credential.
 //
-// A client that sends a ProxySecret, or reads one from a reply, adds each of its credentials, the
-// value of each header too, to the credentials that it replaces with the marker wherever they
-// appear in its later errors and log lines, for as long as the client lives. So a secret of
-// headers should hold only credentials: the value of a header that is not one, such as a region
-// or a version, is replaced in each of those too, also inside a request ID, a path or a status
-// code.
+// A client that sends a ProxySecret, or reads one from a reply, adds each of its credentials that
+// has at least 8 bytes, the value of each header too, to the credentials that it replaces with
+// the marker wherever they appear in its later errors and log lines, for as long as the client
+// lives. A shorter value, such as a version 2, is left as it is there, as it would turn up in
+// unrelated text, such as a path; it still prints only as the marker. So a secret of headers
+// should hold only credentials: the value of a header that is not one but has 8 bytes or more,
+// such as a region eu-west-1, is replaced in each of those too, also inside a request ID or a
+// path.
 //
 // The API sends the secret back as it stores it: a JSON object for Headers, and a JSON string
 // for Basic and Bearer, which the auth mechanism of the config tells apart.

@@ -31,10 +31,12 @@ const (
 // [models.Secret.Value] returns, with the auth mechanism of the branch that it sets when the
 // call's AuthMechanism is empty, and each reply holds the credentials of the secret. The SDK
 // keeps them out of what it prints and logs: a ProxySecret prints the marker in place of each
-// credential, and the client adds each credential that a call sends or reads, the value of each
-// header of a secret of headers too, to the credentials that its errors and its log lines replace
-// with the marker, wherever they appear, for as long as the client lives, as it does its API key.
-// So a secret of headers should hold only credentials, as [models.ProxySecret] says.
+// credential, and the client adds each credential of at least 8 bytes that a call sends or reads,
+// the value of each header of a secret of headers too, to the credentials that its errors and its
+// log lines replace with the marker, wherever they appear, for as long as the client lives, as it
+// does its API key. A shorter value, such as a version 2, is left as it is, as it would turn up
+// in unrelated text. So a secret of headers should hold only credentials, as
+// [models.ProxySecret] says.
 //
 // The routes of the configs start with /v2/facts/, as those of the facts API do, but only the API
 // serves them: a client with [WithFactsViaPDP] sends them to the API too, with the project and the
@@ -110,8 +112,9 @@ func proxySecretBranches(secret models.ProxySecret) []proxySecretBranch {
 // secret, the credential of Basic or of Bearer as a string, or the credentials of Headers as a
 // map of strings, by the names of the headers; and the auth mechanism that the body sends with
 // it: mechanism, or, when it is empty, the mechanism of the branch that secret sets. It adds
-// each credential to the client's Set, so that the client's errors and log lines replace it from
-// then on, in the error of the call too, whose body may echo it.
+// each credential to the client's Set, which keeps those of at least 8 bytes, so that the
+// client's errors and log lines replace it from then on, in the error of the call too, whose body
+// may echo it.
 //
 // It returns an error that matches ErrInvalidConfig and names op, and adds nothing, when secret
 // sets more than one branch, when it holds no credential, as it sets none or the one that it sets

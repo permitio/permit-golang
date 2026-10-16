@@ -294,8 +294,10 @@ func TestNoSecretInAnyLine(t *testing.T) {
 	for name, output := range outputs {
 		sink := &lines{}
 		shared := slog.New(output(sink))
-		a := New(shared, redact.NewSet(keyA, opaqueA))
-		b := New(shared, redact.NewSet(keyB, opaqueB))
+		setA, setB := redact.NewSet(keyA), redact.NewSet(keyB)
+		setA.Add(opaqueA)
+		setB.Add(opaqueB)
+		a, b := New(shared, setA), New(shared, setB)
 		for _, plant := range []struct {
 			via    string
 			logger *Logger
@@ -418,7 +420,7 @@ func (c contextRecorder) Handle(ctx context.Context, record slog.Record) error {
 func TestTheContextReachesTheHandler(t *testing.T) {
 	var seen []any
 	next := newRecorder(io.Discard, slog.LevelDebug)
-	l := New(slog.New(contextRecorder{Handler: next, seen: &seen}), redact.NewSet())
+	l := New(slog.New(contextRecorder{Handler: next, seen: &seen}), new(redact.Set))
 	ctx := context.WithValue(t.Context(), ctxKey{}, "trace")
 	l.Request(ctx, Request{Route: "/v2/x", Status: 200, Attempt: 1})
 	if err := handlerOf(l).Handle(ctx, newRecord(slog.LevelInfo, "direct")); err != nil {
@@ -474,7 +476,7 @@ func TestHandlerFollowsTheSlogContract(t *testing.T) {
 	var out strings.Builder
 	slogtest.Run(t, func(*testing.T) slog.Handler {
 		out.Reset()
-		return handlerOf(New(slog.New(slog.NewJSONHandler(&out, nil)), redact.NewSet()))
+		return handlerOf(New(slog.New(slog.NewJSONHandler(&out, nil)), new(redact.Set)))
 	}, func(t *testing.T) map[string]any {
 		t.Helper()
 		var line map[string]any
@@ -489,7 +491,7 @@ func TestHandleKeepsTheRecord(t *testing.T) {
 	rec := newRecorder(io.Discard, slog.LevelDebug)
 	at := time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC)
 	record := slog.NewRecord(at, slog.LevelWarn+1, "kept", 42)
-	if err := handlerOf(New(slog.New(rec), redact.NewSet())).Handle(t.Context(),
+	if err := handlerOf(New(slog.New(rec), new(redact.Set))).Handle(t.Context(),
 		record); err != nil {
 		t.Fatal(err)
 	}
@@ -506,7 +508,7 @@ func TestHandleKeepsTheRecord(t *testing.T) {
 }
 
 func TestEnabledFollowsTheHandler(t *testing.T) {
-	h := handlerOf(New(slog.New(newRecorder(io.Discard, slog.LevelWarn)), redact.NewSet()))
+	h := handlerOf(New(slog.New(newRecorder(io.Discard, slog.LevelWarn)), new(redact.Set)))
 	for level, want := range map[slog.Level]bool{
 		slog.LevelDebug: false, slog.LevelInfo: false, slog.LevelWarn: true, slog.LevelError: true,
 	} {
@@ -517,7 +519,7 @@ func TestEnabledFollowsTheHandler(t *testing.T) {
 }
 
 func TestWithGroupOfNoName(t *testing.T) {
-	h := handlerOf(New(slog.New(newRecorder(io.Discard, slog.LevelDebug)), redact.NewSet()))
+	h := handlerOf(New(slog.New(newRecorder(io.Discard, slog.LevelDebug)), new(redact.Set)))
 	if got := h.WithGroup(""); got != h {
 		t.Errorf("WithGroup(\"\") = %v, want the handler itself, as slog.Handler asks", got)
 	}
@@ -525,7 +527,7 @@ func TestWithGroupOfNoName(t *testing.T) {
 
 func TestOutput(t *testing.T) {
 	rec := newRecorder(io.Discard, slog.LevelDebug)
-	if got := New(slog.New(rec), redact.NewSet()).Output(); got != rec {
+	if got := New(slog.New(rec), new(redact.Set)).Output(); got != rec {
 		t.Errorf("Output() = %v, want the handler of the logger given", got)
 	}
 }
@@ -610,7 +612,7 @@ func TestRequest(t *testing.T) {
 // TestRequestAtInfo checks that a handler at Info gets no request line.
 func TestRequestAtInfo(t *testing.T) {
 	rec := newRecorder(io.Discard, slog.LevelInfo)
-	New(slog.New(rec), redact.NewSet()).Request(t.Context(), Request{
+	New(slog.New(rec), new(redact.Set)).Request(t.Context(), Request{
 		Route: "/v2/api-key/scope", Status: 500, Attempt: 1, Err: errors.New("refused"),
 	})
 	if records := rec.list(); len(records) != 0 {

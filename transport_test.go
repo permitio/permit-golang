@@ -713,7 +713,7 @@ func TestCallsKeepTheCredentialsTheyReturn(t *testing.T) {
 	)
 	api.Handle(route(opCreate), mockpermit.Reply{
 		Status: http.StatusCreated,
-		Body:   `{"key":"c","access_token":"` + access + `","token_type":"bearer"}`,
+		Body:   `{"key":"c","access_token":"` + access + `","token_type":"bearer-type"}`,
 	})
 	api.Handle(route(opGet), mockpermit.Reply{
 		Status: http.StatusBadRequest,
@@ -736,7 +736,7 @@ func TestCallsKeepTheCredentialsTheyReturn(t *testing.T) {
 	if err != nil || got.Key != "c" {
 		t.Fatalf("do returned %v, %v", got, err)
 	}
-	if !c.secrets.Contains(access) || c.secrets.Contains("bearer") {
+	if !c.secrets.Contains(access) || c.secrets.Contains("bearer-type") {
 		t.Error("the Set does not hold the value of access_token, or holds that of token_type")
 	}
 	if err = c.doNoValue(t.Context(), request{op: opSigning.ID, target: apiTarget}); err != nil {

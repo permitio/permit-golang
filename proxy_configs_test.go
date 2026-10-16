@@ -1067,6 +1067,104 @@ func TestProxyConfigSecretsJoinTheClientSet(t *testing.T) {
 	}
 }
 
+// TestShortProxySecretValuesKeepDiagnostics checks that the value of a header of a secret of
+// headers that has fewer than 8 bytes, such as a version 2, does not join the client's Set: the
+// error of the call keeps it in its request ID and its detail, and the call's Debug line keeps it
+// in its route, while the value of the other header, which is longer, is replaced in the detail.
+func TestShortProxySecretValuesKeepDiagnostics(t *testing.T) {
+	const (
+		version   = "2"
+		requestID = "req-2026-10-16-2"
+	)
+	logger, logged := debugLog()
+	api := mockpermit.NewAPI(t)
+	api.Handle(createProxyConfigRoute, mockpermit.Reply{
+		Status: http.StatusConflict,
+		Body: `{"id":"` + requestID + `","detail":"config 2 holds ` + proxyHeaderValue +
+			` already"}`,
+	})
+	c := resourceClient(t, api, WithLogger(logger))
+	_, err := c.ProxyConfigs.Create(t.Context(), models.ProxyConfigCreate{
+		Key: "payments", Name: "payments", Secret: models.ProxySecret{
+			Headers: map[string]models.Secret{
+				"X-Api-Key": models.NewSecret(proxyHeaderValue),
+				"X-Version": models.NewSecret(version),
+			},
+		},
+	})
+	e := mustError(t, err)
+	if e.RequestID != requestID {
+		t.Errorf("RequestID = %q, want %q unchanged", e.RequestID, requestID)
+	}
+	if want := "config 2 holds " + redact.Marker + " already"; e.Detail != want {
+		t.Errorf("Detail = %q, want %q", e.Detail, want)
+	}
+	if c.secrets.Contains(version) || !c.secrets.Contains(proxyHeaderValue) {
+		t.Errorf("the client's Set holds %s: %t, and %s: %t; want only the longer value",
+			version, c.secrets.Contains(version), proxyHeaderValue,
+			c.secrets.Contains(proxyHeaderValue))
+	}
+	lines := jsonLines(t, logged())
+	if len(lines) != 1 {
+		t.Fatalf("the call logged %d lines, want 1: %s", len(lines), logged())
+	}
+	if got, want := lines[0]["route"], "/v2/facts/{proj_id}/{env_id}/proxy_configs"; got != want {
+		t.Errorf("the Debug line's route is %v, want %s", got, want)
+	}
+}
+
+// TestProxySecretValuesJoinTheSetFromEightBytes checks that a credential that a call sends or
+// reads joins the client's Set when it has 8 bytes, and not when it has 7: a later error whose
+// body echoes it holds the marker in its place only for the longer one.
+func TestProxySecretValuesJoinTheSetFromEightBytes(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		value    string
+		read     bool
+		replaced bool
+	}{
+		{name: "a sent token of 7 bytes", value: "token-7"},
+		{name: "a sent token of 8 bytes", value: "token-08", replaced: true},
+		{name: "a read token of 7 bytes", value: "token-7", read: true},
+		{name: "a read token of 8 bytes", value: "token-08", read: true, replaced: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			echo := mockpermit.Reply{
+				Status: http.StatusBadRequest,
+				Body:   `{"detail":"the token ` + tc.value + ` is revoked"}`,
+			}
+			api := mockpermit.NewAPI(t)
+			c := resourceClient(t, api)
+			ctx := t.Context()
+			if tc.read {
+				api.Handle(getProxyConfigRoute, mockpermit.Reply{
+					Body: proxyConfigBody("payments", "Bearer", `"`+tc.value+`"`),
+				}, echo)
+				if _, err := c.ProxyConfigs.Get(ctx, "payments"); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				api.Handle(createProxyConfigRoute, mockpermit.Reply{Body: bearerConfigBody})
+				api.Handle(getProxyConfigRoute, echo)
+				if _, err := c.ProxyConfigs.Create(ctx, models.ProxyConfigCreate{
+					Key: "payments", Name: "payments", Secret: bearerSecret(tc.value),
+				}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, err := c.ProxyConfigs.Get(ctx, "payments")
+			shown := tc.value
+			if tc.replaced {
+				shown = redact.Marker
+			}
+			want := "the token " + shown + " is revoked"
+			if got := mustError(t, err).Detail; got != want {
+				t.Errorf("Detail = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 // TestProxyConfigCallsLogNoSecret checks that a recording logger at Debug sees no credential
 // while Create, Get and List run, neither in the client's Debug lines nor in what the
 // application logs of the configs that the calls return, with slog's text and JSON handlers,

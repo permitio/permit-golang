@@ -1753,7 +1753,9 @@ decode, and for a request that got no complete reply.
   that stands for a status also gets a case in `Error.Is`. Then rewrite the surface snapshot and
   add the sentinel to `CHANGELOG.md`.
 - Credentials are replaced when an `Error` is created, never when it is printed. Each client owns
-  a `redact.Set` (`internal/redact`) that holds its API key and the credentials its calls return.
+  a `redact.Set` (`internal/redact`) that holds its API key when it has at least 16 bytes, and
+  each credential of at least 8 bytes that its calls send or return; a placeholder credential in
+  a test needs 8 bytes or more to be replaced.
   The constructors replace its members, and what the stateless patterns of `redact.Scrub` find, in
   the fields they read from the reply, in the body they keep and in the text of the cause. No
   package-level variable holds a credential.

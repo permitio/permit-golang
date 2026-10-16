@@ -310,7 +310,8 @@ func isDotSegment(s string) bool {
 // slog.LevelInfo, the default of slog's handlers, keeps the warnings only.
 //
 // Before a line reaches the handler, the client replaces its credentials in it with a marker:
-// its API key, the credentials its calls return, every Permit API key and the value of an
+// its API key when it has at least 16 bytes, the credentials of at least 8 bytes that its calls
+// return or send in the secret of a proxy config, every Permit API key and the value of an
 // Authorization header. It replaces them in the message, in the keys and string values of
 // attributes, in groups at any depth and in what a [slog.LogValuer] returns. An error reaches the
 // handler as an error that holds its text, with the credentials replaced, and nothing else: no

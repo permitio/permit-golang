@@ -385,7 +385,8 @@ func TestReplyErrorCutsTheBodyAfterRedaction(t *testing.T) {
 
 func TestReplyErrorCutsTheFields(t *testing.T) {
 	const proxyCredential = "proxy-header-value"
-	secrets := redact.NewSet(proxyCredential)
+	secrets := new(redact.Set)
+	secrets.Add(proxyCredential)
 	a := func(n int) string { return strings.Repeat("a", n) }
 	for name, tc := range map[string]struct{ text, want string }{
 		"at the cap":   {a(maxErrorField), a(maxErrorField)},
@@ -464,7 +465,8 @@ func TestDecodeError(t *testing.T) {
 func TestTransportError(t *testing.T) {
 	key := canary.Key("transport")
 	const proxyCredential = "proxy-header-value"
-	secrets := redact.NewSet(key, proxyCredential)
+	secrets := redact.NewSet(key)
+	secrets.Add(proxyCredential)
 	const objectKey = "alice@example.com"
 	urlErr := &url.Error{
 		Op:  "Get",

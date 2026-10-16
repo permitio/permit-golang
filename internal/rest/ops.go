@@ -961,6 +961,42 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "GroupAssignUser",
 	},
 
+	// The refreshes of the data of the PDPs of an environment: of every PDP of the environment,
+	// or of one by its ID. Each is sent with an environment-level key, as the routes act on the
+	// PDPs of one environment. These key levels are not measured yet: the phase api.pdps of the
+	// local harness confirms them. A refresh asks the PDPs to read all their data again, so a
+	// second request leaves them as the first does, and a retry may send it again.
+	{
+		ID: "refresh_environment_pdp_data", Method: http.MethodPost,
+		Route: "/v2/pdps/{proj_id}/{env_id}/configs/refresh", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "PDPDataRefreshRequest",
+		ResponseModel: "PDPDataRefreshResponse",
+	},
+	{
+		ID: "refresh_pdp_data", Method: http.MethodPost,
+		Route: "/v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/refresh", Idempotent: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "PDPDataRefreshRequest",
+		ResponseModel: "PDPDataRefreshResponse",
+	},
+
+	// The audit logs of an environment, the decisions of its PDPs, each read with an
+	// environment-level key, as the API keeps the audit logs of each environment apart. These key
+	// levels are not measured yet: the phase api.audit_logs of the local harness confirms them.
+	// The list is a paginated object of at most 100 logs. A log holds the input and the result of
+	// a decision, the application's values, not credentials, so its values join no redaction set.
+	{
+		ID: "list_audit_logs", Method: http.MethodGet,
+		Route: "/v2/pdps/{proj_id}/{env_id}/audit_logs", Idempotent: true,
+		KeyLevel: EnvironmentLevel, NoReplyCredentials: true, MaxPerPage: 100,
+		ResponseModel: "AuditLogModel",
+	},
+	{
+		ID: "get_detailed_audit_log", Method: http.MethodGet,
+		Route: "/v2/pdps/{proj_id}/{env_id}/audit_logs/{log_id}", Idempotent: true,
+		KeyLevel: EnvironmentLevel, NoReplyCredentials: true,
+		ResponseModel: "DetailedAuditLogModel",
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

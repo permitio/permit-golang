@@ -122,6 +122,13 @@ type Client struct {
 	// scope, and assigns, lists and removes the users of a group.
 	Groups *GroupsService `json:"-"`
 
+	// PDPs asks the PDPs of the environment of the client's scope to read their data again.
+	PDPs *PDPsService `json:"-"`
+
+	// AuditLogs lists and reads the audit logs of the environment of the client's scope, the
+	// decisions that its PDPs made.
+	AuditLogs *AuditLogsService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -229,6 +236,8 @@ func New(opts ...Option) (*Client, error) {
 	c.RelationshipTuples = &RelationshipTuplesService{facts: facts{client: c}}
 	c.ProxyConfigs = &ProxyConfigsService{client: c}
 	c.Groups = &GroupsService{client: c}
+	c.PDPs = &PDPsService{client: c}
+	c.AuditLogs = &AuditLogsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

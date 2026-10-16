@@ -14,6 +14,12 @@ models: const AttributeTypeObject AttributeType = "object"
 models: const AttributeTypeObjectArray AttributeType = "object_array"
 models: const AttributeTypeString AttributeType = "string"
 models: const AttributeTypeTime AttributeType = "time"
+models: const AuditLogQueryTypeCheck AuditLogQueryType = "check"
+models: const AuditLogQueryTypeGetAuthorizedUsers AuditLogQueryType = "get_authorized_users"
+models: const AuditLogQueryTypeGetUserPermissions AuditLogQueryType = "get_user_permissions"
+models: const AuditLogQueryTypeNone AuditLogQueryType = "none"
+models: const AuditLogSortKeyNone AuditLogSortKey = "None"
+models: const AuditLogSortKeyTimestamp AuditLogSortKey = "timestamp"
 models: const AuthMechanismBasic AuthMechanism = "Basic"
 models: const AuthMechanismBearer AuthMechanism = "Bearer"
 models: const AuthMechanismHeaders AuthMechanism = "Headers"
@@ -82,6 +88,8 @@ models: method (*Time) UnmarshalJSON(data []byte) error
 models: method (*Time) UnmarshalText(text []byte) error
 models: method (APIKeyOwnerType) Known() bool
 models: method (AttributeType) Known() bool
+models: method (AuditLogQueryType) Known() bool
+models: method (AuditLogSortKey) Known() bool
 models: method (AuthMechanism) Known() bool
 models: method (ConditionSetType) Known() bool
 models: method (EnvironmentCopyConflictStrategy) Known() bool
@@ -152,6 +160,12 @@ models: type ActionBlockRead struct, Key string
 models: type ActionBlockRead struct, Name string
 models: type ActionBlockRead struct, V1CompatName string
 models: type ActionBlockRead struct, V1CompatPath string
+models: type ActionObj struct
+models: type ActionObj struct, CreatedAt Time
+models: type ActionObj struct, ID string
+models: type ActionObj struct, Key string
+models: type ActionObj struct, Name string
+models: type ActionObj struct, UpdatedAt Time
 models: type AddRolePermissions struct
 models: type AddRolePermissions struct, Permissions []string
 models: type AttributeBlockEditable struct
@@ -164,6 +178,40 @@ models: type AttributeBlockRead struct, Key string
 models: type AttributeBlockRead struct, Type AttributeType
 models: type AttributeType string
 models: type Attributes map[string]any
+models: type AuditLogModel struct
+models: type AuditLogModel struct, Action string
+models: type AuditLogModel struct, Context json.RawMessage
+models: type AuditLogModel struct, CreatedAt Time
+models: type AuditLogModel struct, Decision *bool
+models: type AuditLogModel struct, EnvironmentID string
+models: type AuditLogModel struct, ID string
+models: type AuditLogModel struct, Input json.RawMessage
+models: type AuditLogModel struct, OrganizationID string
+models: type AuditLogModel struct, PDPConfigID string
+models: type AuditLogModel struct, ProjectID string
+models: type AuditLogModel struct, Query string
+models: type AuditLogModel struct, RawData json.RawMessage
+models: type AuditLogModel struct, Reason string
+models: type AuditLogModel struct, ResourceType string
+models: type AuditLogModel struct, Result json.RawMessage
+models: type AuditLogModel struct, Tenant string
+models: type AuditLogModel struct, Timestamp Time
+models: type AuditLogModel struct, UserEmail string
+models: type AuditLogModel struct, UserKey string
+models: type AuditLogModel struct, UserName string
+models: type AuditLogObjectsModel struct
+models: type AuditLogObjectsModel struct, ActionObject *ActionObj
+models: type AuditLogObjectsModel struct, CreatedAt Time
+models: type AuditLogObjectsModel struct, EnvironmentObject json.RawMessage
+models: type AuditLogObjectsModel struct, ID string
+models: type AuditLogObjectsModel struct, OrganizationObject json.RawMessage
+models: type AuditLogObjectsModel struct, PDPConfigObject json.RawMessage
+models: type AuditLogObjectsModel struct, ProjectObject json.RawMessage
+models: type AuditLogObjectsModel struct, ResourceTypeObject *ResourceTypeObj
+models: type AuditLogObjectsModel struct, TenantObject *TenantObj
+models: type AuditLogObjectsModel struct, UserObject *UserObj
+models: type AuditLogQueryType string
+models: type AuditLogSortKey string
 models: type AuthMechanism string
 models: type BulkRoleAssignmentReport struct
 models: type BulkRoleAssignmentReport struct, AssignmentsCreated int
@@ -250,6 +298,28 @@ models: type DerivedRoleRuleRead struct, ResourceID string
 models: type DerivedRoleRuleRead struct, Role string
 models: type DerivedRoleRuleRead struct, RoleID string
 models: type DerivedRoleRuleRead struct, When *DerivationSettings
+models: type DetailedAuditLogModel struct
+models: type DetailedAuditLogModel struct, Action string
+models: type DetailedAuditLogModel struct, Context json.RawMessage
+models: type DetailedAuditLogModel struct, CreatedAt Time
+models: type DetailedAuditLogModel struct, Decision *bool
+models: type DetailedAuditLogModel struct, EnvironmentID string
+models: type DetailedAuditLogModel struct, ID string
+models: type DetailedAuditLogModel struct, Input json.RawMessage
+models: type DetailedAuditLogModel struct, Objects AuditLogObjectsModel
+models: type DetailedAuditLogModel struct, OrganizationID string
+models: type DetailedAuditLogModel struct, PDPConfigID string
+models: type DetailedAuditLogModel struct, ProjectID string
+models: type DetailedAuditLogModel struct, Query string
+models: type DetailedAuditLogModel struct, RawData json.RawMessage
+models: type DetailedAuditLogModel struct, Reason string
+models: type DetailedAuditLogModel struct, ResourceType string
+models: type DetailedAuditLogModel struct, Result json.RawMessage
+models: type DetailedAuditLogModel struct, Tenant string
+models: type DetailedAuditLogModel struct, Timestamp Time
+models: type DetailedAuditLogModel struct, UserEmail string
+models: type DetailedAuditLogModel struct, UserKey string
+models: type DetailedAuditLogModel struct, UserName string
 models: type EnvironmentCopy struct
 models: type EnvironmentCopy struct, ConflictStrategy EnvironmentCopyConflictStrategy
 models: type EnvironmentCopy struct, Scope EnvironmentCopyScope
@@ -378,6 +448,12 @@ models: type PDPConfigRead struct, NumShards int
 models: type PDPConfigRead struct, OPALServerAccessToken Secret
 models: type PDPConfigRead struct, OrganizationID string
 models: type PDPConfigRead struct, ProjectID string
+models: type PDPDataRefreshRequest struct
+models: type PDPDataRefreshRequest struct, Reason string
+models: type PDPDataRefreshRequest struct, ShardID *int
+models: type PDPDataRefreshResponse struct
+models: type PDPDataRefreshResponse struct, PDPIDs []string
+models: type PDPDataRefreshResponse struct, UpdateID string
 models: type ProjectCreate struct
 models: type ProjectCreate struct, ActivePolicyRepoID string
 models: type ProjectCreate struct, Description string
@@ -561,6 +637,9 @@ models: type ResourceAttributeRead struct, UpdatedAt Time
 models: type ResourceAttributeUpdate struct
 models: type ResourceAttributeUpdate struct, Description Optional[string]
 models: type ResourceAttributeUpdate struct, Type AttributeType
+models: type ResourceAttributes struct
+models: type ResourceAttributes struct, Key string
+models: type ResourceAttributes struct, Type AttributeType
 models: type ResourceCreate struct
 models: type ResourceCreate struct, Actions map[string]ActionBlockEditable
 models: type ResourceCreate struct, Attributes map[string]AttributeBlockEditable
@@ -677,6 +756,13 @@ models: type ResourceRoleUpdate struct, Extends []string
 models: type ResourceRoleUpdate struct, GrantedTo Optional[DerivedRoleBlockEdit]
 models: type ResourceRoleUpdate struct, Name string
 models: type ResourceRoleUpdate struct, Permissions []string
+models: type ResourceTypeObj struct
+models: type ResourceTypeObj struct, Attributes []ResourceAttributes
+models: type ResourceTypeObj struct, CreatedAt Time
+models: type ResourceTypeObj struct, ID string
+models: type ResourceTypeObj struct, Key string
+models: type ResourceTypeObj struct, Name string
+models: type ResourceTypeObj struct, UpdatedAt Time
 models: type ResourceUpdate struct
 models: type ResourceUpdate struct, Actions map[string]ActionBlockEditable
 models: type ResourceUpdate struct, Attributes map[string]AttributeBlockEditable
@@ -822,6 +908,13 @@ models: type TenantCreateBulkOperation struct
 models: type TenantCreateBulkOperation struct, Operations []TenantCreate
 models: type TenantDeleteBulkOperation struct
 models: type TenantDeleteBulkOperation struct, Idents []string
+models: type TenantObj struct
+models: type TenantObj struct, Attributes Attributes
+models: type TenantObj struct, CreatedAt Time
+models: type TenantObj struct, ID string
+models: type TenantObj struct, Key string
+models: type TenantObj struct, Name string
+models: type TenantObj struct, UpdatedAt Time
 models: type TenantRead struct
 models: type TenantRead struct, Attributes Attributes
 models: type TenantRead struct, CreatedAt Time
@@ -857,6 +950,16 @@ models: type UserInTenant struct, ResourceInstanceRoles []UserResourceInstanceRo
 models: type UserInTenant struct, Roles []string
 models: type UserInTenant struct, Status UserStatus
 models: type UserInTenant struct, Tenant string
+models: type UserObj struct
+models: type UserObj struct, AssignedRoles []string
+models: type UserObj struct, Attributes Attributes
+models: type UserObj struct, CreatedAt Time
+models: type UserObj struct, Email string
+models: type UserObj struct, FirstName string
+models: type UserObj struct, ID string
+models: type UserObj struct, Key string
+models: type UserObj struct, LastName string
+models: type UserObj struct, UpdatedAt Time
 models: type UserRead struct
 models: type UserRead struct, AssociatedTenants []UserInTenant
 models: type UserRead struct, Attributes Attributes
@@ -916,6 +1019,9 @@ permit: method (*APIKeysService) Get(ctx context.Context, apiKeyID string) (*mod
 permit: method (*APIKeysService) GetEnvironmentKey(ctx context.Context, projectKey string, environmentKey string) (*models.APIKeyRead, error)
 permit: method (*APIKeysService) List(ctx context.Context, opts *APIKeysListOptions) (*Page[models.APIKeyRead], error)
 permit: method (*APIKeysService) RotateSecret(ctx context.Context, apiKeyID string) (*models.APIKeyRead, error)
+permit: method (*AuditLogsService) All(ctx context.Context, opts *AuditLogsListOptions) iter.Seq2[models.AuditLogModel, error]
+permit: method (*AuditLogsService) Get(ctx context.Context, logID string) (*models.DetailedAuditLogModel, error)
+permit: method (*AuditLogsService) List(ctx context.Context, opts *AuditLogsListOptions) (*Page[models.AuditLogModel], error)
 permit: method (*Client) AllTenantsCheck(ctx context.Context, user User, action string, resource Resource, opts ...CheckOption) ([]TenantDetails, error)
 permit: method (*Client) AuthorizedUsers(ctx context.Context, action string, resource Resource, opts ...CheckOption) (AuthorizedUsersResult, error)
 permit: method (*Client) BulkCheck(ctx context.Context, checks []CheckRequest) ([]bool, error)
@@ -971,6 +1077,8 @@ permit: method (*GroupsService) RemoveUser(ctx context.Context, groupInstanceKey
 permit: method (*ImplicitGrantsService) Create(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleCreate) (*models.DerivedRoleRuleRead, error)
 permit: method (*ImplicitGrantsService) Delete(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleDelete) error
 permit: method (*ImplicitGrantsService) UpdateConditions(ctx context.Context, resourceKey string, roleKey string, settings models.DerivationSettings) (*models.DerivationSettings, error)
+permit: method (*PDPsService) Refresh(ctx context.Context, refresh models.PDPDataRefreshRequest) (*models.PDPDataRefreshResponse, error)
+permit: method (*PDPsService) RefreshPDP(ctx context.Context, pdpID string, refresh models.PDPDataRefreshRequest) (*models.PDPDataRefreshResponse, error)
 permit: method (*ProjectsService) All(ctx context.Context, opts *ListOptions) iter.Seq2[models.ProjectRead, error]
 permit: method (*ProjectsService) Create(ctx context.Context, project models.ProjectCreate) (*models.ProjectRead, error)
 permit: method (*ProjectsService) Delete(ctx context.Context, projectKey string) error
@@ -1105,6 +1213,19 @@ permit: type APIKeysListOptions struct, Project string
 permit: type APIKeysListOptions struct, embedded ListOptions
 permit: type APIKeysService struct
 permit: type AttributeFilter struct
+permit: type AuditLogsListOptions struct
+permit: type AuditLogsListOptions struct, Action string
+permit: type AuditLogsListOptions struct, Decision *bool
+permit: type AuditLogsListOptions struct, PDPID string
+permit: type AuditLogsListOptions struct, Query models.AuditLogQueryType
+permit: type AuditLogsListOptions struct, Resources []string
+permit: type AuditLogsListOptions struct, SortBy models.AuditLogSortKey
+permit: type AuditLogsListOptions struct, Tenant string
+permit: type AuditLogsListOptions struct, TimestampFrom *int64
+permit: type AuditLogsListOptions struct, TimestampTo *int64
+permit: type AuditLogsListOptions struct, Users []string
+permit: type AuditLogsListOptions struct, embedded ListOptions
+permit: type AuditLogsService struct
 permit: type AuthorizedUserAssignment struct
 permit: type AuthorizedUserAssignment struct, Resource string
 permit: type AuthorizedUserAssignment struct, Role string
@@ -1132,11 +1253,13 @@ permit: type CheckURLRequest struct, URL string
 permit: type CheckURLRequest struct, User User
 permit: type Client struct
 permit: type Client struct, APIKeys *APIKeysService
+permit: type Client struct, AuditLogs *AuditLogsService
 permit: type Client struct, ConditionSetRules *ConditionSetRulesService
 permit: type Client struct, ConditionSets *ConditionSetsService
 permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, Groups *GroupsService
 permit: type Client struct, ImplicitGrants *ImplicitGrantsService
+permit: type Client struct, PDPs *PDPsService
 permit: type Client struct, Projects *ProjectsService
 permit: type Client struct, ProxyConfigs *ProxyConfigsService
 permit: type Client struct, RelationshipTuples *RelationshipTuplesService
@@ -1205,6 +1328,7 @@ permit: type ObjectPermissions struct, Resource *ResourceDetails
 permit: type ObjectPermissions struct, Roles []string
 permit: type ObjectPermissions struct, Tenant *TenantDetails
 permit: type Option struct
+permit: type PDPsService struct
 permit: type Page[T any] struct
 permit: type Page[T any] struct, Data []T
 permit: type Page[T any] struct, Page int

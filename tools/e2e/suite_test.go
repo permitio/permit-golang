@@ -226,6 +226,18 @@ var cloudScenarios = []scenario{
 		run: groupLifecycle,
 	},
 	{
+		name: "pdp_data_refresh", methods: []string{
+			"PDPsService.Refresh", "PDPsService.RefreshPDP",
+		},
+		run: pdpDataRefresh,
+	},
+	{
+		name: "audit_log_of_a_check", methods: []string{
+			"AuditLogsService.List", "AuditLogsService.All", "AuditLogsService.Get",
+		},
+		run: auditLogOfACheck,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

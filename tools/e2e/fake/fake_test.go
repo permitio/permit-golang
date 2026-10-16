@@ -172,6 +172,8 @@ var routes = []Route{
 		"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations",
 		"list_resource_relations",
 	},
+	{"POST", "/v2/pdps/{proj_id}/{env_id}/configs/refresh", opRefreshPDPs},
+	{"POST", "/v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/refresh", opRefreshPDP},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/groups", "create_group"},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", "list_group_roles"},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "delete_user"},
@@ -1770,4 +1772,49 @@ func TestImplicitGrants(t *testing.T) {
 				"it", tc.method, tc.path, errs)
 		}
 	}
+}
+
+// TestPDPRefresh checks the refreshes of the data of the PDPs of an environment, whose one PDP
+// is the PDP configuration of its statistics, the same in each reply. A refresh of every PDP,
+// with an empty body, with a reason and without a body, answers an update with an ID of its own
+// each time, of that PDP; with a shard, 422, as the API rejects a shard on this route. A refresh
+// of that PDP by its ID, with a reason or a shard, answers an update of it; a refresh of another
+// PDP gets 404, and so does a refresh in an environment that does not exist.
+func TestPDPRefresh(t *testing.T) {
+	h := newHarness(t)
+	_, devKey := h.createEnv("dev")
+	pdpOf := func() any {
+		configs, _ := h.expect(200, "GET", "/v2/projects/proj/envs/dev/stats", "",
+			projectKey)["pdp_configs"].([]any)
+		config, _ := configs[0].(map[string]any)
+		return config["id"]
+	}
+	pdp := pdpOf()
+	if again := pdpOf(); pdp == nil || again != pdp {
+		t.Errorf("the statistics of dev name the PDPs %v and %v, want the same one", pdp, again)
+	}
+	pdpID, _ := pdp.(string)
+	const refresh = "/v2/pdps/proj/dev/configs/refresh"
+	seen := map[any]bool{}
+	refreshPDP := "/v2/pdps/proj/dev/configs/" + pdpID + "/refresh"
+	for _, tc := range []struct{ path, body string }{
+		{refresh, `{}`},
+		{refresh, `{"reason":"reload"}`},
+		{refresh, ``},
+		{refreshPDP, `{"reason":"reload"}`},
+		{refreshPDP, `{"shard_id":0}`},
+	} {
+		got := h.expect(200, "POST", tc.path, tc.body, devKey)
+		ids, _ := got["pdp_ids"].([]any)
+		if got["update_id"] == "" || seen[got["update_id"]] || len(ids) != 1 || ids[0] != pdp ||
+			len(got) != 2 {
+			t.Errorf("POST %s with the body %q answered %v, want a new update of the PDP %v",
+				tc.path, tc.body, got, pdp)
+		}
+		seen[got["update_id"]] = true
+	}
+	h.expect(422, "POST", refresh, `{"shard_id":0}`, devKey)
+	h.expect(404, "POST", "/v2/pdps/proj/dev/configs/00000000-0000-4000-8000-999999999999/refresh",
+		`{}`, devKey)
+	h.expect(404, "POST", "/v2/pdps/proj/staging/configs/refresh", `{}`, projectKey)
 }

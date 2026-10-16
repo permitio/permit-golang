@@ -102,6 +102,9 @@ func TestOpenEnums(t *testing.T) {
 		checkOpenEnum(t, models.URLTypeRegex),
 		checkOpenEnum(t, models.MissingUserPolicyFail, models.MissingUserPolicyIgnore,
 			models.MissingUserPolicyCreate),
+		checkOpenEnum(t, models.AuditLogQueryTypeCheck, models.AuditLogQueryTypeGetUserPermissions,
+			models.AuditLogQueryTypeGetAuthorizedUsers, models.AuditLogQueryTypeNone),
+		checkOpenEnum(t, models.AuditLogSortKeyNone, models.AuditLogSortKeyTimestamp),
 	}
 
 	p, err := surface.Read(".")

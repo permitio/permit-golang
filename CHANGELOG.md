@@ -872,6 +872,46 @@ change from v1 and what to use instead.
   after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed
   connection too.
 
+### PDPs
+
+- The `PDPs` field of the client, a `*permit.PDPsService`, asks the PDPs of the environment of
+  the client's scope to read their data again, which v1 could not: `Refresh` every PDP of the
+  environment, with `POST /v2/pdps/{proj_id}/{env_id}/configs/refresh`, and `RefreshPDP` one by
+  its ID, with `POST /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/refresh`. Each takes a
+  `models.PDPDataRefreshRequest`, whose zero value sends `{}`, and returns the
+  `*models.PDPDataRefreshResponse`, the ID of the update and the IDs of the PDPs that it asks.
+  `ShardID` is an `*int`, so a pointer to 0 sends the shard 0; the API's documentation says that
+  only a refresh of one PDP takes it.
+- Each refresh is sent with an environment-level API key, or higher, and again after a 500, 502,
+  503 or 504 reply or a failed connection, as after a 429, as a second refresh asks the PDPs to
+  read the same data again. The ID of a PDP is sent as one segment of the path, escaped; an empty
+  ID, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request is sent.
+
+### Audit logs
+
+- The `AuditLogs` field of the client, a `*permit.AuditLogsService`, lists and reads the audit
+  logs of the environment of the client's scope, the decisions that its PDPs made, which v1 could
+  not: `List` returns a page as a `*permit.Page[models.AuditLogModel]`, with the counts of the
+  reply, and `All` reads every page, 100 audit logs at a time, the most that the route gives;
+  `Get` takes the ID of an audit log and returns the `*models.DetailedAuditLogModel`, with the
+  decision log of the engine of the PDP and the objects that the decision names.
+- `permit.AuditLogsListOptions` filters the lists with `PDPID`, `Users`, `Decision`, `Resources`,
+  `Tenant`, `Action`, `TimestampFrom`, `TimestampTo`, `SortBy` and `Query`, each sent in its query
+  parameter only when it is set: `Users` and `Resources` as the parameter repeated for each value,
+  in order, `Decision`, a `*bool`, as `false` too, and the timestamps, each an `*int64`, as `0`
+  too. `models.AuditLogQueryType` and `models.AuditLogSortKey` are open enums; without `Query`,
+  the API lists the audit logs of the checks alone, and `models.AuditLogQueryTypeNone` lists
+  those of every query.
+- The input, the result and the context of a decision, and its decision log, are
+  `json.RawMessage`, the JSON of the reply as it is: the JSON `null` when the reply holds null,
+  and nil when the field is absent. The values of an audit log, such as the attributes of a user
+  under a name such as token, do not join the credentials that the client keeps out of its errors
+  and log lines.
+- Each call is sent with an environment-level API key, or higher, and again after a 500, 502,
+  503 or 504 reply or a failed connection, as after a 429. The ID of an audit log is sent as one
+  segment of the path, escaped; an empty ID, `.` or `..` is an error that matches
+  `ErrInvalidConfig`, and no request is sent.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

@@ -21,6 +21,15 @@
     "APIKeysService.RotateSecret": [
       "rotate_api_key"
     ],
+    "AuditLogsService.All": [
+      "list_audit_logs"
+    ],
+    "AuditLogsService.Get": [
+      "get_detailed_audit_log"
+    ],
+    "AuditLogsService.List": [
+      "list_audit_logs"
+    ],
     "Client.AllTenantsCheck": [
       "is_allowed_all_tenants_allowed_all_tenants_post"
     ],
@@ -161,6 +170,12 @@
     ],
     "ImplicitGrantsService.UpdateConditions": [
       "update_implicit_grants_conditions"
+    ],
+    "PDPsService.Refresh": [
+      "refresh_environment_pdp_data"
+    ],
+    "PDPsService.RefreshPDP": [
+      "refresh_pdp_data"
     ],
     "ProjectsService.All": [
       "list_projects"

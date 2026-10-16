@@ -237,5 +237,12 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("list_group_users.200.json")})
 	servers.API.Handle("DELETE "+groups+"/{group_instance_key}/users/{user_id}",
 		mockpermit.Reply{Status: http.StatusNoContent})
+	servers.API.Handle("POST /v2/pdps/{proj_id}/{env_id}/configs/refresh",
+		mockpermit.Reply{Body: replyFixture("refresh_environment_pdp_data.200.json")})
+	servers.API.Handle("GET /v2/pdps/{proj_id}/{env_id}/audit_logs",
+		mockpermit.Reply{Body: replyFixture("list_audit_logs.200.json")},
+		mockpermit.Reply{Body: `{"data":[],"total_count":2,"pagination_count":2}`})
+	servers.API.Handle("GET /v2/pdps/{proj_id}/{env_id}/audit_logs/{log_id}",
+		mockpermit.Reply{Body: replyFixture("get_detailed_audit_log.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

@@ -1485,6 +1485,133 @@ models:
       subject: {required: true, null_policy: n/a}
       relation: {required: true, null_policy: n/a}
       object: {required: true, null_policy: n/a}
+  # A refresh of the data of the PDPs of an environment, as a refresh sends it, and the reply to
+  # it. A refresh reads null for its fields, which the schema does not require and give no
+  # default, as the field left out. These null policies are not measured yet: the phase api.pdps
+  # of the local harness confirms them.
+  PDPDataRefreshRequest:
+    schema: PDPDataRefreshRequest
+    fields:
+      reason: {required: false, null_policy: ignores}
+      shard_id: {required: false, null_policy: ignores}
+  PDPDataRefreshResponse:
+    schema: PDPDataRefreshResponse
+    fields:
+      update_id: {required: true, null_policy: n/a}
+      pdp_ids: {required: true, null_policy: n/a}
+  # The audit logs of an environment, as a list and a get return them, with the objects that the
+  # decision of a log names, and the filters of a list. The SDK sends none of them in a request.
+  AuditLogQueryType:
+    schema: AuditLogQueryType
+  AuditLogSortKey:
+    schema: AuditLogSortKey
+  AuditLogModel:
+    schema: AuditLogModel
+    fields:
+      id: {required: true, null_policy: n/a}
+      timestamp: {required: true, null_policy: n/a}
+      created_at: {required: false, null_policy: n/a}
+      query: {required: false, null_policy: n/a}
+      user_key: {required: false, null_policy: n/a}
+      user_email: {required: false, null_policy: n/a}
+      user_name: {required: false, null_policy: n/a}
+      resource_type: {required: false, null_policy: n/a}
+      tenant: {required: false, null_policy: n/a}
+      action: {required: false, null_policy: n/a}
+      decision: {required: false, null_policy: n/a}
+      reason: {required: false, null_policy: n/a}
+      org_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      env_id: {required: true, null_policy: n/a}
+      pdp_config_id: {required: false, null_policy: n/a}
+      input: {required: false, null_policy: n/a}
+      result: {required: false, null_policy: n/a}
+      context: {required: false, null_policy: n/a}
+      raw_data: {required: false, null_policy: n/a}
+  DetailedAuditLogModel:
+    schema: DetailedAuditLogModel
+    fields:
+      id: {required: true, null_policy: n/a}
+      timestamp: {required: true, null_policy: n/a}
+      created_at: {required: false, null_policy: n/a}
+      query: {required: false, null_policy: n/a}
+      user_key: {required: false, null_policy: n/a}
+      user_email: {required: false, null_policy: n/a}
+      user_name: {required: false, null_policy: n/a}
+      resource_type: {required: false, null_policy: n/a}
+      tenant: {required: false, null_policy: n/a}
+      action: {required: false, null_policy: n/a}
+      decision: {required: false, null_policy: n/a}
+      reason: {required: false, null_policy: n/a}
+      org_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      env_id: {required: true, null_policy: n/a}
+      pdp_config_id: {required: false, null_policy: n/a}
+      input: {required: false, null_policy: n/a}
+      result: {required: false, null_policy: n/a}
+      context: {required: false, null_policy: n/a}
+      raw_data: {required: true, null_policy: n/a}
+      objects: {required: false, null_policy: n/a}
+  AuditLogObjectsModel:
+    schema: AuditLogObjectsModel
+    fields:
+      id: {required: false, null_policy: n/a}
+      created_at: {required: false, null_policy: n/a}
+      organization_object: {required: false, null_policy: n/a}
+      project_object: {required: false, null_policy: n/a}
+      environment_object: {required: false, null_policy: n/a}
+      pdp_config_object: {required: false, null_policy: n/a}
+      user_object: {required: false, null_policy: n/a}
+      action_object: {required: false, null_policy: n/a}
+      resource_type_object: {required: false, null_policy: n/a}
+      tenant_object: {required: false, null_policy: n/a}
+  UserObj:
+    schema: UserObj
+    left_out:
+      roles: >-
+        the relationship tuples of the roles of the user, which the API's documentation hides,
+        and whose keys assigned_roles holds
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      email: {required: false, null_policy: n/a}
+      first_name: {required: false, null_policy: n/a}
+      last_name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      assigned_roles: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ActionObj:
+    schema: ActionObj
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ResourceTypeObj:
+    schema: ResourceTypeObj
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+  ResourceAttributes:
+    schema: ResourceAttributes
+    fields:
+      key: {required: true, null_policy: n/a}
+      type: {required: true, null_policy: n/a}
+  TenantObj:
+    schema: TenantObj
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      name: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
 blocks:
   Attributes: a JSON object of any values, the schema of an object that lists no property
   Optional: a field that the API accepts null for, whose null policy is accepts

@@ -82,8 +82,8 @@ control-plane:
   # Audit Log Replay
   - {op: run_audit_log_replay, route: "POST /v2/audit-log-replay", stage: GA, status: excluded, reason: testing-tool}
   # Audit Logs
-  - {op: list_audit_logs, route: "GET /v2/pdps/{proj_id}/{env_id}/audit_logs", stage: GA, status: planned}
-  - {op: get_detailed_audit_log, route: "GET /v2/pdps/{proj_id}/{env_id}/audit_logs/{log_id}", stage: GA, status: planned}
+  - {op: list_audit_logs, route: "GET /v2/pdps/{proj_id}/{env_id}/audit_logs", stage: GA, status: covered}
+  - {op: get_detailed_audit_log, route: "GET /v2/pdps/{proj_id}/{env_id}/audit_logs/{log_id}", stage: GA, status: covered}
   # Bulk Operations
   - {op: bulk_replace_resource_instances, route: "PUT /v2/facts/{proj_id}/{env_id}/bulk/resource_instances", stage: GA, status: covered}
   - {op: bulk_delete_resource_instances, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/resource_instances", stage: GA, status: covered}
@@ -224,10 +224,10 @@ control-plane:
     reason: "The API is due to change what this route returns."
     trigger: "Decide again once that change to the API ships."
   - {op: migrate_shards, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/migrate-shards", stage: GA, status: excluded, reason: operator}
-  - {op: refresh_environment_pdp_data, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/refresh", stage: GA, status: planned}
+  - {op: refresh_environment_pdp_data, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/refresh", stage: GA, status: covered}
   - {op: disable_debug_audit_logs, route: "PUT /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/debug-audit-logs/disable", stage: GA, status: excluded, reason: operator}
   - {op: enable_debug_audit_logs, route: "PUT /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/debug-audit-logs/enable", stage: GA, status: excluded, reason: operator}
-  - {op: refresh_pdp_data, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/refresh", stage: GA, status: planned}
+  - {op: refresh_pdp_data, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/refresh", stage: GA, status: covered}
   - {op: rotate_pdp_api_key, route: "POST /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/rotate-api-key", stage: GA, status: excluded, reason: operator}
   - {op: get_pdp_config_values, route: "GET /v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/values", stage: GA, status: excluded, reason: operator}
   # Policy Git Repositories

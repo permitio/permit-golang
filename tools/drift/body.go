@@ -79,8 +79,10 @@ func (s *Specs) Paged(id string) bool {
 	return err == nil && envelopeItems(envelope) != nil
 }
 
-// envelopeCounts are the properties that a paginated envelope holds beside data.
-var envelopeCounts = []string{"total_count", "page_count"}
+// envelopeCounts are the properties that a paginated envelope holds beside data: those of the
+// PaginatedResult schemas, and pagination_count, which the LimitedPaginatedResult schemas add,
+// such as that of the audit logs.
+var envelopeCounts = []string{"total_count", "page_count", "pagination_count"}
 
 // envelopeItems returns the schema of the items of node when it is a paginated envelope: an
 // object whose data property is an array, and whose other properties are envelopeCounts. It

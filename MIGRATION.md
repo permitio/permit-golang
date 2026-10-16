@@ -3650,6 +3650,47 @@ returns an error that matches `permit.ErrNotFound` for a 404. The SDK lists and 
 under `/groups/direct`, and never sends the GET of `/groups` or of `/groups/{group_instance_key}`,
 which the API's spec marks deprecated.
 
+<a id="M-pdps-1"></a>
+### M-pdps-1: ListPdpConfigs of the generated client is not in v2
+
+- v1: `openapi.PolicyDecisionPointsApiService.ListPdpConfigs`
+- v2: not exposed in v2
+
+v1 listed the configurations of the PDPs of an environment only through the generated client of
+`pkg/openapi`. v2 does not list them yet, as the API is due to change what the route returns.
+`permit.EnvironmentsService.Stats` returns the configurations of the PDPs of an environment, each
+with its ID, in `PDPConfigs`, as [M-environments-9](#M-environments-9) says.
+
+<a id="M-pdps-2"></a>
+### M-pdps-2: The routes of whoever runs a PDP are not in v2
+
+- v1: `openapi.PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValues`
+- v1: `openapi.PolicyDecisionPointsApiService.GetAuthenticatingPdpConfigValuesLegacy`
+- v1: `openapi.PolicyDecisionPointsApiService.GetPdpConfigValues`
+- v1: `openapi.PolicyDecisionPointsApiService.RotatePdpApiKey`
+- v2: not exposed in v2: operator route
+
+These operations of the generated client of `pkg/openapi` read the values that a PDP runs with,
+and rotate the API key of a PDP: a PDP, or whoever runs it, calls them, not an application. v2
+has no generated client and does not send them. `permit.PDPsService`, which v1 did not have, asks
+the PDPs of an environment to read their data again: `PDPsService.Refresh` every PDP of the
+environment, and `PDPsService.RefreshPDP` one by its ID.
+
+<a id="M-audit-logs-1"></a>
+### M-audit-logs-1: ListPdpDecisionLogs of the generated client becomes AuditLogs.List
+
+- v1: `openapi.DecisionLogsApiService.ListPdpDecisionLogs`
+- v2: `permit.AuditLogsService.List`
+
+v1 read the decisions of a PDP only through the generated client of `pkg/openapi`, on a route
+that the API's spec no longer lists. v2 reads the decisions of the PDPs of an environment from
+its audit logs: `client.AuditLogs.List(ctx, opts)` returns a page of `models.AuditLogModel`, and
+the `PDPID` of `permit.AuditLogsListOptions` keeps those of one PDP; `AuditLogsService.All` reads
+every page, and `AuditLogsService.Get` reads one audit log with the objects that its decision
+names. Each acts on the environment of the client's scope, as [M-scope-2](#M-scope-2) says. A
+filter that is set is sent, `false` and `0` too: `Decision` is a `*bool`, and `TimestampFrom`
+and `TimestampTo` are each an `*int64`.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>

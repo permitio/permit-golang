@@ -354,3 +354,8 @@ allow:
       in either list form, and ListDetailed reads the detailed form from the route of the
       detailed list
     trigger: when the published spec drops the detailed forms from the reply to the list
+  - key: model UserObj field roles
+    reason: >-
+      the API's documentation hides the roles of the user of an audit log, the relationship
+      tuples of its roles, whose keys assigned_roles holds, so UserObj leaves them out
+    trigger: when the API's documentation describes the roles of UserObj

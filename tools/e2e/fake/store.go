@@ -63,6 +63,9 @@ const (
 	opBulkDeleteTenants            = "bulk_delete_tenants"
 	opBulkReplaceResourceInstances = "bulk_replace_resource_instances"
 	opBulkDeleteResourceInstances  = "bulk_delete_resource_instances"
+
+	opRefreshPDPs = "refresh_environment_pdp_data"
+	opRefreshPDP  = "refresh_pdp_data"
 )
 
 // arrayBodies are the operations whose request body is a JSON array of objects, which the fake
@@ -161,11 +164,49 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 			return f.bulkDelete(segments, fields)
 		}
 		return f.unsupported(rt)
+	case opRefreshPDPs:
+		return f.refreshPDPs(segments, fields)
+	case opRefreshPDP:
+		return f.refreshPDP(segments)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
 	}
 	return f.item(rt, segments, fields)
+}
+
+// refreshPDPs answers a refresh of the data of every PDP of an environment, whose path has
+// segments, with IDs in place of keys, and whose body holds fields, nil without a body: an update
+// with a new ID, of the one PDP that pdpOf gives the environment; or 422 for a body with shard_id,
+// which the API rejects on this route. The caller holds f.mu.
+func (f *Fake) refreshPDPs(segments []string, fields object) (int, any) {
+	if _, ok := fields["shard_id"]; ok {
+		return http.StatusUnprocessableEntity, errorBody("VALIDATION_ERROR",
+			"shard_id is not supported for an environment-wide refresh")
+	}
+	pdps := []string{f.pdpOf(segments[4])}
+	return http.StatusOK, object{"update_id": f.newID(), "pdp_ids": pdps}
+}
+
+// refreshPDP answers a refresh of the data of one PDP, by the ID in its path, which has segments,
+// with IDs in place of keys: an update with a new ID, of that PDP, when it is the one PDP that
+// pdpOf gives the environment, with a shard_id or without; or 404 for any other ID. The caller
+// holds f.mu.
+func (f *Fake) refreshPDP(segments []string) (int, any) {
+	pdp := segments[6]
+	if pdp != f.pdpOf(segments[4]) {
+		return http.StatusNotFound, errorBody("NOT_FOUND", "no PDP "+pdp+" in the environment")
+	}
+	return http.StatusOK, object{"update_id": f.newID(), "pdp_ids": []string{pdp}}
+}
+
+// pdpOf returns the ID of the one PDP of the environment whose ID is env, which it gives the
+// environment the first time. The caller holds f.mu.
+func (f *Fake) pdpOf(env string) string {
+	if _, ok := f.pdps[env]; !ok {
+		f.pdps[env] = f.newID()
+	}
+	return f.pdps[env]
 }
 
 // issue returns the API key of the environment of s, which it issues once, as the Permit API's
@@ -631,16 +672,17 @@ func environmentsOf(project string) string {
 }
 
 // stats answers GET /v2/projects/{proj_id}/envs/{env_id}/stats, whose path has segments, with
-// IDs in place of keys: the environment, with statistics of zero and one PDP configuration,
-// whose client secret is the environment's API key, as a PDP authenticates with it, and whose
-// OPAL token is a fake key of the environment that no other reply holds. The caller holds f.mu.
+// IDs in place of keys: the environment, with statistics of zero and one PDP configuration, the
+// one PDP that pdpOf gives the environment, whose client secret is the environment's API key, as
+// a PDP authenticates with it, and whose OPAL token is a fake key of the environment that no other
+// reply holds. The caller holds f.mu.
 func (f *Fake) stats(segments []string) (int, any) {
 	project, id := segments[3], segments[5]
 	env, _ := find(f.store[environmentsOf(project)], id)
 	o := maps.Clone(env)
 	key := f.issue(scope{project: project, environment: id})
 	o["pdp_configs"] = []object{{
-		"id": f.newID(), "organization_id": f.org, "project_id": project,
+		"id": f.pdpOf(id), "organization_id": f.org, "project_id": project,
 		"environment_id": id, "client_secret": key["secret"],
 		"opal_server_access_token": "permit_key_FAKEopal" + strings.ReplaceAll(id, "-", ""),
 	}}

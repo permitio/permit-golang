@@ -53,8 +53,8 @@ const defaultGroupResource = "group"
 //     answers it as GroupRead; a group of the environment with the same instance key is a
 //     conflict;
 //   - the list answers the groups of the environment, in the order in which they were created,
-//     those of the tenant of the filter tenant when the query holds it, as GroupReadSchema in the
-//     paginated object of the page of the query, as envelope says;
+//     those that the filters of the query keep, the filter tenant those of the tenant, as
+//     GroupReadSchema in the paginated object of the page of the query, as envelope says;
 //   - a get answers the group as GroupReadSchema, and a delete deletes it;
 //   - an assignment adds the user of the path, a user of the environment by its key or its ID, to
 //     the group, and answers the group as GroupRead, with the IDs of its users in the order in
@@ -83,9 +83,10 @@ const defaultGroupResource = "group"
 // not have or that the group does not hold, for a removal. The fake keeps no tenant of a
 // membership: it reads the tenant of the body of an assignment or a removal as the check of the
 // body requires it, and ignores its value. The filters resource and search, whose meaning the
-// spec does not say, the assignment of a user, a role or a group that the group holds already,
-// whose reply is not confirmed, and the assignment of a group to itself are requests that the
-// fake does not implement. The caller holds f.mu.
+// spec does not say, are filters that the fake does not model, as unmodelled says. The
+// assignment of a user, a role or a group that the group holds already, whose reply is not
+// confirmed, and the assignment of a group to itself are requests that the fake does not
+// implement. The caller holds f.mu.
 func (f *Fake) group(rt route, segments []string, fields object, query url.Values) (int, any) {
 	groups := collectionOf(segments[:6])
 	switch rt.Op {
@@ -93,16 +94,11 @@ func (f *Fake) group(rt route, segments []string, fields object, query url.Value
 		if fields == nil {
 			return f.unsupported(rt)
 		}
-		return f.createGroup(groups, fields)
+		return f.createGroup(groups, segments[4], fields)
 	case opListGroups:
-		if query.Has("resource") || query.Has("search") {
-			return f.unsupported(rt)
-		}
 		var listed []object
-		for _, g := range f.store[groups] {
-			if !query.Has("tenant") || text(g, "group_tenant") == query.Get("tenant") {
-				listed = append(listed, groupSchema(g))
-			}
+		for _, g := range f.keep(rt.Op, segments, f.store[groups], query) {
+			listed = append(listed, groupSchema(g))
 		}
 		return http.StatusOK, envelope(listed, query)
 	}
@@ -140,9 +136,9 @@ func (f *Fake) group(rt route, segments []string, fields object, query url.Value
 	return f.groupUser(rt, segments, g, fields)
 }
 
-// createGroup stores the group of fields in the collection groups, as group says, and answers it.
-// The caller holds f.mu.
-func (f *Fake) createGroup(groups string, fields object) (int, any) {
+// createGroup stores the group of fields in the collection groups of the environment whose ID is
+// env, as group says, and answers it. The caller holds f.mu.
+func (f *Fake) createGroup(groups, env string, fields object) (int, any) {
 	key := text(fields, "group_instance_key")
 	if _, taken := findGroup(f.store[groups], key); taken {
 		return http.StatusConflict, errorBody("CONFLICT", "a group has the instance key "+key)
@@ -156,6 +152,7 @@ func (f *Fake) createGroup(groups string, fields object) (int, any) {
 		g["group_resource_type_key"] = resource
 	}
 	f.store[groups] = append(f.store[groups], g)
+	f.origins[text(g, "id")] = origin{request: f.request, environment: env}
 	return http.StatusOK, groupRead(g)
 }
 

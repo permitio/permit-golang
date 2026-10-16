@@ -1538,33 +1538,42 @@ its own. `TestSeedBuilder` runs every call of the builder offline against the fa
 live runs included, and the fake checks each body against the spec.
 
 The dry run runs every scenario offline against the fake of the Permit API in `tools/e2e/fake`,
-which keeps the objects of each collection of the control plane's spec in memory, lists those whose
-attributes match the `attr_<name>` filters of a query, as a JSON array, or as one page of the
-paginated object with `total_count` and `page_count` where the spec gives the reply as that object
-alone, such as the relations of a resource, and checks each request body with the walker of
-`tools/drift`, which also accepts null for a top-level field of the request whose null policy in
-`tools/drift/model-map.yaml` is `accepts`, as the API does, though the spec does not say so. The
-SDK's clients of a dry run call a fake PDP beside it, `Fake.StartPDP`, which answers the decisions
-and the lists of the PDP that the scenarios send from the same store: the role assignments of the
-environment, by user, role, tenant and resource instance, and the permissions of its roles and
-resource roles. A role assignment counts only when its user, tenant, role and instance were created
-before it, as the Permit API refuses one that names an object that does not exist, so a seed that
-leaves an object out, or creates it too late, grants nothing. It checks each body against the spec
-of the PDP container, `tools/specs/pdp-container.json`, as the fake of the Permit API does. It is
-an approximation that proves that a scenario's calls and its seed reach a PDP, never how the PDP
-decides: it knows no attributes, conditions, relations or role derivations, lists tenants
-without attributes, and filters the role assignments that it lists by user only. The `test` job
-runs the dry run on every pull request; run it from the repository root:
+which keeps the objects of each collection of the control plane's spec in memory, lists those that
+each filter of a query keeps, as a JSON array, or as one page of the paginated object with
+`total_count` and `page_count` where the spec gives the reply as that object alone, such as the
+relations of a resource, answers with 400, and fails the test, a query parameter that it does not
+know for the operation, which it would otherwise ignore, a filter that the SDK sends and that it
+does not model, and a repeated value of a filter that takes one, removes with a DELETE whose body
+names an object, such as the unassignment of a role, only the object whose identity fields all equal
+the body's, so the unassignment of a role in a tenant never removes a role on an instance, and
+checks each request body with the walker of `tools/drift`, which also accepts null for a top-level
+field of the request whose null policy in `tools/drift/model-map.yaml` is `accepts`, as the API
+does, though the spec does not say so. The SDK's clients of a dry run call a fake PDP beside it,
+`Fake.StartPDP`, which answers the decisions and the lists of the PDP that the scenarios send from
+the same store: the role assignments of the environment, by user, role, tenant and resource
+instance, and the permissions of its roles and resource roles. A role assignment counts only when
+its user, tenant, role and instance were created before it, as the Permit API refuses one that names
+an object that does not exist, so a seed that leaves an object out, or creates it too late, grants
+nothing. It checks each body against the spec of the PDP container,
+`tools/specs/pdp-container.json`, as the fake of the Permit API does. It is an approximation that
+proves that a scenario's calls and its seed reach a PDP, never how the PDP decides: it knows no
+attributes, conditions, relations or role derivations, lists tenants without attributes, and filters
+the role assignments that it lists by user only. The `test` job runs the dry run on every pull
+request; run it from the repository root:
 
 ```sh
 HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
   go -C tools test -race -count=1 -p 2 -timeout 5m -tags e2e ./e2e -args -e2e.dryrun
 ```
 
-The test binary prints its verdict last and exits 0 on PASS, 1 on FAIL and 2 on DID NOT RUN:
-when the ledger of a run does not reconcile, which means that it may have left objects behind,
-or when an input of the gate below cannot be read. `go test` reports any exit but 0 as 1, so to
-see the code, build the binary and run it in `tools/e2e`:
+The test binary prints its verdict last and exits 0 on PASS, 1 on FAIL and 2 on DID NOT RUN: when
+the ledger of a run does not reconcile, which means that it may have left objects behind, when the
+fake of a dry run still holds, after its teardown, an object that the run created, which the run's
+ledger never removes, or when an input of the gate below cannot be read. The verdict names each
+such object and the request that created it. An object of an environment that the run deleted goes
+with the environment, as in the Permit API, but not one of the scratch environment, which every
+scenario of the run shares, so each removes what it creates there. `go test` reports any exit but 0
+as 1, so to see the code, build the binary and run it in `tools/e2e`:
 
 ```sh
 go -C tools test -c -race -tags e2e -o ../bin/e2e.test ./e2e

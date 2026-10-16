@@ -19,9 +19,10 @@
 // method is in exactly one end-to-end state, as tools/e2e/framework/surface describes.
 //
 // The run exits 2, DID NOT RUN, when the ledger of what it created does not reconcile, which
-// means that it may have left objects behind, when its configuration or an input of the gate is
-// broken, or when its record cannot be written; 1, FAIL, when a test fails; and 0, PASS,
-// otherwise. CONTRIBUTING.md says how to run it.
+// means that it may have left objects behind, when a dry run's fake still holds, after its
+// teardown, an object that the run created, which the run's ledger never removes, when its
+// configuration or an input of the gate is broken, or when its record cannot be written; 1,
+// FAIL, when a test fails; and 0, PASS, otherwise. CONTRIBUTING.md says how to run it.
 package e2e
 
 import (

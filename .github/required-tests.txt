@@ -1504,6 +1504,12 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPURLChecks
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAccess
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestCloudPDP
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPRoutes
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestShortListRoutes
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestListFilters
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestRefusedQueryParameters
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestExactDeletes
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkDeletesAreExact
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestLeftovers
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/scope_single_flight
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/unauthorized_key
@@ -1587,6 +1593,10 @@ github.com/permitio/permit-golang/v2/tools/e2e TestAwaitValue
 github.com/permitio/permit-golang/v2/tools/e2e TestAcceptingNull
 github.com/permitio/permit-golang/v2/tools/e2e TestSkipsUserAttributeUpdate
 github.com/permitio/permit-golang/v2/tools/e2e TestListsAnyRule
+github.com/permitio/permit-golang/v2/tools/e2e TestUnregisteredCreate
+github.com/permitio/permit-golang/v2/tools/e2e TestUnregisteredCreate/registered
+github.com/permitio/permit-golang/v2/tools/e2e TestUnregisteredCreate/unregistered
+github.com/permitio/permit-golang/v2/tools/e2e TestUnregisteredCreate/unregistered_in_a_deleted_environment
 
 github.com/permitio/permit-golang/v2/tools/upgrade TestUpgrade
 github.com/permitio/permit-golang/v2/tools/upgrade TestDiff

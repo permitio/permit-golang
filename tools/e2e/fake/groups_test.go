@@ -13,9 +13,9 @@ import (
 // reads a group by its instance key or its ID; an assignment adds a user of the environment, by
 // its key or its ID, and answers the IDs of the users of the group; the list of the users of a
 // group answers the ID and the key of each user that the environment still has; a removal and a
-// delete answer 204, and a group or a user that is not there 404. The filters resource and
-// search, the assignment of a user that the group holds already, and a create, an assignment or
-// a removal without a body are requests that the fake does not implement.
+// delete answer 204, and a group or a user that is not there 404. The assignment of a user that
+// the group holds already, and a create, an assignment or a removal without a body are requests
+// that the fake does not implement.
 func TestGroups(t *testing.T) {
 	h := newHarness(t)
 	h.createEnv("dev")
@@ -84,8 +84,6 @@ func TestGroups(t *testing.T) {
 	h.expect(204, "DELETE", "/v2/facts/proj/dev/users/bob", "", projectKey)
 	h.expectGroupPage(users, `[]`, 0)
 	for _, r := range []struct{ method, path, body string }{
-		{"GET", groups + "/direct?resource=group", ""},
-		{"GET", groups + "/direct?search=g", ""},
 		{"PUT", users + "/" + bobID, ""},
 		{"POST", groups, ""},
 		{"DELETE", users + "/alice", ""},

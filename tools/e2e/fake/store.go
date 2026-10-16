@@ -1,7 +1,7 @@
 package fake
 
 import (
-	"encoding/json"
+	"cmp"
 	"maps"
 	"net/http"
 	"net/url"
@@ -122,8 +122,6 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 		return f.unsupported(rt)
 	case opConditionSetAncestors, opConditionSetDescendants:
 		return f.conditionSetRelatives(rt.Op, segments, query)
-	case opListSetPermissions:
-		return http.StatusOK, listed(setRules(f.store[collectionOf(segments)], query), query)
 	case opAssignSetPermissions:
 		if fields != nil {
 			return f.assignSetRule(rt, segments, fields)
@@ -139,18 +137,13 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 			return f.userRole(rt, segments, fields)
 		}
 		return f.unsupported(rt)
-	case opListRoleAssignments:
-		return http.StatusOK, listed(roleAssignments(f.store[collectionOf(segments)], query), query)
 	case opListRoleAssignmentsDetailed:
 		return f.detailedRoleAssignments(segments, query)
 	case opDetailedInstances:
 		return http.StatusOK, f.detailedInstances(segments, query)
-	case opListRelationshipTuples:
-		return http.StatusOK, listed(relationshipTuples(f.store[collectionOf(segments)], query),
-			query)
 	case opListRelationshipTuplesDetailed:
 		tuples := f.store[collectionOf(segments[:len(segments)-1])]
-		return http.StatusOK, envelope(relationshipTuples(tuples, query), query)
+		return http.StatusOK, envelope(f.keep(rt.Op, segments, tuples, query), query)
 	case opBulkCreateRelationshipTuples, opBulkDeleteRelationshipTuples:
 		if fields != nil {
 			return f.bulkRelationshipTuples(rt, segments, fields)
@@ -233,25 +226,30 @@ func (f *Fake) issue(s scope) object {
 }
 
 // collection answers a request to a route whose path ends with a literal segment: a POST
-// creates an object, a GET lists the collection, as listed says, or as envelope says for an
-// operation that f.paged names, and a DELETE with a body removes the objects that hold each of
-// its fields. The caller holds f.mu.
+// creates an object; a GET lists the objects of the collection that the filters of its query
+// keep, as keep says, as listed says, or as envelope says for an operation that f.paged names;
+// and a DELETE with a body, of an operation of bodyIdentities, removes the object that the body
+// names, as names says, or answers 404 when there is none. The caller holds f.mu.
 func (f *Fake) collection(rt route, segments []string, fields object, query url.Values,
 ) (int, any) {
 	path := collectionOf(segments)
+	identity, named := bodyIdentities[rt.Op]
 	switch {
-	case rt.Method == http.MethodGet && f.paged != nil && f.paged(rt.Op):
-		return http.StatusOK, envelope(f.store[path], query)
 	case rt.Method == http.MethodGet:
-		return http.StatusOK, listed(f.store[path], query)
+		objects := f.keep(rt.Op, segments, f.store[path], query)
+		if f.paged != nil && f.paged(rt.Op) {
+			return http.StatusOK, envelope(objects, query)
+		}
+		return http.StatusOK, listed(objects, query)
 	case rt.Method == http.MethodPost && fields != nil:
 		return f.create(rt, segments, fields)
-	case rt.Method == http.MethodDelete && fields != nil:
+	case rt.Method == http.MethodDelete && fields != nil && named:
 		kept := slices.DeleteFunc(slices.Clone(f.store[path]), func(o object) bool {
-			return holds(o, fields)
+			return names(o, fields, identity)
 		})
 		if len(kept) == len(f.store[path]) {
-			return http.StatusNotFound, errorBody("NOT_FOUND", "no object holds the body's fields")
+			return http.StatusNotFound, errorBody("NOT_FOUND", "no object has the identity that "+
+				"the body names")
 		}
 		f.store[path] = kept
 		return http.StatusNoContent, nil
@@ -259,14 +257,46 @@ func (f *Fake) collection(rt route, segments []string, fields object, query url.
 	return f.unsupported(rt)
 }
 
-// listed returns the objects of a collection that a GET with query lists, in the order in which
-// they were created: those whose attributes match each attribute filter of query, as matches
-// says; all of them when query holds neither page nor per_page, and else the page of page and
-// per_page, the first page of 30 by default, as the Permit API pages a list.
+// bodyIdentities are the fields that name the object of a DELETE of a collection with a body, by
+// the operation of the DELETE, the fields of the schema of its body: of the unassignment of a
+// role, also under /facts of the PDP, of the delete of a relationship tuple and of the
+// unassignment of a condition set rule. The bulk deletes of the role assignments and of the
+// relationship tuples name each of their items so too.
+var bodyIdentities = map[string][]string{
+	"unassign_role":             {"user", "role", "tenant", "resource_instance"},
+	"delete_relationship_tuple": {"subject", "relation", "object"},
+	"unassign_set_permissions": {
+		"user_set", "permission", "resource_set", "is_role", "is_resource",
+	},
+}
+
+// falseByDefault are the fields of an identity that the API reads as false when a body leaves
+// them out.
+var falseByDefault = []string{"is_role", "is_resource"}
+
+// names reports whether body names o by the fields of identity: o holds each of them that body
+// holds, with the same value, and none that body leaves out, so a body without a resource
+// instance never names a role on an instance. A field whose value is null counts as left out,
+// and a field of falseByDefault that is left out counts as false.
+func names(o, body object, identity []string) bool {
+	for _, name := range identity {
+		want, got := body[name], o[name]
+		if slices.Contains(falseByDefault, name) {
+			want, got = cmp.Or(want, any(false)), cmp.Or(got, any(false))
+		}
+		if !reflect.DeepEqual(got, want) {
+			return false
+		}
+	}
+	return true
+}
+
+// listed returns a copy of objects, the objects of a collection that a GET with query lists, in
+// their order, which is empty, not nil, without any: all of them when query holds neither page
+// nor per_page, and else the page of page and per_page, the first page of 30 by default, as the
+// Permit API pages a list.
 func listed(objects []object, query url.Values) []object {
-	objects = slices.DeleteFunc(append([]object{}, objects...), func(o object) bool {
-		return !matches(o, query)
-	})
+	objects = append([]object{}, objects...)
 	if !query.Has("page") && !query.Has("per_page") {
 		return objects
 	}
@@ -276,51 +306,17 @@ func listed(objects []object, query url.Values) []object {
 }
 
 // envelope returns the paginated object that the Permit API answers a GET of a collection with
-// query, on a route that answers no JSON array: in data, the objects that match each attribute
-// filter of query, as matches says, in the order in which they were created, on the page of page
-// and per_page, the first page of 30 by default, also when query holds neither; in total_count,
-// the number of the objects that match; and in page_count, as the Permit API sends it, the
-// number of the objects in data.
+// query, on a route that answers no JSON array, of objects, the objects that the GET lists: in
+// data, a copy of those of the page of page and per_page, in their order, the first page of 30
+// by default, also when query holds neither, which is empty, not null, without any; in
+// total_count, the number of objects; and in page_count, as the Permit API sends it, the number
+// of the objects in data.
 func envelope(objects []object, query url.Values) object {
-	matching := slices.DeleteFunc(append([]object{}, objects...), func(o object) bool {
-		return !matches(o, query)
-	})
+	objects = append([]object{}, objects...)
 	page, perPage := positive(query, "page", 1), positive(query, "per_page", defaultPerPage)
-	start := min((page-1)*perPage, len(matching))
-	data := matching[start:min(start+perPage, len(matching))]
-	return object{"data": data, "total_count": len(matching), "page_count": len(data)}
-}
-
-// matches reports whether the attributes of o match each attribute filter of query, a parameter
-// attr_<name>: o has the attribute name, and each value of the parameter is the attribute's
-// value as a query writes it, a string as it is and any other value as its JSON text, such as
-// true or 10.
-func matches(o object, query url.Values) bool {
-	attributes, _ := o["attributes"].(object)
-	for param, values := range query {
-		name, ok := strings.CutPrefix(param, "attr_")
-		if !ok {
-			continue
-		}
-		value, ok := attributes[name]
-		if !ok {
-			return false
-		}
-		text, ok := value.(string)
-		if !ok {
-			data, err := json.Marshal(value)
-			if err != nil {
-				return false
-			}
-			text = string(data)
-		}
-		for _, want := range values {
-			if want != text {
-				return false
-			}
-		}
-	}
-	return true
+	start := min((page-1)*perPage, len(objects))
+	data := objects[start:min(start+perPage, len(objects))]
+	return object{"data": data, "total_count": len(objects), "page_count": len(data)}
 }
 
 // holds reports whether o holds each field of fields with the same value.
@@ -334,8 +330,10 @@ func holds(o, fields object) bool {
 }
 
 // create adds an object with fields to the collection of a POST to rt, whose path has segments,
-// with a new ID and the IDs of the organization, the project and the environment of the path. An
-// object of the collection with the identifier of fields is a conflict. The caller holds f.mu.
+// with a new ID and the IDs of the organization, the project and the environment of the path,
+// and records its origin: f.request, the request that created it, and the environment of the
+// path. An object of the collection with the identifier of fields is a conflict. The caller holds
+// f.mu.
 func (f *Fake) create(rt route, segments []string, fields object) (int, any) {
 	path := collectionOf(segments)
 	if n, ok := identOf(fields); ok {
@@ -345,15 +343,17 @@ func (f *Fake) create(rt route, segments []string, fields object) (int, any) {
 	}
 	o := maps.Clone(fields)
 	o["id"] = f.newID()
+	created := origin{request: f.request}
 	for i, s := range rt.segments {
 		switch s {
 		case "{proj_id}":
 			o["organization_id"], o["project_id"] = f.org, segments[i]
 		case "{env_id}":
-			o["environment_id"] = segments[i]
+			o["environment_id"], created.environment = segments[i], segments[i]
 		}
 	}
 	f.store[path] = append(f.store[path], o)
+	f.origins[text(o, "id")] = created
 	return http.StatusOK, o
 }
 
@@ -388,11 +388,13 @@ func (f *Fake) item(rt route, segments []string, fields object) (int, any) {
 // detailedInstances answers GET /v2/facts/{proj_id}/{env_id}/resource_instances/detailed, whose
 // path has segments, with IDs in place of keys, and whose query is query, as the Permit API
 // answers the detailed list of the resource instances: the paginated object of the instances of
-// the collection of the path without its last segment, as envelope gives it, each with its
-// relationships. The fake keeps no relationship of an instance, so each holds an empty list. The
-// instances that the fake stores stay as they are. The caller holds f.mu.
+// the collection of the path without its last segment that the filters of query keep, as keep
+// says, as envelope gives it, each with its relationships. The fake keeps no relationship of an
+// instance, so each holds an empty list. The instances that the fake stores stay as they are.
+// The caller holds f.mu.
 func (f *Fake) detailedInstances(segments []string, query url.Values) object {
-	page := envelope(f.store[collectionOf(segments[:len(segments)-1])], query)
+	instances := f.store[collectionOf(segments[:len(segments)-1])]
+	page := envelope(f.keep(opDetailedInstances, segments, instances, query), query)
 	data, _ := page["data"].([]object)
 	detailed := make([]object, 0, len(data))
 	for _, o := range data {
@@ -492,34 +494,17 @@ func (f *Fake) userRole(rt route, segments []string, fields object) (int, any) {
 	}
 }
 
-// roleAssignmentFilters are the filters of the lists of the role assignments: each is a query
-// parameter and the field of a role assignment that it matches.
-var roleAssignmentFilters = []string{"user", "role", "tenant", "resource_instance"}
-
-// roleAssignments returns the role assignments of assignments, in order, whose fields user, role,
-// tenant and resource_instance, as their create gave them, each equal one of the values of the
-// query parameter of the same name, when query holds it.
-func roleAssignments(assignments []object, query url.Values) []object {
-	return slices.DeleteFunc(slices.Clone(assignments), func(a object) bool {
-		for _, name := range roleAssignmentFilters {
-			if query.Has(name) && !slices.Contains(query[name], text(a, name)) {
-				return true
-			}
-		}
-		return false
-	})
-}
-
 // detailedRoleAssignments answers GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed,
 // whose path has segments, with IDs in place of keys: the role assignments of the environment
-// that the filters of query keep, as roleAssignments says, each with its user, its role, its
-// tenant and its resource instance as the objects of the environment that it names, with the
-// fields of the detailed list, in the paginated object of the page of query, as envelope says,
-// the only form of the route's reply. A role assignment that names an object that the
-// environment does not have holds an empty object for it. The caller holds f.mu.
+// that the filters of query keep, as keep says, each with its user, its role, its tenant and its
+// resource instance as the objects of the environment that it names, with the fields of the
+// detailed list, in the paginated object of the page of query, as envelope says, the only form
+// of the route's reply. A role assignment that names an object that the environment does not
+// have holds an empty object for it. The caller holds f.mu.
 func (f *Fake) detailedRoleAssignments(segments []string, query url.Values) (int, any) {
-	s := scope{project: segments[3], environment: segments[4]}
-	kept := roleAssignments(f.store[collectionOf(segments[:len(segments)-1])], query)
+	s := scopeOf(segments)
+	kept := f.keep(opListRoleAssignmentsDetailed, segments,
+		f.store[collectionOf(segments[:len(segments)-1])], query)
 	detailed := make([]object, 0, len(kept))
 	for _, a := range kept {
 		d := object{"role": fieldsOf(f.assignedRole(s, a), "id", "key", "name", "permissions")}
@@ -559,10 +544,10 @@ func (f *Fake) assignedRole(s scope, a object) object {
 // /v2/facts/{proj_id}/{env_id}/role_assignments/bulk, whose path has segments, with IDs in place
 // of keys, and whose body holds items, the role assignments: a POST creates each, in order, as an
 // assignment of one does, and answers the report of the number that it created; a DELETE removes
-// each role assignment that holds the fields of an item, as an unassignment of one does, and
-// answers the report of the number that it removed, to which an item that matches no role
-// assignment adds nothing. The fake reads no missing_user_policy, and what the Permit API answers
-// for an item that matches no role assignment is not confirmed yet. The caller holds f.mu.
+// the role assignment that each item names, as an unassignment of one does, and answers the
+// report of the number that it removed, to which an item that names no role assignment adds
+// nothing. The fake reads no missing_user_policy, and what the Permit API answers for an item
+// that names no role assignment is not confirmed yet. The caller holds f.mu.
 func (f *Fake) bulkRoleAssignments(rt route, segments []string, items []object) (int, any) {
 	assignments := segments[:len(segments)-1]
 	switch rt.Method {
@@ -576,31 +561,12 @@ func (f *Fake) bulkRoleAssignments(rt route, segments []string, items []object) 
 		before := len(f.store[path])
 		for _, item := range items {
 			f.store[path] = slices.DeleteFunc(f.store[path], func(o object) bool {
-				return holds(o, item)
+				return names(o, item, bodyIdentities["unassign_role"])
 			})
 		}
 		return http.StatusOK, object{"assignments_removed": before - len(f.store[path])}
 	}
 	return f.unsupported(rt)
-}
-
-// tupleFilters are the filters of the lists of the relationship tuples that the fake applies:
-// each is a query parameter and the field of a relationship tuple that it matches. The fake
-// ignores the filters subject_type and object_type.
-var tupleFilters = []string{"tenant", "subject", "relation", "object"}
-
-// relationshipTuples returns the relationship tuples of tuples, in order, whose fields tenant,
-// subject, relation and object, as their create gave them, each equal the query parameter of the
-// same name, when query holds it.
-func relationshipTuples(tuples []object, query url.Values) []object {
-	return slices.DeleteFunc(slices.Clone(tuples), func(t object) bool {
-		for _, name := range tupleFilters {
-			if query.Has(name) && text(t, name) != query.Get(name) {
-				return true
-			}
-		}
-		return false
-	})
 }
 
 // createRelationshipTuple is the route of the create of a relationship tuple, as which a bulk
@@ -616,10 +582,10 @@ var createRelationshipTuple = route{
 // /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk, whose path has segments, with IDs in
 // place of keys, and whose body holds fields, which the check of its operation accepted: a POST
 // creates each relationship tuple of its operations, in order, as a create of one does, and a
-// DELETE removes each relationship tuple that holds the fields of an item of its idents, to
-// which an item that matches no relationship tuple adds nothing. Each answers an empty object,
-// as the spec gives the reply no field. What the Permit API answers for an item that matches no
-// relationship tuple is not confirmed yet. The caller holds f.mu.
+// DELETE removes the relationship tuple that each item of its idents names, as a delete of one
+// does, to which an item that names no relationship tuple adds nothing. Each answers an empty
+// object, as the spec gives the reply no field. What the Permit API answers for an item that
+// names no relationship tuple is not confirmed yet. The caller holds f.mu.
 func (f *Fake) bulkRelationshipTuples(rt route, segments []string, fields object) (int, any) {
 	tuples := segments[:len(segments)-1]
 	switch rt.Method {
@@ -637,7 +603,7 @@ func (f *Fake) bulkRelationshipTuples(rt route, segments []string, fields object
 		for _, item := range items {
 			if key, ok := item.(object); ok {
 				f.store[path] = slices.DeleteFunc(f.store[path], func(o object) bool {
-					return holds(o, key)
+					return names(o, key, bodyIdentities["delete_relationship_tuple"])
 				})
 			}
 		}
@@ -909,23 +875,9 @@ func (f *Fake) conditionSetRelatives(op string, segments []string, query url.Val
 	return http.StatusOK, listed(found, query)
 }
 
-// setRuleFields are the fields of a condition set rule that say what it grants: each is a filter
-// of the list of the rules, and a create of a rule whose three fields another rule has grants
-// nothing new.
+// setRuleFields are the fields of a condition set rule that say what it grants: a create of a
+// rule whose three fields another rule has grants nothing new.
 var setRuleFields = []string{"user_set", "permission", "resource_set"}
-
-// setRules returns the condition set rules of rules, in order, whose fields user_set, permission
-// and resource_set each equal the query parameter of the same name, when query holds it.
-func setRules(rules []object, query url.Values) []object {
-	return slices.DeleteFunc(slices.Clone(rules), func(rule object) bool {
-		for _, name := range setRuleFields {
-			if query.Has(name) && rule[name] != query.Get(name) {
-				return true
-			}
-		}
-		return false
-	})
-}
 
 // assignSetRule answers POST /v2/facts/{proj_id}/{env_id}/set_rules, whose path has segments,
 // with IDs in place of keys: it creates the rule of fields, as a POST to a collection creates an
@@ -933,12 +885,10 @@ func setRules(rules []object, query url.Values) []object {
 // rule that grants what a rule that it holds grants already, with a reply that is not confirmed,
 // so the fake does not implement such a create. The caller holds f.mu.
 func (f *Fake) assignSetRule(rt route, segments []string, fields object) (int, any) {
-	granted := url.Values{}
-	for _, name := range setRuleFields {
-		value, _ := fields[name].(string)
-		granted.Set(name, value)
-	}
-	if len(setRules(f.store[collectionOf(segments)], granted)) > 0 {
+	granted := fieldsOf(fields, setRuleFields...)
+	if slices.ContainsFunc(f.store[collectionOf(segments)], func(o object) bool {
+		return holds(o, granted)
+	}) {
 		return f.unsupported(rt)
 	}
 	status, rule := f.create(rt, segments, fields)

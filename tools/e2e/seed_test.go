@@ -3,7 +3,6 @@
 package e2e
 
 import (
-	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -16,23 +15,21 @@ import (
 // which serves the routes of the control plane's spec and checks each body, the bodies of the
 // teardowns too, with the structural walker of tools/drift. It seeds a scratch environment as the
 // scenarios will, in the ledger that holds the environment, which checks that each seed object is
-// gone before it deletes the environment; the run reconciles the ledger.
+// gone before it deletes the environment; the run reconciles the ledger, and the fake holds no
+// object of the run after the teardown, as tearDownRun says.
 func TestSeedBuilder(t *testing.T) {
-	api, err := framework.NewAPI(startFake(t).URL(), dryRunProjectKey,
-		&http.Client{Timeout: time.Minute})
+	f := startFake(t)
+	api, err := framework.NewAPI(f.URL(), dryRunProjectKey, &http.Client{Timeout: time.Minute})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx := t.Context()
 	ledger := newLedger(t.Name())
+	var env framework.Environment
 	t.Cleanup(func() {
-		teardownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), teardownTimeout)
-		defer cancel()
-		if teardownErr := ledger.Teardown(teardownCtx); teardownErr != nil {
-			t.Errorf("tearing down the run: %v", teardownErr)
-		}
+		tearDownRun(t, ledger, f, env.ID, func(reason string) { markBroken(t, "%s", reason) })
 	})
-	env, err := framework.CreateEnvironment(ctx, api, ledger, dryRunProject, string(dryRunPrefix))
+	env, err = framework.CreateEnvironment(ctx, api, ledger, dryRunProject, string(dryRunPrefix))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,7 @@
 package seed
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"io"
@@ -22,28 +23,39 @@ const projectKey = "permit_key_FAKEseed"
 // tests send, whose check accepts every body. These tests do not import tools/drift, which
 // builds against the SDK, so that the mutation tests can run them in a copy of the tools module;
 // TestSeedBuilder in tools/e2e runs the builder against the routes and the structural walker of
-// the spec.
+// the spec. The routes of the role assignments and of the relationship tuples, which have no item,
+// have the operation IDs of the spec, by which the fake knows the filters of their lists and the
+// fields that name the object of a removal.
 func startFake(t *testing.T) *fake.Fake {
 	t.Helper()
 	routes := []fake.Route{
 		{Method: "POST", Template: "/v2/projects/{proj_id}/envs", Op: "create_environment"},
 		{Method: "GET", Template: "/v2/api-key/{proj_id}/{env_id}", Op: "get_environment_api_key"},
 	}
-	for _, c := range []struct{ collection, item string }{
-		{"/v2/schema/{proj_id}/{env_id}/resources", "{resource_id}"},
-		{"/v2/schema/{proj_id}/{env_id}/roles", "{role_id}"},
-		{"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", "{role_id}"},
-		{"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations", "{relation_id}"},
-		{"/v2/facts/{proj_id}/{env_id}/tenants", "{tenant_id}"},
-		{"/v2/facts/{proj_id}/{env_id}/users", "{user_id}"},
-		{"/v2/facts/{proj_id}/{env_id}/resource_instances", "{instance_id}"},
-		{"/v2/facts/{proj_id}/{env_id}/role_assignments", ""},
-		{"/v2/facts/{proj_id}/{env_id}/relationship_tuples", ""},
+	for _, c := range []struct{ collection, item, list, remove string }{
+		{"/v2/schema/{proj_id}/{env_id}/resources", "{resource_id}", "", ""},
+		{"/v2/schema/{proj_id}/{env_id}/roles", "{role_id}", "", ""},
+		{"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles", "{role_id}", "", ""},
+		{
+			"/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/relations", "{relation_id}",
+			"", "",
+		},
+		{"/v2/facts/{proj_id}/{env_id}/tenants", "{tenant_id}", "", ""},
+		{"/v2/facts/{proj_id}/{env_id}/users", "{user_id}", "", ""},
+		{"/v2/facts/{proj_id}/{env_id}/resource_instances", "{instance_id}", "", ""},
+		{
+			"/v2/facts/{proj_id}/{env_id}/role_assignments", "", "list_role_assignments",
+			"unassign_role",
+		},
+		{
+			"/v2/facts/{proj_id}/{env_id}/relationship_tuples", "", "list_relationship_tuples",
+			"delete_relationship_tuple",
+		},
 	} {
 		routes = append(routes, fake.Route{Method: "POST", Template: c.collection, Op: "create"},
-			fake.Route{Method: "GET", Template: c.collection, Op: "list"})
+			fake.Route{Method: "GET", Template: c.collection, Op: cmp.Or(c.list, "list")})
 		if c.item == "" {
-			remove := fake.Route{Method: "DELETE", Template: c.collection, Op: "remove"}
+			remove := fake.Route{Method: "DELETE", Template: c.collection, Op: c.remove}
 			routes = append(routes, remove)
 			continue
 		}

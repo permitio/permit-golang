@@ -362,6 +362,11 @@ func TestPDPFactsRoleAssignments(t *testing.T) {
 		projectKey)); n != 1 {
 		t.Errorf("the API lists %d role assignments of u3 in t1, want the new one", n)
 	}
+	const made = "role_assignments user=u3 role=editor tenant=t1, created by POST " +
+		"/facts/role_assignments of the PDP"
+	if left := h.fake.Leftovers(""); !slices.Contains(left, made) {
+		t.Errorf("Leftovers reported %q, want %q among them", left, made)
+	}
 	for _, want := range []int{http.StatusNoContent, http.StatusNotFound} {
 		if status, data := h.send(h.container, http.MethodDelete, "/facts/role_assignments", body,
 			h.envKey); status != want {

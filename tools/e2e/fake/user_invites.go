@@ -28,7 +28,10 @@ const (
 // fields, nil without a body, and whose query is query:
 //
 //   - the list answers the invites of the environment, in the order in which they were created,
-//     in the paginated object of the page of the query, as envelope says;
+//     those that the filters of the query keep, the filters role and tenant those whose role_id
+//     and tenant_id are their values, and the filter search those whose email or key is its
+//     value, as listFilters says, in the paginated object of the page of the query, as envelope
+//     says;
 //   - an approval of a pending invite, by its ID or its key, whose email address fields hold,
 //     creates the user of the key, the email address and the attributes of fields, as a POST to
 //     the users of the environment creates one, sets the status of the invite to approved, and
@@ -37,17 +40,18 @@ const (
 //     400 with the detail of the refusal, as the API's documentation says.
 //
 // What an approval does is not confirmed yet: the fake creates the user of the reply, as the
-// reply of the API is a user, and does not give the user the role of the invite. The filters
-// role, tenant and search, whose values the documentation does not say the form of, and the
-// approval of an invite whose key a user of the environment has already, are requests that the
-// fake does not implement. The caller holds f.mu.
+// reply of the API is a user, and does not give the user the role of the invite. Nor is the
+// filter search, which the documentation says matches the email, the key or the name of an
+// invite: the fake reads it as the email or the key, as an invite has no name. The approval of
+// an invite whose key a user of the environment has already is a request that the fake does not
+// implement. The caller holds f.mu.
 func (f *Fake) userInvite(rt route, segments []string, fields object, query url.Values,
 ) (int, any) {
 	invites := collectionOf(segments[:6])
 	switch {
-	case rt.Op == opListUserInvites && !query.Has("role") && !query.Has("tenant") &&
-		!query.Has("search"):
-		return http.StatusOK, envelope(f.store[invites], query)
+	case rt.Op == opListUserInvites:
+		return http.StatusOK, envelope(f.keep(rt.Op, segments, f.store[invites], query),
+			query)
 	case rt.Op == opApproveUserInvite && fields != nil:
 		return f.approveUserInvite(rt, segments, fields)
 	}

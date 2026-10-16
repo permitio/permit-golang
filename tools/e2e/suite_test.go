@@ -5,9 +5,11 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
 	"strings"
@@ -20,6 +22,7 @@ import (
 	permit "github.com/permitio/permit-golang/v2"
 	"github.com/permitio/permit-golang/v2/internal/rest"
 	"github.com/permitio/permit-golang/v2/internal/testhook"
+	"github.com/permitio/permit-golang/v2/models"
 	"github.com/permitio/permit-golang/v2/tools/drift"
 	"github.com/permitio/permit-golang/v2/tools/e2e/fake"
 	"github.com/permitio/permit-golang/v2/tools/e2e/framework"
@@ -422,7 +425,9 @@ func newLogger(w io.Writer) *slog.Logger {
 
 // startSuite starts a suite of cfg on t, whose clients record to record. A dry run starts a fake
 // and creates the scratch environment, whose teardown it registers on t first; a live run uses
-// the one that e2e-env.sh created, and deletes after the run.
+// the one that e2e-env.sh created, and deletes after the run. After the teardown of a dry run,
+// each object that the fake still holds and that a request of the run created makes the run
+// DID NOT RUN, as tearDownRun says.
 func startSuite(t *testing.T, cfg config, record *testhook.File) *suite {
 	t.Helper()
 	s := &suite{
@@ -430,8 +435,9 @@ func startSuite(t *testing.T, cfg config, record *testhook.File) *suite {
 		secrets: []string{cfg.projectKey},
 	}
 	s.logger = newLogger(s.logs)
+	var f *fake.Fake
 	if cfg.mode == testhook.DryRun {
-		f := startFake(t)
+		f = startFake(t)
 		s.apiURL = f.URL()
 		s.fakePDPs = map[pdpKind]string{
 			containerPDP: f.StartPDP(fake.ContainerPDP), cloudPDP: f.StartPDP(fake.CloudPDP),
@@ -445,11 +451,7 @@ func startSuite(t *testing.T, cfg config, record *testhook.File) *suite {
 	ledger := newLedger(t.Name())
 	s.api, s.ledger = api, ledger
 	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), teardownTimeout)
-		defer cancel()
-		if err := ledger.Teardown(ctx); err != nil {
-			t.Errorf("tearing down the run: %v", err)
-		}
+		tearDownRun(t, ledger, f, s.env.ID, func(reason string) { markBroken(t, "%s", reason) })
 	})
 	if cfg.mode == testhook.Live {
 		s.env = cfg.env
@@ -463,6 +465,109 @@ func startSuite(t *testing.T, cfg config, record *testhook.File) *suite {
 	}
 	s.secrets = append(s.secrets, s.env.APIKey())
 	return s
+}
+
+// tearDownRun tears down ledger, the ledger of a run on t, within teardownTimeout, and fails t
+// when the teardown fails; then, for a dry run against the fake f, it reports to broken, as a
+// reason that the run is not valid, each object that a request of the run created and that f
+// still holds, which the run's ledger never removes, as fake.Fake.Leftovers names it with
+// scratch, the ID of the run's scratch environment: every scenario of the run shares it, so each
+// must remove what it creates in it, though the API deletes those objects with the environment.
+// A live run has no fake: its f is nil.
+func tearDownRun(t *testing.T, ledger *framework.Ledger, f *fake.Fake, scratch string,
+	broken func(string),
+) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), teardownTimeout)
+	defer cancel()
+	if err := ledger.Teardown(ctx); err != nil {
+		t.Errorf("tearing down the run: %v", err)
+	}
+	if f == nil {
+		return
+	}
+	for _, left := range f.Leftovers(scratch) {
+		broken("the fake still holds " + left + " after the teardown; register each object " +
+			"in a ledger before the request that creates it")
+	}
+}
+
+// TestUnregisteredCreate runs a tiny scenario offline against a fake of its own, in a scratch
+// environment of a ledger of its own: it creates a tenant with the SDK, and tears the ledger down
+// with tearDownRun, which reports each reason that the run is not valid. When it registers the
+// tenant in the ledger before the create, the fake holds nothing of the run after the teardown,
+// and the verdict is PASS; when it does not, the ledger still reconciles, and tearDownRun makes
+// the verdict DID NOT RUN, with a reason that names the tenant and the request that created it.
+// A tenant that it does not register in another environment of the ledger, which the teardown
+// deletes, goes with that environment, and the verdict is PASS.
+func TestUnregisteredCreate(t *testing.T) {
+	const tenant = "gosdk-ci-0-1-leftover-tenant"
+	for _, tc := range []struct {
+		name     string
+		register bool
+		ownEnv   bool
+		code     int
+	}{
+		{"registered", true, false, 0},
+		{"unregistered", false, false, 2},
+		{"unregistered_in_a_deleted_environment", false, true, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := startFake(t)
+			api, err := framework.NewAPI(f.URL(), dryRunProjectKey,
+				&http.Client{Timeout: time.Minute})
+			if err != nil {
+				t.Fatal(err)
+			}
+			ledger := &framework.Ledger{}
+			scratch, err := framework.CreateEnvironment(t.Context(), api, ledger, dryRunProject,
+				"gosdk-ci-0-1-leftover")
+			if err != nil {
+				t.Fatal(err)
+			}
+			env := scratch
+			if tc.ownEnv {
+				env, err = framework.CreateEnvironment(t.Context(), api, ledger, dryRunProject,
+					"gosdk-ci-0-1-leftover-own")
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			tenants := "/v2/facts/" + url.PathEscape(env.ProjectID) + "/" + url.PathEscape(env.ID) +
+				"/tenants"
+			if tc.register {
+				self := tenants + "/" + tenant
+				ledger.Register("tenant "+tenant, api.Remover(self),
+					api.Absence(self, framework.AbsenceTimeout))
+			}
+			c, err := permit.New(permit.WithAPIKey(env.APIKey()), permit.WithAPIURL(f.URL()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, createErr := c.Tenants.Create(t.Context(), models.TenantCreate{
+				Key: tenant, Name: tenant,
+			})
+			if err := errors.Join(createErr, c.Close()); err != nil {
+				t.Fatal(err)
+			}
+			var reasons []string
+			tearDownRun(t, ledger, f, scratch.ID, func(reason string) {
+				reasons = append(reasons, reason)
+			})
+			var out bytes.Buffer
+			code := verdict(&out, 0, reasons, map[string]*framework.Ledger{"run": ledger})
+			want := "e2e: PASS\n"
+			if tc.code == 2 {
+				want = "e2e: the fake still holds tenants " + tenant + ", created by POST " +
+					tenants + " after the teardown; register each object in a ledger before " +
+					"the request that creates it\ne2e: DID NOT RUN\n"
+			}
+			if code != tc.code || out.String() != want {
+				t.Errorf("the verdict of the run is %d, printing %q; want %d, printing %q", code,
+					out.String(), tc.code, want)
+			}
+		})
+	}
 }
 
 // specs returns the committed spec snapshots, which it reads once.

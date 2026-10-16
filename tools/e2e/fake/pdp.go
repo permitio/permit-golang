@@ -163,6 +163,7 @@ func (f *Fake) servePDP(kind PDPKind, w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusUnprocessableEntity, pdpError("the body does not fit its schema"))
 		return
 	}
+	f.request = r.Method + " " + r.URL.Path + " of the PDP"
 	status, answer := rt.answer(f, key, body, r.URL.Query())
 	reply(w, status, answer)
 }
@@ -515,7 +516,7 @@ func (f *Fake) factsUnassignRole(s scope, body []byte, _ url.Values) (int, any) 
 // factsRoleAssignment answers a request to a route of the role assignments under /facts, whose
 // body the check accepted, as the Permit API answers the request to rt, its route, in the
 // environment of s, to which the PDP container sends it on: an assignment makes the role
-// assignment, and an unassignment removes each that holds the fields of body, or gets 404. The
+// assignment, and an unassignment removes the one that body names, as names says, or gets 404. The
 // fake PDP decides from f's store, so a check after the call sees the change at once, as it would
 // after a wait for sync of the container; the fake reads no header of the wait. The caller holds
 // f.mu.

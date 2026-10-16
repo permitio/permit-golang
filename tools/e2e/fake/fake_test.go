@@ -222,6 +222,24 @@ var routes = []Route{
 	},
 	{"POST", "/v2/same/{first}", "same_first"},
 	{"POST", "/v2/same/{second}", "same_second"},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/resources", "list_resources"},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/roles", "list_roles"},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/condition_sets", "list_condition_sets"},
+	{
+		"POST", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions",
+		"create_resource_action",
+	},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions",
+		"list_resource_actions",
+	},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/resource_instances", "list_resource_instances"},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "add_user_to_tenant"},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/role_assignments", "unassign_role"},
+	{"GET", "/v2/projects", "list_projects"},
+	{"GET", "/v2/api-key", "list_api_keys"},
+	{"POST", "/v2/api-key", "create_api_key"},
+	{"GET", "/v2/pdps/{proj_id}/{env_id}/audit_logs", "list_audit_logs"},
 }
 
 // recordingTB is a testing.TB that keeps the errors that the fake reports, rather than failing
@@ -471,16 +489,14 @@ func TestBodies(t *testing.T) {
 		t.Errorf("the fake reported %q for an array", errs)
 	}
 	h.expect(200, "POST", "/v2/facts/proj/dev/users", `{"key": "u1", "n": 1}`, projectKey)
-	h.expect(200, "POST", "/v2/facts/proj/dev/users", `{"key": "u2", "n": 2}`, projectKey)
-	h.expect(404, "DELETE", "/v2/facts/proj/dev/users", `{"n": 3}`, projectKey)
-	h.expect(204, "DELETE", "/v2/facts/proj/dev/users", `{"n": 1}`, projectKey)
-	var keys []any
-	for _, user := range h.list("/v2/facts/proj/dev/users", projectKey) {
-		o, _ := user.(map[string]any)
-		keys = append(keys, o["key"])
+	h.expect(501, "DELETE", "/v2/facts/proj/dev/users", `{"n": 1}`, projectKey)
+	if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0],
+		"delete_users): the fake does not implement this request") {
+		t.Errorf("a DELETE with a body of an operation whose identity the fake does not know "+
+			"reported %q, want that it is not implemented", errs)
 	}
-	if !slices.Equal(keys, []any{"u2"}) {
-		t.Errorf("the keys of the users after a removal by body are %v, want u2", keys)
+	if n := len(h.list("/v2/facts/proj/dev/users", projectKey)); n != 1 {
+		t.Errorf("the environment has %d users after a DELETE that is not implemented, want 1", n)
 	}
 }
 
@@ -1314,9 +1330,9 @@ func (h *harness) expectTenants(user map[string]any, want string) {
 
 // TestAttributeFilters checks that a GET of a collection lists the objects whose attributes
 // match each attr_<name> of its query: a string as it is, a bool and a number as their JSON text,
-// every filter at once, and no object for an attribute that none has, for a name given twice
-// with two values, or for an attribute whose value is an object or an array; and that it pages
-// what the filters keep.
+// every filter at once, and no object for an attribute that none has or for an attribute whose
+// value is an object or an array; and that it pages what the filters keep. A name given twice is
+// refused, as TestRefusedQueryParameters checks.
 func TestAttributeFilters(t *testing.T) {
 	h := newHarness(t)
 	h.createEnv("dev")
@@ -1330,15 +1346,14 @@ func TestAttributeFilters(t *testing.T) {
 		h.expect(200, "POST", tenants, body, projectKey)
 	}
 	for query, want := range map[string][]any{
-		"":                                    {"a", "b", "c", "d"},
-		"?attr_tier=gold":                     {"a", "b"},
-		"?attr_tier=gold&attr_seats=10":       {"a"},
-		"?attr_on=true":                       {"a"},
-		"?attr_tier=silver":                   {},
-		"?attr_region=eu":                     {},
-		"?attr_tier=gold&attr_tier=silver":    {},
-		"?attr_tier=gold&page=2&per_page=1":   {"b"},
-		"?attr_seats=2&page=1&per_page=30&x=": {"b"},
+		"":                                  {"a", "b", "c", "d"},
+		"?attr_tier=gold":                   {"a", "b"},
+		"?attr_tier=gold&attr_seats=10":     {"a"},
+		"?attr_on=true":                     {"a"},
+		"?attr_tier=silver":                 {},
+		"?attr_region=eu":                   {},
+		"?attr_tier=gold&page=2&per_page=1": {"b"},
+		"?attr_seats=2&page=1&per_page=30":  {"b"},
 	} {
 		keys := []any{}
 		for _, tenant := range h.list(tenants+query, projectKey) {
@@ -1847,4 +1862,62 @@ func TestPDPRefresh(t *testing.T) {
 	h.expect(404, "POST", "/v2/pdps/proj/dev/configs/00000000-0000-4000-8000-999999999999/refresh",
 		`{}`, devKey)
 	h.expect(404, "POST", "/v2/pdps/proj/staging/configs/refresh", `{}`, projectKey)
+}
+
+// TestLeftovers checks the objects that Leftovers reports: none for a fake that only holds its
+// project; then each object that a request created, with a create of its collection, a bulk
+// create, a PUT that creates a user, a create of a group and a copy into a new environment, and
+// that the fake still holds, by the key of its collection and then in the order of the creates,
+// with its name and the request that created it. An object that a request deleted, the project
+// and the task of a copy in the background are none, and so is an object of an environment that
+// a request deleted, unless it is the scratch environment that Leftovers is given.
+func TestLeftovers(t *testing.T) {
+	h := newHarness(t)
+	if got := h.fake.Leftovers(""); got != nil {
+		t.Errorf("a fake with its project alone reported the leftovers %q, want none", got)
+	}
+	h.createEnv("dev")
+	const facts = "/v2/facts/proj/dev"
+	h.expect(200, "POST", facts+"/tenants", `{"key": "t1", "name": "T1"}`, projectKey)
+	h.expect(200, "POST", facts+"/bulk/tenants", `{"operations": [{"key": "t2", "name": "T2"}]}`,
+		projectKey)
+	h.expect(200, "POST", facts+"/users", `{"key": "u1"}`, projectKey)
+	h.expect(201, "PUT", facts+"/users/u2", `{"key": "u2"}`, projectKey)
+	h.expect(204, "DELETE", facts+"/users/u1", "", projectKey)
+	h.expect(200, "POST", facts+"/role_assignments", `{"user": "u2", "role": "r", "tenant": "t1"}`,
+		projectKey)
+	config := h.expect(200, "POST", facts+"/proxy_configs", `{}`, projectKey)
+	h.expect(200, "POST", "/v2/schema/proj/dev/groups",
+		`{"group_instance_key": "g1", "group_tenant": "t1"}`, projectKey)
+	h.expect(202, "POST", "/v2/projects/proj/envs/dev/copy/async",
+		`{"target_env":{"new":{"key":"qa","name":"QA"}}}`, projectKey)
+	gone, _ := h.createEnv("gone")
+	h.expect(200, "POST", "/v2/facts/proj/gone/tenants", `{"key": "t3", "name": "T3"}`,
+		projectKey)
+	h.expect(200, "POST", "/v2/schema/proj/gone/groups", `{"group_instance_key": "g2"}`,
+		projectKey)
+	h.expect(204, "DELETE", "/v2/projects/proj/envs/gone", "", projectKey)
+	inDev := []string{
+		"proxy_configs with the ID " + text(config, "id") + ", created by POST " + facts +
+			"/proxy_configs",
+		"role_assignments user=u2 role=r tenant=t1, created by POST " + facts + "/role_assignments",
+		"tenants t1, created by POST " + facts + "/tenants",
+		"tenants t2, created by POST " + facts + "/bulk/tenants",
+		"users u2, created by PUT " + facts + "/users/u2",
+	}
+	environments := []string{
+		"envs dev, created by POST /v2/projects/proj/envs",
+		"envs qa, created by POST /v2/projects/proj/envs/dev/copy/async",
+	}
+	group := "groups group_instance_key=g1, created by POST /v2/schema/proj/dev/groups"
+	want := slices.Concat(inDev, environments, []string{group})
+	if got := h.fake.Leftovers(""); !slices.Equal(got, want) {
+		t.Errorf("Leftovers reported %q, want %q", got, want)
+	}
+	tenantInGone := "tenants t3, created by POST /v2/facts/proj/gone/tenants"
+	groupInGone := "groups group_instance_key=g2, created by POST /v2/schema/proj/gone/groups"
+	want = slices.Concat(inDev, []string{tenantInGone}, environments, []string{group, groupInGone})
+	if got := h.fake.Leftovers(text(gone, "id")); !slices.Equal(got, want) {
+		t.Errorf("Leftovers of the scratch environment gone reported %q, want %q", got, want)
+	}
 }

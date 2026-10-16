@@ -5,11 +5,11 @@
 // The fake serves the routes that it is given, those of a spec snapshot, and keeps the objects of
 // each collection in memory, a collection being the path of a route without its last parameter:
 // a POST to a collection creates an object with an ID, a GET, a PATCH, a PUT or a DELETE of an
-// item reads, changes or deletes it, a GET of a collection lists the objects whose attributes match
-// each attr_<name> of the query, as a JSON array, one page of it when the query holds page or
+// item reads, changes or deletes it, a GET of a collection lists the objects that the filters of
+// its query keep, as keep says, as a JSON array, one page of it when the query holds page or
 // per_page, or, for a route that [Config.Paged] names, as the paginated object, always one page,
-// the first 30 by default; and a DELETE of a collection with a body removes the objects that hold
-// each field of the body. A parameter matches an object by its ID or its identifier: its key, or
+// the first 30 by default; and a DELETE of a collection with a body removes the object that it
+// names, as names says. A parameter matches an object by its ID or its identifier: its key, or
 // for a resource instance, an object with a resource, <resource>:<key>, as the Permit API names it.
 // A parameter that is not the last segment of its route and follows condition_sets, resources,
 // roles, tenants or users, such as {resource_id} in .../resources/{resource_id}/roles, must match
@@ -23,16 +23,16 @@
 // rolePermissions, roleRelatives and bulkRoles say, the implicit grants of a role of a resource
 // and their conditions, as implicitGrant says, the ancestors and the descendants of a condition
 // set, as conditionSetRelatives says, the list of the condition set rules, with its filters, and
-// their creates, which answer a JSON array, as setRules and assignSetRule say, the PUT of a user,
+// their creates, which answer a JSON array, as keep and assignSetRule say, the PUT of a user,
 // which replaces it or creates it, as replaceUser says, the assignment and the unassignment of a
 // role of a user in a tenant, which its associated_tenants hold, as userRole says, and the
 // detailed list of the resource instances, as detailedInstances says. It filters the lists of the
 // role assignments by their user, role, tenant and resource instance, and answers the detailed
-// list of them, as roleAssignments and detailedRoleAssignments say, and their bulk assignment and
+// list of them, as keep and detailedRoleAssignments say, and their bulk assignment and
 // unassignment, whose bodies are JSON arrays, as bulkRoleAssignments says. It filters the lists
-// of the relationship tuples by their tenant, subject, relation and object, as relationshipTuples
-// says, answers their detailed list with the same tuples in the paginated object, as answer
-// says, and their bulk create and delete, as bulkRelationshipTuples says. It answers the bulk
+// of the relationship tuples by their tenant, subject, relation, object and types, as keep says,
+// answers their detailed list with the same tuples in the paginated object, as answer says,
+// and their bulk create and delete, as bulkRelationshipTuples says. It answers the bulk
 // creates, replaces and deletes of the users, the tenants and the resource instances, as
 // bulkWrite and bulkDelete say, the groups of an environment and the assignments of users, roles
 // and other groups to them, by the instance key of a group, as group says, the list and the
@@ -45,7 +45,14 @@
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An
 // unknown key gets 401, and a key whose scope does not hold the route's project or environment
-// 403. A body that the check rejects and a check that cannot run fail the test too.
+// 403. A query parameter that the fake refuses for the operation of the request, as refusal
+// says, one that it does not know, a filter that it does not model or a repeated value of a
+// filter that takes one, gets 400 and fails the test, so that a list never ignores a filter; a
+// body that the check rejects and a check that cannot run fail the test too.
+//
+// [Fake.Leftovers] reports each object that a request created and that the fake still holds, but
+// those of an environment that it no longer holds other than the run's scratch environment, so
+// that a run can check after its teardown that it registered each object that it created.
 //
 // [Fake.StartPDP] starts a fake of the PDP container or of the cloud PDP beside it, which answers
 // the decisions and the lists of the PDP that the scenarios send from the same store: an
@@ -58,6 +65,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -120,6 +128,18 @@ type Fake struct {
 	store  map[string][]object
 	pdps   map[string]string
 	nextID int
+
+	// request is the request that the fake answers, as its method and its path, and origins the
+	// origin of each object that a request created, by the object's ID, which Leftovers reports.
+	request string
+	origins map[string]origin
+}
+
+// origin is the request that created an object, as its method and its path, and the ID of the
+// environment that holds the object, which is empty for an object of no environment, such as an
+// environment.
+type origin struct {
+	request, environment string
 }
 
 // route is a Route with its template split into segments.
@@ -169,7 +189,7 @@ func New(tb testing.TB, cfg Config) *Fake {
 	}
 	f := &Fake{
 		tb: tb, check: cfg.Check, paged: cfg.Paged, keys: map[string]scope{},
-		store: map[string][]object{}, pdps: map[string]string{},
+		store: map[string][]object{}, pdps: map[string]string{}, origins: map[string]origin{},
 	}
 	for _, r := range cfg.Routes {
 		f.routes = append(f.routes, route{Route: r, segments: strings.Split(r.Template, "/")})
@@ -192,6 +212,69 @@ func (f *Fake) URL() string {
 // ProjectID returns the ID of the fake's project.
 func (f *Fake) ProjectID() string {
 	return f.project
+}
+
+// Leftovers returns each object that a request created and that the fake still holds, by the
+// key of its collection and then in the order of the creates, as the name of its collection, its
+// name and the request that created it, such as "tenants t1, created by POST
+// /v2/facts/p/e/tenants": what a run that removed each object that it created leaves behind. Its
+// name is its identifier, or else the fields of nameFields that it holds, or else its ID. The
+// fake's project, which no request created, is none, and so is an object of an environment that
+// the fake no longer holds, as the Permit API removes the objects of an environment with it, but
+// for the environment whose ID is scratch, the scratch environment of a run, which every scenario
+// of the run shares, so that each must remove what it creates in it; scratch may be empty.
+func (f *Fake) Leftovers(scratch string) []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var left []string
+	for _, path := range slices.Sorted(maps.Keys(f.store)) {
+		kind := path[strings.LastIndex(path, "/")+1:]
+		for _, o := range f.store[path] {
+			made, ok := f.origins[text(o, "id")]
+			env := made.environment
+			if ok && (env == "" || env == scratch || f.holdsEnvironment(env)) {
+				left = append(left, kind+" "+nameOf(o)+", created by "+made.request)
+			}
+		}
+	}
+	return left
+}
+
+// holdsEnvironment reports whether the fake holds the environment whose ID is id, of any of its
+// projects. The caller holds f.mu.
+func (f *Fake) holdsEnvironment(id string) bool {
+	for _, p := range f.store[projects] {
+		if slices.ContainsFunc(f.store[environmentsOf(text(p, "id"))], func(env object) bool {
+			return env["id"] == id
+		}) {
+			return true
+		}
+	}
+	return false
+}
+
+// nameFields are the fields that name an object without an identifier, such as a role
+// assignment or a group, in the report of Leftovers.
+var nameFields = []string{
+	"group_instance_key", "user", "role", "tenant", "resource_instance", "subject", "relation",
+	"object", "user_set", "permission", "resource_set",
+}
+
+// nameOf returns the name of o in the report of Leftovers, as Leftovers says.
+func nameOf(o object) string {
+	if n, ok := identOf(o); ok {
+		return n
+	}
+	var fields []string
+	for _, name := range nameFields {
+		if v := text(o, name); v != "" {
+			fields = append(fields, name+"="+v)
+		}
+	}
+	if len(fields) == 0 {
+		return "with the ID " + text(o, "id")
+	}
+	return strings.Join(fields, " ")
 }
 
 // newID returns a new ID in the shape of a UUID. The caller holds f.mu, or is New.
@@ -248,6 +331,13 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		reply(w, status, errorBody(http.StatusText(status), message))
 		return
 	}
+	if message, refused := refusal(rt.Op, r.URL.Query()); refused {
+		f.tb.Errorf("fake: %s %s (%s): %s, so it could not apply it", rt.Method, rt.Template,
+			rt.Op, message)
+		reply(w, http.StatusBadRequest, errorBody("BAD_REQUEST", message))
+		return
+	}
+	f.request = r.Method + " " + r.URL.Path
 	var (
 		fields object
 		items  []object

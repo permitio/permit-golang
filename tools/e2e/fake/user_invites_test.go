@@ -9,9 +9,9 @@ import (
 // reads an invite by its ID or its key, and an update changes it; an approval of a pending invite
 // with its email address creates the user of the body and approves the invite, whose second
 // approval, and an approval of another email address, get 400 with a detail, and an approval of
-// an invite that is not there 404; a delete answers 204, and a second delete 404. The filters of
-// the list, an approval without a body and an approval of a key that a user has already are
-// requests that the fake does not implement.
+// an invite that is not there 404; a delete answers 204, and a second delete 404. An approval
+// without a body and an approval of a key that a user has already are requests that the fake
+// does not implement.
 func TestUserInvites(t *testing.T) {
 	h := newHarness(t)
 	h.createEnv("dev")
@@ -56,9 +56,6 @@ func TestUserInvites(t *testing.T) {
 	h.expect(400, "POST", invites+"/"+id+"/approve", approval, projectKey)
 	h.expect(404, "POST", invites+"/gone/approve", approval, projectKey)
 	for _, r := range []struct{ method, path, body string }{
-		{"GET", invites + "?role=r", ""},
-		{"GET", invites + "?tenant=t", ""},
-		{"GET", invites + "?search=alice", ""},
 		{"POST", invites + "/" + text(bob, "id") + "/approve", ""},
 		{
 			"POST", invites + "/" + text(bob, "id") + "/approve",

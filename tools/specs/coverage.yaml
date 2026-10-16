@@ -137,11 +137,11 @@ control-plane:
   - {op: test_jwks_by_url, route: "POST /v2/projects/{proj_id}/envs/{env_id}/test_jwks", stage: GA, status: excluded, reason: dashboard-only}
   # Groups
   - {op: list_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups", stage: deprecated, status: excluded, reason: deprecated}
-  - {op: create_group, route: "POST /v2/schema/{proj_id}/{env_id}/groups", stage: GA, status: planned}
-  - {op: list_direct_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/direct", stage: GA, status: planned}
-  - {op: get_direct_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/direct/{group_instance_key}", stage: GA, status: planned}
+  - {op: create_group, route: "POST /v2/schema/{proj_id}/{env_id}/groups", stage: GA, status: covered}
+  - {op: list_direct_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/direct", stage: GA, status: covered}
+  - {op: get_direct_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/direct/{group_instance_key}", stage: GA, status: covered}
   - {op: get_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", stage: deprecated, status: excluded, reason: deprecated}
-  - {op: delete_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", stage: GA, status: planned}
+  - {op: delete_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", stage: GA, status: covered}
   - {op: assign_group_to_group, route: "PUT /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group", stage: GA, status: planned}
   - {op: remove_group_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group", stage: GA, status: planned}
   - op: list_group_children
@@ -170,12 +170,12 @@ control-plane:
   - op: list_group_users
     route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users"
     stage: GA
-    status: planned
+    status: covered
     stage_override:
       stage: GA
       reason: "The spec's summary calls it EAP, which the snapshot does not keep, while its tag is GA; the SDK treats it as GA, as it does the other Groups routes."
-  - {op: assign_user_to_group, route: "PUT /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}", stage: GA, status: planned}
-  - {op: remove_user_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}", stage: GA, status: planned}
+  - {op: assign_user_to_group, route: "PUT /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}", stage: GA, status: covered}
+  - {op: remove_user_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}", stage: GA, status: covered}
   # Implicit Grants
   - {op: create_implicit_grant, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants", stage: GA, status: covered}
   - {op: delete_implicit_grant, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/roles/{role_id}/implicit_grants", stage: GA, status: covered}

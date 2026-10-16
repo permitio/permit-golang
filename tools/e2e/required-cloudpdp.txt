@@ -32,6 +32,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_instance_lifec
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/relationship_tuple_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/bulk_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

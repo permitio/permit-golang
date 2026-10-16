@@ -174,6 +174,19 @@ var routes = []Route{
 	},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/groups", "create_group"},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", "list_group_roles"},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "delete_user"},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/direct", opListGroups},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/direct/{group_instance_key}", opGetGroup},
+	{"DELETE", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", opDeleteGroup},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users", opListGroupUsers},
+	{
+		"PUT", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}",
+		opAssignGroupUser,
+	},
+	{
+		"DELETE", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}",
+		opRemoveGroupUser,
+	},
 	{"POST", "/v2/same/{first}", "same_first"},
 	{"POST", "/v2/same/{second}", "same_second"},
 }

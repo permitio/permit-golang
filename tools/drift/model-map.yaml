@@ -454,6 +454,43 @@ models:
       message: {required: false, null_policy: n/a}
       support_link: {required: false, null_policy: n/a}
       additional_info: {required: false, null_policy: n/a}
+  # A group of an environment, as a create sends it and as the API returns it to a create and to
+  # the assignment of a user, and to a get and in a list; the tenant of the membership of a user,
+  # as an assignment and a removal send it; and a user in a group, as the list of the users of a
+  # group returns it. A create rejects null for its required fields and for the key of the
+  # resource of the group, which has a default, as every create does, and so do an assignment and
+  # a removal for the tenant. These null policies are not measured yet: the phase api.groups of
+  # the local harness confirms them.
+  GroupCreate:
+    schema: GroupCreate
+    fields:
+      group_instance_key: {required: true, null_policy: rejects}
+      group_resource_type_key: {required: false, null_policy: rejects}
+      group_tenant: {required: true, null_policy: rejects}
+  GroupRead:
+    schema: GroupRead
+    fields:
+      assigned_roles: {required: false, null_policy: n/a}
+      group_instance_key: {required: true, null_policy: n/a}
+      group_resource_type_key: {required: false, null_policy: n/a}
+      group_tenant: {required: true, null_policy: n/a}
+      users: {required: false, null_policy: n/a}
+  GroupReadSchema:
+    schema: GroupReadSchema
+    fields:
+      group_instance_key: {required: true, null_policy: n/a}
+      group_resource_type_key: {required: false, null_policy: n/a}
+      group_tenant: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+  GroupAssignUser:
+    schema: GroupAssignUser
+    fields:
+      tenant: {required: true, null_policy: rejects}
+  GroupUserReadSchema:
+    schema: GroupUserReadSchema
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
   JwksConfig:
     schema: JwksConfig
     fields:

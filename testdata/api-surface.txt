@@ -317,6 +317,26 @@ models: type ErrorDetails struct, ID string
 models: type ErrorDetails struct, Message string
 models: type ErrorDetails struct, SupportLink string
 models: type ErrorDetails struct, Title string
+models: type GroupAssignUser struct
+models: type GroupAssignUser struct, Tenant string
+models: type GroupCreate struct
+models: type GroupCreate struct, GroupInstanceKey string
+models: type GroupCreate struct, GroupResourceTypeKey string
+models: type GroupCreate struct, GroupTenant string
+models: type GroupRead struct
+models: type GroupRead struct, AssignedRoles []string
+models: type GroupRead struct, GroupInstanceKey string
+models: type GroupRead struct, GroupResourceTypeKey string
+models: type GroupRead struct, GroupTenant string
+models: type GroupRead struct, Users []string
+models: type GroupReadSchema struct
+models: type GroupReadSchema struct, GroupInstanceKey string
+models: type GroupReadSchema struct, GroupResourceTypeKey string
+models: type GroupReadSchema struct, GroupTenant string
+models: type GroupReadSchema struct, ID string
+models: type GroupUserReadSchema struct
+models: type GroupUserReadSchema struct, ID string
+models: type GroupUserReadSchema struct, Key string
 models: type JwksConfig struct
 models: type JwksConfig struct, Audience StringOrList
 models: type JwksConfig struct, Issuer StringOrList
@@ -939,6 +959,15 @@ permit: method (*EnvironmentsService) Update(ctx context.Context, projectKey str
 permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
 permit: method (*Error) Unwrap() error
+permit: method (*GroupsService) All(ctx context.Context, opts *GroupsListOptions) iter.Seq2[models.GroupReadSchema, error]
+permit: method (*GroupsService) AllUsers(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupUserReadSchema, error]
+permit: method (*GroupsService) AssignUser(ctx context.Context, groupInstanceKey string, userKey string, membership models.GroupAssignUser) (*models.GroupRead, error)
+permit: method (*GroupsService) Create(ctx context.Context, group models.GroupCreate) (*models.GroupRead, error)
+permit: method (*GroupsService) Delete(ctx context.Context, groupInstanceKey string) error
+permit: method (*GroupsService) Get(ctx context.Context, groupInstanceKey string) (*models.GroupReadSchema, error)
+permit: method (*GroupsService) List(ctx context.Context, opts *GroupsListOptions) (*Page[models.GroupReadSchema], error)
+permit: method (*GroupsService) ListUsers(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupUserReadSchema], error)
+permit: method (*GroupsService) RemoveUser(ctx context.Context, groupInstanceKey string, userKey string, membership models.GroupAssignUser) error
 permit: method (*ImplicitGrantsService) Create(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleCreate) (*models.DerivedRoleRuleRead, error)
 permit: method (*ImplicitGrantsService) Delete(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleDelete) error
 permit: method (*ImplicitGrantsService) UpdateConditions(ctx context.Context, resourceKey string, roleKey string, settings models.DerivationSettings) (*models.DerivationSettings, error)
@@ -1106,6 +1135,7 @@ permit: type Client struct, APIKeys *APIKeysService
 permit: type Client struct, ConditionSetRules *ConditionSetRulesService
 permit: type Client struct, ConditionSets *ConditionSetsService
 permit: type Client struct, Environments *EnvironmentsService
+permit: type Client struct, Groups *GroupsService
 permit: type Client struct, ImplicitGrants *ImplicitGrantsService
 permit: type Client struct, Projects *ProjectsService
 permit: type Client struct, ProxyConfigs *ProxyConfigsService
@@ -1147,6 +1177,12 @@ permit: type Error struct, RequestID string
 permit: type Error struct, Route string
 permit: type Error struct, StatusCode int
 permit: type Error struct, Title string
+permit: type GroupsListOptions struct
+permit: type GroupsListOptions struct, Resource string
+permit: type GroupsListOptions struct, Search string
+permit: type GroupsListOptions struct, Tenant string
+permit: type GroupsListOptions struct, embedded ListOptions
+permit: type GroupsService struct
 permit: type ImplicitGrantsService struct
 permit: type ListOptions struct
 permit: type ListOptions struct, Page int

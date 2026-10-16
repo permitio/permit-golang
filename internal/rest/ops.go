@@ -913,6 +913,54 @@ var defaultOps = []Op{
 		SensitiveBodyFields: []string{"secret"},
 	},
 
+	// The groups of an environment and their users, each at the environment level, as the routes
+	// of the schema of an environment are, such as those of its resources: v1 sent none of them.
+	// These key levels are not measured yet: the phase api.groups of the local harness confirms
+	// them, and what {group_instance_key} takes besides the group's instance key, which the spec
+	// does not describe. The list of the groups and the list of the users of a group are each the
+	// paginated object of at most 100 items. The SDK never sends the deprecated GET of the groups
+	// or of a group: it lists them under groups/direct. A delete leaves the group deleted, and
+	// the path of the delete names the group, so it is DeleteSelf. A removal of a user leaves the
+	// user out of the group, so it does the same when sent twice; its body names the tenant of the
+	// membership, so it is not DeleteSelf: a 404 can mean a mistyped tenant. A create does not do
+	// the same when sent twice, and what the API answers to the assignment of a user that the
+	// group has already is not confirmed, so neither the create nor the assignment is Idempotent.
+	{
+		ID: "create_group", Method: http.MethodPost, Route: "/v2/schema/{proj_id}/{env_id}/groups",
+		KeyLevel: EnvironmentLevel, RequestModel: "GroupCreate", ResponseModel: "GroupRead",
+	},
+	{
+		ID: "list_direct_group", Method: http.MethodGet,
+		Route: "/v2/schema/{proj_id}/{env_id}/groups/direct", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "GroupReadSchema",
+	},
+	{
+		ID: "get_direct_group", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/direct/{group_instance_key}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "GroupReadSchema",
+	},
+	{
+		ID: "delete_group", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+	{
+		ID: "list_group_users", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "GroupUserReadSchema",
+	},
+	{
+		ID: "assign_user_to_group", Method: http.MethodPut,
+		Route:    "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}",
+		KeyLevel: EnvironmentLevel, RequestModel: "GroupAssignUser", ResponseModel: "GroupRead",
+	},
+	{
+		ID: "remove_user_from_group", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "GroupAssignUser",
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

@@ -126,6 +126,33 @@
     "EnvironmentsService.Update": [
       "update_environment"
     ],
+    "GroupsService.All": [
+      "list_direct_group"
+    ],
+    "GroupsService.AllUsers": [
+      "list_group_users"
+    ],
+    "GroupsService.AssignUser": [
+      "assign_user_to_group"
+    ],
+    "GroupsService.Create": [
+      "create_group"
+    ],
+    "GroupsService.Delete": [
+      "delete_group"
+    ],
+    "GroupsService.Get": [
+      "get_direct_group"
+    ],
+    "GroupsService.List": [
+      "list_direct_group"
+    ],
+    "GroupsService.ListUsers": [
+      "list_group_users"
+    ],
+    "GroupsService.RemoveUser": [
+      "remove_user_from_group"
+    ],
     "ImplicitGrantsService.Create": [
       "create_implicit_grant"
     ],

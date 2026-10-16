@@ -218,6 +218,14 @@ var cloudScenarios = []scenario{
 		run: proxyConfigLifecycle,
 	},
 	{
+		name: "group_lifecycle", methods: []string{
+			"GroupsService.Create", "GroupsService.Get", "GroupsService.List",
+			"GroupsService.All", "GroupsService.AssignUser", "GroupsService.AllUsers",
+			"GroupsService.ListUsers", "GroupsService.RemoveUser", "GroupsService.Delete",
+		},
+		run: groupLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

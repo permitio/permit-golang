@@ -226,5 +226,16 @@ func TestMain(m *testing.M) {
 	} {
 		servers.API.Handle(b.route, mockpermit.Reply{Body: replyFixture(b.op + ".200.json")})
 	}
+	const groups = "/v2/schema/{proj_id}/{env_id}/groups"
+	servers.API.Handle("POST "+groups,
+		mockpermit.Reply{Body: replyFixture("create_group.200.json")})
+	servers.API.Handle("GET "+groups+"/direct",
+		mockpermit.Reply{Body: replyFixture("list_direct_group.200.json")})
+	servers.API.Handle("PUT "+groups+"/{group_instance_key}/users/{user_id}",
+		mockpermit.Reply{Body: replyFixture("assign_user_to_group.200.json")})
+	servers.API.Handle("GET "+groups+"/{group_instance_key}/users",
+		mockpermit.Reply{Body: replyFixture("list_group_users.200.json")})
+	servers.API.Handle("DELETE "+groups+"/{group_instance_key}/users/{user_id}",
+		mockpermit.Reply{Status: http.StatusNoContent})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

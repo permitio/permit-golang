@@ -846,6 +846,32 @@ change from v1 and what to use instead.
   an HTTP method to a resource and an action, which `Client.CheckURL` decides on.
   `models.AuthMechanism`, `models.Methods` and `models.URLType` are open enums.
 
+### Groups
+
+- The `Groups` field of the client, a `*permit.GroupsService`, lists, reads, creates and deletes
+  the groups of the environment of the client's scope, and assigns, lists and removes the users of
+  a group, which v1 could not do: `Create` takes a `models.GroupCreate` and returns a
+  `*models.GroupRead`; `Get` reads one group by its instance key; `List` returns a page as a
+  `*permit.Page[models.GroupReadSchema]` and `All` reads every page, 100 groups at a time;
+  `AssignUser` and `RemoveUser` take the key or the ID of a user and a `models.GroupAssignUser`,
+  which names the tenant of the membership; `ListUsers` returns a page as a
+  `*permit.Page[models.GroupUserReadSchema]` and `AllUsers` reads every page; `Delete` deletes a
+  group.
+- `List` and `Get` send `GET /v2/schema/{proj_id}/{env_id}/groups/direct` and
+  `/groups/direct/{group_instance_key}`; the SDK never sends the GET of `/groups` or of
+  `/groups/{group_instance_key}`, which the API's spec marks deprecated. The `Tenant`, `Resource`
+  and `Search` of `permit.GroupsListOptions` are sent in the query only when they are set.
+- The calls act on the environment of the client's scope, from `WithScope` or from the scope of
+  the API key, which the client looks up once, and each is sent with an environment-level API key,
+  or with a key of a wider level and `WithScope`.
+- An instance key of a group and a key of a user are sent as they are given, each as one segment
+  of the path, escaped, a key in the shape of a UUID too; an empty key, `.` or `..` is an error that
+  matches `ErrInvalidConfig`, and no request for the call is sent. `Delete` returns nil when the API
+  answers 404, as the group is gone already; a 404 to `RemoveUser`, whose body names the tenant of
+  the membership, is an error that matches `ErrNotFound`. `Create` and `AssignUser` are sent again
+  after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed
+  connection too.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

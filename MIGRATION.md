@@ -3628,6 +3628,28 @@ something. Any other error status is a `*permit.Error` with the status and the b
 again after a 500, 502, 503 or 504 reply or a failed connection, as deleting a config twice
 leaves it deleted.
 
+<a id="M-groups-1"></a>
+### M-groups-1: Client.Groups is new: v1 had no call of the groups
+
+- v1: no call of the groups, neither in `pkg/api` nor in the generated client of `pkg/openapi`
+- v2: `permit.GroupsService`
+
+v1.3.0 had no method for the groups of an environment, and its generated client had no service for
+their routes either. v2's `Groups` field of the client, `client.Groups`, lists, reads, creates and
+deletes the groups of the environment of the client's scope, and assigns, lists and removes the
+users of a group. Each method takes a `context.Context` first, then the instance key of the group,
+`groupInstanceKey`, where it acts on one, which it sends as it is, as one segment of the path,
+escaped: a key in the shape of a UUID is sent as it is too. `Create` takes a `models.GroupCreate`
+and returns a `*models.GroupRead`; `Get` returns a `*models.GroupReadSchema`; `List` takes a
+`*permit.GroupsListOptions` and returns a `*permit.Page[models.GroupReadSchema]`, and `All` reads
+every page; `AssignUser` and `RemoveUser` take the key or the ID of a user and a
+`models.GroupAssignUser`, which names the tenant of the membership; `ListUsers` returns a
+`*permit.Page[models.GroupUserReadSchema]`, and `AllUsers` reads every page. `Delete` returns nil
+when the API answers 404, as the group is gone already; `RemoveUser`, whose body names the tenant,
+returns an error that matches `permit.ErrNotFound` for a 404. The SDK lists and reads the groups
+under `/groups/direct`, and never sends the GET of `/groups` or of `/groups/{group_instance_key}`,
+which the API's spec marks deprecated.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>

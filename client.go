@@ -118,6 +118,10 @@ type Client struct {
 	// requests that it sends on, and the mapping rules of the URLs that CheckURL checks.
 	ProxyConfigs *ProxyConfigsService `json:"-"`
 
+	// Groups lists, reads, creates and deletes the groups of the environment of the client's
+	// scope, and assigns, lists and removes the users of a group.
+	Groups *GroupsService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -224,6 +228,7 @@ func New(opts ...Option) (*Client, error) {
 	c.ResourceInstances = &ResourceInstancesService{facts: facts{client: c}}
 	c.RelationshipTuples = &RelationshipTuplesService{facts: facts{client: c}}
 	c.ProxyConfigs = &ProxyConfigsService{client: c}
+	c.Groups = &GroupsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

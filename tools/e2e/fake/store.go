@@ -75,6 +75,9 @@ var arrayBodies = map[string]bool{opBulkAssignRole: true, opBulkUnassignRole: tr
 func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 	query url.Values,
 ) (int, any) {
+	if slices.Contains(groupOps, rt.Op) {
+		return f.group(rt, segments, fields, query)
+	}
 	switch rt.Op {
 	case opScope:
 		body := object{"organization_id": f.org, "project_id": key.project}

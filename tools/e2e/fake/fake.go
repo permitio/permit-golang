@@ -34,9 +34,10 @@
 // says, answers their detailed list with the same tuples in the paginated object, as answer
 // says, and their bulk create and delete, as bulkRelationshipTuples says. It answers the bulk
 // creates, replaces and deletes of the users, the tenants and the resource instances, as
-// bulkWrite and bulkDelete say. A delete of a condition set rule that the fake does not hold gets
-// 404, as a DELETE of a collection with a body does; the API's documentation says that it skips
-// such a delete, and what the API answers is not confirmed yet.
+// bulkWrite and bulkDelete say, and the groups of an environment and the assignments of users to
+// them, by the instance key of a group, as group says. A delete of a condition set rule that the
+// fake does not hold gets 404, as a DELETE of a collection with a body does; the API's
+// documentation says that it skips such a delete, and what the API answers is not confirmed yet.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An

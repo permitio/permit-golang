@@ -1330,6 +1330,24 @@ github.com/permitio/permit-golang/v2 TestBulkReplaceInstanceWithoutTenant
 github.com/permitio/permit-golang/v2 TestBulkAfterClose
 github.com/permitio/permit-golang/v2 ExampleUsersService_BulkCreate
 
+github.com/permitio/permit-golang/v2 TestGroupsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestGroupUsersAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestGroupUsersListReadsEachPage
+github.com/permitio/permit-golang/v2 TestGroupsAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestGroupsAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestGroupsAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestGroupsListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidGroupListOptions
+github.com/permitio/permit-golang/v2 TestGroupsUseTheScope
+github.com/permitio/permit-golang/v2 TestGroupKeysInThePath
+github.com/permitio/permit-golang/v2 TestDeleteGroupThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherGroupCalls
+github.com/permitio/permit-golang/v2 TestGroupBodies
+github.com/permitio/permit-golang/v2 TestGroupRetries
+github.com/permitio/permit-golang/v2 TestMalformedGroupReplies
+github.com/permitio/permit-golang/v2 TestGroupsAfterClose
+github.com/permitio/permit-golang/v2 ExampleGroupsService
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1398,6 +1416,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRoleAssignments
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRelationshipTuples
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkFacts
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRelationshipTuples
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestGroups
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1435,6 +1454,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_instance_lifec
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/relationship_tuple_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/bulk_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

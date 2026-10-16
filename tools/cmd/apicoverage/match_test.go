@@ -397,16 +397,16 @@ func TestCommittedCoverage(t *testing.T) {
 		t.Fatalf("apicoverage exited %d on tools/specs, want 0:\n%s", code, out)
 	}
 	for _, want := range []string{
-		"control-plane: 264 rows: 116 covered, 38 planned, 109 excluded, 1 deferred\n",
-		"  GA 213: 116 covered, 37 planned, 59 excluded, 1 deferred, 0 undecided\n",
+		"control-plane: 264 rows: 120 covered, 34 planned, 109 excluded, 1 deferred\n",
+		"  GA 213: 120 covered, 33 planned, 59 excluded, 1 deferred, 0 undecided\n",
 		"  EAP 42: 0 covered, 0 planned, 42 excluded, 0 deferred, 0 undecided\n",
 		"  deprecated 8: 0 covered, 0 planned, 8 excluded, 0 deferred, 0 undecided\n",
 		"  SDK-only 1: 0 covered, 1 planned, 0 excluded, 0 deferred\n",
-		"pdp: 47 rows: 19 covered, 1 planned, 21 excluded, 6 deferred\n",
-		"  GA 45: 18 covered, 1 planned, 20 excluded, 6 deferred, 0 undecided\n",
+		"pdp: 47 rows: 20 covered, 0 planned, 21 excluded, 6 deferred\n",
+		"  GA 45: 19 covered, 0 planned, 20 excluded, 6 deferred, 0 undecided\n",
 		"  deprecated 1: 0 covered, 0 planned, 1 excluded, 0 deferred, 0 undecided\n",
 		"  SDK-only 1: 1 covered, 0 planned, 0 excluded, 0 deferred\n",
-		"PASS: 135 of 311 rows covered",
+		"PASS: 140 of 311 rows covered",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("apicoverage printed\n%s\nwant %q", out, want)

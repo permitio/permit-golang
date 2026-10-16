@@ -557,6 +557,43 @@ func TestRegisterRoleAssignment(t *testing.T) {
 	}
 }
 
+// TestRegisterTuple registers relationship tuples that the test creates apart from the builder,
+// as a scenario creates them through the SDK: the registration sends no request, the ledger names
+// each, and the teardown deletes each and checks that it is gone.
+func TestRegisterTuple(t *testing.T) {
+	h := newHarness(t)
+	ctx := t.Context()
+	tuples := h.facts + "/relationship_tuples"
+	for _, tuple := range []Tuple{
+		{Subject: "folder:f1", Relation: "parent", Object: "document:doc-1", Tenant: "t1"},
+		{Subject: "folder:f1", Relation: "parent", Object: "document:doc-2"},
+	} {
+		h.builder.RegisterTuple(tuple)
+		r := framework.Request{Method: http.MethodPost, Path: tuples, Body: tuple}
+		if err := h.plain.Call(ctx, r, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := h.take(); len(got) != 0 {
+		t.Errorf("RegisterTuple sent %+v, want no request", got)
+	}
+	wantErr := "the ledger does not reconcile, registered=2 completed=0 verified=0: " +
+		"relationship tuple folder:f1 parent document:doc-1 (not removed), " +
+		"relationship tuple folder:f1 parent document:doc-2 (not removed)"
+	if err := h.ledger.Reconcile(); err == nil || err.Error() != wantErr {
+		t.Errorf("the ledger before the teardown: %v, want %q", err, wantErr)
+	}
+	if err := h.ledger.Teardown(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.ledger.Reconcile(); err != nil {
+		t.Error(err)
+	}
+	if got := h.count(tuples); got != 0 {
+		t.Errorf("the fake holds %d relationship tuples after the teardown, want none", got)
+	}
+}
+
 func TestLists(t *testing.T) {
 	onDoc := RoleAssignment{
 		User: "u1", Role: "viewer", Tenant: "t1", ResourceInstance: "document:doc-1",

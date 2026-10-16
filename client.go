@@ -109,6 +109,10 @@ type Client struct {
 	// environment, and lists them with their relationships.
 	ResourceInstances *ResourceInstancesService `json:"-"`
 
+	// RelationshipTuples lists, creates and deletes the relationship tuples of an environment,
+	// the relations between its resource instances.
+	RelationshipTuples *RelationshipTuplesService `json:"-"`
+
 	// ProxyConfigs lists, reads, creates, changes and deletes the proxy configs of the
 	// environment of the client's scope: the credentials that the Permit proxy adds to the
 	// requests that it sends on, and the mapping rules of the URLs that CheckURL checks.
@@ -218,6 +222,7 @@ func New(opts ...Option) (*Client, error) {
 	c.Users = &UsersService{facts: facts{client: c}}
 	c.RoleAssignments = &RoleAssignmentsService{facts: facts{client: c}}
 	c.ResourceInstances = &ResourceInstancesService{facts: facts{client: c}}
+	c.RelationshipTuples = &RelationshipTuplesService{facts: facts{client: c}}
 	c.ProxyConfigs = &ProxyConfigsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {

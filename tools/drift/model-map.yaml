@@ -976,6 +976,87 @@ models:
       first_name: {required: false, null_policy: n/a}
       last_name: {required: false, null_policy: n/a}
       attributes: {required: false, null_policy: n/a}
+  # A relationship tuple of an environment, as a create and a delete send it, and as the API
+  # returns it, alone, in a list and in the detailed list, with the details of its subject, its
+  # relation, its object and its tenant. A create reads null for the tenant, which has no
+  # default, as the field left out, as every create does, and each body rejects null for the
+  # fields that it requires. These null policies are not measured yet:
+  # the phase api.relationship_tuples of the local harness confirms them.
+  RelationshipTupleCreate:
+    schema: RelationshipTupleCreate
+    fields:
+      subject: {required: true, null_policy: rejects}
+      relation: {required: true, null_policy: rejects}
+      object: {required: true, null_policy: rejects}
+      tenant: {required: false, null_policy: ignores}
+  RelationshipTupleDelete:
+    schema: RelationshipTupleDelete
+    fields:
+      subject: {required: true, null_policy: rejects}
+      relation: {required: true, null_policy: rejects}
+      object: {required: true, null_policy: rejects}
+  RelationshipTupleDetailedRead:
+    schema: RelationshipTupleDetailedRead
+    fields:
+      subject: {required: true, null_policy: n/a}
+      relation: {required: true, null_policy: n/a}
+      object: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      subject_id: {required: true, null_policy: n/a}
+      relation_id: {required: true, null_policy: n/a}
+      object_id: {required: false, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      subject_details: {required: false, null_policy: n/a}
+      relation_details: {required: false, null_policy: n/a}
+      object_details: {required: false, null_policy: n/a}
+      tenant_details: {required: false, null_policy: n/a}
+  RelationshipTupleRead:
+    schema: RelationshipTupleRead
+    fields:
+      subject: {required: true, null_policy: n/a}
+      relation: {required: true, null_policy: n/a}
+      object: {required: true, null_policy: n/a}
+      id: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      subject_id: {required: true, null_policy: n/a}
+      relation_id: {required: true, null_policy: n/a}
+      object_id: {required: false, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      subject_details: {required: false, null_policy: n/a}
+      relation_details: {required: false, null_policy: n/a}
+      object_details: {required: false, null_policy: n/a}
+      tenant_details: {required: false, null_policy: n/a}
+  ResourceInstanceBlockRead:
+    schema: ResourceInstanceBlockRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      tenant: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
+  StrippedRelationBlockRead:
+    schema: StrippedRelationBlockRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+  TenantBlockRead:
+    schema: TenantBlockRead
+    fields:
+      key: {required: true, null_policy: n/a}
+      name: {required: true, null_policy: n/a}
+      description: {required: false, null_policy: n/a}
+      attributes: {required: false, null_policy: n/a}
   # A role of an environment, as a create, an update and a bulk replace send it and as the API
   # returns it, alone and in the list of its ancestors or its descendants; the result of a bulk
   # replace, which lists the names of the roles that it created and replaced; and the bodies of

@@ -3317,6 +3317,120 @@ wait with every call through its copy. A client without `permit.WithFactsViaPDP(
 error for every call through the copy, as only the PDP container waits; v1 logged a warning and
 made the calls without the wait.
 
+<a id="M-relationship-tuples-1"></a>
+### M-relationship-tuples-1: RelationshipTuples becomes Client.RelationshipTuples
+
+- v1: `api.RelationshipTuples`
+- v1: `api.NewRelationshipTuplesApi`
+- v2: `permit.RelationshipTuplesService`
+
+Call the methods of the relationship tuples on the `RelationshipTuples` field of the client,
+`client.RelationshipTuples`, in place of `client.Api.RelationshipTuples`; `permit.New` builds it,
+so nothing takes the place of `api.NewRelationshipTuplesApi`. Each method takes a
+`context.Context` first. The calls act on the environment of the client's scope, as v1's acted on
+the environment of its context: the project and the environment of `permit.WithScope`, or else
+those of the API key, as [M-scope-2](#M-scope-2) says. With `permit.WithFactsViaPDP()`, they go to
+the PDP container, as [M-facts-2](#M-facts-2) says. An environment-level API key may call each of
+them, as v1's could. `models.RelationshipTupleRead` has `ID`, `SubjectID`, `RelationID`,
+`ObjectID`, `TenantID`, `OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`,
+`SubjectId`, `RelationId`, `ObjectId`, `TenantId`, `OrganizationId`, `ProjectId` and
+`EnvironmentId`, and its `CreatedAt` and `UpdatedAt` are `models.Time`, which embeds `time.Time`.
+`ObjectID` is empty when the reply has none, as the API's spec no longer requires it. Its
+`SubjectDetails`, `RelationDetails`, `ObjectDetails` and `TenantDetails` keep their types,
+`*models.ResourceInstanceBlockRead`, `*models.StrippedRelationBlockRead` and
+`*models.TenantBlockRead`, whose `Description` is a plain string, empty when the reply has none,
+in place of a pointer, and whose attributes are `models.Attributes`, as [M-models-1](#M-models-1)
+says.
+
+<a id="M-relationship-tuples-2"></a>
+### M-relationship-tuples-2: RelationshipTuples.List takes RelationshipTuplesListOptions, and All reads every page
+
+- v1: `api.RelationshipTuples.List`
+- v2: `permit.RelationshipTuplesService.List`
+
+`RelationshipTuplesService.List(ctx, opts)` takes a `*permit.RelationshipTuplesListOptions`, nil
+for the first page of every relationship tuple with the API's default of 30, in place of the
+page, the number of relationship tuples and the keys of a tenant, a subject, a relation and an
+object, and returns a `*permit.Page[models.RelationshipTupleRead]`, in place of a
+`*[]models.RelationshipTupleRead`, as [M-lists-1](#M-lists-1) says. `Tenant`, `Subject`,
+`Relation` and `Object` are sent in the query parameters of the same names, and `SubjectType` and
+`ObjectType`, which v1 could not send, keep the relationship tuples whose subject or object is an
+instance of a resource. A filter that is empty is not sent, as v1 left out an empty key. v1 failed
+for a page below 1, and for a number of relationship tuples below 1 or above 100, before any
+request; v2 sends a number that is not 0 as given, and the API accepts up to 100. v1 read the
+reply as a JSON array only; v2 reads the paginated JSON object too, whose counts the page holds. A
+page without relationship tuples has an empty `Data`, not nil. `RelationshipTuplesService.All(ctx,
+opts)` returns an `iter.Seq2[models.RelationshipTupleRead, error]` that reads every page, 100
+relationship tuples at a time.
+
+<a id="M-relationship-tuples-3"></a>
+### M-relationship-tuples-3: RelationshipTuples.ListDetailed reads the detailed list, and AllDetailed reads every page
+
+- v1: `api.RelationshipTuples.ListDetailed`
+- v2: `permit.RelationshipTuplesService.ListDetailed`
+
+`RelationshipTuplesService.ListDetailed(ctx, opts)` takes the options of `List` and returns a
+`*permit.Page[models.RelationshipTupleDetailedRead]`, with the counts of the reply, in place of a
+`*[]models.RelationshipTupleRead`. `models.RelationshipTupleDetailedRead` is a type of its own
+whose fields are those of `models.RelationshipTupleRead`, so a conversion,
+`models.RelationshipTupleRead(tuple)`, gives the type that v1 returned. It reads the route of the
+detailed list, as [M-relationship-tuples-7](#M-relationship-tuples-7) says.
+`RelationshipTuplesService.AllDetailed(ctx, opts)` reads every page, 100 relationship tuples at a
+time.
+
+<a id="M-relationship-tuples-4"></a>
+### M-relationship-tuples-4: RelationshipTuples.WaitForSync takes a time.Duration and waits on creates only
+
+- v1: `api.RelationshipTuples.WaitForSync`
+- v2: `permit.RelationshipTuplesService.WaitForSync`
+
+`RelationshipTuplesService.WaitForSync(timeout, opts...)` takes the timeout as a `time.Duration`,
+in place of a `*time.Duration` whose nil meant the timeout of the configuration, and options, in
+place of `api.WaitForSyncOptions`, as [M-facts-3](#M-facts-3) says. It returns a copy of the
+service whose calls carry the wait; the service that it is called on keeps none. Only `Create`
+waits for sync: the PDP container waits on `POST /facts/relationship_tuples`, and answers the
+delete and the lists without waiting. v1's copy sent the headers of the wait with
+each of its calls; in v2, any other call through the copy is an error that matches
+`permit.ErrInvalidConfig`, and no request is sent. A client without `permit.WithFactsViaPDP()` gets
+the same error for every call through the copy, as only the PDP container waits; v1 logged a
+warning and made the calls without the wait.
+
+<a id="M-relationship-tuples-5"></a>
+### M-relationship-tuples-5: RelationshipTuples.Create takes models.RelationshipTupleCreate as a struct literal
+
+- v1: `api.RelationshipTuples.Create`
+- v2: `permit.RelationshipTuplesService.Create`
+
+`RelationshipTuplesService.Create(ctx, tuple)` sends
+`POST /v2/facts/{proj_id}/{env_id}/relationship_tuples`, as v1 did, and returns the
+`*models.RelationshipTupleRead`. Build the tuple as a struct literal of
+`models.RelationshipTupleCreate`, in place of `models.NewRelationshipTupleCreate` and its setters,
+such as `models.RelationshipTupleCreate{Subject: "folder:f1", Relation: "parent", Object:
+"document:doc-1", Tenant: "tenant-a"}`. Its `Tenant` is a plain string, left out when empty, in
+place of a pointer. It is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as the API
+may have created the relationship tuple when a request got no complete reply. With
+`permit.WithFactsViaPDP()`, it goes to the PDP container, `POST /facts/relationship_tuples`, which
+can wait for sync, as [M-relationship-tuples-4](#M-relationship-tuples-4) says.
+
+<a id="M-relationship-tuples-6"></a>
+### M-relationship-tuples-6: RelationshipTuples.Delete takes models.RelationshipTupleDelete, and a 404 stays an error
+
+- v1: `api.RelationshipTuples.Delete`
+- v2: `permit.RelationshipTuplesService.Delete`
+
+`RelationshipTuplesService.Delete(ctx, tuple)` sends
+`DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples` with the relationship tuple in the
+body, as v1 did, and returns only an error, nil for a reply in 200-299. Build the body as a struct
+literal of `models.RelationshipTupleDelete`, whose subject, relation and object every request
+holds. A 404 is a `*permit.Error` that matches `permit.ErrNotFound`, never nil, as the body names
+the relationship tuple to delete and a 404 can mean a mistyped key. It is sent again after a 500,
+502, 503 or 504 reply or a failed connection, as after a 429, as deleting a relationship tuple
+twice leaves it deleted. v1 sent it to the Permit API also with `WithProxyFactsViaPDP(true)`; with
+`permit.WithFactsViaPDP()`, v2 sends it to the PDP container, `DELETE /facts/relationship_tuples`,
+which answers without waiting for sync, so a call through a copy of
+`RelationshipTuplesService.WaitForSync` is an error that matches `permit.ErrInvalidConfig`, as
+[M-relationship-tuples-4](#M-relationship-tuples-4) says.
+
 <a id="M-proxy-configs-1"></a>
 ### M-proxy-configs-1: ProxyConfigs becomes Client.ProxyConfigs, which acts on the environment of the scope
 
@@ -3635,6 +3749,19 @@ list, whose reply holds the relationships of each instance, as
 `permit.WithFactsViaPDP()`, the request goes to the PDP container,
 `GET /facts/resource_instances/detailed`, which sends it on to the API.
 
+<a id="M-relationship-tuples-7"></a>
+### M-relationship-tuples-7: ListDetailed reads the detailed list in place of the deprecated parameter detailed
+
+- v1: a `GET /v2/facts/{proj_id}/{env_id}/relationship_tuples` request with the query parameter `detailed=true`
+- v2: a `GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed` request, without `detailed`
+
+v1's `ListDetailed` asked the list of the relationship tuples for the details with
+`detailed=true`, a query parameter that the API's spec marks deprecated. v2's `ListDetailed` and
+`AllDetailed` send the route of the detailed list, whose reply is the paginated object, so the
+page holds its counts. No call of the relationship tuples sends `detailed` or
+`include_total_count`. With `permit.WithFactsViaPDP()`, the request goes to the PDP container,
+`GET /facts/relationship_tuples/detailed`, which sends it on to the API without waiting.
+
 ## Kept on purpose
 
 What v2 keeps from v1 although a new major version could change it:
@@ -3703,6 +3830,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.RelationCreate` | `models.RelationCreate` |
 | `models.RelationRead` | `models.RelationRead` |
 | `models.RelationshipTupleBlockRead` | `models.RelationshipTupleBlockRead` |
+| `models.RelationshipTupleCreate` | `models.RelationshipTupleCreate` |
+| `models.RelationshipTupleDelete` | `models.RelationshipTupleDelete` |
+| `models.RelationshipTupleRead` | `models.RelationshipTupleRead` |
 | `models.RemoveRolePermissions` | `models.RemoveRolePermissions` |
 | `models.ResourceActionCreate` | `models.ResourceActionCreate` |
 | `models.ResourceActionGroupCreate` | `models.ResourceActionGroupCreate` |
@@ -3713,6 +3843,7 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceAttributeRead` | `models.ResourceAttributeRead` |
 | `models.ResourceAttributeUpdate` | `models.ResourceAttributeUpdate` |
 | `models.ResourceCreate` | `models.ResourceCreate` |
+| `models.ResourceInstanceBlockRead` | `models.ResourceInstanceBlockRead` |
 | `models.ResourceInstanceCreate` | `models.ResourceInstanceCreate` |
 | `models.ResourceInstanceRead` | `models.ResourceInstanceRead` |
 | `models.ResourceInstanceUpdate` | `models.ResourceInstanceUpdate` |
@@ -3734,6 +3865,8 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.RoleCreate` | `models.RoleCreate` |
 | `models.RoleRead` | `models.RoleRead` |
 | `models.RoleUpdate` | `models.RoleUpdate` |
+| `models.StrippedRelationBlockRead` | `models.StrippedRelationBlockRead` |
+| `models.TenantBlockRead` | `models.TenantBlockRead` |
 | `models.TenantCreate` | `models.TenantCreate` |
 | `models.TenantRead` | `models.TenantRead` |
 | `models.TenantUpdate` | `models.TenantUpdate` |
@@ -3743,6 +3876,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.UserRoleRemove` | `models.UserRoleRemove` |
 | `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 296 of the 384 types of v1's pkg/models.
+Not mapped yet: 290 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

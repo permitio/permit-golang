@@ -738,6 +738,36 @@ change from v1 and what to use instead.
   an error that names the model. `Create` is sent again after a 429 only; the other calls are
   sent again after a 500, 502, 503 or 504 reply or a failed connection too.
 
+### Relationship tuples
+
+- The `RelationshipTuples` field of the client, a `*permit.RelationshipTuplesService`, lists,
+  creates and deletes the relationship tuples of an environment, in place of v1's
+  `RelationshipTuples`: `List` returns a page as a `*permit.Page[models.RelationshipTupleRead]`,
+  and `All` reads every page, 100 relationship tuples at a time, the most that the route gives;
+  `ListDetailed` and `AllDetailed` do the same with `models.RelationshipTupleDetailedRead`. A page
+  without relationship tuples has an empty `Data`, not nil.
+- `permit.RelationshipTuplesListOptions` filters the lists with `Tenant`, `Subject`, `Relation`,
+  `Object`, `SubjectType` and `ObjectType`, each sent in its query parameter only when it is set;
+  v1 had no filter of the subject's or the object's resource.
+- `ListDetailed` reads `GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed`, where v1
+  sent the deprecated query parameter `detailed=true` to the list; no call sends `detailed` or
+  `include_total_count`.
+- `Create` takes a `models.RelationshipTupleCreate` and returns the
+  `*models.RelationshipTupleRead`; an empty tenant is left out of the request. `Delete` takes a
+  `models.RelationshipTupleDelete` and returns only an error: nil for a reply in 200-299, and an
+  error that matches `ErrNotFound` for a 404, as its body, not its path, names the relationship
+  tuple to delete.
+- The calls are calls of the facts API: they act on the environment of the client's scope, or,
+  with `WithFactsViaPDP`, go to the PDP container under `/facts/relationship_tuples`. Each is sent
+  with an environment-level API key, or higher. `RelationshipTuplesService.WaitForSync(timeout,
+  opts...)` returns a copy whose `Create` the PDP container holds until the new relationship tuple
+  reaches its policy; any other call through the copy, and a call from a client without
+  `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
+- `Create` is sent again after a 429 only; the other calls are sent again after a 500, 502, 503
+  or 504 reply or a failed connection too. A reply in 200-299 to `Create` that is not a
+  relationship tuple, or to a list that is not a list of relationship tuples, an empty body too,
+  is an error that names the model.
+
 ### Proxy configs
 
 - The `ProxyConfigs` field of the client, a `*permit.ProxyConfigsService`, lists, reads,

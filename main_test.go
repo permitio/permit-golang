@@ -199,5 +199,16 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("bulk_assign_role.200.json")})
 	servers.API.Handle("DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk",
 		mockpermit.Reply{Body: replyFixture("bulk_unassign_role.200.json")})
+	servers.API.Handle("POST /v2/facts/{proj_id}/{env_id}/relationship_tuples",
+		mockpermit.Reply{Body: replyFixture("create_relationship_tuple.200.json")})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/relationship_tuples",
+		mockpermit.Reply{Body: replyFixture("list_relationship_tuples.200.json")},
+		mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed",
+		mockpermit.Reply{Body: replyFixture("list_relationship_tuples_detailed.200.json")})
+	servers.API.Handle("DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples",
+		mockpermit.Reply{Status: http.StatusNoContent})
+	servers.PDP.Handle("POST /facts/relationship_tuples",
+		mockpermit.Reply{Body: replyFixture("create_relationship_tuple.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

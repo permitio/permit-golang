@@ -437,6 +437,35 @@ models: type RelationshipTupleBlockRead struct
 models: type RelationshipTupleBlockRead struct, Object string
 models: type RelationshipTupleBlockRead struct, Relation string
 models: type RelationshipTupleBlockRead struct, Subject string
+models: type RelationshipTupleCreate struct
+models: type RelationshipTupleCreate struct, Object string
+models: type RelationshipTupleCreate struct, Relation string
+models: type RelationshipTupleCreate struct, Subject string
+models: type RelationshipTupleCreate struct, Tenant string
+models: type RelationshipTupleDelete struct
+models: type RelationshipTupleDelete struct, Object string
+models: type RelationshipTupleDelete struct, Relation string
+models: type RelationshipTupleDelete struct, Subject string
+models: type RelationshipTupleDetailedRead RelationshipTupleRead
+models: type RelationshipTupleRead struct
+models: type RelationshipTupleRead struct, CreatedAt Time
+models: type RelationshipTupleRead struct, EnvironmentID string
+models: type RelationshipTupleRead struct, ID string
+models: type RelationshipTupleRead struct, Object string
+models: type RelationshipTupleRead struct, ObjectDetails *ResourceInstanceBlockRead
+models: type RelationshipTupleRead struct, ObjectID string
+models: type RelationshipTupleRead struct, OrganizationID string
+models: type RelationshipTupleRead struct, ProjectID string
+models: type RelationshipTupleRead struct, Relation string
+models: type RelationshipTupleRead struct, RelationDetails *StrippedRelationBlockRead
+models: type RelationshipTupleRead struct, RelationID string
+models: type RelationshipTupleRead struct, Subject string
+models: type RelationshipTupleRead struct, SubjectDetails *ResourceInstanceBlockRead
+models: type RelationshipTupleRead struct, SubjectID string
+models: type RelationshipTupleRead struct, Tenant string
+models: type RelationshipTupleRead struct, TenantDetails *TenantBlockRead
+models: type RelationshipTupleRead struct, TenantID string
+models: type RelationshipTupleRead struct, UpdatedAt Time
 models: type RemoveRolePermissions struct
 models: type RemoveRolePermissions struct, Permissions []string
 models: type ResourceActionCreate struct
@@ -518,6 +547,11 @@ models: type ResourceCreate struct, Relations map[string]string
 models: type ResourceCreate struct, Roles map[string]RoleBlockEditable
 models: type ResourceCreate struct, TypeAttributes Attributes
 models: type ResourceCreate struct, URN string
+models: type ResourceInstanceBlockRead struct
+models: type ResourceInstanceBlockRead struct, Attributes Attributes
+models: type ResourceInstanceBlockRead struct, Key string
+models: type ResourceInstanceBlockRead struct, Resource string
+models: type ResourceInstanceBlockRead struct, Tenant string
 models: type ResourceInstanceCreate struct
 models: type ResourceInstanceCreate struct, Attributes Attributes
 models: type ResourceInstanceCreate struct, Key string
@@ -736,12 +770,21 @@ models: type RoleUpdate struct, Name string
 models: type RoleUpdate struct, Permissions []string
 models: type Secret struct
 models: type StringOrList struct
+models: type StrippedRelationBlockRead struct
+models: type StrippedRelationBlockRead struct, Description string
+models: type StrippedRelationBlockRead struct, Key string
+models: type StrippedRelationBlockRead struct, Name string
 models: type TaskResultEnvironmentRead struct
 models: type TaskResultEnvironmentRead struct, Error *ErrorDetails
 models: type TaskResultEnvironmentRead struct, Result *EnvironmentRead
 models: type TaskResultEnvironmentRead struct, Status TaskStatus
 models: type TaskResultEnvironmentRead struct, TaskID string
 models: type TaskStatus string
+models: type TenantBlockRead struct
+models: type TenantBlockRead struct, Attributes Attributes
+models: type TenantBlockRead struct, Description string
+models: type TenantBlockRead struct, Key string
+models: type TenantBlockRead struct, Name string
 models: type TenantCreate struct
 models: type TenantCreate struct, Attributes Attributes
 models: type TenantCreate struct, Description string
@@ -893,6 +936,13 @@ permit: method (*ProxyConfigsService) Delete(ctx context.Context, proxyConfigKey
 permit: method (*ProxyConfigsService) Get(ctx context.Context, proxyConfigKey string) (*models.ProxyConfigRead, error)
 permit: method (*ProxyConfigsService) List(ctx context.Context, opts *ListOptions) (*Page[models.ProxyConfigRead], error)
 permit: method (*ProxyConfigsService) Update(ctx context.Context, proxyConfigKey string, update models.ProxyConfigUpdate) (*models.ProxyConfigRead, error)
+permit: method (*RelationshipTuplesService) All(ctx context.Context, opts *RelationshipTuplesListOptions) iter.Seq2[models.RelationshipTupleRead, error]
+permit: method (*RelationshipTuplesService) AllDetailed(ctx context.Context, opts *RelationshipTuplesListOptions) iter.Seq2[models.RelationshipTupleDetailedRead, error]
+permit: method (*RelationshipTuplesService) Create(ctx context.Context, tuple models.RelationshipTupleCreate) (*models.RelationshipTupleRead, error)
+permit: method (*RelationshipTuplesService) Delete(ctx context.Context, tuple models.RelationshipTupleDelete) error
+permit: method (*RelationshipTuplesService) List(ctx context.Context, opts *RelationshipTuplesListOptions) (*Page[models.RelationshipTupleRead], error)
+permit: method (*RelationshipTuplesService) ListDetailed(ctx context.Context, opts *RelationshipTuplesListOptions) (*Page[models.RelationshipTupleDetailedRead], error)
+permit: method (*RelationshipTuplesService) WaitForSync(timeout time.Duration, opts ...SyncOption) *RelationshipTuplesService
 permit: method (*ResourceActionGroupsService) All(ctx context.Context, resourceKey string, opts *ListOptions) iter.Seq2[models.ResourceActionGroupRead, error]
 permit: method (*ResourceActionGroupsService) Create(ctx context.Context, resourceKey string, group models.ResourceActionGroupCreate) (*models.ResourceActionGroupRead, error)
 permit: method (*ResourceActionGroupsService) Delete(ctx context.Context, resourceKey string, actionGroupKey string) error
@@ -1032,6 +1082,7 @@ permit: type Client struct, Environments *EnvironmentsService
 permit: type Client struct, ImplicitGrants *ImplicitGrantsService
 permit: type Client struct, Projects *ProjectsService
 permit: type Client struct, ProxyConfigs *ProxyConfigsService
+permit: type Client struct, RelationshipTuples *RelationshipTuplesService
 permit: type Client struct, ResourceActionGroups *ResourceActionGroupsService
 permit: type Client struct, ResourceActions *ResourceActionsService
 permit: type Client struct, ResourceAttributes *ResourceAttributesService
@@ -1100,6 +1151,15 @@ permit: type Page[T any] struct, TotalCount *int
 permit: type PermissionsOption interface
 permit: type ProjectsService struct
 permit: type ProxyConfigsService struct
+permit: type RelationshipTuplesListOptions struct
+permit: type RelationshipTuplesListOptions struct, Object string
+permit: type RelationshipTuplesListOptions struct, ObjectType string
+permit: type RelationshipTuplesListOptions struct, Relation string
+permit: type RelationshipTuplesListOptions struct, Subject string
+permit: type RelationshipTuplesListOptions struct, SubjectType string
+permit: type RelationshipTuplesListOptions struct, Tenant string
+permit: type RelationshipTuplesListOptions struct, embedded ListOptions
+permit: type RelationshipTuplesService struct
 permit: type Resource struct
 permit: type Resource struct, Attributes map[string]any
 permit: type Resource struct, Context map[string]any

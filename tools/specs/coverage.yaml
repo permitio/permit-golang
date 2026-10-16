@@ -261,12 +261,12 @@ control-plane:
   - {op: update_proxy_config, route: "PATCH /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: covered}
   - {op: delete_proxy_config, route: "DELETE /v2/facts/{proj_id}/{env_id}/proxy_configs/{proxy_config_id}", stage: GA, status: covered}
   # Relationship tuples
-  - {op: list_relationship_tuples, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: planned}
-  - {op: create_relationship_tuple, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: planned}
-  - {op: delete_relationship_tuple, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: planned}
+  - {op: list_relationship_tuples, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
+  - {op: create_relationship_tuple, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
+  - {op: delete_relationship_tuple, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
   - {op: bulk_create_relationship_tuples, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: planned}
   - {op: bulk_delete_relationship_tuples, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: planned}
-  - {op: list_relationship_tuples_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed", stage: GA, status: planned}
+  - {op: list_relationship_tuples_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed", stage: GA, status: covered}
   # Resource Action Groups
   - {op: list_resource_action_groups, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: covered}
   - {op: create_resource_action_group, route: "POST /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: covered}
@@ -453,7 +453,7 @@ pdp:
   - {route: "GET /healthy", stage: GA, status: excluded, reason: operator}
   - {route: "GET /ready", stage: GA, status: excluded, reason: operator}
   # Local Facts API
-  - {op: create_relationship_tuple_facts_relationship_tuples_post, route: "POST /facts/relationship_tuples", stage: GA, status: planned}
+  - {op: create_relationship_tuple_facts_relationship_tuples_post, route: "POST /facts/relationship_tuples", stage: GA, status: covered}
   - {op: create_resource_instance_facts_resource_instances_post, route: "POST /facts/resource_instances", stage: GA, status: covered}
   - {op: update_resource_instance_facts_resource_instances__instance_id__patch, route: "PATCH /facts/resource_instances/{instance_id}", stage: GA, status: covered}
   - {op: create_role_assignment_facts_role_assignments_post, route: "POST /facts/role_assignments", stage: GA, status: covered}

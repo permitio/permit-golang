@@ -171,6 +171,24 @@
     "ProxyConfigsService.Update": [
       "update_proxy_config"
     ],
+    "RelationshipTuplesService.All": [
+      "list_relationship_tuples"
+    ],
+    "RelationshipTuplesService.AllDetailed": [
+      "list_relationship_tuples_detailed"
+    ],
+    "RelationshipTuplesService.Create": [
+      "create_relationship_tuple"
+    ],
+    "RelationshipTuplesService.Delete": [
+      "delete_relationship_tuple"
+    ],
+    "RelationshipTuplesService.List": [
+      "list_relationship_tuples"
+    ],
+    "RelationshipTuplesService.ListDetailed": [
+      "list_relationship_tuples_detailed"
+    ],
     "ResourceActionGroupsService.All": [
       "list_resource_action_groups"
     ],

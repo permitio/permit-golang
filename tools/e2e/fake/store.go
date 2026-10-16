@@ -50,6 +50,9 @@ const (
 	opBulkUnassignRole            = "bulk_unassign_role"
 
 	opDetailedInstances = "list_resource_instances_detailed"
+
+	opListRelationshipTuples         = "list_relationship_tuples"
+	opListRelationshipTuplesDetailed = "list_relationship_tuples_detailed"
 )
 
 // arrayBodies are the operations whose request body is a JSON array of objects, which the fake
@@ -123,6 +126,12 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 		return f.detailedRoleAssignments(segments, query)
 	case opDetailedInstances:
 		return http.StatusOK, f.detailedInstances(segments, query)
+	case opListRelationshipTuples:
+		return http.StatusOK, listed(relationshipTuples(f.store[collectionOf(segments)], query),
+			query)
+	case opListRelationshipTuplesDetailed:
+		tuples := f.store[collectionOf(segments[:len(segments)-1])]
+		return http.StatusOK, envelope(relationshipTuples(tuples, query), query)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
@@ -503,6 +512,25 @@ func (f *Fake) bulkRoleAssignments(rt route, segments []string, items []object) 
 		return http.StatusOK, object{"assignments_removed": before - len(f.store[path])}
 	}
 	return f.unsupported(rt)
+}
+
+// tupleFilters are the filters of the lists of the relationship tuples that the fake applies:
+// each is a query parameter and the field of a relationship tuple that it matches. The fake
+// ignores the filters subject_type and object_type.
+var tupleFilters = []string{"tenant", "subject", "relation", "object"}
+
+// relationshipTuples returns the relationship tuples of tuples, in order, whose fields tenant,
+// subject, relation and object, as their create gave them, each equal the query parameter of the
+// same name, when query holds it.
+func relationshipTuples(tuples []object, query url.Values) []object {
+	return slices.DeleteFunc(slices.Clone(tuples), func(t object) bool {
+		for _, name := range tupleFilters {
+			if query.Has(name) && text(t, name) != query.Get(name) {
+				return true
+			}
+		}
+		return false
+	})
 }
 
 // fieldsOf returns the fields of o whose names are among names, those that o holds; an empty

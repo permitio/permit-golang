@@ -194,6 +194,14 @@ var cloudScenarios = []scenario{
 		run: resourceInstanceLifecycle,
 	},
 	{
+		name: "relationship_tuple_lifecycle", methods: []string{
+			"RelationshipTuplesService.List", "RelationshipTuplesService.All",
+			"RelationshipTuplesService.ListDetailed", "RelationshipTuplesService.AllDetailed",
+			"RelationshipTuplesService.Create", "RelationshipTuplesService.Delete",
+		},
+		run: relationshipTupleLifecycle,
+	},
+	{
 		name: "proxy_config_lifecycle", methods: []string{
 			"ProxyConfigsService.Create", "ProxyConfigsService.Get", "ProxyConfigsService.List",
 			"ProxyConfigsService.All", "ProxyConfigsService.Update", "ProxyConfigsService.Delete",

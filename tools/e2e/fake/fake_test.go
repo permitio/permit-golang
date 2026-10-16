@@ -133,6 +133,13 @@ var routes = []Route{
 	},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk", opBulkAssignRole},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk", opBulkUnassignRole},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/relationship_tuples", "create_relationship_tuple"},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/relationship_tuples", opListRelationshipTuples},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/relationship_tuples", "delete_relationship_tuple"},
+	{
+		"GET", "/v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed",
+		opListRelationshipTuplesDetailed,
+	},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "list_tenant_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "assign_role_to_user"},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "unassign_role_from_user"},
@@ -928,6 +935,60 @@ func TestRoleAssignmentLists(t *testing.T) {
 			t.Errorf("the detailed role assignment %d is %v, want its role, user, tenant and "+
 				"instance %q and its IDs", i, item, want)
 		}
+	}
+}
+
+// TestRelationshipTuples checks the relationship tuples: the list keeps those whose tenant,
+// subject, relation and object each equal the query parameter of the same name, as a JSON array,
+// and the detailed list keeps the same in the paginated object; a delete of one removes it, and
+// gets 404 for a tuple that the fake does not hold.
+func TestRelationshipTuples(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	tuples := "/v2/facts/proj/dev/relationship_tuples"
+	for _, body := range []string{
+		`{"subject": "folder:f1", "relation": "parent", "object": "document:d1", "tenant": "t1"}`,
+		`{"subject": "folder:f1", "relation": "parent", "object": "document:d2", "tenant": "t1"}`,
+		`{"subject": "folder:f2", "relation": "owner", "object": "document:d1", "tenant": "t2"}`,
+	} {
+		h.expect(200, "POST", tuples, body, projectKey)
+	}
+	listed := func(items []any) string {
+		var got []string
+		for _, item := range items {
+			tuple, _ := item.(map[string]any)
+			if text(tuple, "id") == "" || text(tuple, "environment_id") == "" {
+				t.Errorf("the relationship tuple %v has no IDs", tuple)
+			}
+			got = append(got, text(tuple, "subject")+" "+text(tuple, "relation")+" "+
+				text(tuple, "object")+" "+text(tuple, "tenant"))
+		}
+		return strings.Join(got, ";")
+	}
+	const d1, d2 = "folder:f1 parent document:d1 t1", "folder:f1 parent document:d2 t1"
+	const f2 = "folder:f2 owner document:d1 t2"
+	for query, want := range map[string]string{
+		"":                                       d1 + ";" + d2 + ";" + f2,
+		"?subject=folder%3Af1":                   d1 + ";" + d2,
+		"?relation=owner":                        f2,
+		"?object=document%3Ad1&tenant=t1":        d1,
+		"?subject=folder%3Af1&page=2&per_page=1": d2,
+	} {
+		if got := listed(h.list(tuples+query, projectKey)); got != want {
+			t.Errorf("GET %s%s listed %q, want %q", tuples, query, got, want)
+		}
+		page := h.expect(200, "GET", tuples+"/detailed"+query, "", projectKey)
+		items, _ := page["data"].([]any)
+		if got := listed(items); got != want || page["total_count"] == nil {
+			t.Errorf("GET %s/detailed%s answered %v, want the paginated object of %q", tuples,
+				query, page, want)
+		}
+	}
+	key := `{"subject": "folder:f2", "relation": "owner", "object": "document:d1"}`
+	h.expect(204, "DELETE", tuples, key, projectKey)
+	h.expect(404, "DELETE", tuples, key, projectKey)
+	if got, want := listed(h.list(tuples, projectKey)), d1+";"+d2; got != want {
+		t.Errorf("the relationship tuples are %q after the deletes, want %q", got, want)
 	}
 }
 

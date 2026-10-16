@@ -280,13 +280,22 @@ type tupleKey struct {
 	Object   string `json:"object"`
 }
 
-// Tuple creates t. The check that t is gone lists the tuples of its subject, relation and object.
+// Tuple registers t in the ledger, as [Builder.RegisterTuple] does, and then creates it.
 func (b *Builder) Tuple(ctx context.Context, t Tuple) error {
+	b.RegisterTuple(t)
+	return b.post(ctx, b.facts+"/relationship_tuples", t)
+}
+
+// RegisterTuple registers t in the builder's ledger and sends no request, for a scenario that
+// creates t itself, such as through the code under test: call it before the request that creates
+// t, so that t is torn down also when the reply to that request is lost. The teardown deletes t,
+// which succeeds when t is gone already, and checks that the list of the tuples of its subject,
+// relation and object no longer holds it.
+func (b *Builder) RegisterTuple(t Tuple) {
 	path := b.facts + "/relationship_tuples"
 	key := tupleKey{Subject: t.Subject, Relation: t.Relation, Object: t.Object}
 	query := url.Values{"subject": {t.Subject}, "relation": {t.Relation}, "object": {t.Object}}
 	b.ledger.Register("relationship tuple "+t.Subject+" "+t.Relation+" "+t.Object,
 		b.api.RemoverWithBody(path, key),
 		b.api.Unlisted(path+"?"+query.Encode(), b.timeout, lists(key)))
-	return b.post(ctx, path, t)
 }

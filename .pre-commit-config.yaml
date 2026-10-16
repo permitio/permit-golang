@@ -63,6 +63,12 @@ repos:
         language: system
         files: (^|/)go\.(mod|sum)$|\.go$
         pass_filenames: false
+      - id: go-mod-tidy-skill
+        name: go mod tidy -diff (migration skill module)
+        entry: go -C skills/permit-golang-v2-migration mod tidy -diff
+        language: system
+        files: (^|/)go\.(mod|sum)$|\.go$
+        pass_filenames: false
       - id: golangci-lint
         name: golangci-lint (every module)
         entry: .github/scripts/golangci-all.sh

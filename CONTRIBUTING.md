@@ -61,8 +61,8 @@ The prek job in [CI](#ci) runs the same hooks. The first run downloads the hooks
 ones written in Go, so it needs the network; later runs work offline. The hooks check:
 
 - formatting and lint with golangci-lint, through `.github/scripts/golangci-all.sh` (below);
-- that `go mod tidy -diff` prints nothing, in the root, in `tools/`, in `consumer/` and in
-  `tools/upgrade/`;
+- that `go mod tidy -diff` prints nothing, in the root, in `tools/`, in `consumer/`, in
+  `tools/upgrade/` and in `skills/permit-golang-v2-migration/`;
 - `.editorconfig`, with editorconfig-checker;
 - spelling with typos (`_typos.toml`), shell scripts with shellcheck and shfmt, GitHub Actions
   workflows with actionlint and zizmor (`.github/zizmor.yml`);
@@ -524,14 +524,22 @@ bin/apisurface -mode release -version v2.1.0 -gorelease bin/gorelease
 `go -C tools`, for example `go -C tools test -race -count=1 -shuffle=on ./...`.
 
 `go test` passes a run in which tests skip or no test runs at all. checkgotest does not: run the
-tests of both modules with `-json` and check their output together.
+tests with `-json`, offline, as the `test` job of [CI](#ci) does (both modules, the end-to-end
+dry run, the dry run of the upgrade test and the tests of the migration skill's scanner), and
+check their output together.
 
 ```sh
 go -C tools build -o ../bin/checkgotest ./cmd/checkgotest
+export HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9
 go test -race -count=1 -shuffle=on -json ./... >bin/root.json
 go -C tools test -race -count=1 -shuffle=on -json ./... >bin/tools.json
+go -C tools test -race -count=1 -shuffle=on -json -tags e2e ./e2e -args -e2e.dryrun >bin/e2e.json
+go -C tools/upgrade test -race -count=1 -shuffle=on -json ./... -args -upgrade.dryrun \
+  >bin/upgrade.json
+go -C skills/permit-golang-v2-migration test -race -count=1 -shuffle=on -json ./... >bin/skill.json
 bin/checkgotest -require-file .github/required-tests.txt \
-  -allow-skips .github/allowed-skips.txt bin/root.json bin/tools.json
+  -allow-skips .github/allowed-skips.txt bin/root.json bin/tools.json bin/e2e.json \
+  bin/upgrade.json bin/skill.json
 ```
 
 It exits 0 when every test passed; 1 when a test failed or skipped, or an entry in
@@ -645,7 +653,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | Job | What it does |
 | --- | --- |
 | `prek` | Checks the workflows with cicheck, runs every git hook on every file through `.github/scripts/prek-count.sh`, and on a pull request checks the message of each of its commits through `.github/scripts/commits-check.sh`. |
-| `test` | Runs the tests of both modules, the [end-to-end dry run](#end-to-end-tests) and the dry run of the [upgrade test](#the-upgrade-test) with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. Then the benchmarks of the root package run 100 times each, so that each compiles and runs. |
+| `test` | Runs the tests of both modules, the [end-to-end dry run](#end-to-end-tests), the dry run of the [upgrade test](#the-upgrade-test) and the tests of the scanner of the migration skill in `skills/permit-golang-v2-migration` with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. Then the benchmarks of the root package run 100 times each, so that each compiles and runs. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, which compile the programs of `README.md`, check its tables and the error and the Go versions that it quotes, and check the links of `llms.txt`, and whose output checkgotest checks; see [API reference](#api-reference). Then builds and runs the zapslog example of `WithLogger`, which needs the module proxy; see [Logging](#logging). |
@@ -653,11 +661,11 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `api-coverage` | Runs the root package's tests offline with the request record on, and checks the record and `tools/specs/coverage.yaml` with apicoverage, which writes its report to the job summary; see [API coverage](#api-coverage). |
 | `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
 | `secrets` | Scans the commits that are new in the run for secrets with gitleaks, through `.github/scripts/gitleaks-range.sh`; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
-| `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules and in `tools/upgrade`, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
+| `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, in `tools/upgrade` and in `skills/permit-golang-v2-migration`, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
 | `dependency-review` | Pull requests only: fails when the pull request adds a dependency with a known vulnerability of high or critical severity; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `api-surface` | Pull requests only: checks that `MIGRATION.md` covers the v1 API while the base is v1, and otherwise fails on a breaking change to the API without the `breaking` label; see [Public surface and migration](#public-surface-and-migration). |
 | `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
-| `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules and of `tools/upgrade`, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
+| `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, of `tools/upgrade` and of `skills/permit-golang-v2-migration`, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
 | `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, checks the models against the published specs, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots) and [Model drift](#model-drift). |
@@ -762,7 +770,7 @@ mean, and the tests in `tools/scripts` run them; those tests need bash, git, jq,
 the gitleaks that `.github/scripts/fetch-tool.sh gitleaks` installs as `bin/gitleaks`.
 
 ```sh
-EXPECTED_HOOKS=27 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
+EXPECTED_HOOKS=28 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
 .github/scripts/commits-check.sh "$(git merge-base origin/master HEAD)" "$(git rev-parse HEAD)"
 ```
 
@@ -826,7 +834,7 @@ its tests:
 export HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9
 bin/mutationgate -gremlins bin/gremlins -workers 2 -memory-mib 4096 -cap 3m \
   -timeout-coefficient 5 -skip '^(TestLive|TestRepository)' -base origin/master \
-  . tools tools/upgrade
+  . tools tools/upgrade skills/permit-golang-v2-migration
 bin/mutationgate -gremlins bin/gremlins -workers 2 -memory-mib 4096 -cap 3m \
   -timeout-coefficient 5 -skip '^(TestLive|TestRepository)' -all tools/cmd/cicheck  # a package
 ```
@@ -840,13 +848,14 @@ range starts at the newest commit of the pull request whose `mutation` check suc
 the head still contains, or at the merge base when there is none, as
 `.github/scripts/mutation-range.sh` works it out; so the lines of a run that a newer push
 cancelled are tested in the next one. Changed lines in `tools/`, the programs that check the
-SDK, are tested like SDK code, and so are those of `tools/upgrade`, a module of its own that the
-gate reaches only when it is named. The gate builds without the tag `e2e`, so it mutates the
-packages under `tools/e2e/framework` and `tools/e2e/fake` but not the scenarios of `tools/e2e`,
-which the end-to-end dry run and the `e2e` job exercise instead. Maintainers push a pull
-request's next commit only after CI passed on the previous one, so that each commit's lines get
-a run. The weekly job tests every Go file of both modules and of `tools/upgrade`, and only
-reports.
+SDK, are tested like SDK code, and so are those of `tools/upgrade` and of
+`skills/permit-golang-v2-migration`, modules of their own that the gate reaches only when they
+are named. The gate builds without the tag `e2e`, so it mutates the packages under
+`tools/e2e/framework` and `tools/e2e/fake` but not the scenarios of `tools/e2e`, which the
+end-to-end dry run and the `e2e` job exercise instead. Maintainers push a pull request's next
+commit only after CI passed on the previous one, so that each commit's lines get a run. The
+weekly job tests every Go file of both modules, of `tools/upgrade` and of
+`skills/permit-golang-v2-migration`, and only reports.
 
 ## Benchmarks
 
@@ -1820,7 +1829,7 @@ committed, until `go -C tools/upgrade mod tidy` is run and its change pushed.
 
 | Tier | When | What | Required | Alert |
 | --- | --- | --- | --- | --- |
-| Offline | Every pull request and push to `master` | The tests of both modules, the end-to-end dry run and the dry run of the upgrade test, with no network | Yes: `CI` | The pull request's `CI` check |
+| Offline | Every pull request and push to `master` | The tests of both modules, the end-to-end dry run, the dry run of the upgrade test and the tests of the migration skill's scanner, with no network | Yes: `CI` | The pull request's `CI` check |
 | Local full stack | Before a release | A maintainer-run local full-stack suite | For a release *(the release workflow is added in a later commit on this branch)* | The release's harness evidence *(added in a later commit on this branch)* |
 | Production scratch | A push to `master`, a manual run with the mode `e2e`, a release, and a pull request from a branch of this repository | The `e2e` job above, in a scratch environment of Permit's production API | Yes on `master`, in a release and in a manual run; on a pull request into `master`, through the deployment rule | `notify-gate-failure` on `master` and in a release; on a pull request, the lane's `CI` check and its `integration` deployment |
 | Production scratch, advisory | Whenever the `e2e` job runs | The [advisory legs](#the-advisory-legs): the scenarios with the newest release of the container PDP, `e2e-latest`, and against the cloud PDP, `e2e-cloudpdp`, each in a scratch environment of its own | No: they never fail `CI`, and make no deployment | A warning of `CI`, and the failed job in the run |

@@ -10,3 +10,4 @@
 
 consumer test-only and never ships; its module graph is the SDK's, which the floor scan covers
 tools/upgrade test-only and never ships; it pins v1.3.0 on purpose, as the v1 release that it tests
+skills/permit-golang-v2-migration user-built from source; never imported by the SDK or released

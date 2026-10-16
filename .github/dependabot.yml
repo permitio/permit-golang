@@ -98,6 +98,29 @@ updates:
         applies-to: security-updates
         patterns: ["*"]
 
+  # The module of the migration skill, whose scanner lists the uses of v1 in an application. It
+  # requires no module, as the scanner uses only the standard library, so there is nothing to
+  # update until it requires one.
+  - package-ecosystem: gomod
+    directory: /skills/permit-golang-v2-migration
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps-dev
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
   # The actions that the workflows in .github/workflows use, each pinned to a commit SHA with a
   # version comment, which Dependabot updates together. The cooldown has no per-level days here.
   - package-ecosystem: github-actions

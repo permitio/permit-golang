@@ -57,7 +57,7 @@ env:
   WEEKLY_CRON: "41 6 * * 1"
   # The number of hooks in .pre-commit-config.yaml that run on every file; change it when a hook
   # is added or removed.
-  EXPECTED_HOOKS: "27"
+  EXPECTED_HOOKS: "28"
   # A proxy address that refuses connections. The tests run with it, so a request that tries to
   # leave the runner fails; requests to loopback addresses, such as httptest servers, go direct.
   OFFLINE_PROXY: http://127.0.0.1:9
@@ -122,8 +122,9 @@ jobs:
   # release. The floor legs use go.mod and go.sum as committed; the ceiling legs first move every
   # dependency to its newest version in the runner's copy, as an application that requires newer
   # versions would. GOTOOLCHAIN=local keeps the go command from switching to go.mod's toolchain.
-  # The end-to-end dry run of tools/e2e and the dry run of the upgrade test of tools/upgrade, in
-  # which v1.3.0 writes and v2 reads, run with them. checkgotest checks all four outputs, and the
+  # The end-to-end dry run of tools/e2e, the dry run of the upgrade test of tools/upgrade, in
+  # which v1.3.0 writes and v2 reads, and the tests of the scanner of the migration skill in
+  # skills/permit-golang-v2-migration run with them. checkgotest checks all five outputs, and the
   # upgrade dry run's against tools/upgrade/required.txt as well, the list of the e2e job. The
   # ceiling legs tidy tools/upgrade too, which builds the root and tools modules through its
   # replace directives. The modules, and the gitleaks that the tests of gitleaks-range.sh run,
@@ -187,7 +188,7 @@ jobs:
           .github/scripts/fetch-tool.sh gitleaks
           go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
-          root=0 tools=0 e2e=0 upgrade=0
+          root=0 tools=0 e2e=0 upgrade=0 skill=0
           go test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/root.json" || root=$?
           go -C tools test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/tools.json" ||
             tools=$?
@@ -195,15 +196,18 @@ jobs:
             >"$RUNNER_TEMP/e2e.json" || e2e=$?
           go -C tools/upgrade test -race -shuffle=on -count=1 -json ./... -args -upgrade.dryrun \
             >"$RUNNER_TEMP/upgrade.json" || upgrade=$?
+          go -C skills/permit-golang-v2-migration test -race -shuffle=on -count=1 -json ./... \
+            >"$RUNNER_TEMP/skill.json" || skill=$?
           "$RUNNER_TEMP/checkgotest" -require-file .github/required-tests.txt \
             -allow-skips .github/allowed-skips.txt \
             "$RUNNER_TEMP/root.json" "$RUNNER_TEMP/tools.json" "$RUNNER_TEMP/e2e.json" \
-            "$RUNNER_TEMP/upgrade.json"
+            "$RUNNER_TEMP/upgrade.json" "$RUNNER_TEMP/skill.json"
           "$RUNNER_TEMP/checkgotest" -require-file tools/upgrade/required.txt \
             "$RUNNER_TEMP/upgrade.json"
-          if [[ $root -ne 0 || $tools -ne 0 || $e2e -ne 0 || $upgrade -ne 0 ]]; then
+          if [[ $root -ne 0 || $tools -ne 0 || $e2e -ne 0 || $upgrade -ne 0 || $skill -ne 0 ]]; then
             echo "go test exited $root in the root module, $tools in tools/, $e2e in the" \
-              "end-to-end dry run and $upgrade in the dry run of the upgrade test."
+              "end-to-end dry run, $upgrade in the dry run of the upgrade test and $skill in" \
+              "skills/permit-golang-v2-migration."
             exit 1
           fi
           go test -count=1 -run '^$' -bench . -benchtime 100x .
@@ -542,8 +546,9 @@ jobs:
         if: inputs.mode == 'release'
         run: .github/scripts/gitleaks-range.sh --since-last-tag HEAD
 
-  # On a pull request only: mutation tests of the Go lines that changed in both modules and in
-  # tools/upgrade, with tools/cmd/mutationgate and the gremlins that tools/binaries.lock pins. The
+  # On a pull request only: mutation tests of the Go lines that changed in both modules, in
+  # tools/upgrade and in skills/permit-golang-v2-migration, the module of the migration skill's
+  # scanner, with tools/cmd/mutationgate and the gremlins that tools/binaries.lock pins. The
   # range starts at the newest commit of the pull request whose mutation check succeeded, or at
   # the merge base when none did (.github/scripts/mutation-range.sh, which reads the check runs
   # with GH_TOKEN in a step of its own), so the lines of a run that a newer push cancelled are in
@@ -607,7 +612,7 @@ jobs:
           "$RUNNER_TEMP/mutationgate" -base "$START_SHA" -threshold 90 -max-mutants 400 \
             -skip '^(TestLive|TestRepository)' -gremlins bin/gremlins -workers 2 \
             -timeout-coefficient 5 -cap 3m -memory-mib 4096 -summary "$GITHUB_STEP_SUMMARY" \
-            . tools tools/upgrade
+            . tools tools/upgrade skills/permit-golang-v2-migration
 
   # On a pull request only: fails when the pull request adds a dependency with a known
   # vulnerability of high or critical severity, from GitHub's dependency graph, and on a failure
@@ -726,10 +731,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: .github/scripts/prek-count.sh --upstream
 
-  # Weekly, mutation tests of every Go file of both modules and of tools/upgrade, with the limits
-  # of the mutation job and no threshold or budget: it reports the efficacy in the job summary,
-  # posts each module's efficacy and count of mutants that lived to the ops channel, and fails
-  # only when the run does not complete or its result cannot be posted.
+  # Weekly, mutation tests of every Go file of both modules, of tools/upgrade and of
+  # skills/permit-golang-v2-migration, with the limits of the mutation job and no threshold or
+  # budget: it reports the efficacy in the job summary, posts each module's efficacy and count of
+  # mutants that lived to the ops channel, and fails only when the run does not complete or its
+  # result cannot be posted.
   mutation-weekly:
     name: mutation (weekly)
     if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
@@ -766,7 +772,8 @@ jobs:
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
           "$RUNNER_TEMP/mutationgate" -all -threshold 0 -skip '^(TestLive|TestRepository)' \
             -gremlins bin/gremlins -workers 2 -timeout-coefficient 5 -cap 3m -memory-mib 4096 \
-            -summary "$GITHUB_STEP_SUMMARY" . tools tools/upgrade | tee "$RUNNER_TEMP/mutation.txt"
+            -summary "$GITHUB_STEP_SUMMARY" . tools tools/upgrade \
+            skills/permit-golang-v2-migration | tee "$RUNNER_TEMP/mutation.txt"
       # notify posts one line to the ops channel, SLACK_WEBHOOK_URL: each module's efficacy and
       # count of mutants that lived, or that the run did not complete; without the webhook it
       # warns and posts nothing. mutationgate prints "### Mutation tests: `<dir>` (<module>)" for

@@ -1,0 +1,63 @@
+# The constants of pkg/models of github.com/permitio/permit-golang, the v1 version that
+# tools/upgrade requires (v1.3.0), each with its type, one per line as "<constant> <type>",
+# sorted. The scanner maps a constant through the entries of its type. Do not edit it by hand:
+# TestRepositoryModelsConsts reads the constants from that version's source in the module cache,
+# fails when this file differs, and prints the lines it must hold. Blank lines and lines that
+# start with # are ignored.
+models.ADMIN models.MemberAccessLevel
+models.APPROVAL_FLOW models.ElementsType
+models.ARRAY models.AttributeType
+models.ASSIGN_PERMISSIONS models.OnboardingStep
+models.ASSIGN_USER_ROLES models.OnboardingStep
+models.AUDIT_LOG models.ElementsType
+models.BASIC models.AuthMechanism
+models.BEARER models.AuthMechanism
+models.BOOL models.AttributeType
+models.CONNECT_SDK models.OnboardingStep
+models.CREATE_ACTIONS models.OnboardingStep
+models.CREATE_ORGANIZATION models.OnboardingStep
+models.CREATE_PROJECT models.OnboardingStep
+models.CREATE_RESOURCE models.OnboardingStep
+models.DELETE models.Methods
+models.DONE models.OnboardingStep
+models.DOTNET models.ProgrammingLanguage
+models.ELEMENTS models.APIKeyOwnerType
+models.ENV models.MemberAccessObj
+models.GET models.Methods
+models.HEAD models.Methods
+models.HEADERS models.AuthMechanism
+models.HIDDEN models.ElementsPermissionLevel
+models.INVALID models.PolicyRepoStatus
+models.INVITE_ACCEPTED models.InviteStatus
+models.INVITE_CANCELED models.InviteStatus
+models.INVITE_FAILED models.InviteStatus
+models.INVITE_PENDING models.InviteStatus
+models.JAVA models.ProgrammingLanguage
+models.JAVASCRIPT models.ProgrammingLanguage
+models.JSON models.AttributeType
+models.KONG_GATEWAY models.ProgrammingLanguage
+models.LEVEL_1 models.ElementsPermissionLevel
+models.LEVEL_2 models.ElementsPermissionLevel
+models.LEVEL_3 models.ElementsPermissionLevel
+models.LEVEL_4 models.ElementsPermissionLevel
+models.MEMBER models.APIKeyOwnerType
+models.NUMBER models.AttributeType
+models.OPTIONS models.Methods
+models.ORG models.MemberAccessObj
+models.PATCH models.Methods
+models.PDP_CONFIG models.APIKeyOwnerType
+models.PENDING models.PolicyRepoStatus
+models.POST models.Methods
+models.PROJECT models.MemberAccessObj
+models.PUT models.Methods
+models.PYTHON models.ProgrammingLanguage
+models.READ models.MemberAccessLevel
+models.RESOURCESET models.ConditionSetType
+models.STRING models.AttributeType
+models.TIME models.AttributeType
+models.UNCONFIGURED models.ElementsPermissionLevel
+models.URLMatchTypeRegex models.UrlMatchType
+models.USERSET models.ConditionSetType
+models.USER_MANAGEMENT models.ElementsType
+models.VALID models.PolicyRepoStatus
+models.WRITE models.MemberAccessLevel

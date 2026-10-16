@@ -1595,5 +1595,14 @@ github.com/permitio/permit-golang/v2/tools/upgrade TestWithout
 github.com/permitio/permit-golang/v2/tools/upgrade TestRecorder
 github.com/permitio/permit-golang/v2/tools/upgrade TestRecorderStopsWaitingWhenTheContextEnds
 
+github.com/permitio/permit-golang/v2/skills/permit-golang-v2-migration/scanner TestFixtures
+github.com/permitio/permit-golang/v2/skills/permit-golang-v2-migration/scanner TestRepositoryGuide
+github.com/permitio/permit-golang/v2/skills/permit-golang-v2-migration/scanner TestRepositoryModelsConsts
+github.com/permitio/permit-golang/v2/skills/permit-golang-v2-migration/scanner TestRepositorySkill
+github.com/permitio/permit-golang/v2/skills/permit-golang-v2-migration/scanner TestRepositoryUpgrade
+github.com/permitio/permit-golang/v2/skills/permit-golang-v2-migration/scanner TestRepositoryV1API
+github.com/permitio/permit-golang/v2/skills/permit-golang-v2-migration/scanner TestRun
+github.com/permitio/permit-golang/v2/skills/permit-golang-v2-migration/scanner TestRunDidNotRun
+
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckE2ELegs
 github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregateAdvisoryE2ELegs

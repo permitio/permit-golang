@@ -1286,7 +1286,7 @@ status and the body.
 <a id="M-environments-7"></a>
 ### M-environments-7: models.EnvironmentCreate has plain strings, settings and JWKS
 
-- v1: models.EnvironmentCreate of pkg/models, with pointer fields and a constructor
+- v1: `models.EnvironmentCreate` of pkg/models, with pointer fields and a constructor
 - v2: `models.EnvironmentCreate`
 
 Build the environment as a struct literal, such as
@@ -1302,7 +1302,7 @@ the reply gave it.
 <a id="M-environments-8"></a>
 ### M-environments-8: models.EnvironmentUpdate has Optional fields, settings and JWKS
 
-- v1: models.EnvironmentUpdate of pkg/models, with pointer fields and setters
+- v1: `models.EnvironmentUpdate` of pkg/models, with pointer fields and setters
 - v2: `models.EnvironmentUpdate`
 
 Build the change as a struct literal of `models.EnvironmentUpdate`, in place of
@@ -4514,10 +4514,10 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.EnvironmentCopyScope` | `models.EnvironmentCopyScope` |
 | `models.EnvironmentCopyScopeFilters` | `models.EnvironmentCopyScopeFilters` |
 | `models.EnvironmentCopyTarget` | `models.EnvironmentCopyTarget` |
-| `models.EnvironmentCreate` | `models.EnvironmentCreate` |
+| `models.EnvironmentCreate` | `models.EnvironmentCreate` ([M-environments-7](#M-environments-7)) |
 | `models.EnvironmentRead` | `models.EnvironmentRead` |
 | `models.EnvironmentStats` | `models.EnvironmentStats` |
-| `models.EnvironmentUpdate` | `models.EnvironmentUpdate` |
+| `models.EnvironmentUpdate` | `models.EnvironmentUpdate` ([M-environments-8](#M-environments-8)) |
 | `models.FailedInvite` | not exposed in v2: account administration ([M-organizations-1](#M-organizations-1)) |
 | `models.FullData` | not exposed in v2: operator route ([M-pdps-3](#M-pdps-3)) |
 | `models.HTTPValidationError` | `permit.Error.Detail` ([M-errors-8](#M-errors-8)) |

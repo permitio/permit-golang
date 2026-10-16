@@ -557,6 +557,10 @@ models: type ResourceInstanceCreate struct, Attributes Attributes
 models: type ResourceInstanceCreate struct, Key string
 models: type ResourceInstanceCreate struct, Resource string
 models: type ResourceInstanceCreate struct, Tenant string
+models: type ResourceInstanceCreateBulkOperation struct
+models: type ResourceInstanceCreateBulkOperation struct, Operations []ResourceInstanceCreate
+models: type ResourceInstanceDeleteBulkOperation struct
+models: type ResourceInstanceDeleteBulkOperation struct, Idents []string
 models: type ResourceInstanceDetailedRead struct
 models: type ResourceInstanceDetailedRead struct, Attributes Attributes
 models: type ResourceInstanceDetailedRead struct, CreatedAt Time
@@ -790,6 +794,10 @@ models: type TenantCreate struct, Attributes Attributes
 models: type TenantCreate struct, Description string
 models: type TenantCreate struct, Key string
 models: type TenantCreate struct, Name string
+models: type TenantCreateBulkOperation struct
+models: type TenantCreateBulkOperation struct, Operations []TenantCreate
+models: type TenantDeleteBulkOperation struct
+models: type TenantDeleteBulkOperation struct, Idents []string
 models: type TenantRead struct
 models: type TenantRead struct, Attributes Attributes
 models: type TenantRead struct, CreatedAt Time
@@ -816,6 +824,10 @@ models: type UserCreate struct, FirstName string
 models: type UserCreate struct, Key string
 models: type UserCreate struct, LastName string
 models: type UserCreate struct, RoleAssignments []UserRoleCreate
+models: type UserCreateBulkOperation struct
+models: type UserCreateBulkOperation struct, Operations []UserCreate
+models: type UserDeleteBulkOperation struct
+models: type UserDeleteBulkOperation struct, Idents []string
 models: type UserInTenant struct
 models: type UserInTenant struct, ResourceInstanceRoles []UserResourceInstanceRole
 models: type UserInTenant struct, Roles []string
@@ -834,6 +846,8 @@ models: type UserRead struct, LastName string
 models: type UserRead struct, OrganizationID string
 models: type UserRead struct, ProjectID string
 models: type UserRead struct, UpdatedAt Time
+models: type UserReplaceBulkOperation struct
+models: type UserReplaceBulkOperation struct, Operations []UserCreate
 models: type UserResourceInstanceRole struct
 models: type UserResourceInstanceRole struct, Resource string
 models: type UserResourceInstanceRole struct, ResourceInstance string
@@ -963,6 +977,8 @@ permit: method (*ResourceAttributesService) List(ctx context.Context, resourceKe
 permit: method (*ResourceAttributesService) Update(ctx context.Context, resourceKey string, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
 permit: method (*ResourceInstancesService) All(ctx context.Context, opts *ResourceInstancesListOptions) iter.Seq2[models.ResourceInstanceRead, error]
 permit: method (*ResourceInstancesService) AllDetailed(ctx context.Context, opts *ResourceInstancesListOptions) iter.Seq2[models.ResourceInstanceDetailedRead, error]
+permit: method (*ResourceInstancesService) BulkDelete(ctx context.Context, instances []string) error
+permit: method (*ResourceInstancesService) BulkReplace(ctx context.Context, instances []models.ResourceInstanceCreate) error
 permit: method (*ResourceInstancesService) Create(ctx context.Context, instance models.ResourceInstanceCreate) (*models.ResourceInstanceRead, error)
 permit: method (*ResourceInstancesService) Delete(ctx context.Context, instance string) error
 permit: method (*ResourceInstancesService) Get(ctx context.Context, instance string) (*models.ResourceInstanceRead, error)
@@ -1015,6 +1031,8 @@ permit: method (*RolesService) Update(ctx context.Context, roleKey string, updat
 permit: method (*TenantsService) AddUser(ctx context.Context, tenantKey string, user models.UserCreate) (*models.UserRead, error)
 permit: method (*TenantsService) All(ctx context.Context, opts *TenantsListOptions) iter.Seq2[models.TenantRead, error]
 permit: method (*TenantsService) AllUsers(ctx context.Context, tenantKey string, opts *TenantUsersListOptions) iter.Seq2[models.UserRead, error]
+permit: method (*TenantsService) BulkCreate(ctx context.Context, tenants []models.TenantCreate) error
+permit: method (*TenantsService) BulkDelete(ctx context.Context, tenantKeys []string) error
 permit: method (*TenantsService) Create(ctx context.Context, tenant models.TenantCreate) (*models.TenantRead, error)
 permit: method (*TenantsService) Delete(ctx context.Context, tenantKey string) error
 permit: method (*TenantsService) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error)
@@ -1031,6 +1049,9 @@ permit: method (*UserAttributesService) List(ctx context.Context, opts *ListOpti
 permit: method (*UserAttributesService) Update(ctx context.Context, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
 permit: method (*UsersService) All(ctx context.Context, opts *UsersListOptions) iter.Seq2[models.UserRead, error]
 permit: method (*UsersService) AssignRole(ctx context.Context, userKey string, role models.UserRoleCreate) (*models.RoleAssignmentRead, error)
+permit: method (*UsersService) BulkCreate(ctx context.Context, users []models.UserCreate) error
+permit: method (*UsersService) BulkDelete(ctx context.Context, userKeys []string) error
+permit: method (*UsersService) BulkReplace(ctx context.Context, users []models.UserCreate) error
 permit: method (*UsersService) Create(ctx context.Context, user models.UserCreate) (*models.UserRead, error)
 permit: method (*UsersService) Delete(ctx context.Context, userKey string) error
 permit: method (*UsersService) Get(ctx context.Context, userKey string) (*models.UserRead, error)

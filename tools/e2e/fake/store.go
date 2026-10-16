@@ -53,6 +53,14 @@ const (
 
 	opListRelationshipTuples         = "list_relationship_tuples"
 	opListRelationshipTuplesDetailed = "list_relationship_tuples_detailed"
+
+	opBulkCreateUsers              = "bulk_create_users"
+	opBulkReplaceUsers             = "bulk_replace_users"
+	opBulkDeleteUsers              = "bulk_delete_users"
+	opBulkCreateTenants            = "bulk_create_tenants"
+	opBulkDeleteTenants            = "bulk_delete_tenants"
+	opBulkReplaceResourceInstances = "bulk_replace_resource_instances"
+	opBulkDeleteResourceInstances  = "bulk_delete_resource_instances"
 )
 
 // arrayBodies are the operations whose request body is a JSON array of objects, which the fake
@@ -132,6 +140,17 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 	case opListRelationshipTuplesDetailed:
 		tuples := f.store[collectionOf(segments[:len(segments)-1])]
 		return http.StatusOK, envelope(relationshipTuples(tuples, query), query)
+	case opBulkCreateUsers, opBulkReplaceUsers, opBulkCreateTenants,
+		opBulkReplaceResourceInstances:
+		if fields != nil {
+			return f.bulkWrite(rt, segments, fields)
+		}
+		return f.unsupported(rt)
+	case opBulkDeleteUsers, opBulkDeleteTenants, opBulkDeleteResourceInstances:
+		if fields != nil {
+			return f.bulkDelete(segments, fields)
+		}
+		return f.unsupported(rt)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
@@ -868,6 +887,80 @@ func (f *Fake) bulkRoles(segments []string, fields object) (int, any) {
 		updated = append(updated, key)
 	}
 	return http.StatusOK, object{"created": created, "updated": updated}
+}
+
+// bulkCollection returns the collection that a bulk route of the facts writes, whose path has
+// segments, such as /v2/facts/{proj_id}/{env_id}/bulk/users with IDs in place of keys: the route
+// of the create of one of its objects, and the segments of its path, those of the bulk route
+// without bulk.
+func bulkCollection(segments []string) (route, []string) {
+	name := segments[len(segments)-1]
+	create := route{
+		Route: Route{
+			Method: http.MethodPost, Template: "/v2/facts/{proj_id}/{env_id}/" + name,
+		},
+		segments: []string{"", "v2", "facts", "{proj_id}", "{env_id}", name},
+	}
+	return create, append(slices.Clone(segments[:5]), name)
+}
+
+// bulkWrite answers POST /v2/facts/{proj_id}/{env_id}/bulk/users and .../bulk/tenants, and PUT
+// .../bulk/users and .../bulk/resource_instances, whose path has segments, with IDs in place of
+// keys: it creates each object of the operations of fields, in order, as a POST to its
+// collection does; a PUT replaces each object that the collection has, by its identifier, with
+// the object of its operation, which keeps its ID and the IDs of its scope and loses each field
+// that the operation leaves out, as the PUT of one user does. A create that the POST would answer
+// with an error, such as 409 for a key that the collection has, ends the call with that answer
+// and puts the collection back as it was before the call, so the call writes nothing, as the
+// API's documentation says that a bulk create of users writes none of them for a 409. The
+// collection is all that the call writes: the fake stores the inline role assignments of a user
+// as a field of the user, and assigns no role for them. What the API keeps of a replaced object
+// is not confirmed yet. It answers the JSON object without fields of the spec. The caller holds
+// f.mu.
+func (f *Fake) bulkWrite(rt route, segments []string, fields object) (int, any) {
+	create, collection := bulkCollection(segments)
+	path := collectionOf(collection)
+	before := slices.Clone(f.store[path])
+	operations, _ := fields["operations"].([]any)
+	for _, operation := range operations {
+		o, _ := operation.(object)
+		ident, _ := identOf(o)
+		i := slices.IndexFunc(f.store[path], func(stored object) bool {
+			n, ok := identOf(stored)
+			return ok && n == ident
+		})
+		if rt.Method == http.MethodPut && i >= 0 {
+			replaced := maps.Clone(o)
+			for _, kept := range []string{"id", "organization_id", "project_id", "environment_id"} {
+				replaced[kept] = f.store[path][i][kept]
+			}
+			f.store[path][i] = replaced
+			continue
+		}
+		if status, body := f.create(create, collection, o); status != http.StatusOK {
+			f.store[path] = before
+			return status, body
+		}
+	}
+	return http.StatusOK, object{}
+}
+
+// bulkDelete answers DELETE /v2/facts/{proj_id}/{env_id}/bulk/users, .../bulk/tenants and
+// .../bulk/resource_instances, whose path has segments, with IDs in place of keys: it deletes
+// each object of the collection that an ident of fields names, by its ID or its identifier, and
+// answers the JSON object without fields of the spec. An ident that names no object deletes
+// nothing, and what the API answers for one is not confirmed yet. The caller holds f.mu.
+func (f *Fake) bulkDelete(segments []string, fields object) (int, any) {
+	_, collection := bulkCollection(segments)
+	path := collectionOf(collection)
+	idents, _ := fields["idents"].([]any)
+	for _, ident := range idents {
+		f.store[path] = slices.DeleteFunc(f.store[path], func(o object) bool {
+			n, ok := identOf(o)
+			return o["id"] == ident || ok && n == ident
+		})
+	}
+	return http.StatusOK, object{}
 }
 
 // unsupported fails the test for a request that the fake does not implement, such as a POST

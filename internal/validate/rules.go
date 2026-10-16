@@ -266,8 +266,8 @@ var (
 		Message: "the path parameter is empty; pass the key or ID of the object",
 	}
 
-	// ResourceInstanceTenantEmpty rejects a create of a resource instance without a tenant,
-	// which the API requires of every instance.
+	// ResourceInstanceTenantEmpty rejects a create or a bulk replace of a resource instance
+	// without a tenant, which the API requires of every instance.
 	ResourceInstanceTenantEmpty = Rule{
 		ID: "resource-instance.tenant.empty",
 		Message: "the instance has no Tenant, and an instance belongs to a tenant; set Tenant to " +

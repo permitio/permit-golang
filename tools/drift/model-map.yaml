@@ -1228,6 +1228,18 @@ models:
       name: {required: false, null_policy: rejects}
       description: {required: false, null_policy: accepts}
       attributes: {required: false, null_policy: accepts}
+  # The bodies of the bulk create and the bulk delete of the tenants, which hold the tenants in
+  # operations and their keys or IDs in idents, each of which they require and, as an array
+  # without a default, reject null for. These null policies are not measured yet: the phase
+  # api.bulk of the local harness confirms them.
+  TenantCreateBulkOperation:
+    schema: TenantCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  TenantDeleteBulkOperation:
+    schema: TenantDeleteBulkOperation
+    fields:
+      idents: {required: true, null_policy: rejects}
   TenantDetails:
     spec: pdp-container
     schema: _TenantDetails
@@ -1345,6 +1357,22 @@ models:
       role: {required: true, null_policy: n/a}
   UserStatus:
     schema: UserStatus
+  # The bodies of the bulk create, the bulk replace and the bulk delete of the users, which hold
+  # the users in operations and their keys or IDs in idents, each of which they require and, as
+  # an array without a default, reject null for. These null policies are not measured yet: the
+  # phase api.bulk of the local harness confirms them.
+  UserCreateBulkOperation:
+    schema: UserCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  UserReplaceBulkOperation:
+    schema: UserReplaceBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  UserDeleteBulkOperation:
+    schema: UserDeleteBulkOperation
+    fields:
+      idents: {required: true, null_policy: rejects}
   # A resource instance of an environment, as a create sends it, as an update changes its
   # attributes and as the API returns it, with its relationship tuples in the detailed list. A
   # create rejects null for its required fields and for the attributes, which have a default, as
@@ -1362,6 +1390,18 @@ models:
     schema: ResourceInstanceUpdate
     fields:
       attributes: {required: false, null_policy: accepts}
+  # The bodies of the bulk replace and the bulk delete of the resource instances, which hold the
+  # instances in operations and their identifiers in idents, each of which they require and, as
+  # an array without a default, reject null for. These null policies are not measured yet: the
+  # phase api.bulk of the local harness confirms them.
+  ResourceInstanceCreateBulkOperation:
+    schema: ResourceInstanceCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
+  ResourceInstanceDeleteBulkOperation:
+    schema: ResourceInstanceDeleteBulkOperation
+    fields:
+      idents: {required: true, null_policy: rejects}
   ResourceInstanceRead:
     schema: ResourceInstanceRead
     fields:

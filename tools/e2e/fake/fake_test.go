@@ -140,6 +140,19 @@ var routes = []Route{
 		"GET", "/v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed",
 		opListRelationshipTuplesDetailed,
 	},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/bulk/users", opBulkCreateUsers},
+	{"PUT", "/v2/facts/{proj_id}/{env_id}/bulk/users", opBulkReplaceUsers},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/bulk/users", opBulkDeleteUsers},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/bulk/tenants", opBulkCreateTenants},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/bulk/tenants", opBulkDeleteTenants},
+	{
+		"PUT", "/v2/facts/{proj_id}/{env_id}/bulk/resource_instances",
+		opBulkReplaceResourceInstances,
+	},
+	{
+		"DELETE", "/v2/facts/{proj_id}/{env_id}/bulk/resource_instances",
+		opBulkDeleteResourceInstances,
+	},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "list_tenant_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "assign_role_to_user"},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "unassign_role_from_user"},
@@ -1056,6 +1069,102 @@ func TestBulkRoleAssignments(t *testing.T) {
 	}
 	if want := []string{"bob editor"}; !slices.Equal(listed(), want) {
 		t.Errorf("the role assignments are %q after the rejected bodies, want %q", listed(), want)
+	}
+}
+
+// TestBulkFacts checks the bulk routes of the users, the tenants and the resource instances,
+// whose bodies are JSON objects that the check of their operation sees, each answered with 200
+// and {}: a bulk create creates each object of operations, in order, in the scope of its
+// environment, and a 409 for a key that the collection has ends it and writes nothing, not even
+// the objects before it; a bulk replace replaces each object that the collection has, by its
+// identifier, which keeps its ID and the IDs of its organization, project and environment and
+// loses the fields that its operation leaves out, and creates each that it does not have;
+// a bulk delete deletes each object that an ident names, by its key, its ID or, for an instance,
+// <resource>:<key>, and an ident that names none deletes nothing. A body that the check rejects
+// gets 422 and fails the test.
+func TestBulkFacts(t *testing.T) {
+	h := newHarness(t)
+	env, _ := h.createEnv("dev")
+	const (
+		facts = "/v2/facts/proj/dev"
+		bulk  = facts + "/bulk"
+	)
+	before := len(h.checked)
+	keys := func(path string) []string {
+		t.Helper()
+		var got []string
+		for _, item := range h.list(path, projectKey) {
+			o, _ := item.(map[string]any)
+			if o["environment_id"] != env["id"] || text(o, "id") == "" {
+				t.Errorf("the object %v of %s has no ID or another environment", o, path)
+			}
+			got = append(got, text(o, "key"))
+		}
+		return got
+	}
+	answered := func(want int, method, path, body string) {
+		t.Helper()
+		if got := h.expect(want, method, path, body, projectKey); want == 200 && len(got) != 0 {
+			t.Errorf("%s %s answered %v, want {}", method, path, got)
+		}
+	}
+	answered(200, "POST", bulk+"/tenants",
+		`{"operations": [{"key": "t1", "name": "T1"}, {"key": "t2", "name": "T2"}]}`)
+	if got, want := keys(facts+"/tenants"), []string{"t1", "t2"}; !slices.Equal(got, want) {
+		t.Errorf("the tenants are %q after the bulk create, want %q", got, want)
+	}
+	answered(200, "POST", bulk+"/users",
+		`{"operations": [{"key": "alice", "email": "alice@example.com"}, {"key": "bob"}]}`)
+	answered(409, "POST", bulk+"/users",
+		`{"operations": [{"key": "carol"}, {"key": "alice"}, {"key": "dave"}]}`)
+	if got, want := keys(facts+"/users"), []string{"alice", "bob"}; !slices.Equal(got, want) {
+		t.Errorf("the users are %q after the bulk creates, want %q", got, want)
+	}
+	alice := h.expect(200, "GET", facts+"/users/alice", "", projectKey)
+	bob := h.expect(200, "GET", facts+"/users/bob", "", projectKey)
+	answered(200, "PUT", bulk+"/users",
+		`{"operations": [{"key": "alice", "first_name": "Alice"}, {"key": "erin"}]}`)
+	replaced := h.expect(200, "GET", facts+"/users/alice", "", projectKey)
+	if replaced["first_name"] != "Alice" || replaced["email"] != nil {
+		t.Errorf("alice is %v after the bulk replace, want the first name alone", replaced)
+	}
+	for _, kept := range []string{"id", "organization_id", "project_id", "environment_id"} {
+		if replaced[kept] == nil || replaced[kept] != alice[kept] {
+			t.Errorf("alice has the %s %v after the bulk replace, want %v", kept, replaced[kept],
+				alice[kept])
+		}
+	}
+	answered(200, "PUT", bulk+"/resource_instances",
+		`{"operations": [{"key": "d1", "tenant": "t1", "resource": "document"}]}`)
+	instance := h.expect(200, "GET", facts+"/resource_instances/document:d1", "", projectKey)
+	answered(200, "PUT", bulk+"/resource_instances",
+		`{"operations": [{"key": "d1", "tenant": "t2", "resource": "document"}]}`)
+	moved := h.expect(200, "GET", facts+"/resource_instances/document:d1", "", projectKey)
+	if moved["id"] != instance["id"] || moved["tenant"] != "t2" {
+		t.Errorf("the instance is %v after the second bulk replace, want %v in t2", moved,
+			instance["id"])
+	}
+	answered(200, "DELETE", bulk+"/resource_instances", `{"idents": ["document:d1"]}`)
+	h.expect(404, "GET", facts+"/resource_instances/document:d1", "", projectKey)
+	answered(200, "DELETE", bulk+"/users",
+		`{"idents": ["alice", "`+text(bob, "id")+`", "nobody"]}`)
+	if got, want := keys(facts+"/users"), []string{"erin"}; !slices.Equal(got, want) {
+		t.Errorf("the users are %q after the bulk delete, want %q", got, want)
+	}
+	answered(200, "DELETE", bulk+"/tenants", `{"idents": ["t1", "t2"]}`)
+	if got := keys(facts + "/tenants"); len(got) != 0 {
+		t.Errorf("the tenants are %q after the bulk delete, want none", got)
+	}
+	if got := h.checked[before:]; !slices.Equal(got, []string{
+		opBulkCreateTenants, opBulkCreateUsers, opBulkCreateUsers, opBulkReplaceUsers,
+		opBulkReplaceResourceInstances, opBulkReplaceResourceInstances,
+		opBulkDeleteResourceInstances, opBulkDeleteUsers, opBulkDeleteTenants,
+	}) {
+		t.Errorf("the check saw the bodies of %q, want those of the bulk routes", got)
+	}
+	h.expect(422, "POST", bulk+"/users", `{"operations": [{"key": "bad"}]}`, projectKey)
+	if errs := h.tb.take(); len(errs) != 1 {
+		t.Errorf("the rejected body got the errors %q, want one", errs)
 	}
 }
 

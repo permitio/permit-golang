@@ -23,18 +23,20 @@ const (
 )
 
 // TenantsService lists, reads, creates, changes and deletes the tenants of an environment, and
-// lists, adds and removes the users in a tenant; [Client.Tenants] holds it. A method that acts on
-// one tenant takes its key or its ID, such as tenant-a, and one that acts on a user in it the key
-// or the ID of the user too, such as alice, and sends each as one segment of the path, escaped: a
-// key that holds a / or a % names that tenant or that user, not another route.
+// lists, adds and removes the users in a tenant; it also creates and deletes tenants in bulk;
+// [Client.Tenants] holds it. A method that acts on one tenant takes its key or its ID, such as
+// tenant-a, and one that acts on a user in it the key or the ID of the user too, such as alice,
+// and sends each as one segment of the path, escaped: a key that holds a / or a % names that
+// tenant or that user, not another route.
 //
 // Its calls are calls of the facts API. By default they go to the Permit API, under
-// /v2/facts/{proj_id}/{env_id}/tenants, and act on the environment of the client's scope: the
-// project and the environment of [WithScope], or else those of the client's API key, which the
-// first call that needs them looks up, as [Client.Scope] says, also when the call then fails
-// before its own request. A scope without an environment, as that of a project-level API key
-// without WithScope, is an error that matches [ErrInvalidConfig], and the call sends no request
-// for the tenants. With [WithFactsViaPDP], they go to the PDP container under /facts/tenants
+// /v2/facts/{proj_id}/{env_id}/tenants, or /v2/facts/{proj_id}/{env_id}/bulk/tenants for the
+// bulk calls, and act on the environment of the client's scope: the project and the environment
+// of [WithScope], or else those of the client's API key, which the first call that needs them
+// looks up, as [Client.Scope] says, also when the call then fails before its own request. A
+// scope without an environment, as that of a project-level API key without WithScope, is an
+// error that matches [ErrInvalidConfig], and the call sends no request for the tenants. With
+// [WithFactsViaPDP], they go to the PDP container under /facts/tenants, or /facts/bulk/tenants,
 // instead, need no scope, and act on the environment of the container's own API key.
 //
 // [TenantsService.WaitForSync] returns a copy whose creates of tenants wait until the new tenant
@@ -119,10 +121,12 @@ func tenantUsersRequest(tenantKey string, opts *TenantUsersListOptions) (request
 // own waits: the copy shares no state with them.
 //
 // Only [TenantsService.Create] waits for sync, as the PDP container waits on POST /facts/tenants
-// alone. A call through the copy returns an error that matches [ErrInvalidConfig], and sends no
+// alone, and answers the other routes, the bulk routes under /facts/bulk/tenants too, without
+// waiting. A call through the copy returns an error that matches [ErrInvalidConfig], and sends no
 // request: from a client without [WithFactsViaPDP], as only the PDP container waits; of any
-// other method, such as AddUser, Update or Delete, which the container answers without waiting;
-// for a timeout less than zero; and for a [SyncOption] that is not valid, in any place among opts.
+// other method, such as AddUser, Update, Delete or BulkCreate, which the container answers
+// without waiting; for a timeout less than zero; and for a [SyncOption] that is not valid, in any
+// place among opts.
 func (s *TenantsService) WaitForSync(timeout time.Duration, opts ...SyncOption) *TenantsService {
 	return &TenantsService{facts: s.facts.withWait(newSyncWait(timeout, opts))}
 }

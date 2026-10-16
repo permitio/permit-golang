@@ -1398,6 +1398,11 @@ are `json.Number`, as [M-models-1](#M-models-1) says. `Attributes` is nil when t
 null, as it does after an update that set them to null, and an empty map that is not nil when it
 holds `{}`.
 
+`TenantsService.BulkCreate` and `TenantsService.BulkDelete` are new: v1 had no bulk operation of
+the tenants, neither in `api.Tenants` nor in its generated client. Each sends all its tenants, or
+their keys, in one request to `/v2/facts/{proj_id}/{env_id}/bulk/tenants`, does not wait for sync,
+and returns only an error.
+
 <a id="M-tenants-2"></a>
 ### M-tenants-2: GetById and GetByKey become Get
 
@@ -2828,6 +2833,11 @@ user has a role, with the keys of its roles in the tenant, its status there and 
 tenant's resource instances. It has no `Roles`, which the API's spec marks deprecated: read the
 roles of the user in each tenant from `AssociatedTenants`.
 
+`UsersService.BulkCreate`, `UsersService.BulkReplace` and `UsersService.BulkDelete` are new: v1
+had no bulk operation of the users, neither in `api.Users` nor in its generated client. Each sends
+all its users, or their keys, in one request to `/v2/facts/{proj_id}/{env_id}/bulk/users`, does
+not wait for sync, and returns only an error.
+
 <a id="M-users-2"></a>
 ### M-users-2: GetById and GetByKey become Get
 
@@ -3202,6 +3212,12 @@ container, as [M-facts-2](#M-facts-2) says. An environment-level API key may cal
 `models.Attributes`, whose numbers are `json.Number`, as [M-models-1](#M-models-1) says. It adds
 `Relationships`, the relationship tuples of the instance when the reply holds them, each a
 `models.RelationshipTupleBlockRead` with its subject, relation and object.
+
+`ResourceInstancesService.BulkReplace` and `ResourceInstancesService.BulkDelete` are new: v1 had
+no bulk operation of the resource instances, neither in `api.ResourceInstances` nor in its
+generated client. Each sends all its instances, or their identifiers, in one request to
+`/v2/facts/{proj_id}/{env_id}/bulk/resource_instances`, does not wait for sync, and returns only
+an error.
 
 <a id="M-resource-instances-2"></a>
 ### M-resource-instances-2: List takes ResourceInstancesListOptions, whose key filter is Search, and All reads every page

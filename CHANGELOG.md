@@ -313,9 +313,14 @@ change from v1 and what to use instead.
   a user and its add to the tenant, without a role when the user has no `RoleAssignments`.
   `RemoveUser` removes a user from a tenant, which only v1's generated client could do, with
   `DeleteTenantUser`.
+- `BulkCreate` takes a `[]models.TenantCreate` and `BulkDelete` the keys or IDs of tenants, which
+  v1 could not send: each sends them all, in order, in one request to
+  `/v2/facts/{proj_id}/{env_id}/bulk/tenants`, as a JSON object that holds them in `operations`
+  or `idents`, an empty array for nil, and returns only an error, as the reply has no fields. A
+  404 to `BulkDelete`, whose body names the tenants, is an error that matches `ErrNotFound`.
 - The calls are calls of the facts API: they act on the environment of the client's scope, or,
-  with `WithFactsViaPDP`, go to the PDP container under `/facts/tenants`. Each is sent with an
-  environment-level API key, or higher.
+  with `WithFactsViaPDP`, go to the PDP container under `/facts/tenants` and
+  `/facts/bulk/tenants`. Each is sent with an environment-level API key, or higher.
 - `permit.TenantsListOptions` filters a list by the attributes of the tenants, in place of v1's
   `ListByAttributes`: each `permit.AttributeFilter`, which `permit.AttributeEquals(name, value)`
   builds from a string, a bool, an int, an int64 or a float64, is sent as the query parameter
@@ -340,9 +345,9 @@ change from v1 and what to use instead.
 - A key of a tenant, or of a user in it, is sent as one segment of the path, escaped; an empty
   key, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request for the tenant is
   sent. `Delete` returns nil when the API answers 404, as the tenant is gone already, and
-  `RemoveUser` when the user is not in the tenant. `Create` and `AddUser` are sent again after a
-  429 only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed
-  connection too.
+  `RemoveUser` when the user is not in the tenant. `Create`, `AddUser` and `BulkCreate` are sent
+  again after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply or a
+  failed connection too.
 
 ### Resource actions
 
@@ -645,18 +650,25 @@ change from v1 and what to use instead.
   leaves out `Roles`, which the API's spec marks deprecated. Each field of `models.UserUpdate` is
   a `models.Optional`: unset leaves the field out, `models.Null` sends null and `models.Some`
   sends the value; attributes replace the user's attributes as a whole.
+- `BulkCreate` and `BulkReplace` take a `[]models.UserCreate` and `BulkDelete` the keys or IDs of
+  users, which v1 could not send: each sends them all, in order, in one request to
+  `/v2/facts/{proj_id}/{env_id}/bulk/users`, as a JSON object that holds them in `operations` or
+  `idents`, an empty array for nil, and returns only an error, reading no body from a reply in
+  200-299, as the reply has no fields. A 404 to `BulkDelete`, whose body names the users, is an
+  error that matches `ErrNotFound`.
 - The calls are calls of the facts API: they act on the environment of the client's scope, or,
-  with `WithFactsViaPDP`, go to the PDP container under `/facts/users`. Each is sent with an
-  environment-level API key, or higher. `UsersService.WaitForSync(timeout, opts...)` returns a
-  copy whose `Create`, `Sync`, `Update`, `AssignRole` and `UnassignRole` the PDP container holds
-  until the change reaches its policy; any other call through the copy, and a call from a client
-  without `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
+  with `WithFactsViaPDP`, go to the PDP container under `/facts/users` and `/facts/bulk/users`.
+  Each is sent with an environment-level API key, or higher.
+  `UsersService.WaitForSync(timeout, opts...)` returns a copy whose `Create`, `Sync`, `Update`,
+  `AssignRole` and `UnassignRole` the PDP container holds until the change reaches its policy;
+  any other call through the copy, and a call from a client without `WithFactsViaPDP`, is an
+  error that matches `ErrInvalidConfig`, and no request is sent.
 - A key of a user is sent as one segment of the path, escaped; an empty key, `.` or `..` is an
   error that matches `ErrInvalidConfig`, and no request for the user is sent. `Delete` returns
   nil when the API answers 404, as the user is gone already. A reply in 200-299 that is not a
   user, or not a role assignment to `AssignRole`, an empty body too, is an error that names the
-  model. `Create` and `AssignRole` are sent again after a 429 only; the other calls are sent
-  again after a 500, 502, 503 or 504 reply or a failed connection too.
+  model. `Create`, `AssignRole` and `BulkCreate` are sent again after a 429 only; the other calls
+  are sent again after a 500, 502, 503 or 504 reply or a failed connection too.
 
 ### Role assignments
 
@@ -724,12 +736,22 @@ change from v1 and what to use instead.
   without a tenant. `Update` sends the attributes alone, as `models.ResourceInstanceUpdate` holds
   nothing else: unset leaves them out, `models.Some` of a map replaces them as a whole, `{}` too,
   which removes every attribute, and `models.Null` sends null.
+- `BulkReplace` takes a `[]models.ResourceInstanceCreate`, which the API's documentation says it
+  creates or replaces, and `BulkDelete` the instances as `<resource>:<key>` or their IDs, which
+  v1 could not send: each sends them all, in order, in one request to
+  `/v2/facts/{proj_id}/{env_id}/bulk/resource_instances`, as a JSON object that holds them in
+  `operations` or `idents`, an empty array for nil, and returns only an error, as the reply has
+  no fields. `BulkReplace` refuses an instance without a `Tenant`, as `Create` does, with an
+  error that matches `ErrInvalidConfig`, names the instance's index and has the rule
+  `resource-instance.tenant.empty`, and sends no request. A 404 to `BulkDelete`, whose body names
+  the instances, is an error that matches `ErrNotFound`.
 - The calls are calls of the facts API: they act on the environment of the client's scope, or,
-  with `WithFactsViaPDP`, go to the PDP container under `/facts/resource_instances`. Each is sent
-  with an environment-level API key, or higher. `ResourceInstancesService.WaitForSync(timeout,
-  opts...)` returns a copy whose `Create` and `Update` the PDP container holds until the change
-  reaches its policy; any other call through the copy, and a call from a client without
-  `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
+  with `WithFactsViaPDP`, go to the PDP container under `/facts/resource_instances` and
+  `/facts/bulk/resource_instances`. Each is sent with an environment-level API key, or higher.
+  `ResourceInstancesService.WaitForSync(timeout, opts...)` returns a copy whose `Create` and
+  `Update` the PDP container holds until the change reaches its policy; any other call through
+  the copy, and a call from a client without `WithFactsViaPDP`, is an error that matches
+  `ErrInvalidConfig`, and no request is sent.
 - An instance is sent as one segment of the path, escaped, with its `:` as it is; an empty one,
   `.` or `..` is an error that matches `ErrInvalidConfig`, and no request for the instance is
   sent, and so is `Get` of the instance `detailed`, with the rule `path.instance-id.detailed`, as

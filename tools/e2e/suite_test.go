@@ -202,6 +202,14 @@ var cloudScenarios = []scenario{
 		run: relationshipTupleLifecycle,
 	},
 	{
+		name: "bulk_lifecycle", methods: []string{
+			"TenantsService.BulkCreate", "UsersService.BulkCreate", "UsersService.BulkReplace",
+			"ResourceInstancesService.BulkReplace", "ResourceInstancesService.BulkDelete",
+			"UsersService.BulkDelete", "TenantsService.BulkDelete",
+		},
+		run: bulkLifecycle,
+	},
+	{
 		name: "proxy_config_lifecycle", methods: []string{
 			"ProxyConfigsService.Create", "ProxyConfigsService.Get", "ProxyConfigsService.List",
 			"ProxyConfigsService.All", "ProxyConfigsService.Update", "ProxyConfigsService.Delete",

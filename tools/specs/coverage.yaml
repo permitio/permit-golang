@@ -85,13 +85,13 @@ control-plane:
   - {op: list_audit_logs, route: "GET /v2/pdps/{proj_id}/{env_id}/audit_logs", stage: GA, status: planned}
   - {op: get_detailed_audit_log, route: "GET /v2/pdps/{proj_id}/{env_id}/audit_logs/{log_id}", stage: GA, status: planned}
   # Bulk Operations
-  - {op: bulk_replace_resource_instances, route: "PUT /v2/facts/{proj_id}/{env_id}/bulk/resource_instances", stage: GA, status: planned}
-  - {op: bulk_delete_resource_instances, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/resource_instances", stage: GA, status: planned}
-  - {op: bulk_create_tenants, route: "POST /v2/facts/{proj_id}/{env_id}/bulk/tenants", stage: GA, status: planned}
-  - {op: bulk_delete_tenants, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/tenants", stage: GA, status: planned}
-  - {op: bulk_create_users, route: "POST /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: planned}
-  - {op: bulk_replace_users, route: "PUT /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: planned}
-  - {op: bulk_delete_users, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: planned}
+  - {op: bulk_replace_resource_instances, route: "PUT /v2/facts/{proj_id}/{env_id}/bulk/resource_instances", stage: GA, status: covered}
+  - {op: bulk_delete_resource_instances, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/resource_instances", stage: GA, status: covered}
+  - {op: bulk_create_tenants, route: "POST /v2/facts/{proj_id}/{env_id}/bulk/tenants", stage: GA, status: covered}
+  - {op: bulk_delete_tenants, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/tenants", stage: GA, status: covered}
+  - {op: bulk_create_users, route: "POST /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: covered}
+  - {op: bulk_replace_users, route: "PUT /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: covered}
+  - {op: bulk_delete_users, route: "DELETE /v2/facts/{proj_id}/{env_id}/bulk/users", stage: GA, status: covered}
   - {op: bulk_create_or_replace_roles, route: "PUT /v2/schema/{proj_id}/{env_id}/bulk/roles", stage: GA, status: covered}
   # Condition Set Rules
   - {op: list_set_permissions, route: "GET /v2/facts/{proj_id}/{env_id}/set_rules", stage: GA, status: covered}

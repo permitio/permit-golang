@@ -115,7 +115,8 @@ type ResourceInstanceCreate struct {
 	Key string `json:"key"`
 
 	// Tenant is the key of the instance's tenant, such as tenant-a.
-	// ResourceInstancesService.Create sends no request when it is empty.
+	// ResourceInstancesService.Create and ResourceInstancesService.BulkReplace send no request
+	// when it is empty.
 	Tenant string `json:"tenant"`
 
 	// Resource is the key of the instance's resource, such as document.

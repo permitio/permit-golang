@@ -210,5 +210,17 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Status: http.StatusNoContent})
 	servers.PDP.Handle("POST /facts/relationship_tuples",
 		mockpermit.Reply{Body: replyFixture("create_relationship_tuple.200.json")})
+	const bulk = "/v2/facts/{proj_id}/{env_id}/bulk/"
+	for _, b := range []struct{ route, op string }{
+		{"POST " + bulk + "users", "bulk_create_users"},
+		{"PUT " + bulk + "users", "bulk_replace_users"},
+		{"DELETE " + bulk + "users", "bulk_delete_users"},
+		{"POST " + bulk + "tenants", "bulk_create_tenants"},
+		{"DELETE " + bulk + "tenants", "bulk_delete_tenants"},
+		{"PUT " + bulk + "resource_instances", "bulk_replace_resource_instances"},
+		{"DELETE " + bulk + "resource_instances", "bulk_delete_resource_instances"},
+	} {
+		servers.API.Handle(b.route, mockpermit.Reply{Body: replyFixture(b.op + ".200.json")})
+	}
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

@@ -1,0 +1,1 @@
+{"operations":[{"key":"idp|dave@example.com","email":"dave@example.com","first_name":"Dave","last_name":"Smith","attributes":{"tier":"gold"},"role_assignments":[{"role":"editor","tenant":"tenant-a"},{"role":"owner","resource_instance":"document:doc-1"}]},{"key":"alice"}]}

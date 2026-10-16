@@ -1317,6 +1317,16 @@ github.com/permitio/permit-golang/v2 TestProxyConfigRetries
 github.com/permitio/permit-golang/v2 TestProxyConfigsAfterClose
 github.com/permitio/permit-golang/v2 ExampleProxyConfigsService
 
+github.com/permitio/permit-golang/v2 TestBulkSendsEveryItemInOneRequest
+github.com/permitio/permit-golang/v2 TestBulkBodies
+github.com/permitio/permit-golang/v2 TestBulkReplies
+github.com/permitio/permit-golang/v2 TestBulkRetries
+github.com/permitio/permit-golang/v2 TestBulkNotFound
+github.com/permitio/permit-golang/v2 TestBulkWaitForSyncMisuse
+github.com/permitio/permit-golang/v2 TestBulkReplaceInstanceWithoutTenant
+github.com/permitio/permit-golang/v2 TestBulkAfterClose
+github.com/permitio/permit-golang/v2 ExampleUsersService_BulkCreate
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1383,6 +1393,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestUserRoles
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoleAssignmentLists
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRoleAssignments
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRelationshipTuples
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkFacts
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1418,6 +1429,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/concurrent_sync_of_a_ne
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_assignment_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/resource_instance_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/relationship_tuple_lifecycle
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/bulk_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context

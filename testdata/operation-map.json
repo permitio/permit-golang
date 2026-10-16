@@ -249,6 +249,12 @@
     "ResourceInstancesService.AllDetailed": [
       "list_resource_instances_detailed"
     ],
+    "ResourceInstancesService.BulkDelete": [
+      "bulk_delete_resource_instances"
+    ],
+    "ResourceInstancesService.BulkReplace": [
+      "bulk_replace_resource_instances"
+    ],
     "ResourceInstancesService.Create": [
       "create_resource_instance"
     ],
@@ -399,6 +405,12 @@
     "TenantsService.AllUsers": [
       "list_tenant_users"
     ],
+    "TenantsService.BulkCreate": [
+      "bulk_create_tenants"
+    ],
+    "TenantsService.BulkDelete": [
+      "bulk_delete_tenants"
+    ],
     "TenantsService.Create": [
       "create_tenant"
     ],
@@ -443,6 +455,15 @@
     ],
     "UsersService.AssignRole": [
       "assign_role_to_user"
+    ],
+    "UsersService.BulkCreate": [
+      "bulk_create_users"
+    ],
+    "UsersService.BulkDelete": [
+      "bulk_delete_users"
+    ],
+    "UsersService.BulkReplace": [
+      "bulk_replace_users"
     ],
     "UsersService.Create": [
       "create_user"

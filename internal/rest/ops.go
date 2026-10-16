@@ -421,6 +421,56 @@ var defaultOps = []Op{
 		KeyLevel: EnvironmentLevel, RequestModel: "RelationshipTupleDelete",
 	},
 
+	// The bulk operations of the users, the tenants and the resource instances of an
+	// environment, calls of the facts API, which the PDP container also serves under /facts,
+	// through its route for every path under /facts that its spec does not list. v1 sent none of
+	// them, and the PDP container sends each on with its own, an environment-level key, as it
+	// sends the other calls of the facts API. These key levels are not measured yet: the phase
+	// api.bulk of the local harness confirms them. The PDP container waits for sync on none of
+	// them. Each body is a JSON object that holds the items in an array, operations for a create
+	// or a replace and idents for a delete, of no least or largest number in the spec; each reply
+	// is a JSON object without fields, which the SDK does not read, so none has a ResponseModel. A
+	// PUT sends the whole users or instances, and a delete leaves them deleted, so each does the
+	// same when sent twice; a create does not. A delete names the objects in its body, not in its
+	// path, so it is not DeleteSelf: a 404 can mean a mistyped key.
+	{
+		ID: "bulk_create_users", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/bulk/users", Facts: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "UserCreateBulkOperation",
+	},
+	{
+		ID: "bulk_replace_users", Method: http.MethodPut,
+		Route: "/v2/facts/{proj_id}/{env_id}/bulk/users", Idempotent: true, Facts: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "UserReplaceBulkOperation",
+	},
+	{
+		ID: "bulk_delete_users", Method: http.MethodDelete,
+		Route: "/v2/facts/{proj_id}/{env_id}/bulk/users", Idempotent: true, Facts: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "UserDeleteBulkOperation",
+	},
+	{
+		ID: "bulk_create_tenants", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/bulk/tenants", Facts: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "TenantCreateBulkOperation",
+	},
+	{
+		ID: "bulk_delete_tenants", Method: http.MethodDelete,
+		Route: "/v2/facts/{proj_id}/{env_id}/bulk/tenants", Idempotent: true, Facts: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "TenantDeleteBulkOperation",
+	},
+	{
+		ID: "bulk_replace_resource_instances", Method: http.MethodPut,
+		Route:      "/v2/facts/{proj_id}/{env_id}/bulk/resource_instances",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel,
+		RequestModel: "ResourceInstanceCreateBulkOperation",
+	},
+	{
+		ID: "bulk_delete_resource_instances", Method: http.MethodDelete,
+		Route:      "/v2/facts/{proj_id}/{env_id}/bulk/resource_instances",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel,
+		RequestModel: "ResourceInstanceDeleteBulkOperation",
+	},
+
 	// The actions of a resource of an environment, each at the environment level, as v1 sends
 	// them too. These key levels are not measured yet: the phase api.resource_actions of the
 	// local harness confirms them. The list is a JSON array of at most 100 actions. A PATCH sets

@@ -26,24 +26,25 @@ const detailedInstanceID = "detailed"
 
 // ResourceInstancesService lists, reads, creates, changes and deletes the resource instances of
 // an environment, the objects of its resources in its tenants, such as the document doc-1 in the
-// tenant tenant-a, and lists them with their relationship tuples; [Client.ResourceInstances]
-// holds it. A method that acts on one instance takes the instance as <resource>:<key>, such as
-// document:doc-1, or its ID, and sends it as it is given, as one segment of the path, escaped,
-// with its : as it is: an identifier that holds a / or a % names that instance, not another
-// route.
+// tenant tenant-a, and lists them with their relationship tuples; it also creates or replaces,
+// and deletes, instances in bulk; [Client.ResourceInstances] holds it. A method that acts on one
+// instance takes the instance as <resource>:<key>, such as document:doc-1, or its ID, and sends
+// it as it is given, as one segment of the path, escaped, with its : as it is: an identifier that
+// holds a / or a % names that instance, not another route.
 //
 // Its calls are calls of the facts API. By default they go to the Permit API, under
-// /v2/facts/{proj_id}/{env_id}/resource_instances, and act on the environment of the client's
-// scope: the project and the environment of [WithScope], or else those of the client's API key,
-// which the first call that needs them looks up, as [Client.Scope] says, also when the call then
-// fails before its own request. The exceptions are the refusals that
-// [ResourceInstancesService.Create] names, of an instance without a Tenant, and that
-// [ResourceInstancesService.Get] names, of the instance detailed: they come before the lookup,
-// so they send no request at all. A scope without an environment, as that of a project-level API
-// key without WithScope, is an error that matches [ErrInvalidConfig], and the call sends no
-// request for the instances. With [WithFactsViaPDP], they go to the PDP container under
-// /facts/resource_instances instead, need no scope, and act on the environment of the container's
-// own API key.
+// /v2/facts/{proj_id}/{env_id}/resource_instances, or
+// /v2/facts/{proj_id}/{env_id}/bulk/resource_instances for the bulk calls, and act on the
+// environment of the client's scope: the project and the environment of [WithScope], or else
+// those of the client's API key, which the first call that needs them looks up, as
+// [Client.Scope] says, also when the call then fails before its own request. The exceptions are
+// the refusals that [ResourceInstancesService.Create] names, of an instance without a Tenant,
+// and that [ResourceInstancesService.Get] names, of the instance detailed: they come before the
+// lookup, so they send no request at all. A scope without an environment, as that of a
+// project-level API key without WithScope, is an error that matches [ErrInvalidConfig], and the
+// call sends no request for the instances. With [WithFactsViaPDP], they go to the PDP container
+// under /facts/resource_instances, or /facts/bulk/resource_instances, instead, need no scope,
+// and act on the environment of the container's own API key.
 //
 // [ResourceInstancesService.WaitForSync] returns a copy whose creates and updates wait until the
 // change reaches the policy of the PDP container.
@@ -115,11 +116,12 @@ func resourceInstancesRequest(op string, opts *ResourceInstancesListOptions,
 // Only [ResourceInstancesService.Create] and [ResourceInstancesService.Update] wait for sync: of
 // the routes that ResourceInstancesService calls, the PDP container waits on
 // POST /facts/resource_instances and on PATCH /facts/resource_instances/{instance_id}, and
-// answers the lists, the get and the delete of an instance without waiting. A call through the
-// copy returns an error that matches [ErrInvalidConfig], and sends no request: from a client
-// without [WithFactsViaPDP], as only the PDP container waits; of any other method, such as Get or
-// Delete, which the container answers without waiting; for a timeout less than zero; and for a
-// [SyncOption] that is not valid, in any place among opts.
+// answers the lists, the get and the delete of an instance and the bulk routes, under
+// /facts/bulk/resource_instances, without waiting. A call through the copy returns an error that
+// matches [ErrInvalidConfig], and sends no request: from a client without [WithFactsViaPDP], as
+// only the PDP container waits; of any other method, such as Get, Delete or BulkReplace, which
+// the container answers without waiting; for a timeout less than zero; and for a [SyncOption]
+// that is not valid, in any place among opts.
 func (s *ResourceInstancesService) WaitForSync(timeout time.Duration, opts ...SyncOption,
 ) *ResourceInstancesService {
 	return &ResourceInstancesService{facts: s.facts.withWait(newSyncWait(timeout, opts))}

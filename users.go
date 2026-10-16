@@ -24,17 +24,19 @@ const (
 )
 
 // UsersService lists, reads, creates, syncs, changes and deletes the users of an environment,
-// and assigns and unassigns their roles; [Client.Users] holds it. A method that acts on one user
-// takes its key or its ID, such as alice, and sends it as one segment of the path, escaped: a
-// key that holds a / or a % names that user, not another route.
+// and assigns and unassigns their roles; it also creates, replaces and deletes users in bulk;
+// [Client.Users] holds it. A method that acts on one user takes its key or its ID, such as
+// alice, and sends it as one segment of the path, escaped: a key that holds a / or a % names
+// that user, not another route.
 //
 // Its calls are calls of the facts API. By default they go to the Permit API, under
-// /v2/facts/{proj_id}/{env_id}/users, and act on the environment of the client's scope: the
-// project and the environment of [WithScope], or else those of the client's API key, which the
-// first call that needs them looks up, as [Client.Scope] says, also when the call then fails
-// before its own request. A scope without an environment, as that of a project-level API key
-// without WithScope, is an error that matches [ErrInvalidConfig], and the call sends no request
-// for the users. With [WithFactsViaPDP], they go to the PDP container under /facts/users
+// /v2/facts/{proj_id}/{env_id}/users, or /v2/facts/{proj_id}/{env_id}/bulk/users for the bulk
+// calls, and act on the environment of the client's scope: the project and the environment of
+// [WithScope], or else those of the client's API key, which the first call that needs them looks
+// up, as [Client.Scope] says, also when the call then fails before its own request. A scope
+// without an environment, as that of a project-level API key without WithScope, is an error that
+// matches [ErrInvalidConfig], and the call sends no request for the users. With
+// [WithFactsViaPDP], they go to the PDP container under /facts/users, or /facts/bulk/users,
 // instead, need no scope, and act on the environment of the container's own API key.
 //
 // [UsersService.WaitForSync] returns a copy whose creates, syncs, updates and assignments and
@@ -103,11 +105,11 @@ type UserSyncResult struct {
 // [UsersService.AssignRole] and [UsersService.UnassignRole] wait for sync: of the routes that
 // UsersService calls, the PDP container waits on POST /facts/users, on PUT and PATCH
 // /facts/users/{user_id} and on POST and DELETE /facts/users/{user_id}/roles, and answers the
-// reads and the delete of a user without waiting. A call through the copy returns an error that
-// matches [ErrInvalidConfig], and sends no request: from a client without [WithFactsViaPDP], as
-// only the PDP container waits; of any other method, such as Get or Delete, which the container
-// answers without waiting; for a timeout less than zero; and for a [SyncOption] that is not
-// valid, in any place among opts.
+// reads, the delete of a user and the bulk routes, under /facts/bulk/users, without waiting. A
+// call through the copy returns an error that matches [ErrInvalidConfig], and sends no request:
+// from a client without [WithFactsViaPDP], as only the PDP container waits; of any other method,
+// such as Get, Delete or BulkCreate, which the container answers without waiting; for a timeout
+// less than zero; and for a [SyncOption] that is not valid, in any place among opts.
 func (s *UsersService) WaitForSync(timeout time.Duration, opts ...SyncOption) *UsersService {
 	return &UsersService{facts: s.facts.withWait(newSyncWait(timeout, opts))}
 }

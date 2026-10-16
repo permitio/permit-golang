@@ -1050,6 +1050,13 @@ github.com/permitio/permit-golang/v2 TestTenantsWaitForSync
 github.com/permitio/permit-golang/v2 TestTenantsWaitForSyncMisuse
 github.com/permitio/permit-golang/v2 ExampleTenantsService
 github.com/permitio/permit-golang/v2 ExampleTenantsService_WaitForSync
+github.com/permitio/permit-golang/v2 TestTenantUsersAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestTenantUsersAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestTenantUserKeysInThePath
+github.com/permitio/permit-golang/v2 TestRemoveTenantUserThatIsGone
+github.com/permitio/permit-golang/v2 TestAddTenantUserBodies
+github.com/permitio/permit-golang/v2 TestMalformedTenantUserReplies
+github.com/permitio/permit-golang/v2 ExampleTenantsService_AddUser
 
 github.com/permitio/permit-golang/v2 TestAttributeFilterValues
 github.com/permitio/permit-golang/v2 TestAttributeFiltersThatAreNotValid

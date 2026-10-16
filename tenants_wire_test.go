@@ -85,7 +85,8 @@ func firstTenants(seq iter.Seq2[models.TenantRead, error], n int) ([]models.Tena
 // runs against the API, with its scope, and against the PDP container under /facts/tenants,
 // with WithFactsViaPDP. The keys of the tenants hold characters that the path escapes, a slash,
 // a percent sign and a letter outside ASCII, as a/b and 50%é do, and one key has a leading dot,
-// .hidden, which the path sends as it is.
+// .hidden, which the path sends as it is. The cases of the users in a tenant are those of
+// tenantUserCases.
 func tenantCases() []wireCase {
 	const (
 		tenants = "/v2/facts/{proj_id}/{env_id}/tenants"
@@ -112,7 +113,7 @@ func tenantCases() []wireCase {
 		http.StatusUnprocessableEntity, tenantInvalidBody)
 	updateErr.Detail = "body.name: none is not an allowed value"
 	both := []wireMode{apiMode, factsViaPDPMode}
-	return []wireCase{
+	return append([]wireCase{
 		{
 			Method: "TenantsService.List",
 			Op:     "list_tenants",
@@ -228,7 +229,159 @@ func tenantCases() []wireCase {
 			ErrorReply: mockpermit.Reply{Status: http.StatusForbidden, Body: tenantForbiddenBody},
 			WantErr:    forbidden("delete_tenant", http.MethodDelete, tenant),
 		},
+	}, tenantUserCases(forbidden)...)
+}
+
+// The error bodies of the Permit API in the wire cases of the users in a tenant: a user that
+// exists already, and a path that the API rejects.
+const (
+	tenantUserConflictBody = `{"error_code":"DUPLICATE_ENTITY","title":"Conflict",` +
+		`"message":"a user with the key erin exists already","id":"req-16"}`
+	tenantUserInvalidBody = `{"detail":[{"loc":["path","user_id"],` +
+		`"msg":"field required","type":"value_error.missing"}]}`
+)
+
+// tenantUserCases returns the wire cases of the users in a tenant, in both modes, with the error
+// of a 403 that forbidden returns. The keys of the tenants and of the users hold characters that
+// the path escapes, a slash, a percent sign, a letter outside ASCII and a |, as a/b, 50%é and
+// idp|dave@example.com do, and one key has a leading dot, .hidden, which the path sends as it is:
+// a removal sends one of them in each of its two keys.
+func tenantUserCases(forbidden func(op, method, route string) *permit.Error) []wireCase {
+	const (
+		users = "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users"
+		user  = users + "/{user_id}"
+	)
+	listErr := projectError("list_tenant_users", http.MethodGet, users,
+		http.StatusUnprocessableEntity, perPageBody)
+	listErr.Detail = "query.per_page: ensure this value is less than or equal to 100"
+	addErr := projectError("add_user_to_tenant", http.MethodPost, users, http.StatusConflict,
+		tenantUserConflictBody)
+	addErr.Code, addErr.Title, addErr.RequestID = "DUPLICATE_ENTITY", "Conflict", "req-16"
+	addErr.Detail = "a user with the key erin exists already"
+	removeErr := projectError("delete_tenant_user", http.MethodDelete, user,
+		http.StatusUnprocessableEntity, tenantUserInvalidBody)
+	removeErr.Detail = "path.user_id: field required"
+	both := []wireMode{apiMode, factsViaPDPMode}
+	return []wireCase{
+		{
+			Method: "TenantsService.ListUsers",
+			Op:     "list_tenant_users",
+			Route:  "GET " + users,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Tenants.ListUsers(ctx, "50%é", &permit.TenantUsersListOptions{
+					ListOptions: permit.ListOptions{Page: 2, PerPage: 1},
+					Search:      "a&b c", Role: "viewer",
+				})
+			},
+			Request: wireRequest{
+				RawPath:  "/v2/facts/p/e/tenants/50%25%C3%A9/users",
+				RawQuery: "page=2&per_page=1&role=viewer&search=a%26b+c",
+			},
+			Reply: mockpermit.Reply{Body: replyFixture("list_tenant_users.200.json")},
+			WantResult: &permit.Page[models.UserRead]{
+				Data: tenantUsers(), Page: 2, PerPage: 1, TotalCount: new(2), PageCount: new(1),
+			},
+			ErrorReply: mockpermit.Reply{Status: http.StatusUnprocessableEntity, Body: perPageBody},
+			WantErr:    listErr,
+		},
+		{
+			Method: "TenantsService.AllUsers",
+			Op:     "list_tenant_users",
+			Route:  "GET " + users,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return firstUsers(c.Tenants.AllUsers(ctx, ".hidden", nil), 2)
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/tenants/.hidden/users", RawQuery: "page=1&per_page=100",
+			},
+			Reply:      mockpermit.Reply{Body: replyFixture("list_tenant_users.200.json")},
+			WantResult: tenantUsers(),
+			ErrorReply: mockpermit.Reply{Status: http.StatusForbidden, Body: tenantForbiddenBody},
+			WantErr:    forbidden("list_tenant_users", http.MethodGet, users),
+		},
+		{
+			Method: "TenantsService.AddUser",
+			Op:     "add_user_to_tenant",
+			Route:  "POST " + users,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.Tenants.AddUser(ctx, "a/b",
+					models.UserCreate{Key: "erin", Email: "erin@example.com"})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/tenants/a%2Fb/users",
+				Body:    `{"key":"erin","email":"erin@example.com"}`,
+			},
+			Reply:      mockpermit.Reply{Body: replyFixture("add_user_to_tenant.200.json")},
+			WantResult: addedTenantUser(),
+			ErrorReply: mockpermit.Reply{Status: http.StatusConflict, Body: tenantUserConflictBody},
+			WantErr:    addErr,
+		},
+		{
+			Method: "TenantsService.RemoveUser",
+			Op:     "delete_tenant_user",
+			Route:  "DELETE " + user,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return wireNoResult{}, c.Tenants.RemoveUser(ctx, "50%é", syncedKey)
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/tenants/50%25%C3%A9/users/idp%7Cdave@example.com",
+			},
+			Reply:      mockpermit.Reply{Status: http.StatusNoContent},
+			WantResult: wireNoResult{},
+			ErrorReply: mockpermit.Reply{Status: http.StatusForbidden, Body: tenantForbiddenBody},
+			WantErr:    forbidden("delete_tenant_user", http.MethodDelete, user),
+		},
+		{
+			Method: "TenantsService.RemoveUser",
+			Op:     "delete_tenant_user",
+			Route:  "DELETE " + user,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return wireNoResult{}, c.Tenants.RemoveUser(ctx, ".hidden", "a/b")
+			},
+			Request:    wireRequest{RawPath: "/v2/facts/p/e/tenants/.hidden/users/a%2Fb"},
+			Reply:      mockpermit.Reply{Status: http.StatusNoContent},
+			WantResult: wireNoResult{},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusUnprocessableEntity, Body: tenantUserInvalidBody,
+			},
+			WantErr: removeErr,
+		},
 	}
+}
+
+// tenantUsers are the users of the reply fixture list_tenant_users.200.json, both in the tenant
+// tenant-a: alice without a role there, and bob with the role viewer.
+func tenantUsers() []models.UserRead {
+	alice := userAt("alice", userAliceID, "2026-10-14T09:30:00Z")
+	alice.Email = "alice@example.com"
+	alice.Attributes = models.Attributes{"department": "finance"}
+	alice.AssociatedTenants = []models.UserInTenant{
+		{Tenant: "tenant-a", Roles: []string{}, Status: models.UserStatusActive},
+	}
+	bob := userAt("bob", userBobID, "2026-10-15T08:00:00Z")
+	bob.Attributes = models.Attributes{}
+	bob.AssociatedTenants = []models.UserInTenant{
+		{Tenant: "tenant-a", Roles: []string{"viewer"}, Status: models.UserStatusActive},
+	}
+	return []models.UserRead{alice, bob}
+}
+
+// addedTenantUser is the user of the reply fixture add_user_to_tenant.200.json, which an add
+// created in the tenant tenant-a without a role.
+func addedTenantUser() *models.UserRead {
+	user := userAt("erin", "00000000-0000-4000-8000-000000000051", "2026-10-16T09:00:00Z")
+	user.Email = "erin@example.com"
+	user.Attributes = models.Attributes{}
+	user.AssociatedTenants = []models.UserInTenant{{
+		Tenant: "tenant-a", Roles: []string{}, Status: models.UserStatusActive,
+		ResourceInstanceRoles: []models.UserResourceInstanceRole{},
+	}}
+	return &user
 }
 
 // createdTenant is the tenant of the reply fixture create_tenant.200.json.

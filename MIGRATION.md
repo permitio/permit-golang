@@ -1506,6 +1506,60 @@ and no request is sent; v1 sent the headers of the wait with every call through 
 client without `permit.WithFactsViaPDP()` gets the same error for every call through the copy,
 as only the PDP container waits; v1 logged a warning and made the calls without the wait.
 
+<a id="M-tenants-8"></a>
+### M-tenants-8: ListTenantUsers becomes ListUsers, and AllUsers reads every page
+
+- v1: `api.Tenants.ListTenantUsers`
+- v2: `permit.TenantsService.ListUsers`
+
+`TenantsService.ListUsers(ctx, tenantKey, opts)` takes a `*permit.TenantUsersListOptions`, nil for
+the first page of every user in the tenant with the API's default of 30 users, in place of the
+page and the number of users as two ints, and returns a `*permit.Page[models.UserRead]` with the
+counts of the reply, in place of a `[]models.UserRead` of the reply's data alone, as
+[M-lists-1](#M-lists-1) says. v1 failed for a page below 1, and for a number of users below 1 or
+above 100, before any request; v2 sends a number that is not 0 as given, and the API answers above
+100 with an error. The options also filter the list: `Search` and `Role` are sent in the query
+parameters `search` and `role`, which v1's `ListTenantUsers` did not send.
+`TenantsService.AllUsers(ctx, tenantKey, opts)` returns an `iter.Seq2[models.UserRead, error]`
+that reads every page, 100 users at a time. `models.UserRead` changes as [M-users-1](#M-users-1)
+says.
+
+<a id="M-tenants-9"></a>
+### M-tenants-9: DeleteTenantUser of the generated client becomes RemoveUser, which returns nil for a 404
+
+- v1: `openapi.TenantsApiService.DeleteTenantUser`
+- v2: `permit.TenantsService.RemoveUser`
+
+v1's `pkg/api` had no method that removes a user from a tenant: only the generated client of
+`pkg/openapi` had one, `TenantsApiService.DeleteTenantUser`, which took the project and the
+environment as arguments and sent
+`DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}`.
+`TenantsService.RemoveUser(ctx, tenantKey, userKey)` sends the same request in the environment of
+the client's scope, or, with `permit.WithFactsViaPDP()`, to the PDP container,
+`DELETE /facts/tenants/{tenant_id}/users/{user_id}`, which answers it without waiting for sync. It
+returns nil when the API answers 404, as the user is not in the tenant, such as when a retry
+follows a removal that succeeded; a mistyped key returns nil too. Any other error status is a
+`*permit.Error` with the status and the body. It is sent again after a 500, 502, 503 or 504 reply
+or a failed connection, as after a 429, as removing a user twice leaves it removed.
+
+<a id="M-tenants-10"></a>
+### M-tenants-10: AddUser adds a user to a tenant without a role, which v1 could not do
+
+- v1: no method of `pkg/api` and no operation of the generated client of `pkg/openapi` sent `POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users`
+- v2: `permit.TenantsService.AddUser`
+
+`TenantsService.AddUser(ctx, tenantKey, user)` sends a `models.UserCreate`, as
+`UsersService.Create` does, to `POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users`,
+which the API's documentation describes as the create of a user and its add to the tenant, and
+returns the user as a `*models.UserRead`. A user without `RoleAssignments` is added to the tenant
+without a role; the API's documentation says that it applies each role assignment as a create of
+a user does, in the tenant that it names. The API's documentation lists 409 for causes such as a
+user that exists already, a `*permit.Error` that matches `permit.ErrConflict`. AddUser is sent
+again only after a 429, as [M-wire-5](#M-wire-5) says, as the API may have created the user when a
+request got no complete reply. The PDP container answers it without waiting for sync, so a call
+through the copy that `TenantsService.WaitForSync` returns is an error that matches
+`permit.ErrInvalidConfig`, and no request is sent.
+
 <a id="M-facts-3"></a>
 ### M-facts-3: WaitForSyncOptions becomes SyncOption
 

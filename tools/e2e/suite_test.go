@@ -80,6 +80,8 @@ var cloudScenarios = []scenario{
 		name: "tenant_lifecycle", methods: []string{
 			"TenantsService.Create", "TenantsService.Get", "TenantsService.List",
 			"TenantsService.All", "TenantsService.Update", "TenantsService.Delete",
+			"TenantsService.AddUser", "TenantsService.ListUsers", "TenantsService.AllUsers",
+			"TenantsService.RemoveUser",
 		},
 		run: tenantLifecycle,
 	},

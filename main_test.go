@@ -91,6 +91,12 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("get_tenant.200.json")})
 	servers.PDP.Handle("POST /facts/tenants",
 		mockpermit.Reply{Body: replyFixture("create_tenant.200.json")})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users",
+		mockpermit.Reply{Body: replyFixture("list_tenant_users.200.json")})
+	servers.API.Handle("POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users",
+		mockpermit.Reply{Body: replyFixture("add_user_to_tenant.200.json")})
+	servers.API.Handle("DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}",
+		mockpermit.Reply{Status: http.StatusNoContent})
 	servers.API.Handle("GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/actions",
 		mockpermit.Reply{Body: replyFixture("list_resource_actions.200.json")},
 		mockpermit.Reply{Body: `[]`})

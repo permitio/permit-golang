@@ -29,6 +29,18 @@ const (
 	pdpCreateTenantRoute = "POST /facts/tenants"
 )
 
+// The routes of the users in a tenant on the API, under the scope p and e of tenantClient, as
+// mockpermit.Server.Handle takes them.
+const (
+	listTenantUsersRoute  = "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users"
+	addTenantUserRoute    = "POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users"
+	removeTenantUserRoute = "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/" +
+		"{user_id}"
+)
+
+// emptyUsersPage is the body of a reply of the API that holds a page without users.
+const emptyUsersPage = `{"data":[],"total_count":0}`
+
 // tenantBody is the body of a reply of the API that holds the tenant tenant-a.
 const tenantBody = `{"key":"tenant-a","id":"00000000-0000-4000-8000-000000000021",` +
 	`"organization_id":"00000000-0000-4000-8000-000000000001",` +
@@ -582,9 +594,10 @@ func TestTenantAttributesReadBack(t *testing.T) {
 	}
 }
 
-// TestTenantRetries checks when a call of the tenants sends its request again: Create, which the
-// API may have acted on, after a 429 only, so a 503 ends it after one request; Update, Get,
-// Delete and List, which do the same when sent twice, after a 503 too.
+// TestTenantRetries checks when a call of the tenants sends its request again: Create and
+// AddUser, which the API may have acted on, after a 429 only, so a 503 ends each after one
+// request; Update, Get, Delete, List, ListUsers and RemoveUser, which do the same when sent
+// twice, after a 503 too.
 func TestTenantRetries(t *testing.T) {
 	again := http.Header{"Retry-After": {"0"}}
 	limited := mockpermit.Reply{Status: http.StatusTooManyRequests, Header: again, Body: `{}`}
@@ -594,6 +607,10 @@ func TestTenantRetries(t *testing.T) {
 	ok := mockpermit.Reply{Body: tenantBody}
 	createTenant := func(c *Client) error {
 		_, err := c.Tenants.Create(t.Context(), models.TenantCreate{Key: "k", Name: "n"})
+		return err
+	}
+	addUser := func(c *Client) error {
+		_, err := c.Tenants.AddUser(t.Context(), "tenant-a", models.UserCreate{Key: "alice"})
 		return err
 	}
 	for _, tc := range []struct {
@@ -638,6 +655,30 @@ func TestTenantRetries(t *testing.T) {
 			replies: []mockpermit.Reply{unavailable, {Body: `[]`}},
 			call: func(c *Client) error {
 				_, err := c.Tenants.List(t.Context(), nil)
+				return err
+			},
+		},
+		{
+			name: "AddUser after a 429", route: addTenantUserRoute,
+			replies: []mockpermit.Reply{limited, {Body: userBody}}, call: addUser,
+		},
+		{
+			name: "AddUser after a 503", route: addTenantUserRoute,
+			replies: []mockpermit.Reply{unavailable}, call: addUser,
+			status: http.StatusServiceUnavailable,
+		},
+		{
+			name: "RemoveUser after a 503", route: removeTenantUserRoute,
+			replies: []mockpermit.Reply{unavailable, {Status: http.StatusNoContent}},
+			call: func(c *Client) error {
+				return c.Tenants.RemoveUser(t.Context(), "tenant-a", "alice")
+			},
+		},
+		{
+			name: "ListUsers after a 503", route: listTenantUsersRoute,
+			replies: []mockpermit.Reply{unavailable, {Body: emptyUsersPage}},
+			call: func(c *Client) error {
+				_, err := c.Tenants.ListUsers(t.Context(), "tenant-a", nil)
 				return err
 			},
 		},
@@ -687,14 +728,15 @@ func TestMalformedTenantReplies(t *testing.T) {
 	}
 }
 
-// TestTenantsAfterClose checks that each method returns ErrClosed after Close, and sends nothing,
-// not even the lookup of the scope: also List and All with options that are not valid, and each
-// method of a copy of WaitForSync whose wait is not valid, which return ErrInvalidConfig before
-// Close.
+// TestTenantsAfterClose checks that each method, those of the users in a tenant too, returns
+// ErrClosed after Close, and sends nothing, not even the lookup of the scope: also List, All,
+// ListUsers and AllUsers with options that are not valid, and each method of a copy of
+// WaitForSync whose wait is not valid, which return ErrInvalidConfig before Close.
 func TestTenantsAfterClose(t *testing.T) {
 	invalid := &TenantsListOptions{
 		ListOptions: ListOptions{Page: -1}, Attributes: []AttributeFilter{{}},
 	}
+	invalidUsers := &TenantUsersListOptions{ListOptions: ListOptions{Page: -1}}
 	for _, opts := range [][]Option{nil, {WithScope("p", "e")}, {WithFactsViaPDP()}} {
 		api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
 		c := decisionClient(t, api, pdp, opts...)
@@ -712,11 +754,22 @@ func TestTenantsAfterClose(t *testing.T) {
 				}
 				errs = append(append(errs, listErr), allErrs...)
 			}
+			for _, listOpts := range []*TenantUsersListOptions{nil, invalidUsers} {
+				_, listErr := s.ListUsers(ctx, "tenant-a", listOpts)
+				_, allErrs := collect(t, s.AllUsers(ctx, "tenant-a", listOpts))
+				if len(allErrs) != 1 {
+					t.Errorf("AllUsers after Close yielded %v, want ErrClosed once", allErrs)
+				}
+				errs = append(append(errs, listErr), allErrs...)
+			}
 			_, getErr := s.Get(ctx, "tenant-a")
 			_, createErr := s.Create(ctx, models.TenantCreate{Key: "k", Name: "n"})
 			_, updateErr := s.Update(ctx, "tenant-a", models.TenantUpdate{})
 			deleteErr := s.Delete(ctx, "tenant-a")
-			for i, err := range append(errs, getErr, createErr, updateErr, deleteErr) {
+			_, addErr := s.AddUser(ctx, "tenant-a", models.UserCreate{Key: "alice"})
+			removeErr := s.RemoveUser(ctx, "tenant-a", "alice")
+			for i, err := range append(errs, getErr, createErr, updateErr, deleteErr, addErr,
+				removeErr) {
 				if !errors.Is(err, ErrClosed) {
 					t.Errorf("call %d after Close returned %v, want ErrClosed", i, err)
 				}
@@ -769,11 +822,11 @@ func TestTenantsWaitForSync(t *testing.T) {
 }
 
 // TestTenantsWaitForSyncMisuse checks the calls through a copy of WaitForSync that cannot wait:
-// every method but Create, which the PDP container answers without waiting; Create from a client
-// that sends facts to the API; and Create with a negative timeout, with the zero SyncOption or with
-// a policy that is not one, after or before a valid SyncOption. Each returns an error that matches
-// ErrInvalidConfig and names the operation and the rule, and sends no request, not even the lookup
-// of the scope.
+// every method but Create, those of the users in a tenant too, such as AddUser, which the PDP
+// container answers without waiting; Create from a client that sends facts to the API; and
+// Create with a negative timeout, with the zero SyncOption or with a policy that is not one,
+// after or before a valid SyncOption. Each returns an error that matches ErrInvalidConfig and
+// names the operation and the rule, and sends no request, not even the lookup of the scope.
 func TestTenantsWaitForSyncMisuse(t *testing.T) {
 	create := func(s *TenantsService) error {
 		_, err := s.Create(t.Context(), models.TenantCreate{Key: "k", Name: "n"})
@@ -801,6 +854,21 @@ func TestTenantsWaitForSyncMisuse(t *testing.T) {
 		}},
 		{opDeleteTenant, func(s *TenantsService) error {
 			return s.Delete(t.Context(), "tenant-a")
+		}},
+		{opListTenantUsers, func(s *TenantsService) error {
+			_, err := s.ListUsers(t.Context(), "tenant-a", nil)
+			return err
+		}},
+		{opListTenantUsers, func(s *TenantsService) error {
+			_, errs := collect(t, s.AllUsers(t.Context(), "tenant-a", nil))
+			return errors.Join(errs...)
+		}},
+		{opAddTenantUser, func(s *TenantsService) error {
+			_, err := s.AddUser(t.Context(), "tenant-a", models.UserCreate{Key: "alice"})
+			return err
+		}},
+		{opRemoveTenantUser, func(s *TenantsService) error {
+			return s.RemoveUser(t.Context(), "tenant-a", "alice")
 		}},
 	}
 	type misuse struct {
@@ -865,5 +933,328 @@ func TestTenantsWaitForSyncMisuse(t *testing.T) {
 			api.AssertUntouched()
 			pdp.AssertUntouched()
 		})
+	}
+}
+
+// TestTenantUsersAllReadsEveryPage checks that TenantsService.AllUsers reads the 31 users of a
+// tenant, in order, asking for each page in turn, under the path of the tenant: at a per_page of
+// 30, two paginated objects without a page_count and the empty page after them; at the default
+// per_page of 100, one page of 31 and the empty page after it; and pages up to the page_count that
+// they report, without the page after it.
+func TestTenantUsersAllReadsEveryPage(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		opts    *TenantUsersListOptions
+		pages   [][]models.UserRead
+		counts  string
+		queries []string
+	}{
+		{
+			name:    "per_page 30",
+			opts:    &TenantUsersListOptions{ListOptions: ListOptions{PerPage: 30}},
+			pages:   [][]models.UserRead{usersOf(0, 30), usersOf(30, 31), {}},
+			counts:  `,"total_count":31`,
+			queries: []string{"page=1&per_page=30", "page=2&per_page=30", "page=3&per_page=30"},
+		},
+		{
+			name:    "the default per_page",
+			pages:   [][]models.UserRead{usersOf(0, 31), {}},
+			counts:  `,"total_count":31`,
+			queries: []string{"page=1&per_page=100", "page=2&per_page=100"},
+		},
+		{
+			name:    "a page_count",
+			opts:    &TenantUsersListOptions{ListOptions: ListOptions{PerPage: 30}},
+			pages:   [][]models.UserRead{usersOf(0, 30), usersOf(30, 31)},
+			counts:  `,"total_count":31,"page_count":2`,
+			queries: []string{"page=1&per_page=30", "page=2&per_page=30"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			api := mockpermit.NewAPI(t)
+			var replies []mockpermit.Reply
+			for _, page := range tc.pages {
+				replies = append(replies, pageOf(t, page, tc.counts))
+			}
+			api.Handle(listTenantUsersRoute, replies...)
+			seq := tenantClient(t, api).Tenants.AllUsers(t.Context(), "tenant-a", tc.opts)
+			items, errs := collect(t, seq)
+			if diff := cmp.Diff(usersOf(0, 31), items); diff != "" || errs != nil {
+				t.Errorf("AllUsers yielded the errors %v and users that differ (-want +got):\n%s",
+					errs, diff)
+			}
+			if diff := cmp.Diff(tc.queries, queries(api)); diff != "" {
+				t.Errorf("the queries differ (-want +got):\n%s", diff)
+			}
+			for _, r := range api.Requests() {
+				if r.RawPath != "/v2/facts/p/e/tenants/tenant-a/users" {
+					t.Errorf("AllUsers sent a request to %s, want the users of tenant-a",
+						r.RawPath)
+				}
+			}
+		})
+	}
+}
+
+// TestTenantUsersAllReadsTheOptionsOnce checks that the iterator of AllUsers keeps the options of
+// its call, the filters too, so that a later change to them changes no request; that a loop that
+// breaks asks for no other page; and that each loop reads the users again from the page of the
+// options, along the same path, through the API and through the PDP container.
+func TestTenantUsersAllReadsTheOptionsOnce(t *testing.T) {
+	for _, viaPDP := range []bool{false, true} {
+		api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
+		to, route, path := api, listTenantUsersRoute, "/v2/facts/p/e/tenants/a%2Fb/users"
+		opts := []Option{WithScope("p", "e")}
+		if viaPDP {
+			to, route = pdp, "GET /facts/tenants/{tenant_id}/users"
+			path = "/facts/tenants/a%2Fb/users"
+			opts = append(opts, WithFactsViaPDP())
+		}
+		two := pageOf(t, usersOf(0, 2), `,"total_count":9`)
+		to.Handle(route, two, two)
+		options := &TenantUsersListOptions{
+			ListOptions: ListOptions{Page: 3, PerPage: 2}, Search: "u", Role: "viewer",
+		}
+		seq := decisionClient(t, api, pdp, opts...).Tenants.AllUsers(t.Context(), "a/b", options)
+		options.Page, options.PerPage, options.Search, options.Role = 5, 50, "x", ""
+		for loop := 1; loop <= 2; loop++ {
+			for user, err := range seq {
+				if err != nil || user.Key != "u0" {
+					t.Errorf("via the PDP %t: loop %d yielded %+v and %v first, want u0", viaPDP,
+						loop, user, err)
+				}
+				break
+			}
+		}
+		var got []string
+		for _, r := range to.Requests() {
+			got = append(got, r.RawPath+"?"+r.RawQuery)
+		}
+		first := path + "?page=3&per_page=2&role=viewer&search=u"
+		if diff := cmp.Diff([]string{first, first}, got); diff != "" {
+			t.Errorf("via the PDP %t: the requests differ (-want +got):\n%s", viaPDP, diff)
+		}
+		if viaPDP {
+			api.AssertUntouched()
+		}
+	}
+}
+
+// TestTenantUserKeysInThePath checks that ListUsers, AllUsers, AddUser and RemoveUser send the
+// key of the tenant, and RemoveUser the key of the user after it, each as one segment of the
+// path, escaped, whatever the key holds. A key that is empty, . or .. would change the route, so
+// it is an error that matches ErrInvalidConfig and names its placeholder, and no request.
+func TestTenantUserKeysInThePath(t *testing.T) {
+	inTenant := func(suffix string) func(escaped string) string {
+		return func(escaped string) string {
+			return "/v2/facts/p/e/tenants/" + escaped + suffix
+		}
+	}
+	methods := []struct {
+		name  string
+		route string
+		reply mockpermit.Reply
+		// path is the path that the call sends for a key that the path escapes as escaped, and
+		// placeholder the placeholder of the route that the key fills.
+		path        func(escaped string) string
+		placeholder string
+		call        func(c *Client, key string) error
+	}{
+		{
+			name: "ListUsers", route: listTenantUsersRoute,
+			reply: mockpermit.Reply{Body: emptyUsersPage}, path: inTenant("/users"),
+			placeholder: "{tenant_id}",
+			call: func(c *Client, key string) error {
+				_, err := c.Tenants.ListUsers(t.Context(), key, nil)
+				return err
+			},
+		},
+		{
+			name: "AllUsers", route: listTenantUsersRoute,
+			reply: mockpermit.Reply{Body: emptyUsersPage}, path: inTenant("/users"),
+			placeholder: "{tenant_id}",
+			call: func(c *Client, key string) error {
+				_, errs := collect(t, c.Tenants.AllUsers(t.Context(), key, nil))
+				return errors.Join(errs...)
+			},
+		},
+		{
+			name: "AddUser", route: addTenantUserRoute, reply: mockpermit.Reply{Body: userBody},
+			path: inTenant("/users"), placeholder: "{tenant_id}",
+			call: func(c *Client, key string) error {
+				_, err := c.Tenants.AddUser(t.Context(), key, models.UserCreate{Key: "alice"})
+				return err
+			},
+		},
+		{
+			name: "RemoveUser of the tenant", route: removeTenantUserRoute,
+			reply: mockpermit.Reply{Status: http.StatusNoContent}, path: inTenant("/users/alice"),
+			placeholder: "{tenant_id}",
+			call: func(c *Client, key string) error {
+				return c.Tenants.RemoveUser(t.Context(), key, "alice")
+			},
+		},
+		{
+			name: "RemoveUser of the user", route: removeTenantUserRoute,
+			reply: mockpermit.Reply{Status: http.StatusNoContent},
+			path: func(escaped string) string {
+				return "/v2/facts/p/e/tenants/tenant-a/users/" + escaped
+			},
+			placeholder: "{user_id}",
+			call: func(c *Client, key string) error {
+				return c.Tenants.RemoveUser(t.Context(), "tenant-a", key)
+			},
+		},
+	}
+	for key, escaped := range map[string]string{
+		"a/b":                  "a%2Fb",
+		"50%":                  "50%25",
+		"a b?c#d":              "a%20b%3Fc%23d",
+		"é":                    "%C3%A9",
+		"idp|dave@example.com": "idp%7Cdave@example.com",
+		fixtures.UUIDKey:       fixtures.UUIDKey,
+		".hidden":              ".hidden",
+	} {
+		for _, m := range methods {
+			api := mockpermit.NewAPI(t)
+			api.Handle(m.route, m.reply)
+			if err := m.call(tenantClient(t, api), key); err != nil {
+				t.Errorf("%s(%q) returned %v", m.name, key, err)
+			}
+			want := m.path(escaped)
+			if requests := api.Requests(); len(requests) != 1 || requests[0].RawPath != want {
+				t.Errorf("%s(%q) sent %+v, want one request to %s", m.name, key, requests, want)
+			}
+		}
+	}
+	for _, key := range []string{"", ".", ".."} {
+		for _, m := range methods {
+			api := mockpermit.NewAPI(t)
+			err := m.call(tenantClient(t, api), key)
+			if !errors.Is(err, ErrInvalidConfig) || !strings.Contains(err.Error(), m.placeholder) {
+				t.Errorf("%s(%q) returned %v, want an error that matches ErrInvalidConfig and "+
+					"names %s", m.name, key, err, m.placeholder)
+			}
+			api.AssertUntouched()
+		}
+	}
+}
+
+// TestRemoveTenantUserThatIsGone checks that RemoveUser returns nil for a 404 of the API, with or
+// without a body, as the path names a user that is not in the tenant, after one request; an
+// *Error with the status for any other error status; and, through the PDP container, an error
+// that matches ErrContainerPDPOnly for a 404 with an empty body, as the cloud PDP answers so, and
+// nil for a 404 of the container with a body.
+func TestRemoveTenantUserThatIsGone(t *testing.T) {
+	for _, body := range []string{`{"detail":"the user is not in the tenant"}`, ""} {
+		api := mockpermit.NewAPI(t)
+		api.Handle(removeTenantUserRoute,
+			mockpermit.Reply{Status: http.StatusNotFound, Body: body})
+		err := tenantClient(t, api).Tenants.RemoveUser(t.Context(), "tenant-a", "gone")
+		if err != nil {
+			t.Errorf("RemoveUser of a user that the API answers with 404 and the body %q "+
+				"returned %v, want nil", body, err)
+		}
+		if n := len(api.Requests()); n != 1 {
+			t.Errorf("RemoveUser sent %d requests, want 1", n)
+		}
+	}
+	for _, status := range []int{
+		http.StatusForbidden, http.StatusConflict, http.StatusUnprocessableEntity,
+	} {
+		api := mockpermit.NewAPI(t)
+		api.Handle(removeTenantUserRoute,
+			mockpermit.Reply{Status: status, Body: `{"detail":"no"}`})
+		err := tenantClient(t, api).Tenants.RemoveUser(t.Context(), "tenant-a", "alice")
+		if e := mustError(t, err); e.StatusCode != status || e.Op != opRemoveTenantUser ||
+			errors.Is(err, ErrNotFound) {
+			t.Errorf("RemoveUser of a reply with status %d returned %v, want the *Error of %s "+
+				"with the status", status, err, opRemoveTenantUser)
+		}
+	}
+	for body, wantContainer := range map[string]bool{"": true, `{"detail":"gone"}`: false} {
+		api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
+		pdp.Handle("DELETE /facts/tenants/{tenant_id}/users/{user_id}",
+			mockpermit.Reply{Status: http.StatusNotFound, Body: body})
+		c := decisionClient(t, api, pdp, WithFactsViaPDP())
+		err := c.Tenants.RemoveUser(t.Context(), "tenant-a", "alice")
+		if got := errors.Is(err, ErrContainerPDPOnly); got != wantContainer ||
+			(!wantContainer && err != nil) {
+			t.Errorf("RemoveUser through the PDP of a 404 with the body %q returned %v, want an "+
+				"error that matches ErrContainerPDPOnly: %t", body, err, wantContainer)
+		}
+		api.AssertUntouched()
+	}
+}
+
+// TestAddTenantUserBodies checks the bodies of AddUser byte for byte against the golden files in
+// testdata/golden: a user with the key only, which leaves every other field out and adds the user
+// to the tenant without a role, and one with an email and a role in another tenant.
+func TestAddTenantUserBodies(t *testing.T) {
+	for _, tc := range []struct {
+		golden string
+		user   models.UserCreate
+	}{
+		{"add_user_to_tenant.required.golden", models.UserCreate{Key: "alice"}},
+		{
+			"add_user_to_tenant.role.golden",
+			models.UserCreate{
+				Key: "alice", Email: "alice@example.com",
+				RoleAssignments: []models.UserRoleCreate{{Role: "editor", Tenant: "tenant-b"}},
+			},
+		},
+	} {
+		t.Run(tc.golden, func(t *testing.T) {
+			api := mockpermit.NewAPI(t)
+			api.Handle(addTenantUserRoute, mockpermit.Reply{Body: userBody})
+			_, err := tenantClient(t, api).Tenants.AddUser(t.Context(), "tenant-a", tc.user)
+			if err != nil {
+				t.Fatalf("AddUser returned %v", err)
+			}
+			requests := api.Requests()
+			if len(requests) != 1 {
+				t.Fatalf("AddUser sent %d requests, want 1", len(requests))
+			}
+			requests[0].ExpectBytes(t, filepath.Join("testdata", "golden", tc.golden))
+		})
+	}
+}
+
+// TestMalformedTenantUserReplies checks that a reply in 200-299 that is not a user, an empty body
+// too, to AddUser, or for ListUsers and AllUsers not the paginated object of a list of users, a
+// JSON array too, is an *Error that names the model, and no result: AllUsers yields it once.
+func TestMalformedTenantUserReplies(t *testing.T) {
+	for _, body := range []string{``, `null`, `[]`, `"u"`, `{"key":1}`, `{} {}`} {
+		api := mockpermit.NewAPI(t)
+		api.Handle(addTenantUserRoute, mockpermit.Reply{Body: body})
+		user, err := tenantClient(t, api).Tenants.AddUser(t.Context(), "tenant-a",
+			models.UserCreate{Key: "alice"})
+		want := "permit: add_user_to_tenant: POST " +
+			"/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users: status 200: " +
+			"the reply is not a valid models.UserRead"
+		if e := mustError(t, err); user != nil || e.Error() != want {
+			t.Errorf("AddUser of the reply %q returned %+v and\n%v\nwant no user and\n%s", body,
+				user, err, want)
+		}
+	}
+	for _, body := range []string{``, `null`, `"u"`, `[]`, `[{"key":"u"}]`, `{"data":[1]}`} {
+		api := mockpermit.NewAPI(t)
+		api.Handle(listTenantUsersRoute, mockpermit.Reply{Body: body})
+		page, err := tenantClient(t, api).Tenants.ListUsers(t.Context(), "tenant-a", nil)
+		want := "permit: list_tenant_users: GET " +
+			"/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users: status 200: " +
+			"the reply is not a valid list of models.UserRead"
+		if e := mustError(t, err); page != nil || e.Error() != want {
+			t.Errorf("ListUsers of the reply %q returned %+v and\n%v\nwant no page and\n%s", body,
+				page, err, want)
+		}
+		all := mockpermit.NewAPI(t)
+		all.Handle(listTenantUsersRoute, mockpermit.Reply{Body: body})
+		seq := tenantClient(t, all).Tenants.AllUsers(t.Context(), "tenant-a", nil)
+		items, errs := collect(t, seq)
+		if len(items) != 0 || len(errs) != 1 || mustError(t, errs[0]).Error() != want {
+			t.Errorf("AllUsers of the reply %q yielded %d users and the errors %v, want\n%s\n"+
+				"once", body, len(items), errs, want)
+		}
 	}
 }

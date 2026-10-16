@@ -341,9 +341,9 @@ control-plane:
   - {op: get_tenant, route: "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
   - {op: update_tenant, route: "PATCH /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
   - {op: delete_tenant, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}", stage: GA, status: covered}
-  - {op: list_tenant_users, route: "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: planned}
-  - {op: add_user_to_tenant, route: "POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: planned}
-  - {op: delete_tenant_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}", stage: GA, status: planned}
+  - {op: list_tenant_users, route: "GET /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: covered}
+  - {op: add_user_to_tenant, route: "POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", stage: GA, status: covered}
+  - {op: delete_tenant_user, route: "DELETE /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}", stage: GA, status: covered}
   # User Attributes
   - {op: list_user_attributes, route: "GET /v2/schema/{proj_id}/{env_id}/users/attributes", stage: GA, status: covered}
   - {op: create_user_attribute, route: "POST /v2/schema/{proj_id}/{env_id}/users/attributes", stage: GA, status: covered}

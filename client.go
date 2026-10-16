@@ -52,7 +52,8 @@ type Client struct {
 	// environment of the client's scope.
 	Resources *ResourcesService `json:"-"`
 
-	// Tenants lists, reads, creates, changes and deletes the tenants of an environment.
+	// Tenants lists, reads, creates, changes and deletes the tenants of an environment, and
+	// lists, adds and removes the users in a tenant.
 	Tenants *TenantsService `json:"-"`
 
 	// ResourceActions lists, reads, creates, changes and deletes the actions of a resource of

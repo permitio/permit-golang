@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"slices"
 	"testing"
 
 	permit "github.com/permitio/permit-golang/v2"
@@ -19,10 +20,10 @@ import (
 // on a tenant of its own, whose key starts with the run's prefix and which it registers with the
 // ledger before it creates it. It creates the tenant with a description and attributes, gets it
 // by its key and by its ID, lists it with an attribute filter that only it matches, as a page
-// and with All, replaces its attributes, sets them to {} and then to null, deletes it, waits
-// until a get of its ID matches ErrNotFound, and deletes it again, which returns nil. The ledger
-// removes and checks the tenant by its ID once Create returned one, and by its key only when
-// Create failed.
+// and with All, replaces its attributes, sets them to {} and then to null, adds a user to it and
+// removes the user again, as tenantMembership says, deletes it, waits until a get of its ID
+// matches ErrNotFound, and deletes it again, which returns nil. The ledger removes and checks the
+// tenant by its ID once Create returned one, and by its key only when Create failed.
 func tenantLifecycle(s *suite) func(t *testing.T) {
 	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
 		key := s.cfg.prefix.Key("sdk-tenant")
@@ -101,6 +102,7 @@ func tenantLifecycle(s *suite) func(t *testing.T) {
 		updateAttributes(models.Some(models.Attributes{"run": key}), 1)
 		updateAttributes(models.Some(models.Attributes{}), 0)
 		updateAttributes(models.Null[models.Attributes](), -1)
+		tenantMembership(ctx, t, s, c, key)
 		if err := c.Tenants.Delete(ctx, key); err != nil {
 			t.Fatalf("Delete of the tenant %s: %v", key, err)
 		}
@@ -119,5 +121,56 @@ func tenantLifecycle(s *suite) func(t *testing.T) {
 			t.Errorf("Delete of the tenant %s that is gone returned %v, want nil", created.ID,
 				err)
 		}
+	}
+}
+
+// tenantMembership adds a user of its own, whose key starts with the run's prefix and which it
+// registers with the ledger before AddUser creates it, to the tenant with AddUser, without a
+// role; finds it in a page of ListUsers and once in AllUsers of the tenant; removes it from the
+// tenant with RemoveUser; and removes it again, which returns nil. The ledger removes and checks
+// the user by its ID once AddUser returned one, and by its key only when AddUser failed.
+func tenantMembership(ctx context.Context, t *testing.T, s *suite, c *permit.Client,
+	tenant string,
+) {
+	t.Helper()
+	key := s.cfg.prefix.Key("sdk-tenant-user")
+	var addedID string
+	s.registerUser(key, func() string { return addedID })
+	added, err := c.Tenants.AddUser(ctx, tenant, models.UserCreate{Key: key})
+	if err != nil {
+		t.Fatalf("AddUser of the user %s to the tenant %s: %v", key, tenant, err)
+	}
+	addedID = added.ID
+	if added.Key != key || added.ID == "" || added.EnvironmentID != s.env.ID {
+		t.Fatalf("AddUser returned the user %q (ID %q) of the environment %q, want %s in %s",
+			added.Key, added.ID, added.EnvironmentID, key, s.env.ID)
+	}
+	page, err := c.Tenants.ListUsers(ctx, tenant,
+		&permit.TenantUsersListOptions{ListOptions: permit.ListOptions{PerPage: 100}})
+	if err != nil || !slices.ContainsFunc(page.Data, func(u models.UserRead) bool {
+		return u.ID == added.ID
+	}) {
+		t.Errorf("ListUsers of the tenant %s returned %+v, %v; want a page with the user %s",
+			tenant, page, err, added.ID)
+	}
+	found := 0
+	for user, allErr := range c.Tenants.AllUsers(ctx, tenant, nil) {
+		if allErr != nil {
+			t.Fatalf("AllUsers of the tenant %s: %v", tenant, allErr)
+		}
+		if user.ID == added.ID {
+			found++
+		}
+	}
+	if found != 1 {
+		t.Errorf("AllUsers of the tenant %s yielded the user %s %d times, want once", tenant,
+			added.ID, found)
+	}
+	if err := c.Tenants.RemoveUser(ctx, tenant, key); err != nil {
+		t.Fatalf("RemoveUser of the user %s from the tenant %s: %v", key, tenant, err)
+	}
+	if err := c.Tenants.RemoveUser(ctx, tenant, key); err != nil {
+		t.Errorf("RemoveUser of the user %s that the tenant %s no longer holds returned %v, "+
+			"want nil", key, tenant, err)
 	}
 }

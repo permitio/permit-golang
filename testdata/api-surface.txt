@@ -854,11 +854,15 @@ permit: method (*RolesService) Get(ctx context.Context, roleKey string) (*models
 permit: method (*RolesService) List(ctx context.Context, opts *RolesListOptions) (*Page[models.RoleRead], error)
 permit: method (*RolesService) RemovePermissions(ctx context.Context, roleKey string, permissions []string) (*models.RoleRead, error)
 permit: method (*RolesService) Update(ctx context.Context, roleKey string, update models.RoleUpdate) (*models.RoleRead, error)
+permit: method (*TenantsService) AddUser(ctx context.Context, tenantKey string, user models.UserCreate) (*models.UserRead, error)
 permit: method (*TenantsService) All(ctx context.Context, opts *TenantsListOptions) iter.Seq2[models.TenantRead, error]
+permit: method (*TenantsService) AllUsers(ctx context.Context, tenantKey string, opts *TenantUsersListOptions) iter.Seq2[models.UserRead, error]
 permit: method (*TenantsService) Create(ctx context.Context, tenant models.TenantCreate) (*models.TenantRead, error)
 permit: method (*TenantsService) Delete(ctx context.Context, tenantKey string) error
 permit: method (*TenantsService) Get(ctx context.Context, tenantKey string) (*models.TenantRead, error)
 permit: method (*TenantsService) List(ctx context.Context, opts *TenantsListOptions) (*Page[models.TenantRead], error)
+permit: method (*TenantsService) ListUsers(ctx context.Context, tenantKey string, opts *TenantUsersListOptions) (*Page[models.UserRead], error)
+permit: method (*TenantsService) RemoveUser(ctx context.Context, tenantKey string, userKey string) error
 permit: method (*TenantsService) Update(ctx context.Context, tenantKey string, update models.TenantUpdate) (*models.TenantRead, error)
 permit: method (*TenantsService) WaitForSync(timeout time.Duration, opts ...SyncOption) *TenantsService
 permit: method (*UserAttributesService) All(ctx context.Context, opts *ListOptions) iter.Seq2[models.ResourceAttributeRead, error]
@@ -1023,6 +1027,10 @@ permit: type SyncPolicy string
 permit: type TenantDetails struct
 permit: type TenantDetails struct, Attributes map[string]any
 permit: type TenantDetails struct, Key string
+permit: type TenantUsersListOptions struct
+permit: type TenantUsersListOptions struct, Role string
+permit: type TenantUsersListOptions struct, Search string
+permit: type TenantUsersListOptions struct, embedded ListOptions
 permit: type TenantsListOptions struct
 permit: type TenantsListOptions struct, Attributes []AttributeFilter
 permit: type TenantsListOptions struct, embedded ListOptions

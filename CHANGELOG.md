@@ -296,14 +296,23 @@ change from v1 and what to use instead.
 ### Tenants
 
 - The `Tenants` field of the client, a `*permit.TenantsService`, lists, reads, creates, changes
-  and deletes the tenants of an environment: `List` returns a page as a
-  `*permit.Page[models.TenantRead]`, with the counts of a paginated reply, and `All` reads every
-  page, 100 tenants at a time; `Get` reads one tenant by its key or its ID, in place of v1's
-  `Get`, `GetById` and `GetByKey`; `Create` takes a `models.TenantCreate`, `Update` a
-  `models.TenantUpdate`, and both return the tenant as a `*models.TenantRead`; `Delete` deletes a
-  tenant. A reply with an error status to `List` is an error, also a 500; before v1.3.0, v1's
-  `List` and `ListByAttributes` returned no error for a failed request, so a 500 looked like an
-  empty list.
+  and deletes the tenants of an environment, and lists, adds and removes the users in a tenant:
+  `List` returns a page as a `*permit.Page[models.TenantRead]`, with the counts of a paginated
+  reply, and `All` reads every page, 100 tenants at a time; `Get` reads one tenant by its key or
+  its ID, in place of v1's `Get`, `GetById` and `GetByKey`; `Create` takes a
+  `models.TenantCreate`, `Update` a `models.TenantUpdate`, and both return the tenant as a
+  `*models.TenantRead`; `Delete` deletes a tenant. A reply with an error status to `List` is an
+  error, also a 500; before v1.3.0, v1's `List` and `ListByAttributes` returned no error for a
+  failed request, so a 500 looked like an empty list.
+- `ListUsers` returns a page of the users in a tenant as a `*permit.Page[models.UserRead]`, with
+  the counts of the reply, in place of v1's `ListTenantUsers`, which returned the reply's data
+  alone, and `AllUsers` reads every page, 100 users at a time; `permit.TenantUsersListOptions`
+  filters the list with `Search` and `Role`. `AddUser` sends a `models.UserCreate` to
+  `POST /v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users`, which v1 could not send, and
+  returns the user as a `*models.UserRead`: the API's documentation describes it as the create of
+  a user and its add to the tenant, without a role when the user has no `RoleAssignments`.
+  `RemoveUser` removes a user from a tenant, which only v1's generated client could do, with
+  `DeleteTenantUser`.
 - The calls are calls of the facts API: they act on the environment of the client's scope, or,
   with `WithFactsViaPDP`, go to the PDP container under `/facts/tenants`. Each is sent with an
   environment-level API key, or higher.
@@ -328,11 +337,12 @@ change from v1 and what to use instead.
   call from a client without `WithFactsViaPDP`, a timeout less than zero and a `permit.SyncOption`
   that is not valid, in any place among the options, are errors that match `ErrInvalidConfig`,
   the last with the rule `wait-for-sync.policy.unknown`, and no request is sent.
-- A key of a tenant is sent as one segment of the path, escaped; an empty key, `.` or `..` is an
-  error that matches `ErrInvalidConfig`, and no request for the tenant is sent. `Delete` returns
-  nil when the API answers 404, as the tenant is gone already. `Create` is sent again after a 429
-  only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed connection
-  too.
+- A key of a tenant, or of a user in it, is sent as one segment of the path, escaped; an empty
+  key, `.` or `..` is an error that matches `ErrInvalidConfig`, and no request for the tenant is
+  sent. `Delete` returns nil when the API answers 404, as the tenant is gone already, and
+  `RemoveUser` when the user is not in the tenant. `Create` and `AddUser` are sent again after a
+  429 only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed
+  connection too.
 
 ### Resource actions
 

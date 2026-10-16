@@ -324,8 +324,14 @@
     "RolesService.Update": [
       "update_role"
     ],
+    "TenantsService.AddUser": [
+      "add_user_to_tenant"
+    ],
     "TenantsService.All": [
       "list_tenants"
+    ],
+    "TenantsService.AllUsers": [
+      "list_tenant_users"
     ],
     "TenantsService.Create": [
       "create_tenant"
@@ -338,6 +344,12 @@
     ],
     "TenantsService.List": [
       "list_tenants"
+    ],
+    "TenantsService.ListUsers": [
+      "list_tenant_users"
+    ],
+    "TenantsService.RemoveUser": [
+      "delete_tenant_user"
     ],
     "TenantsService.Update": [
       "update_tenant"

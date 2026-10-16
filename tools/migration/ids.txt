@@ -193,3 +193,6 @@ M-proxy-configs-5
 M-proxy-configs-6
 M-users-10
 M-users-11
+M-tenants-8
+M-tenants-9
+M-tenants-10

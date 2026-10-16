@@ -1107,7 +1107,9 @@ models:
   # no default, as the field left out, and rejects null for the role and the tenant, which it
   # requires. These null policies are not measured yet: the phase api.users of the local harness
   # confirms them. The model of the reply leaves out roles, which the spec marks deprecated:
-  # associated_tenants holds the roles of the user in each tenant.
+  # associated_tenants holds the roles of the user in each tenant. The add of a user to a tenant
+  # sends UserCreate, as a create does, and returns UserRead, which the list of the users in a
+  # tenant returns too.
   UserCreate:
     schema: UserCreate
     fields:

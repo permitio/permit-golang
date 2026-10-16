@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/permitio/permit-golang/v2"
@@ -90,4 +91,57 @@ func ExampleTenantsService_WaitForSync() {
 	// Output:
 	// tenant-c 00000000-0000-4000-8000-000000000023
 	// a delete does not wait for sync
+}
+
+// List the users of the tenant tenant-a, add the user erin to it without a role, and remove erin
+// from it again. AddUser creates the user, so a key that a user of the environment has already is
+// an error that matches ErrConflict.
+func ExampleTenantsService_AddUser() {
+	client, err := permit.New(
+		permit.WithAPIKey(exampleAPIKey),
+		permit.WithAPIURL(exampleAPIURL),
+		permit.WithPDPURL(examplePDPURL),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+	for user, err := range client.Tenants.AllUsers(ctx, "tenant-a", nil) {
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		i := slices.IndexFunc(user.AssociatedTenants, func(t models.UserInTenant) bool {
+			return t.Tenant == "tenant-a"
+		})
+		if i >= 0 {
+			fmt.Println(user.Key, "has the roles", user.AssociatedTenants[i].Roles)
+		}
+	}
+
+	user, err := client.Tenants.AddUser(ctx, "tenant-a",
+		models.UserCreate{Key: "erin", Email: "erin@example.com"})
+	if errors.Is(err, permit.ErrConflict) {
+		fmt.Println("the environment has a user with the key erin already")
+		return
+	}
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("added", user.Key, "to tenant-a")
+
+	if err := client.Tenants.RemoveUser(ctx, "tenant-a", "erin"); err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("removed erin")
+	// Output:
+	// alice has the roles []
+	// bob has the roles [viewer]
+	// added erin to tenant-a
+	// removed erin
 }

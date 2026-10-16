@@ -209,6 +209,30 @@ var defaultOps = []Op{
 		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
 	},
 
+	// The users in a tenant: their list, the add of a user, which creates it, and the removal of
+	// one, calls of the facts API like those of the tenants. v1 sent the list with an
+	// environment-level key, and the PDP container sends each of them on with its own, an
+	// environment-level key. These key levels are not measured yet: the phase api.tenants of the
+	// local harness confirms them. The PDP container waits for sync on none of them. The list is
+	// the paginated object of at most 100 users. The add creates a user, so it is not Idempotent;
+	// the path of the removal names the tenant and the user, so it is DeleteSelf.
+	{
+		ID: "list_tenant_users", Method: http.MethodGet,
+		Route:      "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "UserRead",
+	},
+	{
+		ID: "add_user_to_tenant", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", Facts: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "UserCreate", ResponseModel: "UserRead",
+	},
+	{
+		ID: "delete_tenant_user", Method: http.MethodDelete,
+		Route:      "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users/{user_id}",
+		Idempotent: true, Facts: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+
 	// The users of an environment, calls of the facts API, which the PDP container also serves
 	// under /facts. v1 sent them with an environment-level key, and the PDP container sends them
 	// on with its own, an environment-level key. These key levels are not measured yet: the

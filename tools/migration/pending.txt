@@ -26,7 +26,6 @@ api.RoleAssignments.* role-assignments
 api.NewRoleAssignmentsApi role-assignments
 api.Roles.BulkAssignRole role-assignments
 api.Roles.BulkUnAssignRole role-assignments
-api.Tenants.ListTenantUsers tenants
 api.Users.GetAssignedRoles role-assignments
 
 # Block b: operations of pkg/openapi
@@ -59,7 +58,6 @@ openapi.OrganizationsApiService.UpdateOrganization organizations
 openapi.PolicyDecisionPointsApiService.* pdp-configs
 openapi.PolicyGitRepositoriesApiService.* policy-repos
 openapi.RoleAssignmentsApiService.* role-assignments
-openapi.TenantsApiService.* tenants
 
 # Block c: pkg/models
 models.* models

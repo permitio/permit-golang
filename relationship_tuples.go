@@ -15,11 +15,13 @@ const (
 	opListRelationshipTuplesDetailed = "list_relationship_tuples_detailed"
 	opCreateRelationshipTuple        = "create_relationship_tuple"
 	opDeleteRelationshipTuple        = "delete_relationship_tuple"
+	opBulkCreateRelationshipTuples   = "bulk_create_relationship_tuples"
+	opBulkDeleteRelationshipTuples   = "bulk_delete_relationship_tuples"
 )
 
 // RelationshipTuplesService lists, creates and deletes the relationship tuples of an environment,
-// the relations between its resource instances, such as folder:f1 parent document:doc-1;
-// [Client.RelationshipTuples] holds it.
+// the relations between its resource instances, such as folder:f1 parent document:doc-1, one at
+// a time or in bulk; [Client.RelationshipTuples] holds it.
 //
 // Its calls are calls of the facts API. By default they go to the Permit API, under
 // /v2/facts/{proj_id}/{env_id}/relationship_tuples, and act on the environment of the client's
@@ -31,7 +33,7 @@ const (
 // under /facts/relationship_tuples instead, need no scope, and act on the environment of the
 // container's own API key.
 //
-// [RelationshipTuplesService.WaitForSync] returns a copy whose creates wait until the new
+// [RelationshipTuplesService.WaitForSync] returns a copy whose Create waits until the new
 // relationship tuple reaches the policy of the PDP container.
 type RelationshipTuplesService struct {
 	facts facts
@@ -100,7 +102,7 @@ func relationshipTuplesRequest(op string, opts *RelationshipTuplesListOptions,
 	return request{op: op, query: query}, o.ListOptions
 }
 
-// WaitForSync returns a copy of the service whose creates ask the PDP container to wait for sync:
+// WaitForSync returns a copy of the service whose Create asks the PDP container to wait for sync:
 // to hold its answer until the new relationship tuple reaches its policy, for at most timeout,
 // so that a check made after the call returns sees it. A call through the copy sends the headers
 // X-Wait-Timeout, the timeout in decimal seconds, such as 0 for a timeout of 0 or 0.5 for 500
@@ -110,11 +112,12 @@ func relationshipTuplesRequest(op string, opts *RelationshipTuplesListOptions,
 //
 // Only [RelationshipTuplesService.Create] waits for sync: of the routes that
 // RelationshipTuplesService calls, the PDP container waits on POST /facts/relationship_tuples
-// alone, and answers the delete and the lists without waiting. A call through the copy returns an
-// error that matches [ErrInvalidConfig], and sends no request: from a client without
-// [WithFactsViaPDP], as only the PDP container waits; of any other method, such as
-// [RelationshipTuplesService.Delete] or List, which the container answers without waiting; for a
-// timeout less than zero; and for a [SyncOption] that is not valid, in any place among opts.
+// alone, and answers the delete, the lists and the bulk routes without waiting. A call through
+// the copy returns an error that matches [ErrInvalidConfig], and sends no request: from a client
+// without [WithFactsViaPDP], as only the PDP container waits; of any other method, such as
+// [RelationshipTuplesService.Delete], List or [RelationshipTuplesService.BulkCreate], which the
+// container answers without waiting; for a timeout less than zero; and for a [SyncOption] that is
+// not valid, in any place among opts.
 func (s *RelationshipTuplesService) WaitForSync(timeout time.Duration, opts ...SyncOption,
 ) *RelationshipTuplesService {
 	return &RelationshipTuplesService{facts: s.facts.withWait(newSyncWait(timeout, opts))}
@@ -317,6 +320,95 @@ func (s *RelationshipTuplesService) Delete(ctx context.Context,
 	tuple models.RelationshipTupleDelete,
 ) error {
 	r, err := s.facts.prepare(ctx, request{op: opDeleteRelationshipTuple, body: tuple})
+	if err != nil {
+		return err
+	}
+	return s.facts.client.doNoValue(ctx, r)
+}
+
+// BulkCreate creates relationship tuples in one request, with
+// POST /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk, and returns only an error: the
+// API's spec gives its reply no field, so BulkCreate reads no body from a reply in 200-299, for
+// which it returns nil, whatever the reply holds, or without a body. The request body is the JSON
+// object of [models.RelationshipTupleCreateBulkOperation], whose operations hold tuples, in
+// order, each as [RelationshipTuplesService.Create] sends one: with the Subject, the Relation and
+// the Object always, and the Tenant when it is set. Nil sends an empty operations, [], as an
+// empty slice does: the API's spec sets no least number of tuples, and takes at most 1000. The
+// API's documentation says that a 400 rejects the whole request, and creates none of the tuples,
+// such as for a tuple whose subject and object are in different tenants.
+//
+// BulkCreate needs an environment-level API key, or higher, and the scope of an environment, as
+// [RelationshipTuplesService] says. With [WithFactsViaPDP], it goes to the PDP container, under
+// /facts/relationship_tuples/bulk, which sends it on to the API and answers without waiting for
+// its policy. It is sent again only after a 429, which the API did not act on: after a 500, 502,
+// 503 or 504 reply or a failed connection, the API may have created the relationship tuples, so
+// BulkCreate returns that error, and a List tells which exist.
+//
+// BulkCreate returns an error:
+//
+//   - through a copy of [RelationshipTuplesService.WaitForSync]: an error that matches
+//     [ErrInvalidConfig], and no request, as RelationshipTuplesService.WaitForSync says: the PDP
+//     container answers the bulk routes without waiting;
+//   - for a reply with an error status: an [Error] with the status and the body of the reply,
+//     such as one for a 400, one that matches [ErrNotFound] for a 404, or one whose Detail names
+//     each field that the API rejects for a 422; with WithFactsViaPDP, a 404 with an empty body,
+//     which is how the cloud PDP answers every route under /facts, matches
+//     [ErrContainerPDPOnly] instead of ErrNotFound;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *RelationshipTuplesService) BulkCreate(ctx context.Context,
+	tuples []models.RelationshipTupleCreate,
+) error {
+	r, err := s.facts.prepare(ctx, request{
+		op:   opBulkCreateRelationshipTuples,
+		body: models.RelationshipTupleCreateBulkOperation{Operations: orEmpty(tuples)},
+	})
+	if err != nil {
+		return err
+	}
+	return s.facts.client.doNoValue(ctx, r)
+}
+
+// BulkDelete deletes relationship tuples in one request, with
+// DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk, and returns only an error: the
+// API's spec gives its reply no field, so BulkDelete reads no body from a reply in 200-299, for
+// which it returns nil, whatever the reply holds, or without a body. The request body is the JSON
+// object of [models.RelationshipTupleDeleteBulkOperation], whose idents hold tuples, in order,
+// each as [RelationshipTuplesService.Delete] sends one: with the Subject, the Relation and the
+// Object always, also when they are empty. Nil sends an empty idents, [], as an empty slice does:
+// the API's spec sets no least number of tuples, and takes at most 1000. The body, not the path,
+// names the relationship tuples to delete, so a 404 can mean a mistyped key: BulkDelete returns
+// it as an [Error] that matches [ErrNotFound], never nil. With [WithFactsViaPDP], a 404 with an
+// empty body, which is how the cloud PDP answers every route under /facts, is an error that
+// matches [ErrContainerPDPOnly] instead.
+//
+// BulkDelete needs an environment-level API key, or higher, and the scope of an environment, as
+// [RelationshipTuplesService] says. With WithFactsViaPDP, it goes to the PDP container, under
+// /facts/relationship_tuples/bulk, which sends it on to the API and answers without waiting for
+// its policy. Deleting relationship tuples twice leaves them deleted, so the call sends its
+// request again after a 500, 502, 503 or 504 reply or a failed connection, as after a 429; when
+// an attempt that got no complete reply deleted them, the next attempt can get an error status,
+// which BulkDelete returns.
+//
+// BulkDelete returns an error:
+//
+//   - through a copy of [RelationshipTuplesService.WaitForSync]: an error that matches
+//     [ErrInvalidConfig], and no request, as RelationshipTuplesService.WaitForSync says: the PDP
+//     container answers the bulk routes without waiting;
+//   - for a reply with an error status: an Error with the status and the body of the reply,
+//     such as one that matches ErrNotFound for a 404, or one whose Detail names each field that
+//     the API rejects for a 422;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *RelationshipTuplesService) BulkDelete(ctx context.Context,
+	tuples []models.RelationshipTupleDelete,
+) error {
+	r, err := s.facts.prepare(ctx, request{
+		op:   opBulkDeleteRelationshipTuples,
+		body: models.RelationshipTupleDeleteBulkOperation{Idents: orEmpty(tuples)},
+	})
 	if err != nil {
 		return err
 	}

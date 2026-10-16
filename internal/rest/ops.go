@@ -392,12 +392,14 @@ var defaultOps = []Op{
 	// the route that its spec lists, and the others through its route for every other path under
 	// /facts. These key levels are not measured yet: the phase api.relationship_tuples of the
 	// local harness confirms them. The PDP container waits for sync on the create, and not on
-	// the delete or the lists. The list is a JSON array or a paginated object, and the detailed
-	// list a paginated object, of at most 100 relationship tuples. A delete leaves the tuple
-	// deleted, so it does the same when sent twice; what the API answers to the create of a tuple
-	// that exists is not confirmed, so the create is not Idempotent. A delete names the tuple in
-	// its body, not in its path, so it is not DeleteSelf: a 404 can mean a mistyped key. The SDK
-	// never sends the deprecated query parameters of the list, detailed and include_total_count.
+	// the delete, the lists or the bulk routes. The list is a JSON array or a paginated object,
+	// and the detailed list a paginated object, of at most 100 relationship tuples. The bulk
+	// routes take a JSON object that holds at most 1000 tuples, and the spec gives their replies
+	// no field, so the SDK reads none. A delete, one or in bulk, leaves the tuples deleted, so it
+	// does the same when sent twice; what the API answers to the create of a tuple that exists is
+	// not confirmed, so neither create is Idempotent. A delete names the tuples in its body, not
+	// in its path, so it is not DeleteSelf: a 404 can mean a mistyped key. The SDK never sends
+	// the deprecated query parameters of the list, detailed and include_total_count.
 	{
 		ID: "list_relationship_tuples", Method: http.MethodGet,
 		Route: "/v2/facts/{proj_id}/{env_id}/relationship_tuples", Idempotent: true, Facts: true,
@@ -419,6 +421,17 @@ var defaultOps = []Op{
 		ID: "delete_relationship_tuple", Method: http.MethodDelete,
 		Route: "/v2/facts/{proj_id}/{env_id}/relationship_tuples", Idempotent: true, Facts: true,
 		KeyLevel: EnvironmentLevel, RequestModel: "RelationshipTupleDelete",
+	},
+	{
+		ID: "bulk_create_relationship_tuples", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", Facts: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "RelationshipTupleCreateBulkOperation",
+	},
+	{
+		ID: "bulk_delete_relationship_tuples", Method: http.MethodDelete,
+		Route: "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", Idempotent: true,
+		Facts: true, KeyLevel: EnvironmentLevel,
+		RequestModel: "RelationshipTupleDeleteBulkOperation",
 	},
 
 	// The bulk operations of the users, the tenants and the resource instances of an

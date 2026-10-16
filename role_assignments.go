@@ -33,8 +33,8 @@ const (
 // /facts/role_assignments instead, need no scope, and act on the environment of the container's
 // own API key.
 //
-// [RoleAssignmentsService.WaitForSync] returns a copy whose assignments and unassignments wait
-// until the change reaches the policy of the PDP container.
+// [RoleAssignmentsService.WaitForSync] returns a copy whose Assign and Unassign wait until the
+// change reaches the policy of the PDP container.
 type RoleAssignmentsService struct {
 	facts facts
 }
@@ -96,13 +96,13 @@ func roleAssignmentsRequest(op string, opts *RoleAssignmentsListOptions,
 	return request{op: op, query: query}, o.ListOptions
 }
 
-// WaitForSync returns a copy of the service whose assignments and unassignments ask the PDP
-// container to wait for sync: to hold its answer until the change reaches its policy, for at
-// most timeout, so that a check made after the call returns sees it. A call through the copy
-// sends the headers X-Wait-Timeout, the timeout in decimal seconds, such as 0 for a timeout of 0
-// or 0.5 for 500 milliseconds, and X-Timeout-Policy when opts give a policy with
-// [WithSyncPolicy]. The service that WaitForSync is called on, and its other copies, keep their
-// own waits: the copy shares no state with them.
+// WaitForSync returns a copy of the service whose Assign and Unassign ask the PDP container to
+// wait for sync: to hold its answer until the change reaches its policy, for at most timeout, so
+// that a check made after the call returns sees it. A call through the copy sends the headers
+// X-Wait-Timeout, the timeout in decimal seconds, such as 0 for a timeout of 0 or 0.5 for 500
+// milliseconds, and X-Timeout-Policy when opts give a policy with [WithSyncPolicy]. The service
+// that WaitForSync is called on, and its other copies, keep their own waits: the copy shares no
+// state with them.
 //
 // Only [RoleAssignmentsService.Assign] and [RoleAssignmentsService.Unassign] wait for sync: of
 // the routes that RoleAssignmentsService calls, the PDP container waits on POST and DELETE

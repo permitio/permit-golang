@@ -53,6 +53,8 @@ const (
 
 	opListRelationshipTuples         = "list_relationship_tuples"
 	opListRelationshipTuplesDetailed = "list_relationship_tuples_detailed"
+	opBulkCreateRelationshipTuples   = "bulk_create_relationship_tuples"
+	opBulkDeleteRelationshipTuples   = "bulk_delete_relationship_tuples"
 
 	opBulkCreateUsers              = "bulk_create_users"
 	opBulkReplaceUsers             = "bulk_replace_users"
@@ -140,6 +142,11 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 	case opListRelationshipTuplesDetailed:
 		tuples := f.store[collectionOf(segments[:len(segments)-1])]
 		return http.StatusOK, envelope(relationshipTuples(tuples, query), query)
+	case opBulkCreateRelationshipTuples, opBulkDeleteRelationshipTuples:
+		if fields != nil {
+			return f.bulkRelationshipTuples(rt, segments, fields)
+		}
+		return f.unsupported(rt)
 	case opBulkCreateUsers, opBulkReplaceUsers, opBulkCreateTenants,
 		opBulkReplaceResourceInstances:
 		if fields != nil {
@@ -550,6 +557,49 @@ func relationshipTuples(tuples []object, query url.Values) []object {
 		}
 		return false
 	})
+}
+
+// createRelationshipTuple is the route of the create of a relationship tuple, as which a bulk
+// create creates each of its tuples.
+var createRelationshipTuple = route{
+	Route: Route{
+		Method: http.MethodPost, Template: "/v2/facts/{proj_id}/{env_id}/relationship_tuples",
+	},
+	segments: []string{"", "v2", "facts", "{proj_id}", "{env_id}", "relationship_tuples"},
+}
+
+// bulkRelationshipTuples answers POST and DELETE
+// /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk, whose path has segments, with IDs in
+// place of keys, and whose body holds fields, which the check of its operation accepted: a POST
+// creates each relationship tuple of its operations, in order, as a create of one does, and a
+// DELETE removes each relationship tuple that holds the fields of an item of its idents, to
+// which an item that matches no relationship tuple adds nothing. Each answers an empty object,
+// as the spec gives the reply no field. What the Permit API answers for an item that matches no
+// relationship tuple is not confirmed yet. The caller holds f.mu.
+func (f *Fake) bulkRelationshipTuples(rt route, segments []string, fields object) (int, any) {
+	tuples := segments[:len(segments)-1]
+	switch rt.Method {
+	case http.MethodPost:
+		items, _ := fields["operations"].([]any)
+		for _, item := range items {
+			if tuple, ok := item.(object); ok {
+				f.create(createRelationshipTuple, tuples, tuple) // A relationship tuple has no key.
+			}
+		}
+		return http.StatusOK, object{}
+	case http.MethodDelete:
+		path := collectionOf(tuples)
+		items, _ := fields["idents"].([]any)
+		for _, item := range items {
+			if key, ok := item.(object); ok {
+				f.store[path] = slices.DeleteFunc(f.store[path], func(o object) bool {
+					return holds(o, key)
+				})
+			}
+		}
+		return http.StatusOK, object{}
+	}
+	return f.unsupported(rt)
 }
 
 // fieldsOf returns the fields of o whose names are among names, those that o holds; an empty

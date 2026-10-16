@@ -976,11 +976,11 @@ models:
       first_name: {required: false, null_policy: n/a}
       last_name: {required: false, null_policy: n/a}
       attributes: {required: false, null_policy: n/a}
-  # A relationship tuple of an environment, as a create and a delete send it, and as the API
-  # returns it, alone, in a list and in the detailed list, with the details of its subject, its
-  # relation, its object and its tenant. A create reads null for the tenant, which has no
-  # default, as the field left out, as every create does, and each body rejects null for the
-  # fields that it requires. These null policies are not measured yet:
+  # A relationship tuple of an environment, as a create and a delete send it, one or in the JSON
+  # object of a bulk call, and as the API returns it, alone, in a list and in the detailed list,
+  # with the details of its subject, its relation, its object and its tenant. A create reads null
+  # for the tenant, which has no default, as the field left out, as every create does, and each
+  # body rejects null for the fields that it requires. These null policies are not measured yet:
   # the phase api.relationship_tuples of the local harness confirms them.
   RelationshipTupleCreate:
     schema: RelationshipTupleCreate
@@ -989,12 +989,20 @@ models:
       relation: {required: true, null_policy: rejects}
       object: {required: true, null_policy: rejects}
       tenant: {required: false, null_policy: ignores}
+  RelationshipTupleCreateBulkOperation:
+    schema: RelationshipTupleCreateBulkOperation
+    fields:
+      operations: {required: true, null_policy: rejects}
   RelationshipTupleDelete:
     schema: RelationshipTupleDelete
     fields:
       subject: {required: true, null_policy: rejects}
       relation: {required: true, null_policy: rejects}
       object: {required: true, null_policy: rejects}
+  RelationshipTupleDeleteBulkOperation:
+    schema: RelationshipTupleDeleteBulkOperation
+    fields:
+      idents: {required: true, null_policy: rejects}
   RelationshipTupleDetailedRead:
     schema: RelationshipTupleDetailedRead
     fields:

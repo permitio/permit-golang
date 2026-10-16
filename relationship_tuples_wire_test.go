@@ -103,12 +103,13 @@ func detailedTuples() []models.RelationshipTupleDetailedRead {
 // under /facts/relationship_tuples, with WithFactsViaPDP. The routes take no key in their path:
 // the keys go in the query of a list, which escapes the characters of folder:a/b and
 // document:50%é and sends a UUID-shaped tenant and .hidden as they are, and in the body of a
-// create or a delete, as they are. The lists never send the deprecated query parameters detailed
-// and include_total_count.
+// create or a delete, one or in the JSON object of a bulk call, as they are. The lists never send
+// the deprecated query parameters detailed and include_total_count.
 func relationshipTupleCases() []wireCase {
 	const (
 		tuples   = "/v2/facts/{proj_id}/{env_id}/relationship_tuples"
 		detailed = tuples + "/detailed"
+		bulk     = tuples + "/bulk"
 	)
 	forbidden := func(op, method, route string) *permit.Error {
 		e := projectError(op, method, route, http.StatusForbidden, tupleForbiddenBody)
@@ -308,6 +309,59 @@ func relationshipTupleCases() []wireCase {
 			WantResult: wireNoResult{},
 			ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: tupleNotFoundBody},
 			WantErr:    notFound("delete_relationship_tuple", tuples),
+		},
+		{
+			Method: "RelationshipTuplesService.BulkCreate",
+			Op:     "bulk_create_relationship_tuples",
+			Route:  "POST " + bulk,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return wireNoResult{}, c.RelationshipTuples.BulkCreate(ctx,
+					[]models.RelationshipTupleCreate{
+						{Subject: "folder:a/b", Relation: "parent", Object: "document:.hidden"},
+						{
+							Subject: "folder:f1", Relation: "parent", Object: "document:50%é",
+							Tenant: syncedKey,
+						},
+					})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/relationship_tuples/bulk",
+				Body: `{"operations":[{"subject":"folder:a/b","relation":"parent",` +
+					`"object":"document:.hidden"},{"subject":"folder:f1","relation":"parent",` +
+					`"object":"document:50%é","tenant":"idp|dave@example.com"}]}`,
+			},
+			Reply: mockpermit.Reply{
+				Body: replyFixture("bulk_create_relationship_tuples.200.json"),
+			},
+			WantResult: wireNoResult{},
+			ErrorReply: mockpermit.Reply{Status: http.StatusBadRequest, Body: tupleTenantsBody},
+			WantErr:    tenants("bulk_create_relationship_tuples", bulk),
+		},
+		{
+			Method: "RelationshipTuplesService.BulkDelete",
+			Op:     "bulk_delete_relationship_tuples",
+			Route:  "DELETE " + bulk,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return wireNoResult{}, c.RelationshipTuples.BulkDelete(ctx,
+					[]models.RelationshipTupleDelete{
+						{Subject: "folder:50%é", Relation: ".hidden", Object: "document:a/b"},
+						{Subject: tupleFolderID, Relation: "parent", Object: "document:doc-1"},
+					})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/relationship_tuples/bulk",
+				Body: `{"idents":[{"subject":"folder:50%é","relation":".hidden",` +
+					`"object":"document:a/b"},{"subject":"` + tupleFolderID + `",` +
+					`"relation":"parent","object":"document:doc-1"}]}`,
+			},
+			Reply: mockpermit.Reply{
+				Body: replyFixture("bulk_delete_relationship_tuples.200.json"),
+			},
+			WantResult: wireNoResult{},
+			ErrorReply: mockpermit.Reply{Status: http.StatusNotFound, Body: tupleNotFoundBody},
+			WantErr:    notFound("bulk_delete_relationship_tuples", bulk),
 		},
 	}
 }

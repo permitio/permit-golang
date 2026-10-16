@@ -264,8 +264,8 @@ control-plane:
   - {op: list_relationship_tuples, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
   - {op: create_relationship_tuple, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
   - {op: delete_relationship_tuple, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples", stage: GA, status: covered}
-  - {op: bulk_create_relationship_tuples, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: planned}
-  - {op: bulk_delete_relationship_tuples, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: planned}
+  - {op: bulk_create_relationship_tuples, route: "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: covered}
+  - {op: bulk_delete_relationship_tuples, route: "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk", stage: GA, status: covered}
   - {op: list_relationship_tuples_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed", stage: GA, status: covered}
   # Resource Action Groups
   - {op: list_resource_action_groups, route: "GET /v2/schema/{proj_id}/{env_id}/resources/{resource_id}/action_groups", stage: GA, status: covered}

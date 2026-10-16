@@ -779,16 +779,25 @@ change from v1 and what to use instead.
   `models.RelationshipTupleDelete` and returns only an error: nil for a reply in 200-299, and an
   error that matches `ErrNotFound` for a 404, as its body, not its path, names the relationship
   tuple to delete.
+- `BulkCreate` takes a `[]models.RelationshipTupleCreate` and `BulkDelete` a
+  `[]models.RelationshipTupleDelete`, in place of the `models.RelationshipTupleCreateBulkOperation`
+  and the `models.RelationshipTupleDeleteBulkOperation` that v1's took, and each sends them in
+  one request to `/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk`, in the `operations` or
+  the `idents` of that body; nil is sent as `[]`, where v1 sent `null`. Each returns only an
+  error, nil for any reply in 200-299, whose body it does not read, as the API's spec gives the
+  reply no field; v1 returned nil for an empty body, and an error for any other body that was
+  neither a JSON object nor `null`, or that came without a JSON `Content-Type`. A 404 to either
+  is an error that matches `ErrNotFound`.
 - The calls are calls of the facts API: they act on the environment of the client's scope, or,
   with `WithFactsViaPDP`, go to the PDP container under `/facts/relationship_tuples`. Each is sent
   with an environment-level API key, or higher. `RelationshipTuplesService.WaitForSync(timeout,
   opts...)` returns a copy whose `Create` the PDP container holds until the new relationship tuple
-  reaches its policy; any other call through the copy, and a call from a client without
-  `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
-- `Create` is sent again after a 429 only; the other calls are sent again after a 500, 502, 503
-  or 504 reply or a failed connection too. A reply in 200-299 to `Create` that is not a
-  relationship tuple, or to a list that is not a list of relationship tuples, an empty body too,
-  is an error that names the model.
+  reaches its policy; any other call through the copy, a bulk call too, and a call from a client
+  without `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
+- `Create` and `BulkCreate` are sent again after a 429 only; the other calls are sent again after
+  a 500, 502, 503 or 504 reply or a failed connection too. A reply in 200-299 to `Create` that is
+  not a relationship tuple, or to a list that is not a list of relationship tuples, an empty body
+  too, is an error that names the model.
 
 ### Proxy configs
 

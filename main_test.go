@@ -208,6 +208,10 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("list_relationship_tuples_detailed.200.json")})
 	servers.API.Handle("DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples",
 		mockpermit.Reply{Status: http.StatusNoContent})
+	servers.API.Handle("POST /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk",
+		mockpermit.Reply{Body: replyFixture("bulk_create_relationship_tuples.200.json")})
+	servers.API.Handle("DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk",
+		mockpermit.Reply{Body: replyFixture("bulk_delete_relationship_tuples.200.json")})
 	servers.PDP.Handle("POST /facts/relationship_tuples",
 		mockpermit.Reply{Body: replyFixture("create_relationship_tuple.200.json")})
 	const bulk = "/v2/facts/{proj_id}/{env_id}/bulk/"

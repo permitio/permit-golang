@@ -70,6 +70,49 @@ func ExampleRelationshipTuplesService() {
 	// deleted: true
 }
 
+// Make the folder folder:f1 the parent of the documents document:doc-1 and document:doc-2 in one
+// request, and then delete both relationship tuples in one request, each named by its subject,
+// its relation and its object. Neither call returns a result: the API's reply to each holds no
+// field.
+func ExampleRelationshipTuplesService_BulkCreate() {
+	client, err := permit.New(
+		permit.WithAPIKey(exampleAPIKey),
+		permit.WithAPIURL(exampleAPIURL),
+		permit.WithPDPURL(examplePDPURL),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+	tuples := []models.RelationshipTupleCreate{
+		{Subject: "folder:f1", Relation: "parent", Object: "document:doc-1", Tenant: "tenant-a"},
+		{Subject: "folder:f1", Relation: "parent", Object: "document:doc-2", Tenant: "tenant-a"},
+	}
+	if err := client.RelationshipTuples.BulkCreate(ctx, tuples); err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("created:", len(tuples))
+
+	keys := make([]models.RelationshipTupleDelete, 0, len(tuples))
+	for _, tuple := range tuples {
+		keys = append(keys, models.RelationshipTupleDelete{
+			Subject: tuple.Subject, Relation: tuple.Relation, Object: tuple.Object,
+		})
+	}
+	if err := client.RelationshipTuples.BulkDelete(ctx, keys); err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("deleted:", len(keys))
+	// Output:
+	// created: 2
+	// deleted: 2
+}
+
 // Create a relationship tuple through the PDP container, which holds its answer until the tuple
 // reaches its policy, for at most 10 seconds, so that a check right after it sees the relation.
 // Only a create waits: a delete through the same copy is an error that matches ErrInvalidConfig,

@@ -24,10 +24,14 @@ const (
 	listDetailedTuplesRoute    = "GET /v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed"
 	createTupleRoute           = "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples"
 	deleteTupleRoute           = "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples"
+	bulkCreateTuplesRoute      = "POST /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk"
+	bulkDeleteTuplesRoute      = "DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk"
 	pdpListTuplesRoute         = "GET /facts/relationship_tuples"
 	pdpListDetailedTuplesRoute = "GET /facts/relationship_tuples/detailed"
 	pdpCreateTupleRoute        = "POST /facts/relationship_tuples"
 	pdpDeleteTupleRoute        = "DELETE /facts/relationship_tuples"
+	pdpBulkCreateTuplesRoute   = "POST /facts/relationship_tuples/bulk"
+	pdpBulkDeleteTuplesRoute   = "DELETE /facts/relationship_tuples/bulk"
 )
 
 // tupleBody is a reply of the API to a create of a relationship tuple, and missingTupleBody one
@@ -342,10 +346,107 @@ func TestRelationshipTupleDeleteReplies(t *testing.T) {
 	}
 }
 
-// TestRelationshipTupleBodies checks the bodies of Create and Delete, byte for byte against the
-// golden files in testdata/golden: a create with a tenant and one without, which leaves the
-// tenant out, not empty; and the zero create and the zero delete, which hold the subject, the
-// relation and the object, empty.
+// bulkTupleCalls are the bulk calls of the relationship tuples, each with its routes on the API
+// and on the PDP container and its operation; the PDP container waits on neither.
+var bulkTupleCalls = []struct {
+	name, route, pdpRoute, op string
+	call                      func(ctx context.Context, s *RelationshipTuplesService) error
+}{
+	{
+		name: "BulkCreate", route: bulkCreateTuplesRoute, pdpRoute: pdpBulkCreateTuplesRoute,
+		op: opBulkCreateRelationshipTuples,
+		call: func(ctx context.Context, s *RelationshipTuplesService) error {
+			return s.BulkCreate(ctx, []models.RelationshipTupleCreate{parentTuple})
+		},
+	},
+	{
+		name: "BulkDelete", route: bulkDeleteTuplesRoute, pdpRoute: pdpBulkDeleteTuplesRoute,
+		op: opBulkDeleteRelationshipTuples,
+		call: func(ctx context.Context, s *RelationshipTuplesService) error {
+			return s.BulkDelete(ctx, []models.RelationshipTupleDelete{parentTupleKey})
+		},
+	},
+}
+
+// TestBulkRelationshipTupleReplies checks the replies in 200-299 to BulkCreate and BulkDelete,
+// through the API and through the PDP container: nil for a 204 without a body, and for a 200
+// with the reply fixture, with an empty body, with a body that is not JSON or with a JSON value
+// of another kind, and for a 201 with an object of fields that the spec does not list, none of
+// which the calls read, one request each.
+func TestBulkRelationshipTupleReplies(t *testing.T) {
+	replies := []mockpermit.Reply{
+		{Status: http.StatusNoContent},
+		{Body: replyFixtureOf(t, "bulk_create_relationship_tuples.200.json")},
+		{Body: ""},
+		{Body: `not JSON`},
+		{Body: `[1]`},
+		{Status: http.StatusCreated, Body: `{"created":2}`},
+	}
+	for _, viaPDP := range []bool{false, true} {
+		for _, call := range bulkTupleCalls {
+			api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
+			to, route, opts := tupleTarget(api, pdp, viaPDP, call.route, call.pdpRoute)
+			to.Handle(route, replies...)
+			s := decisionClient(t, api, pdp, opts...).RelationshipTuples
+			for i, reply := range replies {
+				if err := call.call(t.Context(), s); err != nil {
+					t.Errorf("via the PDP %t: %s of the reply %d, %d %q, returned %v, want nil",
+						viaPDP, call.name, i, reply.Status, reply.Body, err)
+				}
+			}
+			if n := len(to.Requests()); n != len(replies) {
+				t.Errorf("via the PDP %t: %d calls of %s sent %d requests", viaPDP, len(replies),
+					call.name, n)
+			}
+		}
+	}
+}
+
+// TestBulkRelationshipTupleNotFound checks the 404 of BulkCreate and BulkDelete, through the API
+// and through the PDP container: as the body names the relationship tuples, an *Error that
+// matches ErrNotFound, never nil, for a 404 of the API, with or without a body, and of the
+// container with a body, after one request, also with a retry policy that allows one more; and,
+// through the container, an error that matches ErrContainerPDPOnly, not ErrNotFound, for a 404
+// with an empty body.
+func TestBulkRelationshipTupleNotFound(t *testing.T) {
+	for _, tc := range []struct {
+		viaPDP        bool
+		body          string
+		containerOnly bool
+	}{
+		{viaPDP: false, body: missingTupleBody},
+		{viaPDP: false, body: ""},
+		{viaPDP: true, body: missingTupleBody},
+		{viaPDP: true, body: "", containerOnly: true},
+	} {
+		for _, call := range bulkTupleCalls {
+			api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
+			to, route, opts := tupleTarget(api, pdp, tc.viaPDP, call.route, call.pdpRoute)
+			to.Handle(route, mockpermit.Reply{Status: http.StatusNotFound, Body: tc.body})
+			c := decisionClient(t, api, pdp, append(opts, WithRetry(RetryPolicy{MaxRetries: 1}))...)
+			err := call.call(t.Context(), c.RelationshipTuples)
+			e := mustError(t, err)
+			if e.StatusCode != http.StatusNotFound || e.Op != call.op ||
+				errors.Is(err, ErrNotFound) == tc.containerOnly ||
+				errors.Is(err, ErrContainerPDPOnly) != tc.containerOnly {
+				t.Errorf("via the PDP %t: %s of a 404 with the body %q returned %v, want an "+
+					"*Error that matches ErrContainerPDPOnly: %t, and else ErrNotFound",
+					tc.viaPDP, call.name, tc.body, err, tc.containerOnly)
+			}
+			if n := len(to.Requests()); n != 1 {
+				t.Errorf("via the PDP %t: %s of a 404 sent %d requests, want 1", tc.viaPDP,
+					call.name, n)
+			}
+		}
+	}
+}
+
+// TestRelationshipTupleBodies checks the bodies of Create, Delete, BulkCreate and BulkDelete,
+// byte for byte against the golden files in testdata/golden: a create with a tenant and one
+// without, which leaves the tenant out, not empty; the zero create and the zero delete, which
+// hold the subject, the relation and the object, empty; and the JSON object of each bulk call,
+// whose operations or idents hold the items in order, with <, > and & as they are and the zero
+// item too, and [] for nil and for an empty slice.
 func TestRelationshipTupleBodies(t *testing.T) {
 	created := func(tuple models.RelationshipTupleCreate) func(s *RelationshipTuplesService) error {
 		return func(s *RelationshipTuplesService) error {
@@ -356,8 +457,22 @@ func TestRelationshipTupleBodies(t *testing.T) {
 	deleted := func(tuple models.RelationshipTupleDelete) func(s *RelationshipTuplesService) error {
 		return func(s *RelationshipTuplesService) error { return s.Delete(t.Context(), tuple) }
 	}
+	bulkCreated := func(tuples []models.RelationshipTupleCreate,
+	) func(s *RelationshipTuplesService) error {
+		return func(s *RelationshipTuplesService) error { return s.BulkCreate(t.Context(), tuples) }
+	}
+	bulkDeleted := func(tuples []models.RelationshipTupleDelete,
+	) func(s *RelationshipTuplesService) error {
+		return func(s *RelationshipTuplesService) error { return s.BulkDelete(t.Context(), tuples) }
+	}
 	noTenant := parentTuple
 	noTenant.Tenant = ""
+	other := models.RelationshipTupleCreate{
+		Subject: "folder:<f&2>", Relation: "parent", Object: "document:doc-2",
+	}
+	otherKey := models.RelationshipTupleDelete{
+		Subject: other.Subject, Relation: other.Relation, Object: other.Object,
+	}
 	ok := mockpermit.Reply{Body: tupleBody}
 	gone := mockpermit.Reply{Status: http.StatusNoContent}
 	for _, tc := range []struct {
@@ -377,6 +492,30 @@ func TestRelationshipTupleBodies(t *testing.T) {
 			"delete_relationship_tuple.empty.golden", deleteTupleRoute, gone,
 			deleted(models.RelationshipTupleDelete{}),
 		},
+		{
+			"bulk_create_relationship_tuples.items.golden", bulkCreateTuplesRoute, gone,
+			bulkCreated([]models.RelationshipTupleCreate{parentTuple, other, {}}),
+		},
+		{
+			"bulk_create_relationship_tuples.empty.golden", bulkCreateTuplesRoute, gone,
+			bulkCreated(nil),
+		},
+		{
+			"bulk_create_relationship_tuples.empty.golden", bulkCreateTuplesRoute, gone,
+			bulkCreated([]models.RelationshipTupleCreate{}),
+		},
+		{
+			"bulk_delete_relationship_tuples.items.golden", bulkDeleteTuplesRoute, gone,
+			bulkDeleted([]models.RelationshipTupleDelete{parentTupleKey, otherKey, {}}),
+		},
+		{
+			"bulk_delete_relationship_tuples.empty.golden", bulkDeleteTuplesRoute, gone,
+			bulkDeleted(nil),
+		},
+		{
+			"bulk_delete_relationship_tuples.empty.golden", bulkDeleteTuplesRoute, gone,
+			bulkDeleted([]models.RelationshipTupleDelete{}),
+		},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
 			api := mockpermit.NewAPI(t)
@@ -394,8 +533,9 @@ func TestRelationshipTupleBodies(t *testing.T) {
 }
 
 // TestRelationshipTupleRetries checks when a call of the relationship tuples sends its request
-// again: Create, which the API may have acted on, after a 429 only, so a 503 ends it after one
-// request; Delete, List and ListDetailed, which do the same when sent twice, after a 503 too.
+// again: Create and BulkCreate, which the API may have acted on, after a 429 only, so a 503 ends
+// each after one request; Delete, BulkDelete, List and ListDetailed, which do the same when sent
+// twice, after a 503 too.
 func TestRelationshipTupleRetries(t *testing.T) {
 	again := http.Header{"Retry-After": {"0"}}
 	limited := mockpermit.Reply{Status: http.StatusTooManyRequests, Header: again, Body: `{}`}
@@ -406,6 +546,9 @@ func TestRelationshipTupleRetries(t *testing.T) {
 	create := func(s *RelationshipTuplesService) error {
 		_, err := s.Create(t.Context(), parentTuple)
 		return err
+	}
+	bulkCreate := func(s *RelationshipTuplesService) error {
+		return s.BulkCreate(t.Context(), []models.RelationshipTupleCreate{parentTuple})
 	}
 	for _, tc := range []struct {
 		name    string
@@ -424,10 +567,26 @@ func TestRelationshipTupleRetries(t *testing.T) {
 			status: http.StatusServiceUnavailable,
 		},
 		{
+			name: "BulkCreate after a 429", route: bulkCreateTuplesRoute,
+			replies: []mockpermit.Reply{limited, gone}, call: bulkCreate,
+		},
+		{
+			name: "BulkCreate after a 503", route: bulkCreateTuplesRoute,
+			replies: []mockpermit.Reply{unavailable}, call: bulkCreate,
+			status: http.StatusServiceUnavailable,
+		},
+		{
 			name: "Delete after a 503", route: deleteTupleRoute,
 			replies: []mockpermit.Reply{unavailable, gone},
 			call: func(s *RelationshipTuplesService) error {
 				return s.Delete(t.Context(), parentTupleKey)
+			},
+		},
+		{
+			name: "BulkDelete after a 503", route: bulkDeleteTuplesRoute,
+			replies: []mockpermit.Reply{unavailable, gone},
+			call: func(s *RelationshipTuplesService) error {
+				return s.BulkDelete(t.Context(), []models.RelationshipTupleDelete{parentTupleKey})
 			},
 		},
 		{
@@ -603,6 +762,9 @@ func TestRelationshipTuplesAfterClose(t *testing.T) {
 			}
 			_, createErr := s.Create(ctx, parentTuple)
 			errs = append(errs, createErr, deleteTuple(ctx, s))
+			for _, call := range bulkTupleCalls {
+				errs = append(errs, call.call(ctx, s))
+			}
 			for i, err := range errs {
 				if !errors.Is(err, ErrClosed) {
 					t.Errorf("call %d after Close returned %v, want ErrClosed", i, err)
@@ -651,11 +813,11 @@ func TestRelationshipTuplesWaitForSync(t *testing.T) {
 }
 
 // TestRelationshipTuplesWaitForSyncMisuse checks the calls through a copy of WaitForSync that
-// cannot wait: List, All, ListDetailed, AllDetailed and Delete, which the PDP container answers
-// without waiting, from a client that sends facts to the PDP container and from one that sends
-// them to the API; and Create from a client that sends facts to the API, or with a negative
-// timeout. Each returns an error that matches ErrInvalidConfig and names the operation and the
-// rule, and sends no request, not even the lookup of the scope.
+// cannot wait: List, All, ListDetailed, AllDetailed, Delete, BulkCreate and BulkDelete, which the
+// PDP container answers without waiting, from a client that sends facts to the PDP container and
+// from one that sends them to the API; and Create from a client that sends facts to the API, or
+// with a negative timeout. Each returns an error that matches ErrInvalidConfig and names the
+// operation and the rule, and sends no request, not even the lookup of the scope.
 func TestRelationshipTuplesWaitForSyncMisuse(t *testing.T) {
 	type misuse struct {
 		name    string
@@ -699,6 +861,9 @@ func TestRelationshipTuplesWaitForSyncMisuse(t *testing.T) {
 			},
 		},
 		{name: "Delete", op: opDeleteRelationshipTuple, call: deleteTuple},
+	}
+	for _, call := range bulkTupleCalls {
+		calls = append(calls, misuse{name: call.name, op: call.op, call: call.call})
 	}
 	cases := []misuse{
 		{

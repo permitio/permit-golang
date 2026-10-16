@@ -31,11 +31,12 @@
 // list of them, as roleAssignments and detailedRoleAssignments say, and their bulk assignment and
 // unassignment, whose bodies are JSON arrays, as bulkRoleAssignments says. It filters the lists
 // of the relationship tuples by their tenant, subject, relation and object, as relationshipTuples
-// says, and answers their detailed list with the same tuples in the paginated object, as answer
-// says. It answers the bulk creates, replaces and deletes of the users, the tenants and the
-// resource instances, as bulkWrite and bulkDelete say. A delete of a condition set rule that the
-// fake does not hold gets 404, as a DELETE of a collection with a body does; the API's
-// documentation says that it skips such a delete, and what the API answers is not confirmed yet.
+// says, answers their detailed list with the same tuples in the paginated object, as answer
+// says, and their bulk create and delete, as bulkRelationshipTuples says. It answers the bulk
+// creates, replaces and deletes of the users, the tenants and the resource instances, as
+// bulkWrite and bulkDelete say. A delete of a condition set rule that the fake does not hold gets
+// 404, as a DELETE of a collection with a body does; the API's documentation says that it skips
+// such a delete, and what the API answers is not confirmed yet.
 //
 // A request to a route that the fake was not given fails the test, whatever its API key. Each
 // other request must carry an API key that the fake knows: the project's, or one it issued. An

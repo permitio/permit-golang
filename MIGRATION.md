@@ -3405,7 +3405,7 @@ in place of a `*time.Duration` whose nil meant the timeout of the configuration,
 place of `api.WaitForSyncOptions`, as [M-facts-3](#M-facts-3) says. It returns a copy of the
 service whose calls carry the wait; the service that it is called on keeps none. Only `Create`
 waits for sync: the PDP container waits on `POST /facts/relationship_tuples`, and answers the
-delete and the lists without waiting. v1's copy sent the headers of the wait with
+delete, the lists and the bulk calls without waiting. v1's copy sent the headers of the wait with
 each of its calls; in v2, any other call through the copy is an error that matches
 `permit.ErrInvalidConfig`, and no request is sent. A client without `permit.WithFactsViaPDP()` gets
 the same error for every call through the copy, as only the PDP container waits; v1 logged a
@@ -3446,6 +3446,56 @@ twice leaves it deleted. v1 sent it to the Permit API also with `WithProxyFactsV
 which answers without waiting for sync, so a call through a copy of
 `RelationshipTuplesService.WaitForSync` is an error that matches `permit.ErrInvalidConfig`, as
 [M-relationship-tuples-4](#M-relationship-tuples-4) says.
+
+<a id="M-relationship-tuples-8"></a>
+### M-relationship-tuples-8: RelationshipTuples.BulkCreate takes a slice of models.RelationshipTupleCreate
+
+- v1: `api.RelationshipTuples.BulkCreate`
+- v2: `permit.RelationshipTuplesService.BulkCreate`
+
+`client.RelationshipTuples.BulkCreate(ctx, tuples)` takes the `[]models.RelationshipTupleCreate`
+that the `Operations` of v1's `models.RelationshipTupleCreateBulkOperation` held, in place of the
+`models.RelationshipTupleCreateBulkOperation` that
+`client.Api.RelationshipTuples.BulkCreate(ctx, operation)` took, and sends
+`POST /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk` with them in `operations`, in order,
+as v1 did. Build each tuple as a struct literal of `models.RelationshipTupleCreate`, whose
+`Tenant` is left out when empty, as [M-relationship-tuples-5](#M-relationship-tuples-5) says. v1
+sent `null` for nil `Operations` and `[]` for an empty slice; v2 sends `[]` for both. It returns
+only an error, as v1 did, and nil for every reply in 200-299, whose body v2 does not read, as the
+API's spec gives the reply no field. v1 returned nil for an empty body, and an error for any other
+body that was neither a JSON object nor `null`, such as a JSON array, or that came without a JSON
+`Content-Type`. A 400, which the API's documentation says rejects the whole request and creates
+none of the tuples, is a `*permit.Error` with the status and the body of the reply, and a 404
+matches `permit.ErrNotFound`. It is sent again only after a 429, as [M-wire-5](#M-wire-5) says, as
+the API may have created the relationship tuples when a request got no complete reply. v1 sent it
+to the Permit API also with `WithProxyFactsViaPDP(true)`; with `permit.WithFactsViaPDP()`, v2
+sends it to the PDP container, `POST /facts/relationship_tuples/bulk`, which answers without
+waiting for sync, so a call through a copy of `RelationshipTuplesService.WaitForSync` is an error
+that matches `permit.ErrInvalidConfig`, as [M-relationship-tuples-4](#M-relationship-tuples-4)
+says.
+
+<a id="M-relationship-tuples-9"></a>
+### M-relationship-tuples-9: RelationshipTuples.BulkDelete takes a slice of models.RelationshipTupleDelete
+
+- v1: `api.RelationshipTuples.BulkDelete`
+- v2: `permit.RelationshipTuplesService.BulkDelete`
+
+`client.RelationshipTuples.BulkDelete(ctx, tuples)` takes the `[]models.RelationshipTupleDelete`
+that the `Idents` of v1's `models.RelationshipTupleDeleteBulkOperation` held, in place of the
+`models.RelationshipTupleDeleteBulkOperation` that
+`client.Api.RelationshipTuples.BulkDelete(ctx, operation)` took, and sends
+`DELETE /v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk` with them in `idents`, in order, as
+v1 did; each holds its subject, its relation and its object, also when they are empty. v1 sent
+`null` for nil `Idents` and `[]` for an empty slice; v2 sends `[]` for both. It returns only an
+error, as v1 did, and nil for every reply in 200-299, whose body v2 does not read; v1 read that
+body as it read the reply to `BulkCreate`, as
+[M-relationship-tuples-8](#M-relationship-tuples-8) says. A 404 is a `*permit.Error` that matches
+`permit.ErrNotFound`, never nil, as the body names the relationship tuples to delete and a 404 can
+mean a mistyped key. It is sent again after a 500, 502, 503 or 504 reply or a failed connection,
+as after a 429, as deleting relationship tuples twice leaves them deleted. v1 sent it to the
+Permit API also with `WithProxyFactsViaPDP(true)`; with `permit.WithFactsViaPDP()`, v2 sends it to
+the PDP container, `DELETE /facts/relationship_tuples/bulk`, which answers without waiting for
+sync, as `BulkCreate` does.
 
 <a id="M-proxy-configs-1"></a>
 ### M-proxy-configs-1: ProxyConfigs becomes Client.ProxyConfigs, which acts on the environment of the scope
@@ -3847,7 +3897,9 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.RelationRead` | `models.RelationRead` |
 | `models.RelationshipTupleBlockRead` | `models.RelationshipTupleBlockRead` |
 | `models.RelationshipTupleCreate` | `models.RelationshipTupleCreate` |
+| `models.RelationshipTupleCreateBulkOperation` | `models.RelationshipTupleCreateBulkOperation` |
 | `models.RelationshipTupleDelete` | `models.RelationshipTupleDelete` |
+| `models.RelationshipTupleDeleteBulkOperation` | `models.RelationshipTupleDeleteBulkOperation` |
 | `models.RelationshipTupleRead` | `models.RelationshipTupleRead` |
 | `models.RemoveRolePermissions` | `models.RemoveRolePermissions` |
 | `models.ResourceActionCreate` | `models.ResourceActionCreate` |
@@ -3892,6 +3944,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.UserRoleRemove` | `models.UserRoleRemove` |
 | `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 290 of the 384 types of v1's pkg/models.
+Not mapped yet: 288 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

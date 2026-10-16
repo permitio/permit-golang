@@ -198,6 +198,7 @@ var cloudScenarios = []scenario{
 			"RelationshipTuplesService.List", "RelationshipTuplesService.All",
 			"RelationshipTuplesService.ListDetailed", "RelationshipTuplesService.AllDetailed",
 			"RelationshipTuplesService.Create", "RelationshipTuplesService.Delete",
+			"RelationshipTuplesService.BulkCreate", "RelationshipTuplesService.BulkDelete",
 		},
 		run: relationshipTupleLifecycle,
 	},

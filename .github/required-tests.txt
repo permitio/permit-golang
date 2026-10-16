@@ -1284,6 +1284,8 @@ github.com/permitio/permit-golang/v2 TestRelationshipTuplesAllReadsTheOptionsOnc
 github.com/permitio/permit-golang/v2 TestRelationshipTupleFilters
 github.com/permitio/permit-golang/v2 TestRelationshipTuplesScope
 github.com/permitio/permit-golang/v2 TestRelationshipTupleDeleteReplies
+github.com/permitio/permit-golang/v2 TestBulkRelationshipTupleReplies
+github.com/permitio/permit-golang/v2 TestBulkRelationshipTupleNotFound
 github.com/permitio/permit-golang/v2 TestRelationshipTupleBodies
 github.com/permitio/permit-golang/v2 TestRelationshipTupleRetries
 github.com/permitio/permit-golang/v2 TestMalformedRelationshipTupleReplies
@@ -1293,6 +1295,7 @@ github.com/permitio/permit-golang/v2 TestRelationshipTuplesWaitForSync
 github.com/permitio/permit-golang/v2 TestRelationshipTuplesWaitForSyncMisuse
 github.com/permitio/permit-golang/v2 ExampleRelationshipTuplesService
 github.com/permitio/permit-golang/v2 ExampleRelationshipTuplesService_WaitForSync
+github.com/permitio/permit-golang/v2 ExampleRelationshipTuplesService_BulkCreate
 
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllYieldsAnErrorOnce
@@ -1394,6 +1397,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoleAssignmentLists
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRoleAssignments
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRelationshipTuples
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkFacts
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRelationshipTuples
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants

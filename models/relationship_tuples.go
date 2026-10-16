@@ -146,3 +146,21 @@ type RelationshipTupleDelete struct {
 	// Object is the object, as <resource>:<key>, such as document:doc-1, or its ID.
 	Object string `json:"object"`
 }
+
+// RelationshipTupleCreateBulkOperation is the body of a bulk create of relationship tuples,
+// which RelationshipTuplesService.BulkCreate of the root package sends.
+type RelationshipTupleCreateBulkOperation struct {
+	// Operations are the relationship tuples to create, in order, at most 1000, as the API's
+	// spec says. The request always holds them: RelationshipTuplesService.BulkCreate sends []
+	// for a nil slice.
+	Operations []RelationshipTupleCreate `json:"operations"`
+}
+
+// RelationshipTupleDeleteBulkOperation is the body of a bulk delete of relationship tuples,
+// which RelationshipTuplesService.BulkDelete of the root package sends.
+type RelationshipTupleDeleteBulkOperation struct {
+	// Idents name the relationship tuples to delete, in order, at most 1000, as the API's spec
+	// says. The request always holds them: RelationshipTuplesService.BulkDelete sends [] for a
+	// nil slice.
+	Idents []RelationshipTupleDelete `json:"idents"`
+}

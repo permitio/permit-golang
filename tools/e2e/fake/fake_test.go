@@ -140,6 +140,14 @@ var routes = []Route{
 		"GET", "/v2/facts/{proj_id}/{env_id}/relationship_tuples/detailed",
 		opListRelationshipTuplesDetailed,
 	},
+	{
+		"POST", "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk",
+		opBulkCreateRelationshipTuples,
+	},
+	{
+		"DELETE", "/v2/facts/{proj_id}/{env_id}/relationship_tuples/bulk",
+		opBulkDeleteRelationshipTuples,
+	},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/bulk/users", opBulkCreateUsers},
 	{"PUT", "/v2/facts/{proj_id}/{env_id}/bulk/users", opBulkReplaceUsers},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/bulk/users", opBulkDeleteUsers},
@@ -1002,6 +1010,82 @@ func TestRelationshipTuples(t *testing.T) {
 	h.expect(404, "DELETE", tuples, key, projectKey)
 	if got, want := listed(h.list(tuples, projectKey)), d1+";"+d2; got != want {
 		t.Errorf("the relationship tuples are %q after the deletes, want %q", got, want)
+	}
+}
+
+// TestBulkRelationshipTuples checks the bulk routes of the relationship tuples, whose bodies are
+// JSON objects that the check of their operation sees: a bulk create creates each tuple of its
+// operations, in order, in the scope of its environment, skips an item that is not an object,
+// and answers an empty object, also for no tuple; a bulk delete removes each tuple that holds the
+// fields of an item of its idents, to which an item that matches none adds nothing, and answers
+// an empty object; a body that the check rejects gets 422 and fails the test; and a bulk call
+// without a body is a request that the fake does not implement.
+func TestBulkRelationshipTuples(t *testing.T) {
+	h := newHarness(t)
+	env, _ := h.createEnv("dev")
+	const (
+		tuples = "/v2/facts/proj/dev/relationship_tuples"
+		bulk   = tuples + "/bulk"
+		d1     = `{"subject": "folder:f1", "relation": "parent", "object": "document:d1"}`
+		d2     = `{"subject": "folder:f1", "relation": "parent", "object": "document:d2"}`
+		f2     = `{"subject": "folder:f2", "relation": "owner", "object": "document:d1"}`
+	)
+	listed := func() []string {
+		t.Helper()
+		var got []string
+		for _, item := range h.list(tuples, projectKey) {
+			tuple, _ := item.(map[string]any)
+			if tuple["environment_id"] != env["id"] || text(tuple, "id") == "" {
+				t.Errorf("the relationship tuple %v has no ID or another environment", tuple)
+			}
+			got = append(got, text(tuple, "subject")+" "+text(tuple, "relation")+" "+
+				text(tuple, "object"))
+		}
+		return got
+	}
+	before := len(h.checked)
+	created := h.expect(200, "POST", bulk, `{"operations": [`+d1+`, 1, `+d2+`, `+f2+`]}`,
+		projectKey)
+	if got := h.expect(200, "POST", bulk, `{"operations": []}`, projectKey); len(created) != 0 ||
+		len(got) != 0 {
+		t.Errorf("the bulk creates answered %v and %v, want empty objects", created, got)
+	}
+	want := []string{
+		"folder:f1 parent document:d1", "folder:f1 parent document:d2",
+		"folder:f2 owner document:d1",
+	}
+	if got := listed(); !slices.Equal(got, want) {
+		t.Errorf("the relationship tuples are %q after the bulk create, want %q", got, want)
+	}
+	removed := h.expect(200, "DELETE", bulk, `{"idents": [`+d1+`, "x", `+d2+`, `+
+		`{"subject": "folder:f9", "relation": "parent", "object": "document:d9"}]}`, projectKey)
+	if len(removed) != 0 {
+		t.Errorf("the bulk delete answered %v, want an empty object", removed)
+	}
+	if got := listed(); !slices.Equal(got, want[2:]) {
+		t.Errorf("the relationship tuples are %q after the bulk delete, want %q", got, want[2:])
+	}
+	if got := h.checked[before:]; !slices.Equal(got, []string{
+		opBulkCreateRelationshipTuples, opBulkCreateRelationshipTuples,
+		opBulkDeleteRelationshipTuples,
+	}) {
+		t.Errorf("the check saw the bodies of %q, want those of the bulk routes", got)
+	}
+	h.expect(422, "DELETE", bulk, `{"idents": "bad"}`, projectKey)
+	if errs := h.tb.take(); len(errs) != 1 {
+		t.Errorf("the rejected body got the errors %q, want one", errs)
+	}
+	for _, method := range []string{"POST", "DELETE"} {
+		h.do(method, bulk, "", projectKey)
+		if errs := h.tb.take(); len(errs) != 1 || !strings.Contains(errs[0],
+			"relationship_tuples): the fake does not implement") {
+			t.Errorf("a bulk %s without a body reported %q, want that the fake does not "+
+				"implement it", method, errs)
+		}
+	}
+	if got := listed(); !slices.Equal(got, want[2:]) {
+		t.Errorf("the relationship tuples are %q after the rejected requests, want %q", got,
+			want[2:])
 	}
 }
 

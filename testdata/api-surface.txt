@@ -442,10 +442,14 @@ models: type RelationshipTupleCreate struct, Object string
 models: type RelationshipTupleCreate struct, Relation string
 models: type RelationshipTupleCreate struct, Subject string
 models: type RelationshipTupleCreate struct, Tenant string
+models: type RelationshipTupleCreateBulkOperation struct
+models: type RelationshipTupleCreateBulkOperation struct, Operations []RelationshipTupleCreate
 models: type RelationshipTupleDelete struct
 models: type RelationshipTupleDelete struct, Object string
 models: type RelationshipTupleDelete struct, Relation string
 models: type RelationshipTupleDelete struct, Subject string
+models: type RelationshipTupleDeleteBulkOperation struct
+models: type RelationshipTupleDeleteBulkOperation struct, Idents []RelationshipTupleDelete
 models: type RelationshipTupleDetailedRead RelationshipTupleRead
 models: type RelationshipTupleRead struct
 models: type RelationshipTupleRead struct, CreatedAt Time
@@ -952,6 +956,8 @@ permit: method (*ProxyConfigsService) List(ctx context.Context, opts *ListOption
 permit: method (*ProxyConfigsService) Update(ctx context.Context, proxyConfigKey string, update models.ProxyConfigUpdate) (*models.ProxyConfigRead, error)
 permit: method (*RelationshipTuplesService) All(ctx context.Context, opts *RelationshipTuplesListOptions) iter.Seq2[models.RelationshipTupleRead, error]
 permit: method (*RelationshipTuplesService) AllDetailed(ctx context.Context, opts *RelationshipTuplesListOptions) iter.Seq2[models.RelationshipTupleDetailedRead, error]
+permit: method (*RelationshipTuplesService) BulkCreate(ctx context.Context, tuples []models.RelationshipTupleCreate) error
+permit: method (*RelationshipTuplesService) BulkDelete(ctx context.Context, tuples []models.RelationshipTupleDelete) error
 permit: method (*RelationshipTuplesService) Create(ctx context.Context, tuple models.RelationshipTupleCreate) (*models.RelationshipTupleRead, error)
 permit: method (*RelationshipTuplesService) Delete(ctx context.Context, tuple models.RelationshipTupleDelete) error
 permit: method (*RelationshipTuplesService) List(ctx context.Context, opts *RelationshipTuplesListOptions) (*Page[models.RelationshipTupleRead], error)

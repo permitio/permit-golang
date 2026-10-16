@@ -177,6 +177,12 @@
     "RelationshipTuplesService.AllDetailed": [
       "list_relationship_tuples_detailed"
     ],
+    "RelationshipTuplesService.BulkCreate": [
+      "bulk_create_relationship_tuples"
+    ],
+    "RelationshipTuplesService.BulkDelete": [
+      "bulk_delete_relationship_tuples"
+    ],
     "RelationshipTuplesService.Create": [
       "create_relationship_tuple"
     ],

@@ -15,8 +15,6 @@
 api.Elements elements
 api.Elements.* elements
 api.NewElementsApi elements
-api.RelationshipTuples.BulkCreate relationship-tuples
-api.RelationshipTuples.BulkDelete relationship-tuples
 
 # Block b: operations of pkg/openapi
 openapi.AuthenticationApiService.ElementsLoginAs elements

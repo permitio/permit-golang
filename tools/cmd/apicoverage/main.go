@@ -18,7 +18,9 @@
 //     pdp-cloud.json, such as the one specsnap -check-live -out writes, to read instead of the
 //     committed ones.
 //   - -map names the operation map, testdata/operation-map.json by default: the operations that
-//     the wire cases of each public method send, which TestOperationMap keeps.
+//     the wire cases of each public method send, and in facts_via_pdp the routes under /facts
+//     that those of a method of the facts API send to the PDP container, which TestOperationMap
+//     keeps. A row of pdp names each method that sends one of its routes through the container.
 //   - -local names the record of a run against a full local stack: a record in the same JSONL
 //     format, whose requests all have the mode local, as that run will write it.
 //   - -local-only names the list of the methods that a run against a full local stack proves
@@ -26,7 +28,9 @@
 //     reason and phase per line; blank lines and lines that start with # are ignored.
 //   - -advisory names the list of the methods whose end-to-end scenario is advisory: one
 //     <Type>.<Method>, a space and the reason per line; blank lines and lines that start with #
-//     are ignored.
+//     are ignored. A method of the facts API on this list or on -local-only also marks each row
+//     of pdp that it sends through the PDP container, for most of them the catch-all
+//     ANY /facts/{full_path}, so that one entry waives the row's live proof under -release.
 //   - -release checks the coverage of a release, as described below.
 //   - -summary names a file to append the report to in Markdown, such as $GITHUB_STEP_SUMMARY.
 //
@@ -69,13 +73,15 @@
 //     one its path reaches;
 //   - a request to a test-only route, whose path starts with /__test/;
 //   - an excluded row whose reason is not a key of reasons, a key of reasons that no row gives,
-//     and an operation of the operation map that no row has.
+//     an operation of the operation map that no row has, and a route of its facts_via_pdp that
+//     no row of pdp takes.
 //
 // It did not run, exit 2, when the command line is wrong; a file cannot be read or parsed;
-// coverage.yaml does not have the shape its header describes; v1-routes.json names an operation
-// that is not the op of a control-plane row; a record is malformed, such as a path with a query,
-// has no session trailer, comes from a run whose tests failed or to which no test wrote, holds a
-// request of a mode it must not, or the records hold fewer requests than coverage.yaml has
+// coverage.yaml does not have the shape its header describes; a route of facts_via_pdp of the
+// operation map is not a method, a space and a path under /facts/; v1-routes.json names an
+// operation that is not the op of a control-plane row; a record is malformed, such as a path with
+// a query, has no session trailer, comes from a run whose tests failed or to which no test wrote,
+// holds a request of a mode it must not, or the records hold fewer requests than coverage.yaml has
 // covered rows, which means that tests did not run; or the summary cannot be written.
 //
 // The last line apicoverage prints is its verdict: PASS, FAIL or DID NOT RUN, a colon and what

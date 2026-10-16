@@ -335,6 +335,11 @@ func readOperationMap(file string) (map[string][]string, error) {
 	}
 	var m struct {
 		Methods map[string][]string `json:"methods"`
+
+		// FactsViaPDP holds the routes under /facts that a method sends to the PDP container,
+		// which the gate does not read: a request along one of them is a request of one of the
+		// method's operations, as the operation's route through the container.
+		FactsViaPDP map[string][]string `json:"facts_via_pdp"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()

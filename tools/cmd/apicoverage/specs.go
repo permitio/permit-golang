@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -352,12 +353,20 @@ func (s v1Seed) allows(id, route string) (string, bool) {
 const operationMapFile = "testdata/operation-map.json"
 
 // opMap is testdata/operation-map.json: the operationIds of the wire cases of each public
-// method.
+// method, and the routes under /facts that the wire cases of a method of the facts API send to
+// the PDP container, such as "POST /facts/users", whose rows the container's spec gives
+// operationIds that no wire case names.
 type opMap struct {
-	Methods map[string][]string `json:"methods"`
+	Methods     map[string][]string `json:"methods"`
+	FactsViaPDP map[string][]string `json:"facts_via_pdp"`
 }
 
-// readOperationMap reads the operation map.
+// pdpFactsPrefix starts the path of each route under which the PDP container serves the facts
+// API.
+const pdpFactsPrefix = "/facts/"
+
+// readOperationMap reads the operation map, and checks that each route of its facts_via_pdp is a
+// method, a space and a path under /facts/.
 func readOperationMap(file string) (opMap, error) {
 	var m opMap
 	if err := readJSON(file, &m); err != nil {
@@ -365,6 +374,16 @@ func readOperationMap(file string) (opMap, error) {
 	}
 	if m.Methods == nil {
 		return opMap{}, fmt.Errorf("%s has no methods object", file)
+	}
+	for _, method := range slices.Sorted(maps.Keys(m.FactsViaPDP)) {
+		for _, route := range m.FactsViaPDP[method] {
+			verb, path, err := parseRoute(route)
+			rest, under := strings.CutPrefix(path, pdpFactsPrefix)
+			if err != nil || verb == anyMethod || !under || rest == "" {
+				return opMap{}, fmt.Errorf("%s: facts_via_pdp: %s sends %q, which is not a "+
+					"method, a space and a path under %s", file, method, route, pdpFactsPrefix)
+			}
+		}
 	}
 	return m, nil
 }

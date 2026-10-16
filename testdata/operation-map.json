@@ -588,5 +588,157 @@
     "UsersService.Update": [
       "update_user"
     ]
+  },
+  "facts_via_pdp": {
+    "RelationshipTuplesService.All": [
+      "GET /facts/relationship_tuples"
+    ],
+    "RelationshipTuplesService.AllDetailed": [
+      "GET /facts/relationship_tuples/detailed"
+    ],
+    "RelationshipTuplesService.BulkCreate": [
+      "POST /facts/relationship_tuples/bulk"
+    ],
+    "RelationshipTuplesService.BulkDelete": [
+      "DELETE /facts/relationship_tuples/bulk"
+    ],
+    "RelationshipTuplesService.Create": [
+      "POST /facts/relationship_tuples"
+    ],
+    "RelationshipTuplesService.Delete": [
+      "DELETE /facts/relationship_tuples"
+    ],
+    "RelationshipTuplesService.List": [
+      "GET /facts/relationship_tuples"
+    ],
+    "RelationshipTuplesService.ListDetailed": [
+      "GET /facts/relationship_tuples/detailed"
+    ],
+    "ResourceInstancesService.All": [
+      "GET /facts/resource_instances"
+    ],
+    "ResourceInstancesService.AllDetailed": [
+      "GET /facts/resource_instances/detailed"
+    ],
+    "ResourceInstancesService.BulkDelete": [
+      "DELETE /facts/bulk/resource_instances"
+    ],
+    "ResourceInstancesService.BulkReplace": [
+      "PUT /facts/bulk/resource_instances"
+    ],
+    "ResourceInstancesService.Create": [
+      "POST /facts/resource_instances"
+    ],
+    "ResourceInstancesService.Delete": [
+      "DELETE /facts/resource_instances/{instance_id}"
+    ],
+    "ResourceInstancesService.Get": [
+      "GET /facts/resource_instances/{instance_id}"
+    ],
+    "ResourceInstancesService.List": [
+      "GET /facts/resource_instances"
+    ],
+    "ResourceInstancesService.ListDetailed": [
+      "GET /facts/resource_instances/detailed"
+    ],
+    "ResourceInstancesService.Update": [
+      "PATCH /facts/resource_instances/{instance_id}"
+    ],
+    "RoleAssignmentsService.All": [
+      "GET /facts/role_assignments"
+    ],
+    "RoleAssignmentsService.AllDetailed": [
+      "GET /facts/role_assignments/detailed"
+    ],
+    "RoleAssignmentsService.Assign": [
+      "POST /facts/role_assignments"
+    ],
+    "RoleAssignmentsService.BulkAssign": [
+      "POST /facts/role_assignments/bulk"
+    ],
+    "RoleAssignmentsService.BulkUnassign": [
+      "DELETE /facts/role_assignments/bulk"
+    ],
+    "RoleAssignmentsService.List": [
+      "GET /facts/role_assignments"
+    ],
+    "RoleAssignmentsService.ListDetailed": [
+      "GET /facts/role_assignments/detailed"
+    ],
+    "RoleAssignmentsService.Unassign": [
+      "DELETE /facts/role_assignments"
+    ],
+    "TenantsService.AddUser": [
+      "POST /facts/tenants/{tenant_id}/users"
+    ],
+    "TenantsService.All": [
+      "GET /facts/tenants"
+    ],
+    "TenantsService.AllUsers": [
+      "GET /facts/tenants/{tenant_id}/users"
+    ],
+    "TenantsService.BulkCreate": [
+      "POST /facts/bulk/tenants"
+    ],
+    "TenantsService.BulkDelete": [
+      "DELETE /facts/bulk/tenants"
+    ],
+    "TenantsService.Create": [
+      "POST /facts/tenants"
+    ],
+    "TenantsService.Delete": [
+      "DELETE /facts/tenants/{tenant_id}"
+    ],
+    "TenantsService.Get": [
+      "GET /facts/tenants/{tenant_id}"
+    ],
+    "TenantsService.List": [
+      "GET /facts/tenants"
+    ],
+    "TenantsService.ListUsers": [
+      "GET /facts/tenants/{tenant_id}/users"
+    ],
+    "TenantsService.RemoveUser": [
+      "DELETE /facts/tenants/{tenant_id}/users/{user_id}"
+    ],
+    "TenantsService.Update": [
+      "PATCH /facts/tenants/{tenant_id}"
+    ],
+    "UsersService.All": [
+      "GET /facts/users"
+    ],
+    "UsersService.AssignRole": [
+      "POST /facts/users/{user_id}/roles"
+    ],
+    "UsersService.BulkCreate": [
+      "POST /facts/bulk/users"
+    ],
+    "UsersService.BulkDelete": [
+      "DELETE /facts/bulk/users"
+    ],
+    "UsersService.BulkReplace": [
+      "PUT /facts/bulk/users"
+    ],
+    "UsersService.Create": [
+      "POST /facts/users"
+    ],
+    "UsersService.Delete": [
+      "DELETE /facts/users/{user_id}"
+    ],
+    "UsersService.Get": [
+      "GET /facts/users/{user_id}"
+    ],
+    "UsersService.List": [
+      "GET /facts/users"
+    ],
+    "UsersService.Sync": [
+      "PUT /facts/users/{user_id}"
+    ],
+    "UsersService.UnassignRole": [
+      "DELETE /facts/users/{user_id}/roles"
+    ],
+    "UsersService.Update": [
+      "PATCH /facts/users/{user_id}"
+    ]
   }
 }

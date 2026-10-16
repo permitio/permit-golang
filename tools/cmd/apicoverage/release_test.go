@@ -130,6 +130,67 @@ func TestRelease(t *testing.T) {
 	}
 }
 
+// TestReleaseOfARouteOfThePDPContainer checks a covered row of the PDP container that only a
+// wire test reaches, POST /facts/users, in a release whose local-only list names the method that
+// sends it: with the route in facts_via_pdp of the operation map, the row has the method, and the
+// list proves it; without it, the row has no method that a list could name, and it fails, as a
+// live request of the e2e job is the only proof left for it. A live request proves it either way.
+func TestReleaseOfARouteOfThePDPContainer(t *testing.T) {
+	const (
+		methods = `{"methods": {"Client.Check": ["is_allowed_allowed_post"], ` +
+			`"UsersService.Get": ["get_user"]}`
+		unlinked   = methods + "}"
+		linked     = methods + `, "facts_via_pdp": {"UsersService.Create": ["POST /facts/users"]}}`
+		createUser = "POST /facts/users (create_user_facts_users_post): "
+	)
+	wire := wireLine("pdp", "POST", "/facts/users", "/facts/users")
+	live := strings.Replace(getUser, `"wire"`, `"live"`, 1)
+	liveCreate := strings.Replace(wire, `"wire"`, `"live"`, 1)
+	tests := []struct {
+		name, opMap string
+		requests    []string
+		wantExit    int
+		want        string
+	}{
+		{
+			name:  "the method of a linked route on the local-only list",
+			opMap: linked, requests: []string{live}, wantExit: exitPassed,
+			want: createUser + "UsersService.Create; 1 request; e2e local-only\n",
+		},
+		{
+			name:  "a route that no method sends",
+			opMap: unlinked, requests: []string{live}, wantExit: exitFailed,
+			want: "problem: pdp POST /facts/users: e2e none: a release needs each covered row " +
+				"proven end to end",
+		},
+		{
+			name:  "a live request to a route that no method sends",
+			opMap: unlinked, requests: []string{live, liveCreate}, wantExit: exitPassed,
+			want: createUser + "no wire case names it; 2 requests; e2e cloud\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newFixture(t)
+			decideEveryRow(t, f)
+			f.edit(coverageFile, `route: "POST /facts/users", stage: GA, status: excluded, `+
+				`reason: operator}`, `route: "POST /facts/users", stage: GA, status: covered}`)
+			f.write(f.opMap, tt.opMap)
+			localOnly := f.raw("local-only.txt", "UsersService.Create org-key api.users\n")
+			advisory := f.raw("advisory.txt", "Client.Check the PDP image may lag\n")
+
+			code, out := f.run("-release", "-local-only", localOnly, "-advisory", advisory,
+				f.record("wire.jsonl", getUser, checkAllowed, wire),
+				f.record("e2e.jsonl", tt.requests...))
+
+			if code != tt.wantExit || !strings.Contains(out, tt.want) {
+				t.Errorf("apicoverage exited %d and printed\n%s\nwant %d and %q", code, out,
+					tt.wantExit, tt.want)
+			}
+		})
+	}
+}
+
 // Without -release, neither a planned row nor a covered row without end-to-end evidence fails.
 func TestPlannedRowsPassWithoutRelease(t *testing.T) {
 	f := newFixture(t)

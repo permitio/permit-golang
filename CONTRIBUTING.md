@@ -1486,9 +1486,13 @@ wire test's request is recorded once, by the `mockpermit` server. Requests to th
 routes, under `/__test/`, are never recorded.
 
 A record holds no method names, so `testdata/operation-map.json` maps each public method to the
-operations its wire cases send. `TestOperationMap` fails when a wire case names an operation that
-the [operation registry](#operation-registry) does not hold, and when the map is stale; rewrite
-it and review its diff:
+operations its wire cases send, and under `facts_via_pdp` each method of the facts API to the
+routes under `/facts` that its cases send to the PDP container in the mode `facts-via-pdp`, such
+as `POST /facts/users`. The container's spec gives those routes operationIds that no wire case
+names, so apicoverage names the method on the row of `pdp` that each route reaches: the route's
+own row, or the catch-all `ANY /facts/{full_path}`. `TestOperationMap` fails when a wire case
+names an operation that the [operation registry](#operation-registry) does not hold, and when
+the map is stale; rewrite it and review its diff:
 
 ```sh
 go test -run TestOperationMap -update .
@@ -1535,7 +1539,9 @@ bin/apicoverage -advisory tools/e2e/advisory.txt bin/api-coverage.jsonl bin/e2e-
 With `-release`, apicoverage also fails on each planned row, as a release covers every operation
 it plans, and on each covered row whose end-to-end state is `dry run` or `none`. The
 [release workflow](#releases) runs it with the record of its own `e2e` job, whose requests are
-live, and `-local-only tools/e2e/local-only.txt`.
+live, and `-local-only tools/e2e/local-only.txt`. A method of the facts API on that list or on
+the `-advisory` list also marks each row of `pdp` that it sends through the PDP container, for
+most of them the catch-all `ANY /facts/{full_path}`, so that one entry waives the row's live proof.
 
 ## End-to-end tests
 
@@ -1577,7 +1583,11 @@ instance, and the permissions of its roles and resource roles. A role assignment
 its user, tenant, role and instance were created before it, as the Permit API refuses one that names
 an object that does not exist, so a seed that leaves an object out, or creates it too late, grants
 nothing. It checks each body against the spec of the PDP container,
-`tools/specs/pdp-container.json`, as the fake of the Permit API does. It is an approximation that
+`tools/specs/pdp-container.json`, as the fake of the Permit API does. As the PDP container, it
+sends each request under `/facts` on to the fake of the Permit API, under
+`/v2/facts/{proj_id}/{env_id}` of the environment of its API key, which answers it and checks its
+body as a request of the API's route, as the container sends it on to the Permit API; as the cloud
+PDP, it answers each with 404 and an empty body. It is an approximation that
 proves that a scenario's calls and its seed reach a PDP, never how the PDP decides: it knows no
 attributes, conditions, relations or role derivations, lists tenants without attributes, and filters
 the role assignments that it lists by user only. The `test` job runs the dry run on every pull

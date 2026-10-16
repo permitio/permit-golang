@@ -57,7 +57,8 @@
 // [Fake.StartPDP] starts a fake of the PDP container or of the cloud PDP beside it, which answers
 // the decisions and the lists of the PDP that the scenarios send from the same store: an
 // approximation that proves that a scenario's calls and its seed reach a PDP, never how the PDP
-// decides.
+// decides. The fake PDP container sends each request under /facts on to the fake, as the PDP
+// container sends it on to the Permit API.
 package fake
 
 import (
@@ -326,23 +327,32 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 			"the API key is not one that the fake knows"))
 		return
 	}
+	f.request = r.Method + " " + r.URL.Path
+	status, answer := f.handle(rt, values, key, r.URL.Query(), body)
+	reply(w, status, answer)
+}
+
+// handle answers a request to rt, a route that the fake serves, made with key: values are the
+// segments of its path, unescaped, as match returns them, and query and body its query and its
+// body. The caller holds f.mu, and has set f.request, which names the request that creates an
+// object.
+func (f *Fake) handle(rt route, values []string, key scope, query url.Values,
+	body []byte,
+) (int, any) {
 	segments, status, message := f.resolve(rt, values, key)
 	if status != 0 {
-		reply(w, status, errorBody(http.StatusText(status), message))
-		return
+		return status, errorBody(http.StatusText(status), message)
 	}
-	if message, refused := refusal(rt.Op, r.URL.Query()); refused {
+	if message, refused := refusal(rt.Op, query); refused {
 		f.tb.Errorf("fake: %s %s (%s): %s, so it could not apply it", rt.Method, rt.Template,
 			rt.Op, message)
-		reply(w, http.StatusBadRequest, errorBody("BAD_REQUEST", message))
-		return
+		return http.StatusBadRequest, errorBody("BAD_REQUEST", message)
 	}
-	f.request = r.Method + " " + r.URL.Path
 	var (
 		fields object
 		items  []object
 	)
-	ok = true
+	ok := true
 	switch {
 	case arrayBodies[rt.Op]:
 		items, ok = f.checkItems(rt, body)
@@ -350,17 +360,13 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		fields, ok = f.checkBody(rt, body)
 	}
 	if !ok {
-		reply(w, http.StatusUnprocessableEntity, errorBody("VALIDATION_ERROR",
-			"the body does not fit its schema"))
-		return
+		return http.StatusUnprocessableEntity, errorBody("VALIDATION_ERROR",
+			"the body does not fit its schema")
 	}
-	var answer any
 	if arrayBodies[rt.Op] {
-		status, answer = f.bulkRoleAssignments(rt, segments, items)
-	} else {
-		status, answer = f.answer(rt, segments, fields, key, r.URL.Query())
+		return f.bulkRoleAssignments(rt, segments, items)
 	}
-	reply(w, status, answer)
+	return f.answer(rt, segments, fields, key, query)
 }
 
 // match returns the route of method whose template matches escaped, an escaped path, and the

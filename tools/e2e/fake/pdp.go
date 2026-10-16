@@ -2,7 +2,6 @@ package fake
 
 import (
 	"bytes"
-	"cmp"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -18,11 +17,12 @@ import (
 type PDPKind int
 
 const (
-	// ContainerPDP is the PDP container, which serves each route of pdpRoutes.
+	// ContainerPDP is the PDP container, which serves each route of pdpRoutes, and every path
+	// under /facts.
 	ContainerPDP PDPKind = iota
 
-	// CloudPDP is the cloud PDP, which answers each route that only the PDP container serves with
-	// 404 and an empty body.
+	// CloudPDP is the cloud PDP, which answers each route that only the PDP container serves, and
+	// every path under /facts, with 404 and an empty body.
 	CloudPDP
 )
 
@@ -74,24 +74,12 @@ var pdpRoutes = []pdpRoute{
 		http.MethodGet, "/local/role_assignments",
 		"list_role_assignments_local_role_assignments_get", true, (*Fake).localRoleAssignments,
 	},
-	{
-		http.MethodPost, "/facts/role_assignments",
-		"create_role_assignment_facts_role_assignments_post", true, (*Fake).factsAssignRole,
-	},
-	{
-		http.MethodDelete, "/facts/role_assignments",
-		"delete_role_assignment_facts_role_assignments_delete", true, (*Fake).factsUnassignRole,
-	},
 }
 
-// forwarded are the operations of the routes under /facts that the PDP container sends on to the
-// Permit API, whose bodies the container's spec does not describe, each with the operation of the
-// route of the API that the container sends it on to, whose body the check of a body reads
-// instead.
-var forwarded = map[string]string{
-	"create_role_assignment_facts_role_assignments_post":   "assign_role",
-	"delete_role_assignment_facts_role_assignments_delete": "unassign_role",
-}
+// factsPrefix starts each path under which the PDP container serves the facts API, which it
+// sends on to the Permit API, under /v2/facts/{proj_id}/{env_id} of the environment of its own
+// API key.
+const factsPrefix = "/facts/"
 
 // StartPDP starts a fake PDP of the kind kind, which f's test closes when it ends, and returns
 // its base URL, such as http://127.0.0.1:52345.
@@ -107,16 +95,17 @@ var forwarded = map[string]string{
 // resource. It knows no other policy: no attributes, no conditions, no
 // relations and no role derivations, and it lists tenants without attributes. It is an
 // approximation that proves that a scenario's calls and its seed, in the order of the seed,
-// reach a PDP, never how the PDP decides; the live legs prove that. The fake PDP also serves the
-// assignment and the unassignment of a role under /facts, which it makes in f's store as the
-// PDP container sends them on to the Permit API, as factsRoleAssignment says.
+// reach a PDP, never how the PDP decides; the live legs prove that. As the PDP container, the
+// fake PDP also serves every path under /facts, which it sends on to f's Permit API as the PDP
+// container does, as serveFacts says.
 //
 // Each request must carry the API key of an environment that f issued, or it gets 401. Each body
-// goes through f's check, which the scenarios give the spec of the PDP container, or for a route
-// of forwarded that of the API's route, and a body that the check rejects gets 422 and fails the
+// goes through f's check, which the scenarios give the spec of the PDP container, or for a path
+// under /facts that of the API's route, and a body that the check rejects gets 422 and fails the
 // test, as a request to a route of no pdpRoutes and a request that the fake does not implement
-// do. As the cloud PDP, the fake answers each route that only the PDP container serves with 404
-// and an empty body, as the cloud PDP does, whatever the request's API key.
+// do. As the cloud PDP, the fake answers each route that only the PDP container serves, and every
+// path under /facts, with 404 and an empty body, as the cloud PDP does, whatever the request's
+// API key.
 func (f *Fake) StartPDP(kind PDPKind) string {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.servePDP(kind, w, r)
@@ -132,6 +121,10 @@ func pdpError(detail string) object {
 
 // servePDP serves one request to a fake PDP of the kind kind.
 func (f *Fake) servePDP(kind PDPKind, w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, factsPrefix) {
+		f.serveFacts(kind, w, r)
+		return
+	}
 	i := slices.IndexFunc(pdpRoutes, func(rt pdpRoute) bool {
 		return rt.method == r.Method && rt.path == r.URL.Path
 	})
@@ -163,16 +156,59 @@ func (f *Fake) servePDP(kind PDPKind, w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusUnprocessableEntity, pdpError("the body does not fit its schema"))
 		return
 	}
-	f.request = r.Method + " " + r.URL.Path + " of the PDP"
 	status, answer := rt.answer(f, key, body, r.URL.Query())
 	reply(w, status, answer)
 }
 
+// serveFacts serves r, a request under /facts to a fake PDP of the kind kind. The cloud PDP
+// serves no path under /facts, so it answers 404 and an empty body, whatever the request's API
+// key. The PDP container sends the request on to f's Permit API, as the container sends each
+// request under /facts on to the Permit API, those of the routes that its spec lists and the
+// others alike: with its method, its query and its body, to its escaped path under
+// /v2/facts/{proj_id}/{env_id} of the environment of its API key, in place of /facts. The key must
+// be one of an environment that f issued, or the request gets 401; a path whose route there f
+// does not serve gets 404 and fails the test. f answers the request as its API does, and checks
+// its body as that of the API's route; a request that creates an object is the request to the
+// PDP, in the report of Leftovers. The fake PDP decides from f's store, so a check after the
+// request sees its change at once, as it would after a wait for sync of the container; the fake
+// reads no header of the wait.
+func (f *Fake) serveFacts(kind PDPKind, w http.ResponseWriter, r *http.Request) {
+	if kind == CloudPDP {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		reply(w, http.StatusBadRequest, pdpError(err.Error()))
+		return
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	token, _ := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	key, ok := f.keys[token]
+	if !ok || key.environment == "" {
+		reply(w, http.StatusUnauthorized, pdpError("the API key is not one of an environment "+
+			"that the fake knows"))
+		return
+	}
+	path := "/v2/facts/" + url.PathEscape(key.project) + "/" + url.PathEscape(key.environment) +
+		"/" + strings.TrimPrefix(r.URL.EscapedPath(), factsPrefix)
+	rt, values, ok := f.match(r.Method, path)
+	if !ok {
+		f.tb.Errorf("fake: no route of the Permit API that the fake serves matches %s %s, which "+
+			"the PDP container sends on as %s %s", r.Method, r.URL.Path, r.Method, path)
+		reply(w, http.StatusNotFound, pdpError("Not Found"))
+		return
+	}
+	f.request = r.Method + " " + r.URL.Path + " of the PDP"
+	status, answer := f.handle(rt, values, key, r.URL.Query(), body)
+	reply(w, status, answer)
+}
+
 // checkPDPBody reports whether f's check accepts body, the body of a request to rt, as the
-// schema of the operation of rt, or for a route of forwarded, of the API's operation, describes
-// it; when it does not, or cannot run, it fails the test.
+// schema of the operation of rt describes it; when it does not, or cannot run, it fails the test.
 func (f *Fake) checkPDPBody(rt pdpRoute, body []byte) bool {
-	problems, err := f.check(cmp.Or(forwarded[rt.op], rt.op), body)
+	problems, err := f.check(rt.op, body)
 	switch {
 	case err != nil:
 		f.tb.Errorf("fake: %s %s: the body could not be checked: %v", rt.method, rt.path, err)
@@ -482,51 +518,6 @@ func (f *Fake) localRoleAssignments(s scope, _ []byte, query url.Values) (int, a
 	}
 	start := min((page-1)*perPage, len(matches))
 	return http.StatusOK, matches[start:min(start+perPage, len(matches))]
-}
-
-// The routes of the Permit API that the PDP container sends POST and DELETE
-// /facts/role_assignments on to.
-var (
-	assignRole = route{
-		Route: Route{
-			Method: http.MethodPost, Template: "/v2/facts/{proj_id}/{env_id}/role_assignments",
-			Op: "assign_role",
-		},
-		segments: []string{"", "v2", "facts", "{proj_id}", "{env_id}", "role_assignments"},
-	}
-	unassignRole = route{
-		Route: Route{
-			Method: http.MethodDelete, Template: "/v2/facts/{proj_id}/{env_id}/role_assignments",
-			Op: "unassign_role",
-		},
-		segments: assignRole.segments,
-	}
-)
-
-// factsAssignRole answers POST /facts/role_assignments, as factsRoleAssignment says.
-func (f *Fake) factsAssignRole(s scope, body []byte, _ url.Values) (int, any) {
-	return f.factsRoleAssignment(assignRole, s, body)
-}
-
-// factsUnassignRole answers DELETE /facts/role_assignments, as factsRoleAssignment says.
-func (f *Fake) factsUnassignRole(s scope, body []byte, _ url.Values) (int, any) {
-	return f.factsRoleAssignment(unassignRole, s, body)
-}
-
-// factsRoleAssignment answers a request to a route of the role assignments under /facts, whose
-// body the check accepted, as the Permit API answers the request to rt, its route, in the
-// environment of s, to which the PDP container sends it on: an assignment makes the role
-// assignment, and an unassignment removes the one that body names, as names says, or gets 404. The
-// fake PDP decides from f's store, so a check after the call sees the change at once, as it would
-// after a wait for sync of the container; the fake reads no header of the wait. The caller holds
-// f.mu.
-func (f *Fake) factsRoleAssignment(rt route, s scope, body []byte) (int, any) {
-	var fields object
-	if !f.decode(body, &fields) {
-		return http.StatusUnprocessableEntity, badBody
-	}
-	segments := []string{"", "v2", "facts", s.project, s.environment, "role_assignments"}
-	return f.collection(rt, segments, fields, nil)
 }
 
 // positive returns the number from 1 that the parameter name of query holds, or byDefault when it

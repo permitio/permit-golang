@@ -285,6 +285,10 @@ var cloudScenarios = []scenario{
 		run: factsWaitForSync,
 	},
 	{
+		name: "facts_through_the_pdp_container", methods: factsContainerMethods,
+		pdp: containerPDP, run: factsThroughTheContainer,
+	},
+	{
 		name: "container_only_routes_on_cloud_pdp", methods: containerOnlyMethods,
 		pdp: cloudPDP, run: containerOnlyRoutesOnCloudPDP,
 	},

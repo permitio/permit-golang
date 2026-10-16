@@ -380,6 +380,29 @@ func TestRunFails(t *testing.T) {
 				"get_user_detail, which no row of coverage.yaml has",
 		},
 		{
+			name: "a planned route of the PDP container that a wire case sends",
+			change: func(f *fixture) []string {
+				f.write(f.opMap, `{"methods": {"Client.Check": ["is_allowed_allowed_post"], `+
+					`"UsersService.Get": ["get_user"]}, "facts_via_pdp": `+
+					`{"UsersService.Get": ["GET /facts/users/{user_id}"]}}`)
+				return []string{f.wire}
+			},
+			want: "pdp ANY /facts/{full_path}: stale: it is planned, but the wire cases of " +
+				"UsersService.Get send it; mark it covered",
+		},
+		{
+			name: "a route through the PDP container without a row",
+			change: func(f *fixture) []string {
+				f.write(f.opMap, `{"methods": {"Client.Check": ["is_allowed_allowed_post"], `+
+					`"UsersService.Get": ["get_user"]}, "facts_via_pdp": `+
+					`{"UsersService.Get": ["OPTIONS /facts/users/{user_id}"]}}`)
+				return []string{f.wire}
+			},
+			want: "testdata/operation-map.json: the wire cases of UsersService.Get send " +
+				"OPTIONS /facts/users/{user_id} to the PDP container, which no row of pdp in " +
+				"coverage.yaml takes; fix the case's Route, or add the row",
+		},
+		{
 			name: "an excluded operation that a record reaches",
 			change: func(f *fixture) []string {
 				return []string{f.record("r.jsonl", getUser, checkAllowed,
@@ -528,6 +551,42 @@ func TestRunNamesACoveredRowWithoutAWireCase(t *testing.T) {
 		"request; e2e none\n") {
 		t.Errorf("apicoverage exited %d and printed\n%s\nwant 0 and the row without a method",
 			code, out)
+	}
+}
+
+// TestRunLinksTheRoutesOfThePDPContainer checks that the routes under /facts that facts_via_pdp
+// of the operation map gives a method link the method to the rows of pdp that they reach: a route
+// that the container's spec lists to its own row, and every other route to the catch-all, which
+// names a method once however many of its routes reach it. The control plane's row of a method
+// keeps the methods of its operation alone.
+func TestRunLinksTheRoutesOfThePDPContainer(t *testing.T) {
+	f := newFixture(t)
+	f.edit(coverageFile, `route: "POST /facts/users", stage: GA, status: planned}`,
+		`route: "POST /facts/users", stage: GA, status: covered}`)
+	f.edit(coverageFile, "route: \"ANY /facts/{full_path}\"\n    stage: GA\n    status: planned",
+		"route: \"ANY /facts/{full_path}\"\n    stage: GA\n    status: covered")
+	f.write(f.opMap, `{"methods": {"Client.Check": ["is_allowed_allowed_post"], `+
+		`"UsersService.Get": ["get_user"]}, "facts_via_pdp": {`+
+		`"UsersService.Create": ["POST /facts/users"], `+
+		`"UsersService.Get": ["GET /facts/users/{user_id}", "GET /facts/users/{user_id}/roles"], `+
+		`"UsersService.Delete": ["DELETE /facts/users/{user_id}"]}}`)
+	code, out := f.run(f.record("r.jsonl", getUser, checkAllowed,
+		wireLine("pdp", "POST", "/facts/users", "/facts/users"),
+		wireLine("pdp", "GET", "/facts/users/{user_id}", "/facts/users/u")))
+	if code != exitPassed {
+		t.Fatalf("apicoverage exited %d, want 0:\n%s", code, out)
+	}
+	for _, want := range []string{
+		"covered: control-plane GET /v2/facts/{proj_id}/{env_id}/users/{user_id} (get_user): " +
+			"UsersService.Get; 1 request; e2e none\n",
+		"covered: pdp POST /facts/users (create_user_facts_users_post): UsersService.Create; " +
+			"1 request; e2e none\n",
+		"covered: pdp ANY /facts/{full_path} (forward_remaining_requests): UsersService.Delete, " +
+			"UsersService.Get; 1 request; e2e none\n",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("apicoverage printed\n%s\nwant %q", out, want)
+		}
 	}
 }
 
@@ -1052,6 +1111,27 @@ func TestRunDidNotRun(t *testing.T) {
 			f.write(f.opMap, `{"methods": {}, "ops": {}}`)
 			return []string{f.wire}
 		}, `unknown field "ops"`},
+		{"a route through the PDP container of the API's path", func(f *fixture) []string {
+			f.write(f.opMap, `{"methods": {}, "facts_via_pdp": {"UsersService.Get": `+
+				`["GET /facts/users/{user_id}", "GET /v2/facts/{proj_id}/{env_id}/users"]}}`)
+			return []string{f.wire}
+		}, `operation-map.json: facts_via_pdp: UsersService.Get sends "GET /v2/facts/{proj_id}/` +
+			`{env_id}/users", which is not a method, a space and a path under /facts/`},
+		{"a route through the PDP container of the method ANY", func(f *fixture) []string {
+			f.write(f.opMap, `{"methods": {}, "facts_via_pdp": {"UsersService.Get": `+
+				`["ANY /facts/users"]}}`)
+			return []string{f.wire}
+		}, `facts_via_pdp: UsersService.Get sends "ANY /facts/users", which is not a method`},
+		{"a route through the PDP container without a method", func(f *fixture) []string {
+			f.write(f.opMap, `{"methods": {}, "facts_via_pdp": {"UsersService.Get": `+
+				`["/facts/users"]}}`)
+			return []string{f.wire}
+		}, `facts_via_pdp: UsersService.Get sends "/facts/users", which is not a method`},
+		{"a route through the PDP container of /facts/ alone", func(f *fixture) []string {
+			f.write(f.opMap, `{"methods": {}, "facts_via_pdp": {"TenantsService.Get": `+
+				`["GET /facts/users"], "UsersService.Get": ["GET /facts/"]}}`)
+			return []string{f.wire}
+		}, `facts_via_pdp: UsersService.Get sends "GET /facts/", which is not a method`},
 		{"a missing advisory list", func(f *fixture) []string {
 			return []string{"-advisory", filepath.Join(f.dir, "none.txt"), f.wire}
 		}, "none.txt: no such file"},

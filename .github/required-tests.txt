@@ -415,6 +415,7 @@ github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunPasses
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunFails
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunReportsARequestOnce
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunNamesACoveredRowWithoutAWireCase
+github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunLinksTheRoutesOfThePDPContainer
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunLeavesOutEmptyLines
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunCountsAStageOverride
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunListsUndecidedOperationsThatAreNotGA
@@ -424,6 +425,7 @@ github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunReportsTheActi
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestDryRunIsNoLiveEvidence
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestE2EStates
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRelease
+github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestReleaseOfARouteOfThePDPContainer
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestPlannedRowsPassWithoutRelease
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestLocalOnlyListDidNotRun
 github.com/permitio/permit-golang/v2/tools/cmd/apicoverage TestRunLive
@@ -1532,6 +1534,8 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPUserPermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAuthorizedUsers
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPLocalRoleAssignments
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPFactsRoleAssignments
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPFactsGoToTheAPI
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPFactsAccess
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPURLChecks
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAccess
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestCloudPDP
@@ -1582,6 +1586,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/authorized_users
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenants_and_local_role_assignments
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/url_check
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_wait_for_sync
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_through_the_pdp_container
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/container_only_routes_on_cloud_pdp
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_on_cloud_pdp
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key

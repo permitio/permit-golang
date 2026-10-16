@@ -15,11 +15,11 @@ import (
 	"github.com/permitio/permit-golang/v2/tools/e2e/framework/seed"
 )
 
-// bulkRegister registers the teardown of the object ident of the collection of the facts API
+// registerFact registers the teardown of the object ident of the collection of the facts API
 // collection, such as tenants, with the suite's ledger, before the request that creates it: a
 // deletion of the object by its identifier, its key or, for a resource instance,
 // <resource>:<key>, and the check that it is gone.
-func (s *suite) bulkRegister(collection, ident string) {
+func (s *suite) registerFact(collection, ident string) {
 	self := "/v2/facts/" + url.PathEscape(s.env.ProjectID) + "/" + url.PathEscape(s.env.ID) +
 		"/" + collection + "/" + url.PathEscape(ident)
 	s.ledger.Register(collection+" "+ident, s.api.Remover(self),
@@ -47,13 +47,13 @@ func bulkLifecycle(s *suite) func(t *testing.T) {
 		docs := []string{s.cfg.prefix.Key("sdk-bulk-doc-1"), s.cfg.prefix.Key("sdk-bulk-doc-2")}
 		instances := []string{resource + ":" + docs[0], resource + ":" + docs[1]}
 		for _, key := range tenants {
-			s.bulkRegister("tenants", key)
+			s.registerFact("tenants", key)
 		}
 		for _, key := range users {
 			s.registerUser(key, func() string { return "" })
 		}
 		for _, name := range instances {
-			s.bulkRegister("resource_instances", name)
+			s.registerFact("resource_instances", name)
 		}
 		c := s.client(t, s.env.APIKey())
 		ctx := s.ctx(t)

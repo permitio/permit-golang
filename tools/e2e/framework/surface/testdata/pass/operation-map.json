@@ -15,5 +15,10 @@
     "UsersService.List": [
       "list_users"
     ]
+  },
+  "facts_via_pdp": {
+    "UsersService.List": [
+      "GET /facts/users"
+    ]
   }
 }

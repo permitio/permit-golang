@@ -540,6 +540,16 @@ func (f *Fake) assignedRole(s scope, a object) object {
 	return role
 }
 
+// assignRole is the route of the assignment of a role, as which a bulk assignment creates each of
+// its role assignments.
+var assignRole = route{
+	Route: Route{
+		Method: http.MethodPost, Template: "/v2/facts/{proj_id}/{env_id}/role_assignments",
+		Op: "assign_role",
+	},
+	segments: []string{"", "v2", "facts", "{proj_id}", "{env_id}", "role_assignments"},
+}
+
 // bulkRoleAssignments answers POST and DELETE
 // /v2/facts/{proj_id}/{env_id}/role_assignments/bulk, whose path has segments, with IDs in place
 // of keys, and whose body holds items, the role assignments: a POST creates each, in order, as an

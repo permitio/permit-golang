@@ -48,6 +48,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/authorized_users
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenants_and_local_role_assignments
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/url_check
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_wait_for_sync
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_through_the_pdp_container
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
 github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder

@@ -25,18 +25,33 @@ type operationMap struct {
 	// Methods maps each public method that has a wire case, such as UsersService.Get, to the
 	// operationIds of its cases, sorted.
 	Methods map[string][]string `json:"methods"`
+
+	// FactsViaPDP maps each public method whose wire cases run in factsViaPDPMode, such as
+	// UsersService.Create, to the routes under /facts that those cases send to the PDP
+	// container, such as "POST /facts/users", sorted. The container's spec gives these routes
+	// operationIds of their own, which no wire case names, so tools/cmd/apicoverage reads the
+	// routes to find the rows of coverage.yaml that each method reaches through the container.
+	FactsViaPDP map[string][]string `json:"facts_via_pdp,omitempty"`
 }
 
 // buildOperationMap returns the operation map of the wire cases.
 func buildOperationMap(cases []wireCase) operationMap {
-	m := operationMap{Methods: map[string][]string{}}
+	m := operationMap{Methods: map[string][]string{}, FactsViaPDP: map[string][]string{}}
 	for _, c := range cases {
 		if !slices.Contains(m.Methods[c.Method], c.Op) {
 			m.Methods[c.Method] = append(m.Methods[c.Method], c.Op)
 		}
+		route, ok := factsViaPDP(c.Route)
+		if ok && slices.Contains(c.Modes, factsViaPDPMode) &&
+			!slices.Contains(m.FactsViaPDP[c.Method], route) {
+			m.FactsViaPDP[c.Method] = append(m.FactsViaPDP[c.Method], route)
+		}
 	}
 	for _, ops := range m.Methods {
 		slices.Sort(ops)
+	}
+	for _, routes := range m.FactsViaPDP {
+		slices.Sort(routes)
 	}
 	return m
 }
@@ -57,6 +72,15 @@ func (m operationMap) operations() int {
 	n := 0
 	for _, ops := range m.Methods {
 		n += len(ops)
+	}
+	return n
+}
+
+// factsRoutes returns the number of pairs of a method and a route under /facts in m.
+func (m operationMap) factsRoutes() int {
+	n := 0
+	for _, routes := range m.FactsViaPDP {
+		n += len(routes)
 	}
 	return n
 }
@@ -114,7 +138,9 @@ func TestOperationMap(t *testing.T) {
 	if err := compareOperationMap(file, data); err != nil {
 		t.Error(err)
 	}
-	t.Logf("operation map: %d methods, %d operations", len(built.Methods), built.operations())
+	t.Logf("operation map: %d methods, %d operations, %d routes of %d methods through the PDP "+
+		"container", len(built.Methods), built.operations(), built.factsRoutes(),
+		len(built.FactsViaPDP))
 }
 
 func TestUnregisteredOps(t *testing.T) {
@@ -155,20 +181,35 @@ func TestBuildOperationMap(t *testing.T) {
 	again.Route = "GET /v2/facts/{proj_id}/{env_id}/users/{user_id}/detail"
 	other := cases[1]
 	other.Op = "a_first_op"
-	got := buildOperationMap(append(cases, again, other))
-	want := operationMap{Methods: map[string][]string{
-		"Client.Scope":                 {"op_Client_Scope"},
-		"ImplicitGrantsService.Delete": {"op_ImplicitGrantsService_Delete"},
-		"UsersService.Delete":          {"op_UsersService_Delete"},
-		"UsersService.Get":             {"a_first_op", "op_UsersService_Get"},
-	}}
+	both := []wireMode{apiMode, factsViaPDPMode}
+	detail, get, deleteUser := again, cases[1], cases[2]
+	detail.Modes, get.Modes, deleteUser.Modes = both, both, both
+	got := buildOperationMap(append(cases, detail, other, get, deleteUser, get))
+	want := operationMap{
+		Methods: map[string][]string{
+			"Client.Scope":                 {"op_Client_Scope"},
+			"ImplicitGrantsService.Delete": {"op_ImplicitGrantsService_Delete"},
+			"UsersService.Delete":          {"op_UsersService_Delete"},
+			"UsersService.Get":             {"a_first_op", "op_UsersService_Get"},
+		},
+		FactsViaPDP: map[string][]string{
+			"UsersService.Delete": {"DELETE /facts/users/{user_id}"},
+			"UsersService.Get": {
+				"GET /facts/users/{user_id}", "GET /facts/users/{user_id}/detail",
+			},
+		},
+	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("buildOperationMap differs (-want +got):\n%s", diff)
 	}
 	if n := got.operations(); n != 5 {
 		t.Errorf("operations() = %d, want 5", n)
 	}
-	if empty := buildOperationMap(nil); empty.Methods == nil || len(empty.Methods) != 0 {
+	if n := got.factsRoutes(); n != 3 {
+		t.Errorf("factsRoutes() = %d, want 3", n)
+	}
+	empty := buildOperationMap(nil)
+	if empty.Methods == nil || len(empty.Methods) != 0 || len(empty.FactsViaPDP) != 0 {
 		t.Errorf("buildOperationMap(nil) = %#v, want an empty map that encodes as {}", empty)
 	}
 }
@@ -191,8 +232,27 @@ func TestOperationMapEncode(t *testing.T) {
 	if got != want {
 		t.Errorf("encode() =\n%s\nwant\n%s", got, want)
 	}
-	if got := string(buildOperationMap(nil).encode(t)); got != "{\n  \"methods\": {}\n}\n" {
-		t.Errorf("the empty map encodes as %q", got)
+	if empty := string(buildOperationMap(nil).encode(t)); empty != "{\n  \"methods\": {}\n}\n" {
+		t.Errorf("the empty map encodes as %q", empty)
+	}
+	got = string(operationMap{
+		Methods:     map[string][]string{"UsersService.Create": {"create_user"}},
+		FactsViaPDP: map[string][]string{"UsersService.Create": {"POST /facts/users"}},
+	}.encode(t))
+	want = "{\n" +
+		"  \"methods\": {\n" +
+		"    \"UsersService.Create\": [\n" +
+		"      \"create_user\"\n" +
+		"    ]\n" +
+		"  },\n" +
+		"  \"facts_via_pdp\": {\n" +
+		"    \"UsersService.Create\": [\n" +
+		"      \"POST /facts/users\"\n" +
+		"    ]\n" +
+		"  }\n" +
+		"}\n"
+	if got != want {
+		t.Errorf("encode() of a map with facts_via_pdp =\n%s\nwant\n%s", got, want)
 	}
 }
 

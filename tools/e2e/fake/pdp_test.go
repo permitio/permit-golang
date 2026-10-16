@@ -387,6 +387,155 @@ func TestPDPFactsRoleAssignments(t *testing.T) {
 	}
 }
 
+// TestPDPFactsGoToTheAPI checks that the fake PDP container sends each request under /facts on
+// to the fake's Permit API, under /v2/facts/{proj_id}/{env_id} of the environment of its API key,
+// with its method, its escaped path, its query and its body: a create of a tenant, of users, one
+// of them with a / in its key, of a resource instance and of a relationship tuple, a PUT of a
+// user, the assignment and the unassignment of a role of a user, whose change the next check
+// sees, a list of the role assignments that its filter user narrows to one of the seed's, a list
+// with a query parameter that the API refuses, a get of a user and a delete of one, each answered
+// as the API answers it, the body of each checked as that of the API's operation; that the API
+// then holds what they made, created by the request to the PDP; and that a request with the key
+// of another environment creates its object in that environment, not in the first.
+func TestPDPFactsGoToTheAPI(t *testing.T) {
+	h := newPDPHarness(t)
+	ask := func(want int, method, path, body string) map[string]any {
+		t.Helper()
+		status, data := h.send(h.container, method, path, body, h.envKey)
+		var reply map[string]any
+		if len(data) > 0 {
+			if err := json.Unmarshal(data, &reply); err != nil {
+				t.Fatalf("%s %s answered %q, which is not a JSON object", method, path, data)
+			}
+		}
+		if status != want {
+			t.Fatalf("%s %s %s answered %d %s, want %d", method, path, body, status, data, want)
+		}
+		return reply
+	}
+	before := len(h.checked)
+	tenant := ask(200, http.MethodPost, "/facts/tenants", `{"key": "t3", "name": "T3"}`)
+	if tenant["key"] != "t3" || tenant["environment_id"] == nil {
+		t.Errorf("the create of a tenant answered %v, want the tenant t3", tenant)
+	}
+	ask(200, http.MethodPost, "/facts/users", `{"key": "u4"}`)
+	ask(200, http.MethodPost, "/facts/users", `{"key": "a/b"}`)
+	if got := ask(200, http.MethodGet, "/facts/users/a%2Fb", ""); got["key"] != "a/b" {
+		t.Errorf("the get of the user a/b answered %v", got)
+	}
+	ask(201, http.MethodPut, "/facts/users/u5", `{"key": "u5", "first_name": "Ada"}`)
+	tenantsOf := func() string {
+		t.Helper()
+		user := ask(200, http.MethodGet, "/facts/users/u4", "")
+		data, err := json.Marshal(user["associated_tenants"])
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(data)
+	}
+	role := `{"role": "editor", "tenant": "t3"}`
+	assigned := ask(200, http.MethodPost, "/facts/users/u4/roles", role)
+	if assigned["user"] != "u4" || assigned["role"] != "editor" || assigned["tenant"] != "t3" {
+		t.Errorf("the assignment of a role of u4 answered %v", assigned)
+	}
+	if got := tenantsOf(); got != `[{"roles":["editor"],"status":"active","tenant":"t3"}]` {
+		t.Errorf("the user u4 has the associated_tenants %s after the assignment", got)
+	}
+	status, data := h.send(h.container, http.MethodGet, "/facts/role_assignments?user=u1", "",
+		h.envKey)
+	var listed []map[string]any
+	if err := json.Unmarshal(data, &listed); status != http.StatusOK || err != nil ||
+		len(listed) != 1 || listed[0]["user"] != "u1" || listed[0]["role"] != "editor" ||
+		listed[0]["tenant"] != "t1" {
+		t.Errorf("GET /facts/role_assignments?user=u1 answered %d %s, want the one role "+
+			"assignment of u1 of the seed's three", status, data)
+	}
+	status, data = h.send(h.container, http.MethodGet, "/facts/users?x=1", "", h.envKey)
+	const refused = "the fake does not know the query parameter x"
+	if errs := h.tb.take(); status != http.StatusBadRequest ||
+		!strings.Contains(string(data), refused) || len(errs) != 1 ||
+		!strings.Contains(errs[0], "(list_users): "+refused) {
+		t.Errorf("GET /facts/users?x=1 answered %d %s and reported %q, want 400 and %q", status,
+			data, errs, refused)
+	}
+	ask(204, http.MethodDelete, "/facts/users/u4/roles", role)
+	if got := tenantsOf(); got != `[{"roles":[],"status":"active","tenant":"t3"}]` {
+		t.Errorf("the user u4 has the associated_tenants %s after the unassignment", got)
+	}
+	ask(200, http.MethodPost, "/facts/resource_instances",
+		`{"resource": "document", "key": "d2", "tenant": "t3"}`)
+	tuple := ask(200, http.MethodPost, "/facts/relationship_tuples",
+		`{"subject": "document:d1", "relation": "parent", "object": "document:d2"}`)
+	if tuple["subject"] != "document:d1" || tuple["object"] != "document:d2" {
+		t.Errorf("the create of a relationship tuple answered %v", tuple)
+	}
+	ask(204, http.MethodDelete, "/facts/users/a%2Fb", "")
+	if got := ask(200, http.MethodGet, "/facts/users/u5", ""); got["first_name"] != "Ada" {
+		t.Errorf("the get of the user u5 answered %v, want the user that the PUT made", got)
+	}
+	want := []string{
+		"create_tenant", "create_user", "create_user", opReplaceUser, "assign_role_to_user",
+		"unassign_role_from_user", "create_resource_instance", "create_relationship_tuple",
+	}
+	if got := h.checked[before:]; !slices.Equal(got, want) {
+		t.Errorf("the bodies of the requests under /facts went to the checks of %q, want %q",
+			got, want)
+	}
+	if !slices.ContainsFunc(h.list("/v2/facts/proj/dev/tenants", projectKey), func(o any) bool {
+		tenant, _ := o.(map[string]any)
+		return tenant["key"] == "t3"
+	}) {
+		t.Error("the API does not list the tenant t3 that the PDP container created")
+	}
+	h.expect(404, http.MethodGet, "/v2/facts/proj/dev/users/a%2Fb", "", projectKey)
+	left := h.fake.Leftovers("")
+	for _, made := range []string{
+		"tenants t3, created by POST /facts/tenants of the PDP",
+		"users u5, created by PUT /facts/users/u5 of the PDP",
+		"resource_instances document:d2, created by POST /facts/resource_instances of the PDP",
+	} {
+		if !slices.Contains(left, made) {
+			t.Errorf("Leftovers reported %q, want %q among them", left, made)
+		}
+	}
+	_, qaKey := h.createEnv("qa")
+	if status, data := h.send(h.container, http.MethodPost, "/facts/users", `{"key": "u6"}`,
+		qaKey); status != http.StatusOK {
+		t.Fatalf("POST /facts/users with the key of qa answered %d %s, want 200", status, data)
+	}
+	h.expect(200, http.MethodGet, "/v2/facts/proj/qa/users/u6", "", projectKey)
+	h.expect(404, http.MethodGet, "/v2/facts/proj/dev/users/u6", "", projectKey)
+}
+
+// TestPDPFactsAccess checks the requests under /facts that the fake PDP container refuses: one
+// without the API key of an environment that its fake issued gets 401 and reaches no check of a
+// body, and one whose route under /v2/facts/{proj_id}/{env_id} the fake's API does not serve gets
+// 404 and fails the test, naming the route that it would have sent the request on to.
+func TestPDPFactsAccess(t *testing.T) {
+	h := newPDPHarness(t)
+	before := len(h.checked)
+	for _, key := range []string{"", "permit_key_FAKEunknown", projectKey} {
+		status, data := h.send(h.container, http.MethodPost, "/facts/users", `{"key": "u9"}`, key)
+		if status != http.StatusUnauthorized || !strings.Contains(string(data), "detail") {
+			t.Errorf("POST /facts/users with the key %q answered %d %s, want 401", key, status,
+				data)
+		}
+	}
+	if len(h.checked) != before {
+		t.Errorf("a request without the key of an environment went to the checks of %q",
+			h.checked[before:])
+	}
+	status, data := h.send(h.container, http.MethodGet, "/facts/nothing/here", "", h.envKey)
+	errs := h.tb.take()
+	if status != http.StatusNotFound || !strings.Contains(string(data), "detail") ||
+		len(errs) != 1 || !strings.Contains(errs[0], "fake: no route of the Permit API that "+
+		"the fake serves matches GET /facts/nothing/here, which the PDP container sends on "+
+		"as GET /v2/facts/") || !strings.HasSuffix(errs[0], "/nothing/here") {
+		t.Errorf("GET /facts/nothing/here answered %d %s and reported %q, want 404 and the "+
+			"route that it would have gone to", status, data, errs)
+	}
+}
+
 // TestPDPURLChecks checks the URL checks of the fake PDP: the first mapping rule of the proxy
 // configs of the environment whose HTTP method, in any case, and URL match the request decides it,
 // as a check of its action on its resource in the request's tenant; a rule of the URL type regex
@@ -505,14 +654,23 @@ func TestPDPAccess(t *testing.T) {
 }
 
 // TestCloudPDP checks that the fake cloud PDP answers each route that only the PDP container
-// serves with 404 and an empty body, whatever the API key, and the others as the PDP container
-// does.
+// serves, and every path under /facts, with 404 and an empty body, whatever the API key, and the
+// others as the PDP container does.
 func TestCloudPDP(t *testing.T) {
 	h := newPDPHarness(t)
+	routes := []struct{ method, path string }{
+		{http.MethodPost, "/facts/role_assignments"},
+		{http.MethodDelete, "/facts/role_assignments"},
+		{http.MethodPost, "/facts/users"},
+		{http.MethodGet, "/facts/users/u1"},
+		{http.MethodGet, "/facts/nothing"},
+	}
 	for _, rt := range pdpRoutes {
-		if !rt.containerOnly {
-			continue
+		if rt.containerOnly {
+			routes = append(routes, struct{ method, path string }{rt.method, rt.path})
 		}
+	}
+	for _, rt := range routes {
 		for _, key := range []string{h.envKey, ""} {
 			status, data := h.send(h.cloud, rt.method, rt.path, "{}", key)
 			if status != http.StatusNotFound || len(data) != 0 {

@@ -294,8 +294,9 @@ func (c *checker) inventory(r *row) map[string]*known {
 	return c.in.inv.controlPlane
 }
 
-// checkOperationMap checks that each operation of the map has a row, and notes the methods of
-// each row.
+// checkOperationMap checks that each operation of the map has a row, and each route that a
+// method sends to the PDP container a row of pdp, and notes the methods of each row: a row of pdp
+// names each method that sends one of its routes through the container once.
 func (c *checker) checkOperationMap() {
 	for _, method := range slices.Sorted(maps.Keys(c.in.ops.Methods)) {
 		for _, op := range c.in.ops.Methods[method] {
@@ -307,6 +308,20 @@ func (c *checker) checkOperationMap() {
 				continue
 			}
 			c.state[r].methods = append(c.state[r].methods, method)
+		}
+	}
+	for _, method := range slices.Sorted(maps.Keys(c.in.ops.FactsViaPDP)) {
+		for _, route := range c.in.ops.FactsViaPDP[method] {
+			verb, path, _ := parseRoute(route) // readOperationMap checked it.
+			r := c.match(request{target: targetPDP, method: verb, path: path})
+			switch {
+			case r == nil:
+				c.problem("%s: the wire cases of %s send %s to the PDP container, which no "+
+					"row of pdp in coverage.yaml takes; fix the case's Route, or add the row",
+					operationMapFile, method, route)
+			case !slices.Contains(c.state[r].methods, method):
+				c.state[r].methods = append(c.state[r].methods, method)
+			}
 		}
 	}
 }

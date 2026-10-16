@@ -576,6 +576,21 @@ models: type ResourceUpdate struct, Relations map[string]string
 models: type ResourceUpdate struct, Roles map[string]RoleBlockEditable
 models: type ResourceUpdate struct, TypeAttributes Attributes
 models: type ResourceUpdate struct, URN string
+models: type RoleAssignmentCreate struct
+models: type RoleAssignmentCreate struct, ResourceInstance string
+models: type RoleAssignmentCreate struct, Role string
+models: type RoleAssignmentCreate struct, Tenant string
+models: type RoleAssignmentCreate struct, User string
+models: type RoleAssignmentDetailedRead struct
+models: type RoleAssignmentDetailedRead struct, CreatedAt Time
+models: type RoleAssignmentDetailedRead struct, EnvironmentID string
+models: type RoleAssignmentDetailedRead struct, ID string
+models: type RoleAssignmentDetailedRead struct, OrganizationID string
+models: type RoleAssignmentDetailedRead struct, ProjectID string
+models: type RoleAssignmentDetailedRead struct, ResourceInstance *RoleAssignmentResourceInstance
+models: type RoleAssignmentDetailedRead struct, Role RoleAssignmentRole
+models: type RoleAssignmentDetailedRead struct, Tenant RoleAssignmentTenant
+models: type RoleAssignmentDetailedRead struct, User RoleAssignmentUser
 models: type RoleAssignmentRead struct
 models: type RoleAssignmentRead struct, CreatedAt Time
 models: type RoleAssignmentRead struct, EnvironmentID string
@@ -590,6 +605,33 @@ models: type RoleAssignmentRead struct, Tenant string
 models: type RoleAssignmentRead struct, TenantID string
 models: type RoleAssignmentRead struct, User string
 models: type RoleAssignmentRead struct, UserID string
+models: type RoleAssignmentRemove struct
+models: type RoleAssignmentRemove struct, ResourceInstance string
+models: type RoleAssignmentRemove struct, Role string
+models: type RoleAssignmentRemove struct, Tenant string
+models: type RoleAssignmentRemove struct, User string
+models: type RoleAssignmentResourceInstance struct
+models: type RoleAssignmentResourceInstance struct, Attributes Attributes
+models: type RoleAssignmentResourceInstance struct, ID string
+models: type RoleAssignmentResourceInstance struct, Key string
+models: type RoleAssignmentResourceInstance struct, Resource string
+models: type RoleAssignmentRole struct
+models: type RoleAssignmentRole struct, ID string
+models: type RoleAssignmentRole struct, Key string
+models: type RoleAssignmentRole struct, Name string
+models: type RoleAssignmentRole struct, Permissions []string
+models: type RoleAssignmentTenant struct
+models: type RoleAssignmentTenant struct, Attributes Attributes
+models: type RoleAssignmentTenant struct, ID string
+models: type RoleAssignmentTenant struct, Key string
+models: type RoleAssignmentTenant struct, Name string
+models: type RoleAssignmentUser struct
+models: type RoleAssignmentUser struct, Attributes Attributes
+models: type RoleAssignmentUser struct, Email string
+models: type RoleAssignmentUser struct, FirstName string
+models: type RoleAssignmentUser struct, ID string
+models: type RoleAssignmentUser struct, Key string
+models: type RoleAssignmentUser struct, LastName string
 models: type RoleBlockEditable struct
 models: type RoleBlockEditable struct, Attributes Attributes
 models: type RoleBlockEditable struct, Description string
@@ -843,6 +885,13 @@ permit: method (*ResourcesService) Get(ctx context.Context, resourceKey string) 
 permit: method (*ResourcesService) List(ctx context.Context, opts *ResourcesListOptions) (*Page[models.ResourceRead], error)
 permit: method (*ResourcesService) Replace(ctx context.Context, resourceKey string, resource models.ResourceReplace) (*models.ResourceRead, error)
 permit: method (*ResourcesService) Update(ctx context.Context, resourceKey string, update models.ResourceUpdate) (*models.ResourceRead, error)
+permit: method (*RoleAssignmentsService) All(ctx context.Context, opts *RoleAssignmentsListOptions) iter.Seq2[models.RoleAssignmentRead, error]
+permit: method (*RoleAssignmentsService) AllDetailed(ctx context.Context, opts *RoleAssignmentsListOptions) iter.Seq2[models.RoleAssignmentDetailedRead, error]
+permit: method (*RoleAssignmentsService) Assign(ctx context.Context, assignment models.RoleAssignmentCreate) (*models.RoleAssignmentRead, error)
+permit: method (*RoleAssignmentsService) List(ctx context.Context, opts *RoleAssignmentsListOptions) (*Page[models.RoleAssignmentRead], error)
+permit: method (*RoleAssignmentsService) ListDetailed(ctx context.Context, opts *RoleAssignmentsListOptions) (*Page[models.RoleAssignmentDetailedRead], error)
+permit: method (*RoleAssignmentsService) Unassign(ctx context.Context, assignment models.RoleAssignmentRemove) error
+permit: method (*RoleAssignmentsService) WaitForSync(timeout time.Duration, opts ...SyncOption) *RoleAssignmentsService
 permit: method (*RolesService) All(ctx context.Context, opts *RolesListOptions) iter.Seq2[models.RoleRead, error]
 permit: method (*RolesService) Ancestors(ctx context.Context, roleKey string) ([]models.RoleRead, error)
 permit: method (*RolesService) AssignPermissions(ctx context.Context, roleKey string, permissions []string) (*models.RoleRead, error)
@@ -930,6 +979,7 @@ permit: type Client struct, ResourceAttributes *ResourceAttributesService
 permit: type Client struct, ResourceRelations *ResourceRelationsService
 permit: type Client struct, ResourceRoles *ResourceRolesService
 permit: type Client struct, Resources *ResourcesService
+permit: type Client struct, RoleAssignments *RoleAssignmentsService
 permit: type Client struct, Roles *RolesService
 permit: type Client struct, Tenants *TenantsService
 permit: type Client struct, UserAttributes *UserAttributesService
@@ -1015,6 +1065,13 @@ permit: type ResourcesService struct
 permit: type RetryPolicy struct
 permit: type RetryPolicy struct, MaxBackoff time.Duration
 permit: type RetryPolicy struct, MaxRetries int
+permit: type RoleAssignmentsListOptions struct
+permit: type RoleAssignmentsListOptions struct, ResourceInstance string
+permit: type RoleAssignmentsListOptions struct, Roles []string
+permit: type RoleAssignmentsListOptions struct, Tenants []string
+permit: type RoleAssignmentsListOptions struct, Users []string
+permit: type RoleAssignmentsListOptions struct, embedded ListOptions
+permit: type RoleAssignmentsService struct
 permit: type RolesListOptions struct
 permit: type RolesListOptions struct, Attributes []AttributeFilter
 permit: type RolesListOptions struct, embedded ListOptions

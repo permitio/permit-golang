@@ -27,6 +27,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycl
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/concurrent_sync_of_a_new_user
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_assignment_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
@@ -34,6 +35,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_permissions
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/authorized_users
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/container_only_routes_on_cloud_pdp
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_on_cloud_pdp
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
 github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder

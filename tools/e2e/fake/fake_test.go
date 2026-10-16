@@ -122,6 +122,11 @@ var routes = []Route{
 	{"POST", "/v2/facts/{proj_id}/{env_id}/tenants", "create_tenant"},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants", "list_tenants"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments", "assign_role"},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/role_assignments", opListRoleAssignments},
+	{
+		"GET", "/v2/facts/{proj_id}/{env_id}/role_assignments/detailed",
+		opListRoleAssignmentsDetailed,
+	},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "list_tenant_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "assign_role_to_user"},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "unassign_role_from_user"},
@@ -798,6 +803,93 @@ func TestUserRoles(t *testing.T) {
 		}
 	}
 	h.expectTenants(user, `[{"roles":["viewer"],"status":"active","tenant":"t1"}]`)
+}
+
+// TestRoleAssignmentLists checks the lists of the role assignments: the list keeps those whose
+// user, role, tenant and resource instance each equal one of the values of the query parameter
+// of the same name, in order, as a JSON array, and a page of them with page and per_page; the
+// detailed list gives each with the objects of its user, its role, its tenant and its resource
+// instance, the role of the resource of the instance for a role on an instance, and an empty
+// object for one that the environment does not have, in the paginated object.
+func TestRoleAssignmentLists(t *testing.T) {
+	h := newHarness(t)
+	h.createEnv("dev")
+	ids := map[string]any{}
+	for name, seed := range map[string]struct{ path, body string }{
+		"role": {"/v2/schema/proj/dev/roles", `{"key": "editor", "name": "Editor", ` +
+			`"permissions": ["document:read"]}`},
+		"resource": {"/v2/schema/proj/dev/resources", `{"key": "document"}`},
+		"tenant":   {"/v2/facts/proj/dev/tenants", `{"key": "t1", "name": "T1"}`},
+		"user":     {"/v2/facts/proj/dev/users", `{"key": "alice", "email": "a@example.com"}`},
+	} {
+		ids[name] = h.expect(200, "POST", seed.path, seed.body, projectKey)["id"]
+	}
+	ids["resource role"] = h.expect(200, "POST", "/v2/schema/proj/dev/resources/document/roles",
+		`{"key": "editor", "name": "Document editor"}`, projectKey)["id"]
+	ids["instance"] = h.expect(200, "POST", "/v2/facts/proj/dev/resource_instances",
+		`{"resource": "document", "key": "d1", "tenant": "t1"}`, projectKey)["id"]
+	assignments := "/v2/facts/proj/dev/role_assignments"
+	for _, body := range []string{
+		`{"user": "alice", "role": "editor", "tenant": "t1"}`,
+		`{"user": "alice", "role": "editor", "tenant": "t1", "resource_instance": "document:d1"}`,
+		`{"user": "bob", "role": "viewer", "tenant": "t2"}`,
+	} {
+		h.expect(200, "POST", assignments, body, projectKey)
+	}
+	const alice = "alice editor t1;alice editor t1 document:d1"
+	for query, want := range map[string]string{
+		"":                               alice + ";bob viewer t2",
+		"?user=alice":                    alice,
+		"?user=bob&user=alice":           alice + ";bob viewer t2",
+		"?role=editor&tenant=t2":         "",
+		"?resource_instance=document:d1": "alice editor t1 document:d1",
+		"?user=alice&page=2&per_page=1":  "alice editor t1 document:d1",
+	} {
+		var got []string
+		for _, item := range h.list(assignments+query, projectKey) {
+			a, _ := item.(map[string]any)
+			got = append(got, strings.TrimSpace(text(a, "user")+" "+text(a, "role")+" "+
+				text(a, "tenant")+" "+text(a, "resource_instance")))
+		}
+		if strings.Join(got, ";") != want {
+			t.Errorf("GET %s%s listed %q, want %q", assignments, query, got, want)
+		}
+	}
+	page := h.expect(200, "GET", assignments+"/detailed?user=alice&user=bob", "", projectKey)
+	items, _ := page["data"].([]any)
+	if len(items) != 3 || page["total_count"] != 3.0 || page["page_count"] != 1.0 {
+		t.Fatalf("the detailed list answered %v, want the page of the three role assignments",
+			page)
+	}
+	user := fmt.Sprintf(`{"email":"a@example.com","id":%q,"key":"alice"}`, ids["user"])
+	tenant := fmt.Sprintf(`{"id":%q,"key":"t1","name":"T1"}`, ids["tenant"])
+	for i, want := range [][4]string{
+		{
+			fmt.Sprintf(`{"id":%q,"key":"editor","name":"Editor","permissions":["document:read"]}`,
+				ids["role"]),
+			user, tenant, "null",
+		},
+		{
+			fmt.Sprintf(`{"id":%q,"key":"editor","name":"Document editor"}`, ids["resource role"]),
+			user, tenant,
+			fmt.Sprintf(`{"id":%q,"key":"d1","resource":"document"}`, ids["instance"]),
+		},
+		{"{}", "{}", "{}", "null"},
+	} {
+		item, _ := items[i].(map[string]any)
+		var got [4]string
+		for j, name := range []string{"role", "user", "tenant", "resource_instance"} {
+			data, err := json.Marshal(item[name])
+			if err != nil {
+				t.Fatal(err)
+			}
+			got[j] = string(data)
+		}
+		if got != want || text(item, "id") == "" || text(item, "environment_id") == "" {
+			t.Errorf("the detailed role assignment %d is %v, want its role, user, tenant and "+
+				"instance %q and its IDs", i, item, want)
+		}
+	}
 }
 
 // expectTenants checks that a get of user, by its key and by its ID, answers the

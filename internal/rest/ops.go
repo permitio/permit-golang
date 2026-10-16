@@ -290,6 +290,42 @@ var defaultOps = []Op{
 		RequestModel: "UserRoleRemove",
 	},
 
+	// The role assignments of an environment, calls of the facts API, which the PDP container
+	// also serves under /facts. v1 sent the list with an environment-level key, and the PDP
+	// container sends each call on with its own, an environment-level key: the assignment and the
+	// unassignment through the routes that its spec lists, and the lists through its route for
+	// every other path under /facts. These key levels are not measured yet: the phase
+	// api.role_assignments of the local harness confirms them. The PDP container waits for sync
+	// on the assignment and the unassignment, and not on the lists. The list is a JSON array or a
+	// paginated object, and the detailed list a paginated object, of at most 1000 role
+	// assignments. An unassignment leaves the role removed, so it does the same when sent twice;
+	// the API's spec lists a 409 for an assignment, so an assignment is not Idempotent. An
+	// unassignment names the role in its body, not in its path, so it is not DeleteSelf: a 404 can
+	// mean a mistyped key. The SDK never sends the deprecated query parameters of these routes,
+	// detailed, include_total_count and return_deleted.
+	{
+		ID: "list_role_assignments", Method: http.MethodGet,
+		Route: "/v2/facts/{proj_id}/{env_id}/role_assignments", Idempotent: true, Facts: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 1000, ResponseModel: "RoleAssignmentRead",
+	},
+	{
+		ID: "list_role_assignments_detailed", Method: http.MethodGet,
+		Route: "/v2/facts/{proj_id}/{env_id}/role_assignments/detailed", Idempotent: true,
+		Facts: true, KeyLevel: EnvironmentLevel, MaxPerPage: 1000,
+		ResponseModel: "RoleAssignmentDetailedRead",
+	},
+	{
+		ID: "assign_role", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/role_assignments", Facts: true, WaitsForSync: true,
+		KeyLevel: EnvironmentLevel, RequestModel: "RoleAssignmentCreate",
+		ResponseModel: "RoleAssignmentRead",
+	},
+	{
+		ID: "unassign_role", Method: http.MethodDelete,
+		Route: "/v2/facts/{proj_id}/{env_id}/role_assignments", Idempotent: true, Facts: true,
+		WaitsForSync: true, KeyLevel: EnvironmentLevel, RequestModel: "RoleAssignmentRemove",
+	},
+
 	// The actions of a resource of an environment, each at the environment level, as v1 sends
 	// them too. These key levels are not measured yet: the phase api.resource_actions of the
 	// local harness confirms them. The list is a JSON array of at most 100 actions. A PATCH sets

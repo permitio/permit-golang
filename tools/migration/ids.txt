@@ -196,3 +196,11 @@ M-users-11
 M-tenants-8
 M-tenants-9
 M-tenants-10
+M-role-assignments-1
+M-role-assignments-2
+M-role-assignments-3
+M-role-assignments-4
+M-role-assignments-5
+M-role-assignments-6
+M-role-assignments-7
+M-role-assignments-8

@@ -345,3 +345,12 @@ allow:
     trigger: >-
       when the published spec gives the secret schemas that say which auth_mechanism each form
       is for
+  - key: operation list_role_assignments response
+    reason: >-
+      the published spec lists four forms of the reply to the list of the role assignments, a
+      JSON array or a paginated object of RoleAssignmentRead or of RoleAssignmentDetailedRead;
+      the API answers a detailed form when the request sends the query parameter detailed,
+      which the spec marks deprecated and the SDK never sends, so List reads RoleAssignmentRead
+      in either list form, and ListDetailed reads the detailed form from the route of the
+      detailed list
+    trigger: when the published spec drops the detailed forms from the reply to the list

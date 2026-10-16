@@ -101,6 +101,10 @@ type Client struct {
 	// assigns and unassigns their roles.
 	Users *UsersService `json:"-"`
 
+	// RoleAssignments lists, assigns and unassigns the roles that the users of an environment
+	// have in its tenants and on its resource instances.
+	RoleAssignments *RoleAssignmentsService `json:"-"`
+
 	// ProxyConfigs lists, reads, creates, changes and deletes the proxy configs of the
 	// environment of the client's scope: the credentials that the Permit proxy adds to the
 	// requests that it sends on, and the mapping rules of the URLs that CheckURL checks.
@@ -207,6 +211,7 @@ func New(opts ...Option) (*Client, error) {
 	c.ConditionSets = &ConditionSetsService{client: c}
 	c.ConditionSetRules = &ConditionSetRulesService{client: c}
 	c.Users = &UsersService{facts: facts{client: c}}
+	c.RoleAssignments = &RoleAssignmentsService{facts: facts{client: c}}
 	c.ProxyConfigs = &ProxyConfigsService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {

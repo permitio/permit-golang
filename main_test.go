@@ -180,5 +180,12 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("assign_role_to_user.200.json")})
 	servers.API.Handle("DELETE /v2/facts/{proj_id}/{env_id}/users/{user_id}/roles",
 		mockpermit.Reply{Status: http.StatusNoContent})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/role_assignments",
+		mockpermit.Reply{Body: replyFixture("list_role_assignments.200.json")},
+		mockpermit.Reply{Body: `[]`})
+	servers.API.Handle("GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed",
+		mockpermit.Reply{Body: replyFixture("list_role_assignments_detailed.200.json")})
+	servers.PDP.Handle("POST /facts/role_assignments",
+		mockpermit.Reply{Body: replyFixture("assign_role.200.json")})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

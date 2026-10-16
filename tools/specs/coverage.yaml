@@ -315,12 +315,12 @@ control-plane:
   - {op: update_resource, route: "PATCH /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
   - {op: delete_resource, route: "DELETE /v2/schema/{proj_id}/{env_id}/resources/{resource_id}", stage: GA, status: covered}
   # Role Assignments
-  - {op: list_role_assignments, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: planned}
-  - {op: assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: planned}
-  - {op: unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: planned}
+  - {op: list_role_assignments, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
+  - {op: assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
+  - {op: unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
   - {op: bulk_assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: planned}
   - {op: bulk_unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: planned}
-  - {op: list_role_assignments_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed", stage: GA, status: planned}
+  - {op: list_role_assignments_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed", stage: GA, status: covered}
   # Roles
   - {op: list_roles, route: "GET /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: covered}
   - {op: create_role, route: "POST /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: covered}
@@ -456,8 +456,8 @@ pdp:
   - {op: create_relationship_tuple_facts_relationship_tuples_post, route: "POST /facts/relationship_tuples", stage: GA, status: planned}
   - {op: create_resource_instance_facts_resource_instances_post, route: "POST /facts/resource_instances", stage: GA, status: planned}
   - {op: update_resource_instance_facts_resource_instances__instance_id__patch, route: "PATCH /facts/resource_instances/{instance_id}", stage: GA, status: planned}
-  - {op: create_role_assignment_facts_role_assignments_post, route: "POST /facts/role_assignments", stage: GA, status: planned}
-  - {op: delete_role_assignment_facts_role_assignments_delete, route: "DELETE /facts/role_assignments", stage: GA, status: planned}
+  - {op: create_role_assignment_facts_role_assignments_post, route: "POST /facts/role_assignments", stage: GA, status: covered}
+  - {op: delete_role_assignment_facts_role_assignments_delete, route: "DELETE /facts/role_assignments", stage: GA, status: covered}
   - {op: create_tenant_facts_tenants_post, route: "POST /facts/tenants", stage: GA, status: covered}
   - {op: create_user_facts_users_post, route: "POST /facts/users", stage: GA, status: covered}
   - {op: sync_user_facts_users__user_id__put, route: "PUT /facts/users/{user_id}", stage: GA, status: covered}

@@ -658,6 +658,38 @@ change from v1 and what to use instead.
   model. `Create` and `AssignRole` are sent again after a 429 only; the other calls are sent
   again after a 500, 502, 503 or 504 reply or a failed connection too.
 
+### Role assignments
+
+- The `RoleAssignments` field of the client, a `*permit.RoleAssignmentsService`, lists, assigns
+  and unassigns the roles that the users of an environment have in its tenants and on its
+  resource instances, in place of v1's `RoleAssignments`: `List` returns a page as a
+  `*permit.Page[models.RoleAssignmentRead]`, and `All` reads every page, 1000 role assignments at
+  a time, the most that the route gives; `ListDetailed` and `AllDetailed` do the same with
+  `models.RoleAssignmentDetailedRead`, whose user, role, tenant and resource instance are objects.
+  A page without role assignments has an empty `Data`, not nil.
+- `permit.RoleAssignmentsListOptions` filters the lists with `Users`, `Roles` and `Tenants`, each
+  a list of keys sent in its query parameter once for each key, and `ResourceInstance`; a filter
+  that is not set is not sent. `Users.GetAssignedRoles` of v1 is a `List` with `Users` and
+  `Tenants`.
+- `ListDetailed` reads `GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed`, where v1
+  sent the deprecated query parameter `detailed=true` to the list; no call sends `detailed`,
+  `include_total_count` or `return_deleted`.
+- `Assign` takes a `models.RoleAssignmentCreate` and returns the `*models.RoleAssignmentRead`; an
+  empty tenant is left out of the request, where v1's model sent it empty. `Unassign` takes a
+  `models.RoleAssignmentRemove` and returns only an error: nil for a reply in 200-299, and an
+  error that matches `ErrNotFound` for a 404, as its body, not its path, names the role to
+  remove. v1 had both only in its generated client.
+- The calls are calls of the facts API: they act on the environment of the client's scope, or,
+  with `WithFactsViaPDP`, go to the PDP container under `/facts/role_assignments`. Each is sent
+  with an environment-level API key, or higher. `RoleAssignmentsService.WaitForSync(timeout,
+  opts...)` returns a copy whose `Assign` and `Unassign` the PDP container holds until the change
+  reaches its policy; a list through the copy, and a call from a client without
+  `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
+- `Assign` is sent again after a 429 only; the other calls are sent again after a 500, 502, 503
+  or 504 reply or a failed connection too. A reply in 200-299 to `Assign` that is not a role
+  assignment, or to a list that is not a list of role assignments, an empty body too, is an error
+  that names the model.
+
 ### Proxy configs
 
 - The `ProxyConfigs` field of the client, a `*permit.ProxyConfigsService`, lists, reads,

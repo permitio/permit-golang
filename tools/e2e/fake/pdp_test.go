@@ -335,6 +335,53 @@ func TestPDPLocalRoleAssignments(t *testing.T) {
 	}
 }
 
+// TestPDPFactsRoleAssignments checks the role assignments under /facts of the fake PDP container:
+// an assignment makes the role assignment in the environment of its API key, which the next check
+// allows and the Permit API lists; an unassignment removes it, so that the next check denies, and
+// a second unassignment gets 404; and the check of each body is that of the API's operation, as
+// the container's spec does not describe the bodies.
+func TestPDPFactsRoleAssignments(t *testing.T) {
+	h := newPDPHarness(t)
+	const body = `{"user": "u3", "role": "editor", "tenant": "t1"}`
+	check := checkBody("u3", "read", "", "t1")
+	allows := func(want bool) {
+		t.Helper()
+		if got := h.ask(http.MethodPost, "/allowed", check); !reflect.DeepEqual(got,
+			map[string]any{"allow": want}) {
+			t.Errorf("the check of u3 in t1 answered %v, want an allow: %t", got, want)
+		}
+	}
+	allows(false)
+	before := len(h.checked)
+	assigned, ok := h.ask(http.MethodPost, "/facts/role_assignments", body).(map[string]any)
+	if !ok || assigned["user"] != "u3" || assigned["tenant"] != "t1" || assigned["id"] == nil {
+		t.Errorf("the assignment answered %v, want the role assignment", assigned)
+	}
+	allows(true)
+	if n := len(h.list("/v2/facts/proj/dev/role_assignments?user=u3&tenant=t1",
+		projectKey)); n != 1 {
+		t.Errorf("the API lists %d role assignments of u3 in t1, want the new one", n)
+	}
+	for _, want := range []int{http.StatusNoContent, http.StatusNotFound} {
+		if status, data := h.send(h.container, http.MethodDelete, "/facts/role_assignments", body,
+			h.envKey); status != want {
+			t.Errorf("the unassignment answered %d %s, want %d", status, data, want)
+		}
+	}
+	allows(false)
+	var facts []string
+	for _, op := range h.checked[before:] {
+		if op != "is_allowed_allowed_post" {
+			facts = append(facts, op)
+		}
+	}
+	if want := []string{"assign_role", "unassign_role", "unassign_role"}; !slices.Equal(facts,
+		want) {
+		t.Errorf("the bodies of the routes under /facts went to the checks of %q, want %q", facts,
+			want)
+	}
+}
+
 // TestPDPURLChecks checks the URL checks of the fake PDP: the first mapping rule of the proxy
 // configs of the environment whose HTTP method, in any case, and URL match the request decides it,
 // as a check of its action on its resource in the request's tenant; a rule of the URL type regex

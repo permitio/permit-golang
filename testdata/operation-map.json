@@ -291,6 +291,24 @@
     "ResourcesService.Update": [
       "update_resource"
     ],
+    "RoleAssignmentsService.All": [
+      "list_role_assignments"
+    ],
+    "RoleAssignmentsService.AllDetailed": [
+      "list_role_assignments_detailed"
+    ],
+    "RoleAssignmentsService.Assign": [
+      "assign_role"
+    ],
+    "RoleAssignmentsService.List": [
+      "list_role_assignments"
+    ],
+    "RoleAssignmentsService.ListDetailed": [
+      "list_role_assignments_detailed"
+    ],
+    "RoleAssignmentsService.Unassign": [
+      "unassign_role"
+    ],
     "RolesService.All": [
       "list_roles"
     ],

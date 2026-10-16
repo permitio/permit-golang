@@ -1238,6 +1238,22 @@ github.com/permitio/permit-golang/v2 TestUnassignRoleReplies
 github.com/permitio/permit-golang/v2 TestUserRoleBodies
 github.com/permitio/permit-golang/v2 ExampleUsersService_AssignRole
 
+github.com/permitio/permit-golang/v2 TestRoleAssignmentListsReturnAnEmptyPage
+github.com/permitio/permit-golang/v2 TestRoleAssignmentsAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestRoleAssignmentsAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestRoleAssignmentFilters
+github.com/permitio/permit-golang/v2 TestRoleAssignmentsScope
+github.com/permitio/permit-golang/v2 TestRoleAssignmentUnassignReplies
+github.com/permitio/permit-golang/v2 TestRoleAssignmentBodies
+github.com/permitio/permit-golang/v2 TestRoleAssignmentRetries
+github.com/permitio/permit-golang/v2 TestMalformedRoleAssignmentReplies
+github.com/permitio/permit-golang/v2 TestRoleAssignmentListsIgnoreFieldsTheyDoNotKnow
+github.com/permitio/permit-golang/v2 TestRoleAssignmentsAfterClose
+github.com/permitio/permit-golang/v2 TestRoleAssignmentsWaitForSync
+github.com/permitio/permit-golang/v2 TestRoleAssignmentsWaitForSyncMisuse
+github.com/permitio/permit-golang/v2 ExampleRoleAssignmentsService
+github.com/permitio/permit-golang/v2 ExampleRoleAssignmentsService_WaitForSync
+
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllYieldsAnErrorOnce
 github.com/permitio/permit-golang/v2 TestProxyConfigsListReturnsAPage
@@ -1291,6 +1307,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/framework TestCreateEnvironmentCh
 github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestBuilder
 github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestBuilderChecksUnappliedRemovals
 github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestBuilderRegistersFailedWrites
+github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestRegisterRoleAssignment
 github.com/permitio/permit-golang/v2/tools/e2e/framework/seed TestLists
 github.com/permitio/permit-golang/v2/tools/e2e/framework/surface TestCheckPass
 github.com/permitio/permit-golang/v2/tools/e2e/framework/surface TestCheckFail
@@ -1319,12 +1336,14 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestSetRules
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestImplicitGrants
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestReplaceUser
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestUserRoles
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoleAssignmentLists
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPUserPermissions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAuthorizedUsers
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPLocalRoleAssignments
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPFactsRoleAssignments
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPURLChecks
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPAccess
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestCloudPDP
@@ -1350,6 +1369,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_attribute_lifecycl
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/condition_set_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/concurrent_sync_of_a_new_user
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_assignment_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
@@ -1358,7 +1378,9 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_permissions
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/authorized_users
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/tenants_and_local_role_assignments
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/url_check
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_wait_for_sync
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/container_only_routes_on_cloud_pdp
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/facts_on_cloud_pdp
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/logs_hold_no_key
 github.com/permitio/permit-golang/v2/tools/e2e TestE2ESurfaceComplete
 github.com/permitio/permit-golang/v2/tools/e2e TestSeedBuilder

@@ -222,9 +222,23 @@ type RoleAssignment struct {
 	ResourceInstance string `json:"resource_instance,omitempty"`
 }
 
-// RoleAssignment assigns a. Its removal names the tenant, so a needs one, also on an instance. The
-// check that a is gone lists the role assignments of its user, role, tenant and instance.
+// RoleAssignment registers a in the ledger, as [Builder.RegisterRoleAssignment] does, and then
+// assigns it. A role assignment without a tenant is an error, and no request is sent.
 func (b *Builder) RoleAssignment(ctx context.Context, a RoleAssignment) error {
+	if err := b.RegisterRoleAssignment(a); err != nil {
+		return err
+	}
+	return b.post(ctx, b.facts+"/role_assignments", a)
+}
+
+// RegisterRoleAssignment registers a in the builder's ledger and sends no request, for a scenario
+// that assigns a itself, such as through the code under test: call it before the request that
+// assigns a, so that a is torn down also when the reply to that request is lost. The teardown
+// removes a, which succeeds when a is gone already, and checks that the list of the role
+// assignments of its user, role, tenant and instance no longer holds it. The removal names the
+// tenant, so a needs one, also on an instance: without one, RegisterRoleAssignment returns an
+// error and registers nothing.
+func (b *Builder) RegisterRoleAssignment(a RoleAssignment) error {
 	name := "role assignment of " + a.Role + " to " + a.User
 	if a.Tenant == "" {
 		return errors.New("seed: the " + name + " has no tenant, which its removal needs")
@@ -240,7 +254,7 @@ func (b *Builder) RoleAssignment(ctx context.Context, a RoleAssignment) error {
 	}
 	b.ledger.Register(name, b.api.RemoverWithBody(path, a),
 		b.api.Unlisted(path+"?"+query.Encode(), b.timeout, lists(a)))
-	return b.post(ctx, path, a)
+	return nil
 }
 
 // Tuple is a relationship tuple: the subject, an instance, has the relation to the object,

@@ -512,6 +512,51 @@ func TestBuilderRegistersFailedWrites(t *testing.T) {
 	}
 }
 
+// TestRegisterRoleAssignment registers role assignments that the test assigns apart from the
+// builder, as a scenario assigns them through the SDK: the registration sends no request, the
+// ledger names each, and the teardown removes each and checks that it is gone. A role assignment
+// without a tenant is an error, for which the ledger holds nothing.
+func TestRegisterRoleAssignment(t *testing.T) {
+	h := newHarness(t)
+	ctx := t.Context()
+	assignments := h.facts + "/role_assignments"
+	for _, a := range []RoleAssignment{
+		{User: "u1", Role: "member", Tenant: "t1"},
+		{User: "u1", Role: "viewer", Tenant: "t1", ResourceInstance: "document:doc-1"},
+	} {
+		if err := h.builder.RegisterRoleAssignment(a); err != nil {
+			t.Fatalf("RegisterRoleAssignment of %+v: %v", a, err)
+		}
+		r := framework.Request{Method: http.MethodPost, Path: assignments, Body: a}
+		if err := h.plain.Call(ctx, r, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := h.builder.RegisterRoleAssignment(RoleAssignment{User: "u1", Role: "viewer"})
+	wantErr := "seed: the role assignment of viewer to u1 has no tenant, which its removal needs"
+	if err == nil || err.Error() != wantErr {
+		t.Errorf("RegisterRoleAssignment without a tenant returned %v, want %q", err, wantErr)
+	}
+	if got := h.take(); len(got) != 0 {
+		t.Errorf("RegisterRoleAssignment sent %+v, want no request", got)
+	}
+	wantErr = "the ledger does not reconcile, registered=2 completed=0 verified=0: " +
+		"role assignment of member to u1 in t1 (not removed), " +
+		"role assignment of viewer to u1 in t1 on document:doc-1 (not removed)"
+	if err := h.ledger.Reconcile(); err == nil || err.Error() != wantErr {
+		t.Errorf("the ledger before the teardown: %v, want %q", err, wantErr)
+	}
+	if err := h.ledger.Teardown(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.ledger.Reconcile(); err != nil {
+		t.Error(err)
+	}
+	if got := h.count(assignments); got != 0 {
+		t.Errorf("the fake holds %d role assignments after the teardown, want none", got)
+	}
+}
+
 func TestLists(t *testing.T) {
 	onDoc := RoleAssignment{
 		User: "u1", Role: "viewer", Tenant: "t1", ResourceInstance: "document:doc-1",

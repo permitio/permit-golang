@@ -176,6 +176,14 @@ var cloudScenarios = []scenario{
 		run: concurrentSyncOfANewUser,
 	},
 	{
+		name: "role_assignment_lifecycle", methods: []string{
+			"RoleAssignmentsService.List", "RoleAssignmentsService.All",
+			"RoleAssignmentsService.ListDetailed", "RoleAssignmentsService.AllDetailed",
+			"RoleAssignmentsService.Assign", "RoleAssignmentsService.Unassign",
+		},
+		run: roleAssignmentLifecycle,
+	},
+	{
 		name: "proxy_config_lifecycle", methods: []string{
 			"ProxyConfigsService.Create", "ProxyConfigsService.Get", "ProxyConfigsService.List",
 			"ProxyConfigsService.All", "ProxyConfigsService.Update", "ProxyConfigsService.Delete",
@@ -202,8 +210,16 @@ var cloudScenarios = []scenario{
 		run: urlCheck,
 	},
 	{
+		name: "facts_wait_for_sync", methods: factsWriteMethods, pdp: containerPDP,
+		run: factsWaitForSync,
+	},
+	{
 		name: "container_only_routes_on_cloud_pdp", methods: containerOnlyMethods,
 		pdp: cloudPDP, run: containerOnlyRoutesOnCloudPDP,
+	},
+	{
+		name: "facts_on_cloud_pdp", methods: factsWriteMethods, pdp: cloudPDP,
+		run: factsOnCloudPDP,
 	},
 }
 

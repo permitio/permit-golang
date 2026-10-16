@@ -43,6 +43,9 @@ const (
 	opReplaceUser      = "replace_user"
 	opAssignUserRole   = "assign_role_to_user" //nolint:gosec // G101: an operation ID
 	opUnassignUserRole = "unassign_role_from_user"
+
+	opListRoleAssignments         = "list_role_assignments"
+	opListRoleAssignmentsDetailed = "list_role_assignments_detailed"
 )
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
@@ -106,6 +109,10 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 			return f.userRole(rt, segments, fields)
 		}
 		return f.unsupported(rt)
+	case opListRoleAssignments:
+		return http.StatusOK, listed(roleAssignments(f.store[collectionOf(segments)], query), query)
+	case opListRoleAssignmentsDetailed:
+		return f.detailedRoleAssignments(segments, query)
 	}
 	if !isParam(rt.segments[len(rt.segments)-1]) {
 		return f.collection(rt, segments, fields, query)
@@ -375,6 +382,81 @@ func (f *Fake) userRole(rt route, segments []string, fields object) (int, any) {
 		"user_id": user["id"], "role_id": role["id"], "tenant_id": tenant["id"],
 		"organization_id": f.org, "project_id": project, "environment_id": environment,
 	}
+}
+
+// roleAssignmentFilters are the filters of the lists of the role assignments: each is a query
+// parameter and the field of a role assignment that it matches.
+var roleAssignmentFilters = []string{"user", "role", "tenant", "resource_instance"}
+
+// roleAssignments returns the role assignments of assignments, in order, whose fields user, role,
+// tenant and resource_instance, as their create gave them, each equal one of the values of the
+// query parameter of the same name, when query holds it.
+func roleAssignments(assignments []object, query url.Values) []object {
+	return slices.DeleteFunc(slices.Clone(assignments), func(a object) bool {
+		for _, name := range roleAssignmentFilters {
+			if query.Has(name) && !slices.Contains(query[name], text(a, name)) {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+// detailedRoleAssignments answers GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed,
+// whose path has segments, with IDs in place of keys: the role assignments of the environment
+// that the filters of query keep, as roleAssignments says, each with its user, its role, its
+// tenant and its resource instance as the objects of the environment that it names, with the
+// fields of the detailed list, in the paginated object of the page of query, as envelope says,
+// the only form of the route's reply. A role assignment that names an object that the
+// environment does not have holds an empty object for it. The caller holds f.mu.
+func (f *Fake) detailedRoleAssignments(segments []string, query url.Values) (int, any) {
+	s := scope{project: segments[3], environment: segments[4]}
+	kept := roleAssignments(f.store[collectionOf(segments[:len(segments)-1])], query)
+	detailed := make([]object, 0, len(kept))
+	for _, a := range kept {
+		d := object{"role": fieldsOf(f.assignedRole(s, a), "id", "key", "name", "permissions")}
+		for _, name := range []string{"id", "organization_id", "project_id", "environment_id"} {
+			d[name] = a[name]
+		}
+		user, _ := find(f.objectsOf(s, "facts", "users"), text(a, "user"))
+		d["user"] = fieldsOf(user, "id", "key", "email", "first_name", "last_name", "attributes")
+		tenant, _ := find(f.objectsOf(s, "facts", "tenants"), text(a, "tenant"))
+		d["tenant"] = fieldsOf(tenant, "id", "key", "name", "attributes")
+		if instance := text(a, "resource_instance"); instance != "" {
+			o, _ := find(f.objectsOf(s, "facts", "resource_instances"), instance)
+			d["resource_instance"] = fieldsOf(o, "id", "key", "resource", "attributes")
+		}
+		detailed = append(detailed, d)
+	}
+	return http.StatusOK, envelope(detailed, query)
+}
+
+// assignedRole returns the role of a, a role assignment of the environment of s: a role of the
+// environment, for a role in a tenant, or a role of the resource of its instance, for a role on
+// an instance; nil when the environment has no such role. The caller holds f.mu.
+func (f *Fake) assignedRole(s scope, a object) object {
+	roles := f.objectsOf(s, "schema", "roles")
+	if resourceType, _, ok := strings.Cut(text(a, "resource_instance"), ":"); ok {
+		resource, _ := find(f.objectsOf(s, "schema", "resources"), resourceType)
+		roles = f.store[collectionOf([]string{
+			"", "v2", "schema", s.project, s.environment, "resources", text(resource, "id"),
+			"roles",
+		})]
+	}
+	role, _ := find(roles, text(a, "role"))
+	return role
+}
+
+// fieldsOf returns the fields of o whose names are among names, those that o holds; an empty
+// object for a nil o.
+func fieldsOf(o object, names ...string) object {
+	fields := object{}
+	for _, name := range names {
+		if v, ok := o[name]; ok {
+			fields[name] = v
+		}
+	}
+	return fields
 }
 
 // createEnvironment is the route of the create of an environment, as which a copy into a new

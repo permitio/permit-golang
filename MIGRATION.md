@@ -2994,6 +2994,139 @@ complete reply removed the role, the next attempt can get a 404, which `Unassign
 `permit.WithFactsViaPDP()`, it goes to the PDP container, `DELETE /facts/users/{user_id}/roles`,
 which can wait for sync, as [M-users-8](#M-users-8) says.
 
+<a id="M-role-assignments-1"></a>
+### M-role-assignments-1: RoleAssignments becomes Client.RoleAssignments, which assigns and unassigns roles too
+
+- v1: `api.RoleAssignments`
+- v1: `api.NewRoleAssignmentsApi`
+- v2: `permit.RoleAssignmentsService`
+
+Call the methods of the role assignments on the `RoleAssignments` field of the client,
+`client.RoleAssignments`, in place of `client.Api.RoleAssignments`; `permit.New` builds it, so
+nothing takes the place of `api.NewRoleAssignmentsApi`. Each method takes a `context.Context`
+first. The calls act on the environment of the client's scope, as v1's acted on the environment of
+its context: the project and the environment of `permit.WithScope`, or else those of the API key,
+as [M-scope-2](#M-scope-2) says. With `permit.WithFactsViaPDP()`, they go to the PDP container, as
+[M-facts-2](#M-facts-2) says. An environment-level API key may call each of them. Besides the
+lists, the service assigns and unassigns roles, which v1 did only through its generated client, as
+[M-role-assignments-5](#M-role-assignments-5) and [M-role-assignments-6](#M-role-assignments-6)
+say. [M-users-10](#M-users-10) says how `models.RoleAssignmentRead` changes.
+
+<a id="M-role-assignments-2"></a>
+### M-role-assignments-2: RoleAssignments.List takes RoleAssignmentsListOptions, and All reads every page
+
+- v1: `api.RoleAssignments.List`
+- v2: `permit.RoleAssignmentsService.List`
+
+`RoleAssignmentsService.List(ctx, opts)` takes a `*permit.RoleAssignmentsListOptions`, nil for the
+first page of every role assignment with the API's default of 30, in place of the page, the number
+of role assignments and the keys of a user, a role and a tenant, and returns a
+`*permit.Page[models.RoleAssignmentRead]`, in place of a `*[]models.RoleAssignmentRead`, as
+[M-lists-1](#M-lists-1) says. `Users`, `Roles` and `Tenants` each take a list of keys, sent in the
+query parameters `user`, `role` and `tenant` once for each key, where v1 sent one key of each, and
+`ResourceInstance`, which v1 could not send, keeps the role assignments on one resource instance,
+such as `document:doc-1`. A filter that is not set is not sent, as v1 left out an empty key. A
+list without a filter of the tenant or of the resource instance holds the role assignments of every
+tenant, those in a tenant and those on a resource instance, and a key of `Roles` matches a role of
+the environment and a role of a resource that has the key. v1 failed for a page below 1, and for a
+number of role assignments below 1 or above 100, before any request; v2 sends a number that is not
+0 as given, and the API accepts up to 1000. A page without role assignments has an empty `Data`, not
+nil, as v1.3.0 returned an empty list; a reply in 200-299 with an empty body is an error, where
+v1.3.0 returned an empty list. `RoleAssignmentsService.All(ctx, opts)` returns an
+`iter.Seq2[models.RoleAssignmentRead, error]` that reads every page, 1000 role assignments at a
+time.
+
+<a id="M-role-assignments-3"></a>
+### M-role-assignments-3: RoleAssignments.ListDetailed reads the detailed list, and AllDetailed reads every page
+
+- v1: `api.RoleAssignments.ListDetailed`
+- v2: `permit.RoleAssignmentsService.ListDetailed`
+
+`RoleAssignmentsService.ListDetailed(ctx, opts)` takes the options of `List` and returns a
+`*permit.Page[models.RoleAssignmentDetailedRead]`, with the counts of the reply, in place of a
+`*[]models.RoleAssignmentDetailedRead`. It reads the route of the detailed list, as
+[M-role-assignments-8](#M-role-assignments-8) says. `RoleAssignmentsService.AllDetailed(ctx,
+opts)` reads every page, 1000 role assignments at a time. `models.RoleAssignmentDetailedRead` has
+`ID`, `OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`, `OrganizationId`,
+`ProjectId` and `EnvironmentId`, and its `CreatedAt` is a `models.Time`, which embeds `time.Time`.
+Its `User`, a `models.RoleAssignmentUser`, has `ID` in place of `Id`, and `Email`, `FirstName` and
+`LastName` as plain strings, empty when the reply has none, in place of pointers; its `Role`, a
+`models.RoleAssignmentRole`, adds the `Name` and the `Permissions` of the role; its `Tenant`, a
+`models.RoleAssignmentTenant`, and its `ResourceInstance`, a
+`*models.RoleAssignmentResourceInstance`, nil for a role in a tenant, have `ID` in place of `Id`.
+Their attributes are `models.Attributes`, whose numbers are `json.Number`, as
+[M-models-1](#M-models-1) says.
+
+<a id="M-role-assignments-4"></a>
+### M-role-assignments-4: RoleAssignments.WaitForSync takes a time.Duration and waits on assignments and unassignments
+
+- v1: `api.RoleAssignments.WaitForSync`
+- v2: `permit.RoleAssignmentsService.WaitForSync`
+
+`RoleAssignmentsService.WaitForSync(timeout, opts...)` takes the timeout as a `time.Duration`, in
+place of a `*time.Duration` whose nil meant the timeout of the configuration, and options, in place
+of `api.WaitForSyncOptions`, as [M-facts-3](#M-facts-3) says. It returns a copy of the service
+whose calls carry the wait; the service that it is called on keeps none. Only `Assign` and
+`Unassign` wait for sync: the PDP container waits on `POST` and `DELETE /facts/role_assignments`,
+and answers the lists without waiting. v1's copy had only the lists, and sent the headers of the
+wait with them; in v2, a list through the copy is an error that matches `permit.ErrInvalidConfig`,
+and no request is sent. A client without `permit.WithFactsViaPDP()` gets the same error for every
+call through the copy, as only the PDP container waits; v1 logged a warning and made the calls
+without the wait.
+
+<a id="M-role-assignments-5"></a>
+### M-role-assignments-5: AssignRole of the generated client becomes RoleAssignments.Assign, which leaves out an empty tenant
+
+- v1: `openapi.RoleAssignmentsApiService.AssignRole`
+- v2: `permit.RoleAssignmentsService.Assign`
+
+`RoleAssignmentsService.Assign(ctx, assignment)` sends
+`POST /v2/facts/{proj_id}/{env_id}/role_assignments`, as the generated client did, and returns the
+`*models.RoleAssignmentRead`. Build the assignment as a struct literal of
+`models.RoleAssignmentCreate`, in place of `models.NewRoleAssignmentCreate` and its setters, such as
+`models.RoleAssignmentCreate{User: "alice", Role: "editor", Tenant: "tenant-a"}`, and set
+`ResourceInstance`, such as `document:doc-1`, for a role on a resource instance. v1's model sent the
+tenant in every request, also when it was empty; v2 leaves an empty `Tenant` out, and
+`ResourceInstance` is a plain string, left out when empty, in place of a pointer. A 409, which the
+API's spec lists for an assignment, matches `permit.ErrConflict`. It is sent again only after a
+429, as [M-wire-5](#M-wire-5) says, as the API may have assigned the role when a request got no
+complete reply. With `permit.WithFactsViaPDP()`, it goes to the PDP container,
+`POST /facts/role_assignments`, which can wait for sync, as
+[M-role-assignments-4](#M-role-assignments-4) says.
+
+<a id="M-role-assignments-6"></a>
+### M-role-assignments-6: UnassignRole of the generated client becomes RoleAssignments.Unassign, and a 404 stays an error
+
+- v1: `openapi.RoleAssignmentsApiService.UnassignRole`
+- v2: `permit.RoleAssignmentsService.Unassign`
+
+`RoleAssignmentsService.Unassign(ctx, assignment)` sends
+`DELETE /v2/facts/{proj_id}/{env_id}/role_assignments` with the role assignment in the body, as the
+generated client did, and returns only an error, nil for a reply in 200-299. Build the body as a
+struct literal of `models.RoleAssignmentRemove`, whose user, role and tenant every request holds,
+and whose `ResourceInstance` is a plain string, left out when empty, in place of a pointer. It never
+sends the deprecated query parameter `return_deleted`. A 404, such as for a role that the user does
+not have, is a `*permit.Error` that matches `permit.ErrNotFound`, never nil, as the body names the
+role assignment to remove and a 404 can mean a mistyped key. It is sent again after a 500, 502, 503
+or 504 reply or a failed connection, as after a 429, as removing a role twice leaves it removed.
+With `permit.WithFactsViaPDP()`, it goes to the PDP container, `DELETE /facts/role_assignments`,
+which can wait for sync, as [M-role-assignments-4](#M-role-assignments-4) says.
+
+<a id="M-role-assignments-7"></a>
+### M-role-assignments-7: Users.GetAssignedRoles becomes RoleAssignments.List with the user and the tenant
+
+- v1: `api.Users.GetAssignedRoles`
+- v2: `permit.RoleAssignmentsService.List`
+
+`client.RoleAssignments.List(ctx, &permit.RoleAssignmentsListOptions{Users: []string{userKey},
+Tenants: []string{tenantKey}})` lists the role assignments of the user in the tenant, in place of
+`Users.GetAssignedRoles(ctx, userKey, tenantKey, page, perPage)`. Set the page in `ListOptions`,
+and read the role assignments from the `Data` of the page, in place of the
+`[]models.RoleAssignmentRead` that v1 returned. v1 sent the tenant also when its key was empty, as
+`tenant=`; leave `Tenants` nil to list the user's role assignments in every tenant. v1 failed for a
+page below 1, and for a number of role assignments below 1 or above 100, before any request, as
+[M-role-assignments-2](#M-role-assignments-2) says; `RoleAssignmentsService.All` reads every page.
+
 <a id="M-proxy-configs-1"></a>
 ### M-proxy-configs-1: ProxyConfigs becomes Client.ProxyConfigs, which acts on the environment of the scope
 
@@ -3285,6 +3418,19 @@ same new user at once each send their own `PUT`, with no read between. The email
 the attributes that the user leaves out are cleared, as [M-users-5](#M-users-5) says. With `permit.WithFactsViaPDP()`, the `PUT` goes to the PDP container,
 `PUT /facts/users/{user_id}`, which can wait for sync, as [M-users-8](#M-users-8) says.
 
+<a id="M-role-assignments-8"></a>
+### M-role-assignments-8: ListDetailed reads the detailed list in place of the deprecated parameter detailed
+
+- v1: a `GET /v2/facts/{proj_id}/{env_id}/role_assignments` request with the query parameter `detailed=true`
+- v2: a `GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed` request, without `detailed`
+
+v1's `ListDetailed` asked the list of the role assignments for the details with `detailed=true`, a
+query parameter that the API's spec marks deprecated. v2's `ListDetailed` and `AllDetailed` send
+the route of the detailed list, whose reply is the paginated object, so the page holds its counts.
+No call of the role assignments sends `detailed`, `include_total_count` or `return_deleted`. With
+`permit.WithFactsViaPDP()`, the request goes to the PDP container,
+`GET /facts/role_assignments/detailed`, which sends it on to the API without waiting.
+
 ## Kept on purpose
 
 What v2 keeps from v1 although a new major version could change it:
@@ -3367,7 +3513,14 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.ResourceRoleRead` | `models.ResourceRoleRead` |
 | `models.ResourceRoleUpdate` | `models.ResourceRoleUpdate` |
 | `models.ResourceUpdate` | `models.ResourceUpdate` |
+| `models.RoleAssignmentCreate` | `models.RoleAssignmentCreate` |
+| `models.RoleAssignmentDetailedRead` | `models.RoleAssignmentDetailedRead` |
 | `models.RoleAssignmentRead` | `models.RoleAssignmentRead` |
+| `models.RoleAssignmentRemove` | `models.RoleAssignmentRemove` |
+| `models.RoleAssignmentResourceInstance` | `models.RoleAssignmentResourceInstance` |
+| `models.RoleAssignmentRole` | `models.RoleAssignmentRole` |
+| `models.RoleAssignmentTenant` | `models.RoleAssignmentTenant` |
+| `models.RoleAssignmentUser` | `models.RoleAssignmentUser` |
 | `models.RoleCreate` | `models.RoleCreate` |
 | `models.RoleRead` | `models.RoleRead` |
 | `models.RoleUpdate` | `models.RoleUpdate` |
@@ -3380,6 +3533,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.UserRoleRemove` | `models.UserRoleRemove` |
 | `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 309 of the 384 types of v1's pkg/models.
+Not mapped yet: 302 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

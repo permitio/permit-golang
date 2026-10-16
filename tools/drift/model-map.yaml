@@ -884,14 +884,26 @@ models:
       attributes: {required: false, null_policy: ignores}
       extends: {required: false, null_policy: ignores}
       granted_to: {required: false, null_policy: ignores}
-  # A role assignment of an environment, as an assignment and an unassignment send it and as the
-  # API returns it, alone and in a list, also to the assignment of a role with the route of its
-  # user, and with its user, its role, its tenant and its resource instance as objects in the
-  # detailed list. An assignment reads null for the tenant and the resource instance, and an
-  # unassignment for the resource instance, which have no default, as the fields left out, as
-  # every create does, and each rejects null for the fields that it requires. These null
-  # policies are not measured yet: the phase api.role_assignments of the local harness confirms
-  # them.
+  # A role assignment of an environment, as an assignment and an unassignment send it, one or in a
+  # JSON array of a bulk call, and as the API returns it, alone and in a list, also to the
+  # assignment of a role with the route of its user, and with its user, its role, its tenant and
+  # its resource instance as objects in the detailed list; the reports of a bulk assignment and a
+  # bulk unassignment, and the policy of a bulk assignment for a user that the environment does
+  # not have, which it sends in its query. An assignment reads null for the tenant and the resource
+  # instance, and an unassignment for the resource instance, which have no default, as the fields
+  # left out, as every create does, and each rejects null for the fields that it requires. These
+  # null policies are not measured yet: the phase api.role_assignments of the local harness
+  # confirms them.
+  BulkRoleAssignmentReport:
+    schema: BulkRoleAssignmentReport
+    fields:
+      assignments_created: {required: false, null_policy: n/a}
+  BulkRoleUnAssignmentReport:
+    schema: BulkRoleUnAssignmentReport
+    fields:
+      assignments_removed: {required: false, null_policy: n/a}
+  MissingUserPolicy:
+    schema: MissingUserPolicy
   RoleAssignmentCreate:
     schema: RoleAssignmentCreate
     fields:

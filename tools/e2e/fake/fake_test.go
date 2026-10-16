@@ -127,6 +127,8 @@ var routes = []Route{
 		"GET", "/v2/facts/{proj_id}/{env_id}/role_assignments/detailed",
 		opListRoleAssignmentsDetailed,
 	},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk", opBulkAssignRole},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/role_assignments/bulk", opBulkUnassignRole},
 	{"GET", "/v2/facts/{proj_id}/{env_id}/tenants/{tenant_id}/users", "list_tenant_users"},
 	{"POST", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "assign_role_to_user"},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users/{user_id}/roles", "unassign_role_from_user"},
@@ -889,6 +891,73 @@ func TestRoleAssignmentLists(t *testing.T) {
 			t.Errorf("the detailed role assignment %d is %v, want its role, user, tenant and "+
 				"instance %q and its IDs", i, item, want)
 		}
+	}
+}
+
+// TestBulkRoleAssignments checks the bulk routes of the role assignments, whose bodies are JSON
+// arrays that the check of their operation sees: a bulk assignment creates each item, in order,
+// in the scope of its environment, and reports their number, 0 for []; a bulk unassignment
+// removes the role assignments that hold the fields of an item, and reports the number that it
+// removed, to which an item that matches none adds nothing; and a body that is not a JSON array
+// of objects, or that the check rejects, gets 422 and fails the test.
+func TestBulkRoleAssignments(t *testing.T) {
+	h := newHarness(t)
+	env, _ := h.createEnv("dev")
+	const (
+		assignments = "/v2/facts/proj/dev/role_assignments"
+		bulk        = assignments + "/bulk"
+		editor      = `{"user": "alice", "role": "editor", "tenant": "t1"}`
+		owner       = `{"user": "alice", "role": "owner", "tenant": "t1", ` +
+			`"resource_instance": "document:d1"}`
+	)
+	before := len(h.checked)
+	created := h.expect(200, "POST", bulk,
+		`[`+editor+`,`+owner+`,{"user": "bob", "role": "editor", "tenant": "t1"}]`, projectKey)
+	if len(created) != 1 || created["assignments_created"] != 3.0 {
+		t.Errorf("the bulk assignment answered %v, want the report of 3", created)
+	}
+	if got := h.expect(200, "POST", bulk, `[]`, projectKey); got["assignments_created"] != 0.0 {
+		t.Errorf("the bulk assignment of [] answered %v, want the report of 0", got)
+	}
+	listed := func() []string {
+		t.Helper()
+		var got []string
+		for _, item := range h.list(assignments, projectKey) {
+			a, _ := item.(map[string]any)
+			if a["environment_id"] != env["id"] || text(a, "id") == "" {
+				t.Errorf("the role assignment %v has no ID or another environment", a)
+			}
+			got = append(got, strings.TrimSpace(text(a, "user")+" "+text(a, "role")+" "+
+				text(a, "resource_instance")))
+		}
+		return got
+	}
+	if want := []string{"alice editor", "alice owner document:d1", "bob editor"}; !slices.Equal(
+		listed(), want) {
+		t.Errorf("the role assignments are %q after the bulk assignment, want %q", listed(), want)
+	}
+	removed := h.expect(200, "DELETE", bulk,
+		`[`+editor+`,`+owner+`,{"user": "carol", "role": "editor", "tenant": "t1"}]`, projectKey)
+	if len(removed) != 1 || removed["assignments_removed"] != 2.0 {
+		t.Errorf("the bulk unassignment answered %v, want the report of 2", removed)
+	}
+	if want := []string{"bob editor"}; !slices.Equal(listed(), want) {
+		t.Errorf("the role assignments are %q after the bulk unassignment, want %q", listed(),
+			want)
+	}
+	if got := h.checked[before:]; !slices.Equal(got, []string{
+		opBulkAssignRole, opBulkAssignRole, opBulkUnassignRole,
+	}) {
+		t.Errorf("the check saw the bodies of %q, want those of the bulk routes", got)
+	}
+	for _, body := range []string{`{"user": "a"}`, `[1]`, `[null]`, `null`, `[{"key": "bad"}]`} {
+		h.expect(422, "POST", bulk, body, projectKey)
+		if errs := h.tb.take(); len(errs) != 1 {
+			t.Errorf("the body %s got the errors %q, want one", body, errs)
+		}
+	}
+	if want := []string{"bob editor"}; !slices.Equal(listed(), want) {
+		t.Errorf("the role assignments are %q after the rejected bodies, want %q", listed(), want)
 	}
 }
 

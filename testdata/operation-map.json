@@ -300,6 +300,12 @@
     "RoleAssignmentsService.Assign": [
       "assign_role"
     ],
+    "RoleAssignmentsService.BulkAssign": [
+      "bulk_assign_role"
+    ],
+    "RoleAssignmentsService.BulkUnassign": [
+      "bulk_unassign_role"
+    ],
     "RoleAssignmentsService.List": [
       "list_role_assignments"
     ],

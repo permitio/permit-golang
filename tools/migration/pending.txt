@@ -21,8 +21,6 @@ api.NewRelationshipTuplesApi relationship-tuples
 api.ResourceInstances resource-instances
 api.ResourceInstances.* resource-instances
 api.NewResourceInstancesApi resource-instances
-api.Roles.BulkAssignRole role-assignments
-api.Roles.BulkUnAssignRole role-assignments
 
 # Block b: operations of pkg/openapi
 openapi.AuthenticationApiService.ElementsLoginAs elements

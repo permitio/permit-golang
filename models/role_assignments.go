@@ -84,6 +84,52 @@ type RoleAssignmentRemove struct {
 	ResourceInstance string `json:"resource_instance,omitzero"`
 }
 
+// MissingUserPolicy is the policy of a bulk assignment of roles for a user that the environment
+// does not have, which RoleAssignmentsService.BulkAssign of the root package sends in the query
+// parameter missing_user_policy. It is an open enum, as [AttributeType] describes: a request
+// sends a value that this version of the SDK does not know as it is.
+type MissingUserPolicy string
+
+// The values of MissingUserPolicy that this version of the SDK knows, those that the API's spec
+// lists.
+const (
+	// MissingUserPolicyFail is fail, the default that the API's spec gives.
+	MissingUserPolicyFail MissingUserPolicy = "fail"
+
+	// MissingUserPolicyIgnore is ignore.
+	MissingUserPolicyIgnore MissingUserPolicy = "ignore"
+
+	// MissingUserPolicyCreate is create.
+	MissingUserPolicyCreate MissingUserPolicy = "create"
+)
+
+// Known reports whether p is one of the constants of MissingUserPolicy, the values that this
+// version of the SDK knows.
+func (p MissingUserPolicy) Known() bool {
+	switch p {
+	case MissingUserPolicyFail, MissingUserPolicyIgnore, MissingUserPolicyCreate:
+		return true
+	default:
+		return false
+	}
+}
+
+// BulkRoleAssignmentReport is the reply of a bulk assignment of roles, which
+// RoleAssignmentsService.BulkAssign of the root package returns.
+type BulkRoleAssignmentReport struct {
+	// AssignmentsCreated is the number of the role assignments that the call created, or 0 when
+	// the reply has none.
+	AssignmentsCreated int `json:"assignments_created,omitzero"`
+}
+
+// BulkRoleUnAssignmentReport is the reply of a bulk unassignment of roles, which
+// RoleAssignmentsService.BulkUnassign of the root package returns.
+type BulkRoleUnAssignmentReport struct {
+	// AssignmentsRemoved is the number of the role assignments that the call removed, or 0 when
+	// the reply has none.
+	AssignmentsRemoved int `json:"assignments_removed,omitzero"`
+}
+
 // RoleAssignmentDetailedRead is a role assignment as the detailed list of the API returns it:
 // its user, its role, its tenant and its resource instance each as an object with its key, its
 // ID and other fields, such as its name, its attributes or its permissions, in place of the keys

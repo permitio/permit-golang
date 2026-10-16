@@ -1247,12 +1247,16 @@ github.com/permitio/permit-golang/v2 TestRoleAssignmentUnassignReplies
 github.com/permitio/permit-golang/v2 TestRoleAssignmentBodies
 github.com/permitio/permit-golang/v2 TestRoleAssignmentRetries
 github.com/permitio/permit-golang/v2 TestMalformedRoleAssignmentReplies
+github.com/permitio/permit-golang/v2 TestMalformedBulkRoleAssignmentReplies
+github.com/permitio/permit-golang/v2 TestBulkRoleAssignmentNotFound
+github.com/permitio/permit-golang/v2 TestBulkAssignMissingUserPolicy
 github.com/permitio/permit-golang/v2 TestRoleAssignmentListsIgnoreFieldsTheyDoNotKnow
 github.com/permitio/permit-golang/v2 TestRoleAssignmentsAfterClose
 github.com/permitio/permit-golang/v2 TestRoleAssignmentsWaitForSync
 github.com/permitio/permit-golang/v2 TestRoleAssignmentsWaitForSyncMisuse
 github.com/permitio/permit-golang/v2 ExampleRoleAssignmentsService
 github.com/permitio/permit-golang/v2 ExampleRoleAssignmentsService_WaitForSync
+github.com/permitio/permit-golang/v2 ExampleRoleAssignmentsService_BulkAssign
 
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestProxyConfigsAllYieldsAnErrorOnce
@@ -1337,6 +1341,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestImplicitGrants
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestReplaceUser
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestUserRoles
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestRoleAssignmentLists
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRoleAssignments
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants

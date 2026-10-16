@@ -46,7 +46,13 @@ const (
 
 	opListRoleAssignments         = "list_role_assignments"
 	opListRoleAssignmentsDetailed = "list_role_assignments_detailed"
+	opBulkAssignRole              = "bulk_assign_role"
+	opBulkUnassignRole            = "bulk_unassign_role"
 )
+
+// arrayBodies are the operations whose request body is a JSON array of objects, which the fake
+// answers as bulkRoleAssignments says.
+var arrayBodies = map[string]bool{opBulkAssignRole: true, opBulkUnassignRole: true}
 
 // answer returns the status and the body of the reply to a request to rt, whose path has
 // segments, with IDs in place of keys, whose query is query, and whose body holds fields, nil
@@ -445,6 +451,35 @@ func (f *Fake) assignedRole(s scope, a object) object {
 	}
 	role, _ := find(roles, text(a, "role"))
 	return role
+}
+
+// bulkRoleAssignments answers POST and DELETE
+// /v2/facts/{proj_id}/{env_id}/role_assignments/bulk, whose path has segments, with IDs in place
+// of keys, and whose body holds items, the role assignments: a POST creates each, in order, as an
+// assignment of one does, and answers the report of the number that it created; a DELETE removes
+// each role assignment that holds the fields of an item, as an unassignment of one does, and
+// answers the report of the number that it removed, to which an item that matches no role
+// assignment adds nothing. The fake reads no missing_user_policy, and what the Permit API answers
+// for an item that matches no role assignment is not confirmed yet. The caller holds f.mu.
+func (f *Fake) bulkRoleAssignments(rt route, segments []string, items []object) (int, any) {
+	assignments := segments[:len(segments)-1]
+	switch rt.Method {
+	case http.MethodPost:
+		for _, item := range items {
+			f.create(assignRole, assignments, item) // A role assignment has no key to conflict.
+		}
+		return http.StatusOK, object{"assignments_created": len(items)}
+	case http.MethodDelete:
+		path := collectionOf(assignments)
+		before := len(f.store[path])
+		for _, item := range items {
+			f.store[path] = slices.DeleteFunc(f.store[path], func(o object) bool {
+				return holds(o, item)
+			})
+		}
+		return http.StatusOK, object{"assignments_removed": before - len(f.store[path])}
+	}
+	return f.unsupported(rt)
 }
 
 // fieldsOf returns the fields of o whose names are among names, those that o holds; an empty

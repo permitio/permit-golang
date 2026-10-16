@@ -13,7 +13,8 @@ import (
 
 // The error bodies of the Permit API in the wire cases of the role assignments: a key that may
 // not act on the role assignments of the environment, a role assignment that does not exist, a
-// role that the user has already, a field that the API rejects, and a page that is too large.
+// role that the user has already, a field that the API rejects, a page that is too large, and a
+// user that the environment does not have.
 const (
 	roleAssignmentForbiddenBody = `{"error_code":"FORBIDDEN","title":"Forbidden",` +
 		`"message":"the API key may not act on the role assignments of the environment",` +
@@ -27,6 +28,8 @@ const (
 	roleAssignmentPerPageBody = `{"detail":[{"loc":["query","per_page"],` +
 		`"msg":"ensure this value is less than or equal to 1000",` +
 		`"type":"value_error.number.not_le","ctx":{"limit_value":1000}}]}`
+	roleAssignmentUserMissingBody = `{"error_code":"NOT_FOUND","title":"Not Found",` +
+		`"message":"the environment has no user idp|dave@example.com","id":"req-19"}`
 )
 
 // The IDs of the reply fixtures of the role assignments: of the roles editor and owner, of the
@@ -124,12 +127,14 @@ func firstOf[T any](seq iter.Seq2[T, error], n int) ([]T, error) {
 // /facts/role_assignments, with WithFactsViaPDP. The routes take no key in their path: the keys
 // go in the query of a list, which repeats a parameter for each value of a filter and escapes
 // the characters of a/b, 50%é and idp|dave@example.com, and in the body of an assignment or an
-// unassignment, as they are. The lists never send the deprecated query parameters detailed and
-// include_total_count, and an unassignment never sends return_deleted.
+// unassignment, one or a JSON array of them in bulk, as they are, .hidden too. The lists never
+// send the deprecated query parameters detailed and include_total_count, an unassignment never
+// sends return_deleted, and a bulk assignment sends missing_user_policy only when it is set.
 func roleAssignmentCases() []wireCase {
 	const (
 		assignments = "/v2/facts/{proj_id}/{env_id}/role_assignments"
 		detailed    = assignments + "/detailed"
+		bulk        = assignments + "/bulk"
 	)
 	forbidden := func(op, method, route string) *permit.Error {
 		e := projectError(op, method, route, http.StatusForbidden, roleAssignmentForbiddenBody)
@@ -143,16 +148,23 @@ func roleAssignmentCases() []wireCase {
 		e.Detail = "query.per_page: ensure this value is less than or equal to 1000"
 		return e
 	}
-	invalid := func(op, method string) *permit.Error {
-		e := projectError(op, method, assignments, http.StatusUnprocessableEntity,
+	invalid := func(op, method, route string) *permit.Error {
+		e := projectError(op, method, route, http.StatusUnprocessableEntity,
 			roleAssignmentInvalidBody)
 		e.Detail = "body.user: field required"
 		return e
 	}
-	conflict := projectError("assign_role", http.MethodPost, assignments, http.StatusConflict,
-		roleAssignmentConflictBody)
-	conflict.Code, conflict.Title, conflict.RequestID = "DUPLICATE_ENTITY", "Conflict", "req-18"
-	conflict.Detail = "the user has the role in the tenant already"
+	conflict := func(op, route string) *permit.Error {
+		e := projectError(op, http.MethodPost, route, http.StatusConflict,
+			roleAssignmentConflictBody)
+		e.Code, e.Title, e.RequestID = "DUPLICATE_ENTITY", "Conflict", "req-18"
+		e.Detail = "the user has the role in the tenant already"
+		return e
+	}
+	userMissing := projectError("bulk_assign_role", http.MethodPost, bulk, http.StatusNotFound,
+		roleAssignmentUserMissingBody)
+	userMissing.Code, userMissing.Title, userMissing.RequestID = "NOT_FOUND", "Not Found", "req-19"
+	userMissing.Detail = "the environment has no user idp|dave@example.com"
 	notFound := projectError("unassign_role", http.MethodDelete, assignments,
 		http.StatusNotFound, roleAssignmentNotFoundBody)
 	notFound.Code, notFound.Title, notFound.RequestID = "NOT_FOUND", "Not Found", "req-17"
@@ -284,7 +296,7 @@ func roleAssignmentCases() []wireCase {
 			ErrorReply: mockpermit.Reply{
 				Status: http.StatusConflict, Body: roleAssignmentConflictBody,
 			},
-			WantErr: conflict,
+			WantErr: conflict("assign_role", assignments),
 		},
 		{
 			Method: "RoleAssignmentsService.Assign",
@@ -305,7 +317,7 @@ func roleAssignmentCases() []wireCase {
 			ErrorReply: mockpermit.Reply{
 				Status: http.StatusUnprocessableEntity, Body: roleAssignmentInvalidBody,
 			},
-			WantErr: invalid("assign_role", http.MethodPost),
+			WantErr: invalid("assign_role", http.MethodPost, assignments),
 		},
 		{
 			Method: "RoleAssignmentsService.Unassign",
@@ -348,7 +360,82 @@ func roleAssignmentCases() []wireCase {
 			ErrorReply: mockpermit.Reply{
 				Status: http.StatusUnprocessableEntity, Body: roleAssignmentInvalidBody,
 			},
-			WantErr: invalid("unassign_role", http.MethodDelete),
+			WantErr: invalid("unassign_role", http.MethodDelete, assignments),
+		},
+		{
+			Method: "RoleAssignmentsService.BulkAssign",
+			Op:     "bulk_assign_role",
+			Route:  "POST " + bulk,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.RoleAssignments.BulkAssign(ctx, []models.RoleAssignmentCreate{
+					{User: "a/b", Role: "editor", Tenant: "50%é"},
+					{User: syncedKey, Role: "owner", ResourceInstance: "document:.hidden"},
+				}, &permit.RoleAssignmentsBulkAssignOptions{
+					MissingUserPolicy: models.MissingUserPolicyCreate,
+				})
+			},
+			Request: wireRequest{
+				RawPath:  "/v2/facts/p/e/role_assignments/bulk",
+				RawQuery: "missing_user_policy=create",
+				Body: `[{"user":"a/b","role":"editor","tenant":"50%é"},` +
+					`{"user":"idp|dave@example.com","role":"owner",` +
+					`"resource_instance":"document:.hidden"}]`,
+			},
+			Reply:      mockpermit.Reply{Body: replyFixture("bulk_assign_role.200.json")},
+			WantResult: &models.BulkRoleAssignmentReport{AssignmentsCreated: 2},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusConflict, Body: roleAssignmentConflictBody,
+			},
+			WantErr: conflict("bulk_assign_role", bulk),
+		},
+		{
+			Method: "RoleAssignmentsService.BulkAssign",
+			Op:     "bulk_assign_role",
+			Route:  "POST " + bulk,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.RoleAssignments.BulkAssign(ctx, []models.RoleAssignmentCreate{
+					{User: syncedKey, Role: "editor", Tenant: "tenant-a"},
+				}, nil)
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/role_assignments/bulk",
+				Body:    `[{"user":"idp|dave@example.com","role":"editor","tenant":"tenant-a"}]`,
+			},
+			Reply:      mockpermit.Reply{Body: `{}`},
+			WantResult: &models.BulkRoleAssignmentReport{},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusNotFound, Body: roleAssignmentUserMissingBody,
+			},
+			WantErr: userMissing,
+		},
+		{
+			Method: "RoleAssignmentsService.BulkUnassign",
+			Op:     "bulk_unassign_role",
+			Route:  "DELETE " + bulk,
+			Modes:  both,
+			Call: func(ctx context.Context, c *permit.Client) (any, error) {
+				return c.RoleAssignments.BulkUnassign(ctx, []models.RoleAssignmentRemove{
+					{User: "50%é", Role: "editor", Tenant: "a/b"},
+					{
+						User: ".hidden", Role: "owner", Tenant: "tenant-a",
+						ResourceInstance: "document:doc-1",
+					},
+				})
+			},
+			Request: wireRequest{
+				RawPath: "/v2/facts/p/e/role_assignments/bulk",
+				Body: `[{"user":"50%é","role":"editor","tenant":"a/b"},` +
+					`{"user":".hidden","role":"owner","tenant":"tenant-a",` +
+					`"resource_instance":"document:doc-1"}]`,
+			},
+			Reply:      mockpermit.Reply{Body: replyFixture("bulk_unassign_role.200.json")},
+			WantResult: &models.BulkRoleUnAssignmentReport{AssignmentsRemoved: 2},
+			ErrorReply: mockpermit.Reply{
+				Status: http.StatusUnprocessableEntity, Body: roleAssignmentInvalidBody,
+			},
+			WantErr: invalid("bulk_unassign_role", http.MethodDelete, bulk),
 		},
 	}
 }

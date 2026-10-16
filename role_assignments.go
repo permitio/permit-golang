@@ -15,11 +15,13 @@ const (
 	opListRoleAssignmentsDetailed = "list_role_assignments_detailed"
 	opAssignRole                  = "assign_role"
 	opUnassignRole                = "unassign_role"
+	opBulkAssignRole              = "bulk_assign_role"
+	opBulkUnassignRole            = "bulk_unassign_role"
 )
 
 // RoleAssignmentsService lists, assigns and unassigns the role assignments of an environment,
-// the roles that its users have in its tenants and on its resource instances;
-// [Client.RoleAssignments] holds it.
+// the roles that its users have in its tenants and on its resource instances, one at a time or in
+// bulk; [Client.RoleAssignments] holds it.
 //
 // Its calls are calls of the facts API. By default they go to the Permit API, under
 // /v2/facts/{proj_id}/{env_id}/role_assignments, and act on the environment of the client's
@@ -104,11 +106,13 @@ func roleAssignmentsRequest(op string, opts *RoleAssignmentsListOptions,
 //
 // Only [RoleAssignmentsService.Assign] and [RoleAssignmentsService.Unassign] wait for sync: of
 // the routes that RoleAssignmentsService calls, the PDP container waits on POST and DELETE
-// /facts/role_assignments, and answers the lists without waiting. A call through the copy
-// returns an error that matches [ErrInvalidConfig], and sends no request: from a client without
-// [WithFactsViaPDP], as only the PDP container waits; of any other method, such as List or
-// ListDetailed, which the container answers without waiting; for a timeout less than zero; and
-// for a [SyncOption] that is not valid, in any place among opts.
+// /facts/role_assignments, and answers the lists and the bulk routes, under
+// /facts/role_assignments/bulk, without waiting. A call through the copy returns an error that
+// matches [ErrInvalidConfig], and sends no request: from a client without [WithFactsViaPDP], as
+// only the PDP container waits; of any other method, such as List, ListDetailed,
+// [RoleAssignmentsService.BulkAssign] or [RoleAssignmentsService.BulkUnassign], which the
+// container answers without waiting; for a timeout less than zero; and for a [SyncOption] that is
+// not valid, in any place among opts.
 func (s *RoleAssignmentsService) WaitForSync(timeout time.Duration, opts ...SyncOption,
 ) *RoleAssignmentsService {
 	return &RoleAssignmentsService{facts: s.facts.withWait(newSyncWait(timeout, opts))}
@@ -313,4 +317,111 @@ func (s *RoleAssignmentsService) Unassign(ctx context.Context,
 		return err
 	}
 	return s.facts.client.doNoValue(ctx, r)
+}
+
+// RoleAssignmentsBulkAssignOptions are the options of [RoleAssignmentsService.BulkAssign]. The
+// zero RoleAssignmentsBulkAssignOptions, like a nil one, sends none of them.
+type RoleAssignmentsBulkAssignOptions struct {
+	// MissingUserPolicy is the policy of the call for a user that the environment does not have,
+	// sent as it is given in the query parameter missing_user_policy, also a value that
+	// [models.MissingUserPolicy] does not list. Empty leaves the parameter out, and the policy to
+	// the API, whose spec gives fail as its default.
+	MissingUserPolicy models.MissingUserPolicy
+}
+
+// BulkAssign assigns roles to users in one request, with
+// POST /v2/facts/{proj_id}/{env_id}/role_assignments/bulk, and returns the report of the reply,
+// which counts the role assignments that the call created. The body is a JSON array of
+// assignments, in order, each as [RoleAssignmentsService.Assign] sends one: with the User and the
+// Role always, and the Tenant and the ResourceInstance when each is set, as
+// [models.RoleAssignmentCreate] says, so an empty Tenant is left out of its item, not sent as an
+// empty string. Nil sends [], as an empty slice does: the API's spec sets no least number of
+// items. The query holds missing_user_policy when opts sets it, as
+// [RoleAssignmentsBulkAssignOptions] says, and is empty otherwise; a nil opts is the zero
+// RoleAssignmentsBulkAssignOptions.
+//
+// BulkAssign needs an environment-level API key, or higher, and the scope of an environment, as
+// [RoleAssignmentsService] says. With [WithFactsViaPDP], it goes to the PDP container, under
+// /facts/role_assignments/bulk, which sends it on to the API and answers without waiting for its
+// policy. The API's spec lists a 409 for it, so it is sent again only after a 429, which the API
+// did not act on: after a 500, 502, 503 or 504 reply or a failed connection, the API may have
+// assigned some of the roles, so BulkAssign returns that error, and a List of the users' role
+// assignments tells which roles they have.
+//
+// BulkAssign returns an error, and no report:
+//
+//   - through a copy of [RoleAssignmentsService.WaitForSync]: an error that matches
+//     [ErrInvalidConfig], and no request, as RoleAssignmentsService.WaitForSync says: the PDP
+//     container answers the bulk routes without waiting;
+//   - for a reply with an error status: an [Error] with the status and the body of the reply,
+//     which matches [ErrConflict] for a 409 and [ErrNotFound] for a 404, both of which the API's
+//     spec lists for the route, and whose Detail names each field that the API rejects for a
+//     422; with WithFactsViaPDP, a 404 with an empty body, which is how the cloud PDP answers
+//     every route under /facts, matches [ErrContainerPDPOnly] instead of ErrNotFound;
+//   - for a reply in 200-299 that is not a JSON object of a report, such as an empty body: an
+//     Error that says so;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *RoleAssignmentsService) BulkAssign(ctx context.Context,
+	assignments []models.RoleAssignmentCreate, opts *RoleAssignmentsBulkAssignOptions,
+) (*models.BulkRoleAssignmentReport, error) {
+	var o RoleAssignmentsBulkAssignOptions
+	if opts != nil {
+		o = *opts
+	}
+	query := &wire.Query{}
+	if o.MissingUserPolicy != "" {
+		query.AddString("missing_user_policy", new(string(o.MissingUserPolicy)))
+	}
+	r, err := s.facts.prepare(ctx, request{
+		op: opBulkAssignRole, query: query, body: orEmpty(assignments),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return do[models.BulkRoleAssignmentReport](ctx, s.facts.client, r)
+}
+
+// BulkUnassign removes roles from users in one request, with
+// DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk, and returns the report of the
+// reply, which counts the role assignments that its request removed. The body is a JSON array of
+// unassignments, in order, each as [RoleAssignmentsService.Unassign] sends one: with the User,
+// the Role and the Tenant always, also when they are empty, and the ResourceInstance when it is
+// set, as [models.RoleAssignmentRemove] says. Nil sends [], as an empty slice does: the API's
+// spec sets no least number of items. The body, not the path, names the role assignments to
+// remove, so a 404 can mean a mistyped key: BulkUnassign returns it as an [Error] that matches
+// [ErrNotFound], never a report. With [WithFactsViaPDP], a 404 with an empty body, which is how
+// the cloud PDP answers every route under /facts, is an error that matches [ErrContainerPDPOnly]
+// instead.
+//
+// BulkUnassign needs an environment-level API key, or higher, and the scope of an environment,
+// as [RoleAssignmentsService] says. With WithFactsViaPDP, it goes to the PDP container, under
+// /facts/role_assignments/bulk, which sends it on to the API and answers without waiting for its
+// policy. Removing roles twice leaves them removed, so the call sends its request again after a
+// 500, 502, 503 or 504 reply or a failed connection, as after a 429. BulkUnassign returns the
+// report of the last attempt, which may not count roles that an earlier attempt without a
+// complete reply removed; that attempt can also get an error status, which BulkUnassign returns.
+//
+// BulkUnassign returns an error, and no report:
+//
+//   - through a copy of [RoleAssignmentsService.WaitForSync]: an error that matches
+//     [ErrInvalidConfig], and no request, as RoleAssignmentsService.WaitForSync says: the PDP
+//     container answers the bulk routes without waiting;
+//   - for a reply with an error status: an Error with the status and the body of the reply,
+//     such as one that matches ErrNotFound for a 404, or one whose Detail names each field that
+//     the API rejects for a 422;
+//   - for a reply in 200-299 that is not a JSON object of a report, such as an empty body: an
+//     Error that says so;
+//   - for a request that got no reply: an Error whose Err wraps the cause.
+//
+// After [Client.Close], it returns an error that matches [ErrClosed] and sends no request.
+func (s *RoleAssignmentsService) BulkUnassign(ctx context.Context,
+	unassignments []models.RoleAssignmentRemove,
+) (*models.BulkRoleUnAssignmentReport, error) {
+	r, err := s.facts.prepare(ctx, request{op: opBulkUnassignRole, body: orEmpty(unassignments)})
+	if err != nil {
+		return nil, err
+	}
+	return do[models.BulkRoleUnAssignmentReport](ctx, s.facts.client, r)
 }

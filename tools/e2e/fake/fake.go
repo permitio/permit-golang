@@ -27,8 +27,9 @@
 // which replaces it or creates it, as replaceUser says, and the assignment and the unassignment of
 // a role of a user in a tenant, which its associated_tenants hold, as userRole says. It filters
 // the lists of the role assignments by their user, role, tenant and resource instance, and
-// answers the detailed list of them, as roleAssignments and detailedRoleAssignments say. A
-// delete of a condition set rule that the fake does not hold gets 404, as a DELETE of a
+// answers the detailed list of them, as roleAssignments and detailedRoleAssignments say, and
+// their bulk assignment and unassignment, whose bodies are JSON arrays, as bulkRoleAssignments
+// says. A delete of a condition set rule that the fake does not hold gets 404, as a DELETE of a
 // collection with a body does; the API's documentation says that it skips such a delete, and
 // what the API answers is not confirmed yet.
 //
@@ -51,6 +52,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -236,15 +238,28 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		reply(w, status, errorBody(http.StatusText(status), message))
 		return
 	}
-	var fields object
-	if len(body) > 0 {
-		if fields, ok = f.checkBody(rt, body); !ok {
-			reply(w, http.StatusUnprocessableEntity, errorBody("VALIDATION_ERROR",
-				"the body does not fit its schema"))
-			return
-		}
+	var (
+		fields object
+		items  []object
+	)
+	ok = true
+	switch {
+	case arrayBodies[rt.Op]:
+		items, ok = f.checkItems(rt, body)
+	case len(body) > 0:
+		fields, ok = f.checkBody(rt, body)
 	}
-	status, answer := f.answer(rt, segments, fields, key, r.URL.Query())
+	if !ok {
+		reply(w, http.StatusUnprocessableEntity, errorBody("VALIDATION_ERROR",
+			"the body does not fit its schema"))
+		return
+	}
+	var answer any
+	if arrayBodies[rt.Op] {
+		status, answer = f.bulkRoleAssignments(rt, segments, items)
+	} else {
+		status, answer = f.answer(rt, segments, fields, key, r.URL.Query())
+	}
 	reply(w, status, answer)
 }
 
@@ -362,18 +377,46 @@ func identOf(o object) (string, bool) {
 	return key, true
 }
 
-// checkBody returns the fields of body, a JSON object that the check of rt's operation accepts,
-// or false after it failed the test: the check rejects body or cannot run, or body is not an
-// object.
-func (f *Fake) checkBody(rt route, body []byte) (object, bool) {
+// checkSchema reports whether the check of rt's operation accepts body; when it does not, or
+// cannot run, it fails the test.
+func (f *Fake) checkSchema(rt route, body []byte) bool {
 	problems, err := f.check(rt.Op, body)
 	if err != nil {
 		f.tb.Errorf("fake: %s %s: the body could not be checked: %v", rt.Method, rt.Template, err)
-		return nil, false
+		return false
 	}
 	if len(problems) > 0 {
 		f.tb.Errorf("fake: %s %s (%s): the body does not fit its schema: %s", rt.Method,
 			rt.Template, rt.Op, strings.Join(problems, "; "))
+		return false
+	}
+	return true
+}
+
+// checkItems returns the items of body, a JSON array of objects that the check of rt's operation
+// accepts, or false after it failed the test: the check rejects body or cannot run, or body is
+// not an array of objects.
+func (f *Fake) checkItems(rt route, body []byte) ([]object, bool) {
+	if !f.checkSchema(rt, body) {
+		return nil, false
+	}
+	var items []object
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.UseNumber()
+	if err := dec.Decode(&items); err != nil || items == nil ||
+		slices.ContainsFunc(items, func(o object) bool { return o == nil }) {
+		f.tb.Errorf("fake: %s %s: the body is not a JSON array of objects", rt.Method,
+			rt.Template)
+		return nil, false
+	}
+	return items, true
+}
+
+// checkBody returns the fields of body, a JSON object that the check of rt's operation accepts,
+// or false after it failed the test: the check rejects body or cannot run, or body is not an
+// object.
+func (f *Fake) checkBody(rt route, body []byte) (object, bool) {
+	if !f.checkSchema(rt, body) {
 		return nil, false
 	}
 	var fields object

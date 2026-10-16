@@ -318,8 +318,8 @@ control-plane:
   - {op: list_role_assignments, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
   - {op: assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
   - {op: unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments", stage: GA, status: covered}
-  - {op: bulk_assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: planned}
-  - {op: bulk_unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: planned}
+  - {op: bulk_assign_role, route: "POST /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: covered}
+  - {op: bulk_unassign_role, route: "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk", stage: GA, status: covered}
   - {op: list_role_assignments_detailed, route: "GET /v2/facts/{proj_id}/{env_id}/role_assignments/detailed", stage: GA, status: covered}
   # Roles
   - {op: list_roles, route: "GET /v2/schema/{proj_id}/{env_id}/roles", stage: GA, status: covered}

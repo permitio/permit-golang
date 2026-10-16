@@ -1,0 +1,1 @@
+[{"user":"idp|dave@example.com","role":"editor","tenant":"tenant-a"},{"user":"alice","role":"owner","resource_instance":"document:doc-1"},{"user":"","role":""}]

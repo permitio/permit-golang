@@ -28,6 +28,17 @@ const (
 	pdpListDetailedRoute        = "GET /facts/role_assignments/detailed"
 	pdpAssignRoleRoute          = "POST /facts/role_assignments"
 	pdpUnassignRoleRoute        = "DELETE /facts/role_assignments"
+	bulkAssignRoleRoute         = "POST /v2/facts/{proj_id}/{env_id}/role_assignments/bulk"
+	bulkUnassignRoleRoute       = "DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk"
+	pdpBulkAssignRoleRoute      = "POST /facts/role_assignments/bulk"
+	pdpBulkUnassignRoleRoute    = "DELETE /facts/role_assignments/bulk"
+)
+
+// The replies of the tests of the bulk routes of the role assignments, each a report that counts
+// one role assignment.
+const (
+	bulkAssignedBody   = `{"assignments_created":1}`
+	bulkUnassignedBody = `{"assignments_removed":1}`
 )
 
 // assignmentsOf returns the role assignments of the users u<from> to u<to-1>, with only a user:
@@ -364,12 +375,15 @@ func TestRoleAssignmentUnassignReplies(t *testing.T) {
 	}
 }
 
-// TestRoleAssignmentBodies checks the bodies of Assign and Unassign byte for byte against the
-// golden files in testdata/golden: an assignment in a tenant to a user whose key a JSON encoder
-// may escape; one on a resource instance without a tenant, which leaves the tenant out, not
-// empty, where v1 sent "tenant":""; the zero assignment, which holds the user and the role,
-// empty; an unassignment of a role in a tenant and of one on a resource instance; and the zero
-// unassignment, which holds the user, the role and the tenant, empty.
+// TestRoleAssignmentBodies checks the bodies of Assign and Unassign, and of BulkAssign and
+// BulkUnassign, byte for byte against the golden files in testdata/golden: an assignment in a
+// tenant to a user whose key a JSON encoder may escape; one on a resource instance without a
+// tenant, which leaves the tenant out, not empty, where v1 sent "tenant":""; the zero
+// assignment, which holds the user and the role, empty; an unassignment of a role in a tenant and
+// of one on a resource instance; and the zero unassignment, which holds the user, the role and
+// the tenant, empty. A bulk call sends a JSON array of the same items, in order, the remove
+// model for BulkUnassign, so that its zero item holds the tenant, and [] for nil and for an empty
+// slice.
 func TestRoleAssignmentBodies(t *testing.T) {
 	assigned := func(a models.RoleAssignmentCreate) func(s *RoleAssignmentsService) error {
 		return func(s *RoleAssignmentsService) error {
@@ -380,38 +394,69 @@ func TestRoleAssignmentBodies(t *testing.T) {
 	unassigned := func(a models.RoleAssignmentRemove) func(s *RoleAssignmentsService) error {
 		return func(s *RoleAssignmentsService) error { return s.Unassign(t.Context(), a) }
 	}
+	bulkAssigned := func(a []models.RoleAssignmentCreate) func(s *RoleAssignmentsService) error {
+		return func(s *RoleAssignmentsService) error {
+			_, err := s.BulkAssign(t.Context(), a, nil)
+			return err
+		}
+	}
+	bulkUnassigned := func(a []models.RoleAssignmentRemove) func(s *RoleAssignmentsService) error {
+		return func(s *RoleAssignmentsService) error {
+			_, err := s.BulkUnassign(t.Context(), a)
+			return err
+		}
+	}
+	tenantAssignment := models.RoleAssignmentCreate{
+		User: "idp|dave@example.com", Role: "editor", Tenant: "tenant-a",
+	}
+	instanceAssignment := models.RoleAssignmentCreate{
+		User: "alice", Role: "owner", ResourceInstance: "document:doc-1",
+	}
+	instanceRemoval := models.RoleAssignmentRemove{
+		User: "alice", Role: "owner", Tenant: "tenant-a", ResourceInstance: "document:doc-1",
+	}
 	ok := mockpermit.Reply{Body: assignmentBody}
 	gone := mockpermit.Reply{Status: http.StatusNoContent}
+	created := mockpermit.Reply{Body: bulkAssignedBody}
+	removed := mockpermit.Reply{Body: bulkUnassignedBody}
 	for _, tc := range []struct {
 		golden string
 		route  string
 		reply  mockpermit.Reply
 		call   func(s *RoleAssignmentsService) error
 	}{
-		{
-			"assign_role.tenant.golden", assignRoleRoute, ok,
-			assigned(models.RoleAssignmentCreate{
-				User: "idp|dave@example.com", Role: "editor", Tenant: "tenant-a",
-			}),
-		},
-		{
-			"assign_role.instance.golden", assignRoleRoute, ok,
-			assigned(models.RoleAssignmentCreate{
-				User: "alice", Role: "owner", ResourceInstance: "document:doc-1",
-			}),
-		},
+		{"assign_role.tenant.golden", assignRoleRoute, ok, assigned(tenantAssignment)},
+		{"assign_role.instance.golden", assignRoleRoute, ok, assigned(instanceAssignment)},
 		{"assign_role.empty.golden", assignRoleRoute, ok, assigned(models.RoleAssignmentCreate{})},
 		{"unassign_role.tenant.golden", unassignRoleRoute, gone, unassigned(editorRemoval)},
-		{
-			"unassign_role.instance.golden", unassignRoleRoute, gone,
-			unassigned(models.RoleAssignmentRemove{
-				User: "alice", Role: "owner", Tenant: "tenant-a",
-				ResourceInstance: "document:doc-1",
-			}),
-		},
+		{"unassign_role.instance.golden", unassignRoleRoute, gone, unassigned(instanceRemoval)},
 		{
 			"unassign_role.empty.golden", unassignRoleRoute, gone,
 			unassigned(models.RoleAssignmentRemove{}),
+		},
+		{
+			"bulk_assign_role.items.golden", bulkAssignRoleRoute, created,
+			bulkAssigned([]models.RoleAssignmentCreate{
+				tenantAssignment, instanceAssignment, {},
+			}),
+		},
+		{"bulk_assign_role.empty.golden", bulkAssignRoleRoute, created, bulkAssigned(nil)},
+		{
+			"bulk_assign_role.empty.golden", bulkAssignRoleRoute, created,
+			bulkAssigned([]models.RoleAssignmentCreate{}),
+		},
+		{
+			"bulk_unassign_role.items.golden", bulkUnassignRoleRoute, removed,
+			bulkUnassigned([]models.RoleAssignmentRemove{
+				{User: "idp|dave@example.com", Role: "editor", Tenant: "tenant-a"},
+				instanceRemoval,
+				{},
+			}),
+		},
+		{"bulk_unassign_role.empty.golden", bulkUnassignRoleRoute, removed, bulkUnassigned(nil)},
+		{
+			"bulk_unassign_role.empty.golden", bulkUnassignRoleRoute, removed,
+			bulkUnassigned([]models.RoleAssignmentRemove{}),
 		},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
@@ -430,8 +475,9 @@ func TestRoleAssignmentBodies(t *testing.T) {
 }
 
 // TestRoleAssignmentRetries checks when a call of the role assignments sends its request again:
-// Assign, which the API may have acted on, after a 429 only, so a 503 ends it after one request;
-// Unassign, List and ListDetailed, which do the same when sent twice, after a 503 too.
+// Assign and BulkAssign, which the API may have acted on, after a 429 only, so a 503 ends each
+// after one request; Unassign, BulkUnassign, List and ListDetailed, which do the same when sent
+// twice, after a 503 too.
 func TestRoleAssignmentRetries(t *testing.T) {
 	again := http.Header{"Retry-After": {"0"}}
 	limited := mockpermit.Reply{Status: http.StatusTooManyRequests, Header: again, Body: `{}`}
@@ -440,6 +486,10 @@ func TestRoleAssignmentRetries(t *testing.T) {
 	}
 	assigned := func(s *RoleAssignmentsService) error {
 		_, err := s.Assign(t.Context(), editorAssignment)
+		return err
+	}
+	bulkAssigned := func(s *RoleAssignmentsService) error {
+		_, err := s.BulkAssign(t.Context(), []models.RoleAssignmentCreate{editorAssignment}, nil)
 		return err
 	}
 	for _, tc := range []struct {
@@ -463,6 +513,24 @@ func TestRoleAssignmentRetries(t *testing.T) {
 			replies: []mockpermit.Reply{unavailable, {Status: http.StatusNoContent}},
 			call: func(s *RoleAssignmentsService) error {
 				return s.Unassign(t.Context(), editorRemoval)
+			},
+		},
+		{
+			name: "BulkAssign after a 429", route: bulkAssignRoleRoute,
+			replies: []mockpermit.Reply{limited, {Body: bulkAssignedBody}}, call: bulkAssigned,
+		},
+		{
+			name: "BulkAssign after a 503", route: bulkAssignRoleRoute,
+			replies: []mockpermit.Reply{unavailable}, call: bulkAssigned,
+			status: http.StatusServiceUnavailable,
+		},
+		{
+			name: "BulkUnassign after a 503", route: bulkUnassignRoleRoute,
+			replies: []mockpermit.Reply{unavailable, {Body: bulkUnassignedBody}},
+			call: func(s *RoleAssignmentsService) error {
+				_, err := s.BulkUnassign(t.Context(),
+					[]models.RoleAssignmentRemove{editorRemoval})
+				return err
 			},
 		},
 		{
@@ -555,6 +623,163 @@ func TestMalformedRoleAssignmentReplies(t *testing.T) {
 	}
 }
 
+// TestMalformedBulkRoleAssignmentReplies checks that a reply in 200-299 to BulkAssign or
+// BulkUnassign that is not a JSON object of its report, an empty body too, such as that of a
+// 204, is an *Error that names the model, with the status of the reply, and no report.
+func TestMalformedBulkRoleAssignmentReplies(t *testing.T) {
+	for _, tc := range []struct {
+		route, model string
+		call         func(s *RoleAssignmentsService) (bool, error)
+	}{
+		{
+			route: bulkAssignRoleRoute, model: "models.BulkRoleAssignmentReport",
+			call: func(s *RoleAssignmentsService) (bool, error) {
+				report, err := s.BulkAssign(t.Context(), nil, nil)
+				return report != nil, err
+			},
+		},
+		{
+			route: bulkUnassignRoleRoute, model: "models.BulkRoleUnAssignmentReport",
+			call: func(s *RoleAssignmentsService) (bool, error) {
+				report, err := s.BulkUnassign(t.Context(), nil)
+				return report != nil, err
+			},
+		},
+	} {
+		for _, reply := range []mockpermit.Reply{
+			{Status: http.StatusNoContent},
+			{Body: ``},
+			{Body: ` `},
+			{Body: `null`},
+			{Body: `[]`},
+			{Body: `"a"`},
+			{Body: `{"assignments_created":"1","assignments_removed":"1"}`},
+			{Body: `{} {}`},
+		} {
+			api := mockpermit.NewAPI(t)
+			api.Handle(tc.route, reply)
+			got, err := tc.call(userClient(t, api).RoleAssignments)
+			status := reply.Status
+			if status == 0 {
+				status = http.StatusOK
+			}
+			want := "status " + strconv.Itoa(status) + ": the reply is not a valid " + tc.model
+			if e := mustError(t, err); got || e.StatusCode != status ||
+				!strings.HasSuffix(e.Error(), want) {
+				t.Errorf("%s of the reply %d %q returned a report: %t, and\n%v\nwant no report "+
+					"and an error that ends with %q", tc.route, status, reply.Body, got, err, want)
+			}
+		}
+	}
+}
+
+// TestBulkRoleAssignmentNotFound checks the 404 of the bulk routes, through the API and through
+// the PDP container: as the body names the role assignments, an *Error that matches ErrNotFound,
+// never a report, for a 404 with a body, after one request, also with a retry policy that allows
+// one more; and, through the container, an error that matches ErrContainerPDPOnly, not
+// ErrNotFound, for a 404 with an empty body.
+func TestBulkRoleAssignmentNotFound(t *testing.T) {
+	for _, tc := range []struct {
+		viaPDP        bool
+		body          string
+		containerOnly bool
+	}{
+		{viaPDP: false, body: unassignNotFoundBody},
+		{viaPDP: true, body: unassignNotFoundBody},
+		{viaPDP: true, body: "", containerOnly: true},
+	} {
+		for _, call := range []struct {
+			route, pdpRoute, op string
+			call                func(s *RoleAssignmentsService) (bool, error)
+		}{
+			{
+				route: bulkAssignRoleRoute, pdpRoute: pdpBulkAssignRoleRoute, op: opBulkAssignRole,
+				call: func(s *RoleAssignmentsService) (bool, error) {
+					report, err := s.BulkAssign(t.Context(),
+						[]models.RoleAssignmentCreate{editorAssignment}, nil)
+					return report != nil, err
+				},
+			},
+			{
+				route: bulkUnassignRoleRoute, pdpRoute: pdpBulkUnassignRoleRoute,
+				op: opBulkUnassignRole,
+				call: func(s *RoleAssignmentsService) (bool, error) {
+					report, err := s.BulkUnassign(t.Context(),
+						[]models.RoleAssignmentRemove{editorRemoval})
+					return report != nil, err
+				},
+			},
+		} {
+			api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
+			to, route := api, call.route
+			opts := []Option{WithScope("p", "e"), WithRetry(RetryPolicy{MaxRetries: 1})}
+			if tc.viaPDP {
+				to, route = pdp, call.pdpRoute
+				opts = append(opts, WithFactsViaPDP())
+			}
+			to.Handle(route, mockpermit.Reply{Status: http.StatusNotFound, Body: tc.body})
+			got, err := call.call(decisionClient(t, api, pdp, opts...).RoleAssignments)
+			e := mustError(t, err)
+			if got || e.StatusCode != http.StatusNotFound || e.Op != call.op ||
+				errors.Is(err, ErrNotFound) == tc.containerOnly ||
+				errors.Is(err, ErrContainerPDPOnly) != tc.containerOnly {
+				t.Errorf("via the PDP %t: %s of a 404 with the body %q returned a report: %t, "+
+					"and %v; want an *Error that matches ErrContainerPDPOnly: %t, and else "+
+					"ErrNotFound", tc.viaPDP, call.op, tc.body, got, err, tc.containerOnly)
+			}
+			if n := len(to.Requests()); n != 1 {
+				t.Errorf("via the PDP %t: %s of a 404 sent %d requests, want 1", tc.viaPDP,
+					call.op, n)
+			}
+		}
+	}
+}
+
+// TestBulkAssignMissingUserPolicy checks the query of BulkAssign, through the API and through the
+// PDP container: missing_user_policy is left out for a nil opts and for the zero options, and
+// else holds the policy as it is given, each that the SDK knows and one that it does not, which
+// the query escapes.
+func TestBulkAssignMissingUserPolicy(t *testing.T) {
+	policies := []*RoleAssignmentsBulkAssignOptions{
+		nil,
+		{},
+		{MissingUserPolicy: models.MissingUserPolicyFail},
+		{MissingUserPolicy: models.MissingUserPolicyIgnore},
+		{MissingUserPolicy: models.MissingUserPolicyCreate},
+		{MissingUserPolicy: "added later&x"},
+	}
+	want := []string{
+		"", "", "missing_user_policy=fail", "missing_user_policy=ignore",
+		"missing_user_policy=create", "missing_user_policy=added+later%26x",
+	}
+	for _, viaPDP := range []bool{false, true} {
+		api, pdp := mockpermit.NewAPI(t), mockpermit.NewPDP(t)
+		to, route := api, bulkAssignRoleRoute
+		opts := []Option{WithScope("p", "e")}
+		if viaPDP {
+			to, route = pdp, pdpBulkAssignRoleRoute
+			opts = append(opts, WithFactsViaPDP())
+		}
+		replies := make([]mockpermit.Reply, len(policies))
+		for i := range replies {
+			replies[i] = mockpermit.Reply{Body: bulkAssignedBody}
+		}
+		to.Handle(route, replies...)
+		s := decisionClient(t, api, pdp, opts...).RoleAssignments
+		for _, policy := range policies {
+			report, err := s.BulkAssign(t.Context(),
+				[]models.RoleAssignmentCreate{editorAssignment}, policy)
+			if err != nil || report.AssignmentsCreated != 1 {
+				t.Fatalf("via the PDP %t: BulkAssign with %+v returned %+v, %v", viaPDP, policy,
+					report, err)
+			}
+		}
+		if diff := cmp.Diff(want, queries(to)); diff != "" {
+			t.Errorf("via the PDP %t: the queries differ (-want +got):\n%s", viaPDP, diff)
+		}
+	}
+}
+
 // TestRoleAssignmentListsIgnoreFieldsTheyDoNotKnow checks that each list reads its own shape and
 // skips a field that its model does not have, at the top of an item and inside one, as the API
 // may add fields: List reads a role assignment with the keys of its user, its role and its
@@ -605,8 +830,9 @@ func TestRoleAssignmentListsIgnoreFieldsTheyDoNotKnow(t *testing.T) {
 
 // TestRoleAssignmentsAfterClose checks that each method returns ErrClosed after Close, and sends
 // nothing, not even the lookup of the scope: also each method of a copy of WaitForSync whose
-// wait is not valid, which returns ErrInvalidConfig before Close, and the lists with options that
-// are not valid.
+// wait is not valid, which returns ErrInvalidConfig before Close, the lists with options that
+// are not valid, BulkAssign with a policy that the SDK does not know, which it sends as given,
+// and BulkUnassign.
 func TestRoleAssignmentsAfterClose(t *testing.T) {
 	invalid := &RoleAssignmentsListOptions{ListOptions: ListOptions{PerPage: -1}}
 	for _, opts := range [][]Option{nil, {WithScope("p", "e")}, {WithFactsViaPDP()}} {
@@ -633,7 +859,11 @@ func TestRoleAssignmentsAfterClose(t *testing.T) {
 					allDetailedErrs...)
 			}
 			_, assignErr := s.Assign(ctx, editorAssignment)
-			for i, err := range append(errs, assignErr, s.Unassign(ctx, editorRemoval)) {
+			_, bulkAssignErr := s.BulkAssign(ctx, []models.RoleAssignmentCreate{editorAssignment},
+				&RoleAssignmentsBulkAssignOptions{MissingUserPolicy: "added_later"})
+			_, bulkUnassignErr := s.BulkUnassign(ctx, []models.RoleAssignmentRemove{editorRemoval})
+			errs = append(errs, assignErr, bulkAssignErr, bulkUnassignErr)
+			for i, err := range append(errs, s.Unassign(ctx, editorRemoval)) {
 				if !errors.Is(err, ErrClosed) {
 					t.Errorf("call %d after Close returned %v, want ErrClosed", i, err)
 				}
@@ -697,10 +927,11 @@ func TestRoleAssignmentsWaitForSync(t *testing.T) {
 }
 
 // TestRoleAssignmentsWaitForSyncMisuse checks the calls through a copy of WaitForSync that
-// cannot wait: List, All, ListDetailed and AllDetailed, which the PDP container answers without
-// waiting; and Assign and Unassign from a client that sends facts to the API, or with a negative
-// timeout. Each returns an error that matches ErrInvalidConfig and names the operation and the
-// rule, and sends no request, not even the lookup of the scope.
+// cannot wait: List, All, ListDetailed and AllDetailed, and BulkAssign and BulkUnassign, which
+// the PDP container answers without waiting; each bulk call from a client that sends facts to
+// the API too; and Assign and Unassign from a client that sends facts to the API, or with a
+// negative timeout. Each returns an error that matches ErrInvalidConfig and names the operation
+// and the rule, and sends no request, not even the lookup of the scope.
 func TestRoleAssignmentsWaitForSyncMisuse(t *testing.T) {
 	type misuse struct {
 		name    string
@@ -747,6 +978,30 @@ func TestRoleAssignmentsWaitForSyncMisuse(t *testing.T) {
 				return nil
 			},
 		},
+	}
+	bulkAssign := func(ctx context.Context, s *RoleAssignmentsService) error {
+		_, err := s.BulkAssign(ctx, []models.RoleAssignmentCreate{editorAssignment},
+			&RoleAssignmentsBulkAssignOptions{MissingUserPolicy: models.MissingUserPolicyCreate})
+		return err
+	}
+	bulkUnassign := func(ctx context.Context, s *RoleAssignmentsService) error {
+		_, err := s.BulkUnassign(ctx, []models.RoleAssignmentRemove{editorRemoval})
+		return err
+	}
+	for _, viaPDP := range []bool{true, false} {
+		rule := validate.WaitForSyncNotWaiting
+		if !viaPDP {
+			rule = validate.WaitForSyncFactsViaAPI
+		}
+		cases = append(cases,
+			misuse{
+				name: "BulkAssign via the PDP " + strconv.FormatBool(viaPDP), viaPDP: viaPDP,
+				op: opBulkAssignRole, call: bulkAssign, rule: rule,
+			},
+			misuse{
+				name: "BulkUnassign via the PDP " + strconv.FormatBool(viaPDP), viaPDP: viaPDP,
+				op: opBulkUnassignRole, call: bulkUnassign, rule: rule,
+			})
 	}
 	for _, w := range roleAssignmentWrites {
 		cases = append(cases,

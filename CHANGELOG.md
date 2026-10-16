@@ -679,16 +679,27 @@ change from v1 and what to use instead.
   `models.RoleAssignmentRemove` and returns only an error: nil for a reply in 200-299, and an
   error that matches `ErrNotFound` for a 404, as its body, not its path, names the role to
   remove. v1 had both only in its generated client.
+- `BulkAssign` takes a `[]models.RoleAssignmentCreate` and a
+  `*permit.RoleAssignmentsBulkAssignOptions`, and returns the `*models.BulkRoleAssignmentReport`
+  of the reply; `BulkUnassign` takes a `[]models.RoleAssignmentRemove`, whose tenant each item
+  holds, and returns the `*models.BulkRoleUnAssignmentReport`. Each sends its role assignments as
+  a JSON array in one request to `/v2/facts/{proj_id}/{env_id}/role_assignments/bulk`, in place of
+  v1's `Roles.BulkAssignRole` and `Roles.BulkUnAssignRole`; an empty tenant is left out of an
+  assignment, and nil is sent as `[]`, where v1 sent `null`. The `MissingUserPolicy` of the
+  options sends the query parameter `missing_user_policy`, which v1 never sent, only when it is
+  set; `models.MissingUserPolicy` is an open enum, with `MissingUserPolicyFail`,
+  `MissingUserPolicyIgnore` and `MissingUserPolicyCreate`, and a value that the SDK does not know
+  is sent as it is. A 404 to either is an error that matches `ErrNotFound`.
 - The calls are calls of the facts API: they act on the environment of the client's scope, or,
   with `WithFactsViaPDP`, go to the PDP container under `/facts/role_assignments`. Each is sent
   with an environment-level API key, or higher. `RoleAssignmentsService.WaitForSync(timeout,
   opts...)` returns a copy whose `Assign` and `Unassign` the PDP container holds until the change
-  reaches its policy; a list through the copy, and a call from a client without
+  reaches its policy; a list or a bulk call through the copy, and a call from a client without
   `WithFactsViaPDP`, is an error that matches `ErrInvalidConfig`, and no request is sent.
-- `Assign` is sent again after a 429 only; the other calls are sent again after a 500, 502, 503
-  or 504 reply or a failed connection too. A reply in 200-299 to `Assign` that is not a role
-  assignment, or to a list that is not a list of role assignments, an empty body too, is an error
-  that names the model.
+- `Assign` and `BulkAssign` are sent again after a 429 only; the other calls are sent again after
+  a 500, 502, 503 or 504 reply or a failed connection too. A reply in 200-299 to `Assign` that is
+  not a role assignment, to a bulk call that is not its report, or to a list that is not a list of
+  role assignments, an empty body too, is an error that names the model.
 
 ### Proxy configs
 

@@ -47,7 +47,10 @@ func detailedAssigned(a models.RoleAssignmentDetailedRead) assigned {
 // tenant and the role of the resource on the instance with Assign, each registered with the
 // ledger before, and finds both, the one on the instance too, in the lists of the user's role
 // assignments of List, All, ListDetailed and AllDetailed. It removes both with Unassign, after
-// which List of the user is an empty page again.
+// which List of the user is an empty page again. Then it assigns both again in one request with
+// BulkAssign, with the policy fail for a missing user, each registered with the ledger before,
+// whose report counts both, finds both in the lists again, and removes both in one request with
+// BulkUnassign, whose report counts both, after which List of the user is an empty page.
 func roleAssignmentLifecycle(s *suite) func(t *testing.T) {
 	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
 		user, tenant := s.cfg.prefix.Key("sdk-ra-user"), s.cfg.prefix.Key("sdk-ra-tenant")
@@ -89,14 +92,47 @@ func roleAssignmentLifecycle(s *suite) func(t *testing.T) {
 			return assigned{a.User, a.Role, a.Tenant, a.ResourceInstance != ""}
 		})
 		listAssignments(ctx, t, c, mine, want)
-		for _, a := range assignments {
-			if err := c.RoleAssignments.Unassign(ctx, models.RoleAssignmentRemove{
+		removals := make([]models.RoleAssignmentRemove, len(assignments))
+		for i, a := range assignments {
+			removals[i] = models.RoleAssignmentRemove{
 				User: a.User, Role: a.Role, Tenant: a.Tenant, ResourceInstance: a.ResourceInstance,
-			}); err != nil {
-				t.Fatalf("Unassign of %+v: %v", a, err)
+			}
+			if err := c.RoleAssignments.Unassign(ctx, removals[i]); err != nil {
+				t.Fatalf("Unassign of %+v: %v", removals[i], err)
 			}
 		}
 		expectNone(ctx, t, c, mine)
+		bulkAssign(ctx, t, c, b, assignments)
+		listAssignments(ctx, t, c, mine, want)
+		removed, err := c.RoleAssignments.BulkUnassign(ctx, removals)
+		if err != nil || removed.AssignmentsRemoved != len(removals) {
+			t.Fatalf("BulkUnassign of %+v returned %+v, %v; want the report of %d", removals,
+				removed, err, len(removals))
+		}
+		expectNone(ctx, t, c, mine)
+	}
+}
+
+// bulkAssign registers each of assignments with the ledger of b, and then assigns them in one
+// request with BulkAssign and the policy fail for a missing user, whose report must count each.
+func bulkAssign(ctx context.Context, t *testing.T, c *permit.Client, b *seed.Builder,
+	assignments []seed.RoleAssignment,
+) {
+	t.Helper()
+	creates := make([]models.RoleAssignmentCreate, len(assignments))
+	for i, a := range assignments {
+		if err := b.RegisterRoleAssignment(a); err != nil {
+			t.Fatalf("setup: %v", err)
+		}
+		creates[i] = models.RoleAssignmentCreate{
+			User: a.User, Role: a.Role, Tenant: a.Tenant, ResourceInstance: a.ResourceInstance,
+		}
+	}
+	created, err := c.RoleAssignments.BulkAssign(ctx, creates,
+		&permit.RoleAssignmentsBulkAssignOptions{MissingUserPolicy: models.MissingUserPolicyFail})
+	if err != nil || created.AssignmentsCreated != len(creates) {
+		t.Fatalf("BulkAssign of %+v returned %+v, %v; want the report of %d", creates, created,
+			err, len(creates))
 	}
 }
 

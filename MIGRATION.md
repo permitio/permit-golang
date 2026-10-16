@@ -2089,8 +2089,9 @@ scope of the API key, which the client looks up once, as [M-scope-2](#M-scope-2)
 without an environment, such as that of a project-level API key without `permit.WithScope`, is an
 error that matches `permit.ErrInvalidConfig`, with no request for the call. Every method returns a
 `*permit.Error`, or an error that wraps one, as [M-errors-1](#M-errors-1) says. v1's
-`BulkAssignRole` and `BulkUnAssignRole` assign roles to users; they move with the role
-assignments.
+`BulkAssignRole` and `BulkUnAssignRole` assign and remove the roles of users; they move with the
+role assignments, as [M-role-assignments-9](#M-role-assignments-9) and
+[M-role-assignments-10](#M-role-assignments-10) say.
 
 The role models keep their names and change their fields: `models.RoleRead` has `ID`,
 `OrganizationID`, `ProjectID` and `EnvironmentID` in place of `Id`, `OrganizationId`, `ProjectId`
@@ -3068,11 +3069,11 @@ place of a `*time.Duration` whose nil meant the timeout of the configuration, an
 of `api.WaitForSyncOptions`, as [M-facts-3](#M-facts-3) says. It returns a copy of the service
 whose calls carry the wait; the service that it is called on keeps none. Only `Assign` and
 `Unassign` wait for sync: the PDP container waits on `POST` and `DELETE /facts/role_assignments`,
-and answers the lists without waiting. v1's copy had only the lists, and sent the headers of the
-wait with them; in v2, a list through the copy is an error that matches `permit.ErrInvalidConfig`,
-and no request is sent. A client without `permit.WithFactsViaPDP()` gets the same error for every
-call through the copy, as only the PDP container waits; v1 logged a warning and made the calls
-without the wait.
+and answers the lists and the bulk calls without waiting. v1's copy had only the lists, and sent
+the headers of the wait with them; in v2, a list or a bulk call through the copy is an error that
+matches `permit.ErrInvalidConfig`, and no request is sent. A client without
+`permit.WithFactsViaPDP()` gets the same error for every call through the copy, as only the PDP
+container waits; v1 logged a warning and made the calls without the wait.
 
 <a id="M-role-assignments-5"></a>
 ### M-role-assignments-5: AssignRole of the generated client becomes RoleAssignments.Assign, which leaves out an empty tenant
@@ -3126,6 +3127,58 @@ and read the role assignments from the `Data` of the page, in place of the
 `tenant=`; leave `Tenants` nil to list the user's role assignments in every tenant. v1 failed for a
 page below 1, and for a number of role assignments below 1 or above 100, before any request, as
 [M-role-assignments-2](#M-role-assignments-2) says; `RoleAssignmentsService.All` reads every page.
+
+<a id="M-role-assignments-9"></a>
+### M-role-assignments-9: Roles.BulkAssignRole becomes RoleAssignments.BulkAssign, which leaves out an empty tenant
+
+- v1: `api.Roles.BulkAssignRole`
+- v2: `permit.RoleAssignmentsService.BulkAssign`
+
+`client.RoleAssignments.BulkAssign(ctx, assignments, opts)` takes the
+`[]models.RoleAssignmentCreate` that `client.Api.Roles.BulkAssignRole(ctx, assignments)` took, and
+a `*permit.RoleAssignmentsBulkAssignOptions`, nil for none. It sends
+`POST /v2/facts/{proj_id}/{env_id}/role_assignments/bulk` with the role assignments as a JSON
+array, in order, as v1 did, and returns the `*models.BulkRoleAssignmentReport` of the reply, whose
+`AssignmentsCreated` is an `int`, 0 when the reply has none, in place of a `*int32`. Build each
+role assignment as a struct literal of `models.RoleAssignmentCreate`, as
+[M-role-assignments-5](#M-role-assignments-5) says: v1's model sent the tenant of each, also when
+it was empty, and v2 leaves an empty `Tenant` out. v1 sent `null` for a nil slice and `[]` for an
+empty one; v2 sends `[]` for both. The `MissingUserPolicy` of the options, a
+`models.MissingUserPolicy` such as `models.MissingUserPolicyCreate`, sends the query parameter
+`missing_user_policy`, which v1 never sent; when it is empty, the parameter is left out, and the
+API's spec gives `fail` as its default. `models.MissingUserPolicy` is an open enum, with
+`models.MissingUserPolicyFail`, `models.MissingUserPolicyIgnore` and
+`models.MissingUserPolicyCreate`; a value that the SDK does not know is sent as it is. A 409
+matches `permit.ErrConflict`, and a 404 `permit.ErrNotFound`. It is sent again only after a 429,
+as [M-wire-5](#M-wire-5) says, as the API may have assigned some of the roles when a request got
+no complete reply. v1 sent it to the Permit API also with `WithProxyFactsViaPDP(true)`; with
+`permit.WithFactsViaPDP()`, v2 sends it to the PDP container, `POST /facts/role_assignments/bulk`,
+which answers without waiting for sync, so a call through a copy of
+`RoleAssignmentsService.WaitForSync` is an error that matches `permit.ErrInvalidConfig`, as
+[M-role-assignments-4](#M-role-assignments-4) says. An environment-level API key may call it, as
+v1's could.
+
+<a id="M-role-assignments-10"></a>
+### M-role-assignments-10: Roles.BulkUnAssignRole becomes RoleAssignments.BulkUnassign
+
+- v1: `api.Roles.BulkUnAssignRole`
+- v2: `permit.RoleAssignmentsService.BulkUnassign`
+
+`client.RoleAssignments.BulkUnassign(ctx, unassignments)` takes the
+`[]models.RoleAssignmentRemove` that `client.Api.Roles.BulkUnAssignRole(ctx, unassignments)` took.
+It sends `DELETE /v2/facts/{proj_id}/{env_id}/role_assignments/bulk` with the role assignments as
+a JSON array of the remove model, in order, as v1 did, and returns the
+`*models.BulkRoleUnAssignmentReport` of the reply, whose `AssignmentsRemoved` is an `int`, 0 when
+the reply has none, in place of a `*int32`. Each role assignment holds its user, its role and its
+tenant, also when they are empty, and its `ResourceInstance` is a plain string, left out when
+empty, in place of a pointer, as [M-role-assignments-6](#M-role-assignments-6) says. v1 sent
+`null` for a nil slice and `[]` for an empty one; v2 sends `[]` for both. A 404 is a
+`*permit.Error` that matches `permit.ErrNotFound`, never a report, as the body names the role
+assignments to remove and a 404 can mean a mistyped key. It is sent again after a 500, 502, 503 or
+504 reply or a failed connection, as after a 429, as removing roles twice leaves them removed. v1
+sent it to the Permit API also with `WithProxyFactsViaPDP(true)`; with `permit.WithFactsViaPDP()`,
+v2 sends it to the PDP container, `DELETE /facts/role_assignments/bulk`, which answers without
+waiting for sync, as `BulkAssign` does. An environment-level API key may call it, as v1's could.
 
 <a id="M-proxy-configs-1"></a>
 ### M-proxy-configs-1: ProxyConfigs becomes Client.ProxyConfigs, which acts on the environment of the scope
@@ -3462,6 +3515,8 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.AttributeType` | `models.AttributeType` |
 | `models.Attributes` | `models.Attributes` |
 | `models.AuthMechanism` | `models.AuthMechanism` |
+| `models.BulkRoleAssignmentReport` | `models.BulkRoleAssignmentReport` |
+| `models.BulkRoleUnAssignmentReport` | `models.BulkRoleUnAssignmentReport` |
 | `models.ConditionSetCreate` | `models.ConditionSetCreate` |
 | `models.ConditionSetRead` | `models.ConditionSetRead` |
 | `models.ConditionSetRuleCreate` | `models.ConditionSetRuleCreate` |
@@ -3533,6 +3588,6 @@ Each type of v1's `pkg/models` and the v2 type or entry that replaces it.
 | `models.UserRoleRemove` | `models.UserRoleRemove` |
 | `models.UserUpdate` | `models.UserUpdate` |
 
-Not mapped yet: 302 of the 384 types of v1's pkg/models.
+Not mapped yet: 300 of the 384 types of v1's pkg/models.
 
 <!-- apisurface:models:end -->

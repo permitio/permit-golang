@@ -59,6 +59,47 @@ func ExampleRoleAssignmentsService() {
 	// role assignments: 2
 }
 
+// Assign two roles to alice in one request, one in the tenant tenant-a and one on the resource
+// instance document:doc-1, with the policy create for a user that the environment does not have,
+// and then remove both in one request. Each reply is a report that counts the role assignments
+// that the call created or removed.
+func ExampleRoleAssignmentsService_BulkAssign() {
+	client, err := permit.New(
+		permit.WithAPIKey(exampleAPIKey),
+		permit.WithAPIURL(exampleAPIURL),
+		permit.WithPDPURL(examplePDPURL),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+	created, err := client.RoleAssignments.BulkAssign(ctx, []models.RoleAssignmentCreate{
+		{User: "alice", Role: "editor", Tenant: "tenant-a"},
+		{User: "alice", Role: "owner", Tenant: "tenant-a", ResourceInstance: "document:doc-1"},
+	}, &permit.RoleAssignmentsBulkAssignOptions{MissingUserPolicy: models.MissingUserPolicyCreate})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("created:", created.AssignmentsCreated)
+
+	removed, err := client.RoleAssignments.BulkUnassign(ctx, []models.RoleAssignmentRemove{
+		{User: "alice", Role: "editor", Tenant: "tenant-a"},
+		{User: "alice", Role: "owner", Tenant: "tenant-a", ResourceInstance: "document:doc-1"},
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("removed:", removed.AssignmentsRemoved)
+	// Output:
+	// created: 2
+	// removed: 2
+}
+
 // Assign a role through the PDP container, which holds its answer until the role assignment
 // reaches its policy, for at most 10 seconds, so that a check right after it sees the role. Only
 // the assignment and the unassignment of a role wait: a list through the same copy is an error

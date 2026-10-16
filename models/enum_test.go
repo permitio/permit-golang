@@ -100,6 +100,8 @@ func TestOpenEnums(t *testing.T) {
 		checkOpenEnum(t, models.MethodsGet, models.MethodsPost, models.MethodsPut,
 			models.MethodsPatch, models.MethodsDelete, models.MethodsHead, models.MethodsOptions),
 		checkOpenEnum(t, models.URLTypeRegex),
+		checkOpenEnum(t, models.MissingUserPolicyFail, models.MissingUserPolicyIgnore,
+			models.MissingUserPolicyCreate),
 	}
 
 	p, err := surface.Read(".")

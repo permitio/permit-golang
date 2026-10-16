@@ -180,6 +180,7 @@ var cloudScenarios = []scenario{
 			"RoleAssignmentsService.List", "RoleAssignmentsService.All",
 			"RoleAssignmentsService.ListDetailed", "RoleAssignmentsService.AllDetailed",
 			"RoleAssignmentsService.Assign", "RoleAssignmentsService.Unassign",
+			"RoleAssignmentsService.BulkAssign", "RoleAssignmentsService.BulkUnassign",
 		},
 		run: roleAssignmentLifecycle,
 	},

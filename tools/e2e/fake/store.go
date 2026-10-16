@@ -81,6 +81,9 @@ func (f *Fake) answer(rt route, segments []string, fields object, key scope,
 	if slices.Contains(groupOps, rt.Op) {
 		return f.group(rt, segments, fields, query)
 	}
+	if slices.Contains(userInviteOps, rt.Op) {
+		return f.userInvite(rt, segments, fields, query)
+	}
 	switch rt.Op {
 	case opScope:
 		body := object{"organization_id": f.org, "project_id": key.project}

@@ -528,6 +528,27 @@
     "UserAttributesService.Update": [
       "update_user_attribute"
     ],
+    "UserInvitesService.All": [
+      "list_user_invites"
+    ],
+    "UserInvitesService.Approve": [
+      "approve_user_invite"
+    ],
+    "UserInvitesService.Create": [
+      "create_user_invite"
+    ],
+    "UserInvitesService.Delete": [
+      "delete_user_invite"
+    ],
+    "UserInvitesService.Get": [
+      "get_user_invite"
+    ],
+    "UserInvitesService.List": [
+      "list_user_invites"
+    ],
+    "UserInvitesService.Update": [
+      "update_user_invite"
+    ],
     "UsersService.All": [
       "list_users"
     ],

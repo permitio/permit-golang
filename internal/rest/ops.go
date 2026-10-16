@@ -1044,6 +1044,52 @@ var defaultOps = []Op{
 		ResponseModel: "DetailedAuditLogModel",
 	},
 
+	// The user invites of an environment. The list, the get, the create, the delete and the
+	// approval are at the environment level, as the Python SDK sends them; the update, which the
+	// Python SDK does not send, takes the level of the other routes of the invites; v1 sent none of
+	// them. These key levels are not measured yet: the phase api.user_invites of the local harness
+	// confirms them. Their routes start with /v2/facts/, but the client sends them to the API with
+	// or without WithFactsViaPDP, as it sends the set rules and the proxy configs, and the spec of
+	// the PDP container lists none of them, so they are not Facts, and none waits for sync. The
+	// list is the paginated object of at most 100 invites. A PATCH sends every field of the invite,
+	// which the spec requires, so it does the same when sent twice; a delete leaves the invite
+	// deleted, and its path names the invite, so it is DeleteSelf. A create does not do the same
+	// when sent twice, and the API's documentation says that it answers 400 to the approval of an
+	// invite that is approved already, so neither the create nor the approval is Idempotent. The
+	// reply to an approval is a user.
+	{
+		ID: "list_user_invites", Method: http.MethodGet,
+		Route: "/v2/facts/{proj_id}/{env_id}/user_invites", Idempotent: true,
+		KeyLevel: EnvironmentLevel, MaxPerPage: 100, ResponseModel: "ElementsUserInviteRead",
+	},
+	{
+		ID: "create_user_invite", Method: http.MethodPost,
+		Route: "/v2/facts/{proj_id}/{env_id}/user_invites", KeyLevel: EnvironmentLevel,
+		RequestModel: "ElementsUserInviteCreate", ResponseModel: "ElementsUserInviteRead",
+	},
+	{
+		ID: "get_user_invite", Method: http.MethodGet,
+		Route:      "/v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, ResponseModel: "ElementsUserInviteRead",
+	},
+	{
+		ID: "update_user_invite", Method: http.MethodPatch,
+		Route:      "/v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "ElementsUserInviteUpdate",
+		ResponseModel: "ElementsUserInviteRead",
+	},
+	{
+		ID: "delete_user_invite", Method: http.MethodDelete,
+		Route:      "/v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}",
+		Idempotent: true, KeyLevel: EnvironmentLevel, DeleteSelf: true,
+	},
+	{
+		ID: "approve_user_invite", Method: http.MethodPost,
+		Route:    "/v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}/approve",
+		KeyLevel: EnvironmentLevel, RequestModel: "ElementsUserInviteApprove",
+		ResponseModel: "UserRead",
+	},
+
 	// The decisions of the PDP, which the PDP container and the cloud PDP both serve. A decision
 	// changes nothing, so a retry may send it again. The bulk route takes a JSON array of the
 	// checks. The SDK reads the allow of a reply itself, as a strict boolean, so the replies name

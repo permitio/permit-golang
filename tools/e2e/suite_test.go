@@ -247,6 +247,14 @@ var cloudScenarios = []scenario{
 		run: groupRolesAndNesting,
 	},
 	{
+		name: "user_invite_lifecycle", methods: []string{
+			"UserInvitesService.Create", "UserInvitesService.Get", "UserInvitesService.List",
+			"UserInvitesService.All", "UserInvitesService.Update", "UserInvitesService.Approve",
+			"UserInvitesService.Delete",
+		},
+		run: userInviteLifecycle,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

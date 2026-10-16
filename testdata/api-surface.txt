@@ -69,6 +69,8 @@ models: const TaskStatusFailure TaskStatus = "failure"
 models: const TaskStatusProcessing TaskStatus = "processing"
 models: const TaskStatusSuccess TaskStatus = "success"
 models: const URLTypeRegex URLType = "regex"
+models: const UserInviteStatusApproved UserInviteStatus = "approved"
+models: const UserInviteStatusPending UserInviteStatus = "pending"
 models: const UserStatusActive UserStatus = "active"
 models: const UserStatusPending UserStatus = "pending"
 models: func NewSecret(credential string) Secret
@@ -120,6 +122,7 @@ models: method (StringOrList) MarshalJSON() ([]byte, error)
 models: method (StringOrList) Values() []string
 models: method (TaskStatus) Known() bool
 models: method (URLType) Known() bool
+models: method (UserInviteStatus) Known() bool
 models: method (UserStatus) Known() bool
 models: type APIKeyCreate struct
 models: type APIKeyCreate struct, AccessLevel MemberAccessLevel
@@ -320,6 +323,43 @@ models: type DetailedAuditLogModel struct, Timestamp Time
 models: type DetailedAuditLogModel struct, UserEmail string
 models: type DetailedAuditLogModel struct, UserKey string
 models: type DetailedAuditLogModel struct, UserName string
+models: type ElementsUserInviteApprove struct
+models: type ElementsUserInviteApprove struct, Attributes Attributes
+models: type ElementsUserInviteApprove struct, Email string
+models: type ElementsUserInviteApprove struct, Key string
+models: type ElementsUserInviteCreate struct
+models: type ElementsUserInviteCreate struct, Email string
+models: type ElementsUserInviteCreate struct, FirstName string
+models: type ElementsUserInviteCreate struct, Key string
+models: type ElementsUserInviteCreate struct, LastName string
+models: type ElementsUserInviteCreate struct, ResourceInstanceID string
+models: type ElementsUserInviteCreate struct, RoleID string
+models: type ElementsUserInviteCreate struct, Status UserInviteStatus
+models: type ElementsUserInviteCreate struct, TenantID string
+models: type ElementsUserInviteRead struct
+models: type ElementsUserInviteRead struct, CreatedAt Time
+models: type ElementsUserInviteRead struct, Email string
+models: type ElementsUserInviteRead struct, EnvironmentID string
+models: type ElementsUserInviteRead struct, FirstName string
+models: type ElementsUserInviteRead struct, ID string
+models: type ElementsUserInviteRead struct, Key string
+models: type ElementsUserInviteRead struct, LastName string
+models: type ElementsUserInviteRead struct, OrganizationID string
+models: type ElementsUserInviteRead struct, ProjectID string
+models: type ElementsUserInviteRead struct, ResourceInstanceID string
+models: type ElementsUserInviteRead struct, RoleID string
+models: type ElementsUserInviteRead struct, Status UserInviteStatus
+models: type ElementsUserInviteRead struct, TenantID string
+models: type ElementsUserInviteRead struct, UpdatedAt Time
+models: type ElementsUserInviteUpdate struct
+models: type ElementsUserInviteUpdate struct, Email string
+models: type ElementsUserInviteUpdate struct, FirstName string
+models: type ElementsUserInviteUpdate struct, Key string
+models: type ElementsUserInviteUpdate struct, LastName string
+models: type ElementsUserInviteUpdate struct, ResourceInstanceID string
+models: type ElementsUserInviteUpdate struct, RoleID string
+models: type ElementsUserInviteUpdate struct, Status UserInviteStatus
+models: type ElementsUserInviteUpdate struct, TenantID string
 models: type EnvironmentCopy struct
 models: type EnvironmentCopy struct, ConflictStrategy EnvironmentCopyConflictStrategy
 models: type EnvironmentCopy struct, Scope EnvironmentCopyScope
@@ -964,6 +1004,7 @@ models: type UserInTenant struct, ResourceInstanceRoles []UserResourceInstanceRo
 models: type UserInTenant struct, Roles []string
 models: type UserInTenant struct, Status UserStatus
 models: type UserInTenant struct, Tenant string
+models: type UserInviteStatus string
 models: type UserObj struct
 models: type UserObj struct, AssignedRoles []string
 models: type UserObj struct, Attributes Attributes
@@ -1214,6 +1255,13 @@ permit: method (*UserAttributesService) Delete(ctx context.Context, attributeKey
 permit: method (*UserAttributesService) Get(ctx context.Context, attributeKey string) (*models.ResourceAttributeRead, error)
 permit: method (*UserAttributesService) List(ctx context.Context, opts *ListOptions) (*Page[models.ResourceAttributeRead], error)
 permit: method (*UserAttributesService) Update(ctx context.Context, attributeKey string, update models.ResourceAttributeUpdate) (*models.ResourceAttributeRead, error)
+permit: method (*UserInvitesService) All(ctx context.Context, opts *UserInvitesListOptions) iter.Seq2[models.ElementsUserInviteRead, error]
+permit: method (*UserInvitesService) Approve(ctx context.Context, userInviteID string, approval models.ElementsUserInviteApprove) (*models.UserRead, error)
+permit: method (*UserInvitesService) Create(ctx context.Context, invite models.ElementsUserInviteCreate) (*models.ElementsUserInviteRead, error)
+permit: method (*UserInvitesService) Delete(ctx context.Context, userInviteID string) error
+permit: method (*UserInvitesService) Get(ctx context.Context, userInviteID string) (*models.ElementsUserInviteRead, error)
+permit: method (*UserInvitesService) List(ctx context.Context, opts *UserInvitesListOptions) (*Page[models.ElementsUserInviteRead], error)
+permit: method (*UserInvitesService) Update(ctx context.Context, userInviteID string, update models.ElementsUserInviteUpdate) (*models.ElementsUserInviteRead, error)
 permit: method (*UsersService) All(ctx context.Context, opts *UsersListOptions) iter.Seq2[models.UserRead, error]
 permit: method (*UsersService) AssignRole(ctx context.Context, userKey string, role models.UserRoleCreate) (*models.RoleAssignmentRead, error)
 permit: method (*UsersService) BulkCreate(ctx context.Context, users []models.UserCreate) error
@@ -1298,6 +1346,7 @@ permit: type Client struct, RoleAssignments *RoleAssignmentsService
 permit: type Client struct, Roles *RolesService
 permit: type Client struct, Tenants *TenantsService
 permit: type Client struct, UserAttributes *UserAttributesService
+permit: type Client struct, UserInvites *UserInvitesService
 permit: type Client struct, Users *UsersService
 permit: type ConditionSetRulesListOptions struct
 permit: type ConditionSetRulesListOptions struct, Permission string
@@ -1438,6 +1487,12 @@ permit: type User struct, FirstName string
 permit: type User struct, Key string
 permit: type User struct, LastName string
 permit: type UserAttributesService struct
+permit: type UserInvitesListOptions struct
+permit: type UserInvitesListOptions struct, Role string
+permit: type UserInvitesListOptions struct, Search string
+permit: type UserInvitesListOptions struct, Tenant string
+permit: type UserInvitesListOptions struct, embedded ListOptions
+permit: type UserInvitesService struct
 permit: type UserPermissionsRequest struct
 permit: type UserPermissionsRequest struct, Context map[string]any
 permit: type UserPermissionsRequest struct, ResourceTypes []string

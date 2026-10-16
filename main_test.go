@@ -256,5 +256,14 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: `{"data":[],"total_count":2,"pagination_count":2}`})
 	servers.API.Handle("GET /v2/pdps/{proj_id}/{env_id}/audit_logs/{log_id}",
 		mockpermit.Reply{Body: replyFixture("get_detailed_audit_log.200.json")})
+	const invites = "/v2/facts/{proj_id}/{env_id}/user_invites"
+	servers.API.Handle("POST "+invites,
+		mockpermit.Reply{Body: replyFixture("create_user_invite.200.json")})
+	servers.API.Handle("GET "+invites,
+		mockpermit.Reply{Body: replyFixture("list_user_invites.200.json")})
+	servers.API.Handle("POST "+invites+"/{user_invite_id}/approve",
+		mockpermit.Reply{Body: replyFixture("approve_user_invite.200.json")})
+	servers.API.Handle("DELETE "+invites+"/{user_invite_id}",
+		mockpermit.Reply{Status: http.StatusNoContent})
 	os.Exit(mockpermit.RunRecorded(func() int { return servers.Run(m) }))
 }

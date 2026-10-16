@@ -211,6 +211,15 @@ var routes = []Route{
 		"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/parents",
 		opListGroupParents,
 	},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/user_invites", opListUserInvites},
+	{"POST", "/v2/facts/{proj_id}/{env_id}/user_invites", "create_user_invite"},
+	{"GET", "/v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", "get_user_invite"},
+	{"PATCH", "/v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", "update_user_invite"},
+	{"DELETE", "/v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", "delete_user_invite"},
+	{
+		"POST", "/v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}/approve",
+		opApproveUserInvite,
+	},
 	{"POST", "/v2/same/{first}", "same_first"},
 	{"POST", "/v2/same/{second}", "same_second"},
 }

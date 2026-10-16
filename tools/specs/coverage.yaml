@@ -351,12 +351,12 @@ control-plane:
   - {op: update_user_attribute, route: "PATCH /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: covered}
   - {op: delete_user_attribute, route: "DELETE /v2/schema/{proj_id}/{env_id}/users/attributes/{attribute_id}", stage: GA, status: covered}
   # User Invites
-  - {op: list_user_invites, route: "GET /v2/facts/{proj_id}/{env_id}/user_invites", stage: GA, status: planned}
-  - {op: create_user_invite, route: "POST /v2/facts/{proj_id}/{env_id}/user_invites", stage: GA, status: planned}
-  - {op: get_user_invite, route: "GET /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: planned}
-  - {op: update_user_invite, route: "PATCH /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: planned}
-  - {op: delete_user_invite, route: "DELETE /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: planned}
-  - {op: approve_user_invite, route: "POST /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}/approve", stage: GA, status: planned}
+  - {op: list_user_invites, route: "GET /v2/facts/{proj_id}/{env_id}/user_invites", stage: GA, status: covered}
+  - {op: create_user_invite, route: "POST /v2/facts/{proj_id}/{env_id}/user_invites", stage: GA, status: covered}
+  - {op: get_user_invite, route: "GET /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: covered}
+  - {op: update_user_invite, route: "PATCH /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: covered}
+  - {op: delete_user_invite, route: "DELETE /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}", stage: GA, status: covered}
+  - {op: approve_user_invite, route: "POST /v2/facts/{proj_id}/{env_id}/user_invites/{user_invite_id}/approve", stage: GA, status: covered}
   # Users
   - {op: list_users, route: "GET /v2/facts/{proj_id}/{env_id}/users", stage: GA, status: covered}
   - {op: create_user, route: "POST /v2/facts/{proj_id}/{env_id}/users", stage: GA, status: covered}

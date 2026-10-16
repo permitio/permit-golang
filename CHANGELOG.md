@@ -924,6 +924,30 @@ change from v1 and what to use instead.
   segment of the path, escaped; an empty ID, `.` or `..` is an error that matches
   `ErrInvalidConfig`, and no request is sent.
 
+### User invites
+
+- The `UserInvites` field of the client, a `*permit.UserInvitesService`, lists, reads, creates,
+  changes, approves and deletes the user invites of the environment of the client's scope, which
+  v1 could not do: `Create` takes a `models.ElementsUserInviteCreate` and returns a
+  `*models.ElementsUserInviteRead`; `Get` reads one invite by its ID; `Update` takes a
+  `models.ElementsUserInviteUpdate`; `List` returns a page as a
+  `*permit.Page[models.ElementsUserInviteRead]`, with the counts of the reply, and `All` reads
+  every page, 100 invites at a time unless `PerPage` asks for another number; `Approve` takes a
+  `models.ElementsUserInviteApprove` and returns the `*models.UserRead` of the API's reply;
+  `Delete` returns nil when the API answers 404, as the invite is gone already.
+  `models.UserInviteStatus` is an open enum.
+- The spec requires each field of a create, of an update and of an approval, so the request
+  always holds each, also when it is empty: an update sends the whole invite, and `Approve` sends
+  `{}` for nil `Attributes`. The `Role`, `Tenant` and `Search` of `permit.UserInvitesListOptions`
+  are sent in the query only when they are set.
+- The routes of the user invites start with `/v2/facts/`, but a client with `WithFactsViaPDP`
+  sends them to the API too, and no call waits for sync. Each call is sent with an
+  environment-level API key, or with a key of a wider level and `WithScope`. `Create` and
+  `Approve` are sent again after a 429 only; the other calls are sent again after a 500, 502, 503
+  or 504 reply or a failed connection too. The ID of an invite is sent as one segment of the
+  path, escaped; an empty ID, `.` or `..` is an error that matches `ErrInvalidConfig`, and no
+  request is sent.
+
 ### Errors
 
 - A call whose request fails returns a `*permit.Error`, or an error that wraps one. It names the

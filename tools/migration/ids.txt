@@ -229,3 +229,4 @@ M-pdps-1
 M-pdps-2
 M-audit-logs-1
 M-groups-2
+M-user-invites-1

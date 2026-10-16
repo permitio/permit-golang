@@ -130,6 +130,10 @@ type Client struct {
 	// decisions that its PDPs made.
 	AuditLogs *AuditLogsService `json:"-"`
 
+	// UserInvites lists, reads, creates, changes, approves and deletes the user invites of the
+	// environment of the client's scope.
+	UserInvites *UserInvitesService `json:"-"`
+
 	apiKey  redact.Secret
 	apiURL  string
 	pdpURL  string
@@ -239,6 +243,7 @@ func New(opts ...Option) (*Client, error) {
 	c.Groups = &GroupsService{client: c}
 	c.PDPs = &PDPsService{client: c}
 	c.AuditLogs = &AuditLogsService{client: c}
+	c.UserInvites = &UserInvitesService{client: c}
 	c.factsViaPDP = s.factsViaPDP
 	if s.scope != nil {
 		c.scope = scope.Known(*s.scope)

@@ -314,6 +314,58 @@ models:
       on_resource: {required: true, null_policy: n/a}
       linked_by_relation: {required: true, null_policy: n/a}
       when: {required: false, null_policy: n/a}
+  # An invite of a user to an environment, as a create and an update send it, each with every
+  # field, which the spec requires of both, and as the API returns it; its status; and the
+  # approval of an invite. A create, an update and an approval reject null for each field, which
+  # each requires. These null policies are not measured yet: the phase api.user_invites of the
+  # local harness confirms them.
+  ElementsUserInviteCreate:
+    schema: ElementsUserInviteCreate
+    fields:
+      key: {required: true, null_policy: rejects}
+      status: {required: true, null_policy: rejects}
+      email: {required: true, null_policy: rejects}
+      first_name: {required: true, null_policy: rejects}
+      last_name: {required: true, null_policy: rejects}
+      role_id: {required: true, null_policy: rejects}
+      tenant_id: {required: true, null_policy: rejects}
+      resource_instance_id: {required: true, null_policy: rejects}
+  ElementsUserInviteUpdate:
+    schema: ElementsUserInviteUpdate
+    fields:
+      key: {required: true, null_policy: rejects}
+      status: {required: true, null_policy: rejects}
+      email: {required: true, null_policy: rejects}
+      first_name: {required: true, null_policy: rejects}
+      last_name: {required: true, null_policy: rejects}
+      role_id: {required: true, null_policy: rejects}
+      tenant_id: {required: true, null_policy: rejects}
+      resource_instance_id: {required: true, null_policy: rejects}
+  ElementsUserInviteRead:
+    schema: ElementsUserInviteRead
+    fields:
+      id: {required: true, null_policy: n/a}
+      organization_id: {required: true, null_policy: n/a}
+      project_id: {required: true, null_policy: n/a}
+      environment_id: {required: true, null_policy: n/a}
+      created_at: {required: true, null_policy: n/a}
+      updated_at: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
+      status: {required: true, null_policy: n/a}
+      email: {required: true, null_policy: n/a}
+      first_name: {required: true, null_policy: n/a}
+      last_name: {required: true, null_policy: n/a}
+      role_id: {required: true, null_policy: n/a}
+      tenant_id: {required: true, null_policy: n/a}
+      resource_instance_id: {required: true, null_policy: n/a}
+  UserInviteStatus:
+    schema: UserInviteStatus
+  ElementsUserInviteApprove:
+    schema: ElementsUserInviteApprove
+    fields:
+      email: {required: true, null_policy: rejects}
+      key: {required: true, null_policy: rejects}
+      attributes: {required: true, null_policy: rejects}
   # A copy of an environment into another, with EnvironmentsService.Copy and CopyAsync. The API
   # rejects null for the target and for each field with a default: the conflict strategy, the
   # scope, each filter of the scope and each list of a filter; and reads null for the existing or

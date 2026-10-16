@@ -3711,6 +3711,27 @@ names. Each acts on the environment of the client's scope, as [M-scope-2](#M-sco
 filter that is set is sent, `false` and `0` too: `Decision` is a `*bool`, and `TimestampFrom`
 and `TimestampTo` are each an `*int64`.
 
+<a id="M-user-invites-1"></a>
+### M-user-invites-1: Client.UserInvites is new: v1 had no call of the user invites
+
+- v1: no call of the user invites, neither in `pkg/api` nor in the generated client of
+  `pkg/openapi`
+- v2: `permit.UserInvitesService`
+
+v1.3.0 had no method for the user invites of an environment, and its generated client had no
+service or model for their routes either. v2's `UserInvites` field of the client,
+`client.UserInvites`, lists, reads, creates, changes, approves and deletes the user invites of the
+environment of the client's scope. Each method takes a `context.Context` first, then the ID of the
+invite, `userInviteID`, where it acts on one, which it sends as it is, as one segment of the path,
+escaped. `Create` takes a `models.ElementsUserInviteCreate` and returns a
+`*models.ElementsUserInviteRead`; `Get` returns one; `Update` takes a
+`models.ElementsUserInviteUpdate` and always sends each of its fields, as the spec requires each;
+`List` takes a `*permit.UserInvitesListOptions` and returns a
+`*permit.Page[models.ElementsUserInviteRead]`, and `All` reads every page; `Approve` takes a
+`models.ElementsUserInviteApprove` and returns the `*models.UserRead` of the API's reply. `Delete`
+returns nil when the API answers 404, as the invite is gone already. The routes start with
+`/v2/facts/`, but a client with `WithFactsViaPDP` sends them to the API too, and never to the PDP.
+
 ## Wire behaviour
 
 <a id="M-wire-1"></a>

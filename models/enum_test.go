@@ -105,6 +105,7 @@ func TestOpenEnums(t *testing.T) {
 		checkOpenEnum(t, models.AuditLogQueryTypeCheck, models.AuditLogQueryTypeGetUserPermissions,
 			models.AuditLogQueryTypeGetAuthorizedUsers, models.AuditLogQueryTypeNone),
 		checkOpenEnum(t, models.AuditLogSortKeyNone, models.AuditLogSortKeyTimestamp),
+		checkOpenEnum(t, models.UserInviteStatusPending, models.UserInviteStatusApproved),
 	}
 
 	p, err := surface.Read(".")

@@ -35,8 +35,9 @@
 // says, and their bulk create and delete, as bulkRelationshipTuples says. It answers the bulk
 // creates, replaces and deletes of the users, the tenants and the resource instances, as
 // bulkWrite and bulkDelete say, the groups of an environment and the assignments of users, roles
-// and other groups to them, by the instance key of a group, as group says, and the refreshes of
-// the data of the PDPs of an environment, as refreshPDPs and refreshPDP say. A delete of a
+// and other groups to them, by the instance key of a group, as group says, the list and the
+// approval of the user invites of an environment, as userInvite says, and the refreshes of the
+// data of the PDPs of an environment, as refreshPDPs and refreshPDP say. A delete of a
 // condition set rule that the fake does not hold gets 404, as a DELETE of a collection with a
 // body does; the API's documentation says that it skips such a delete, and what the API answers
 // is not confirmed yet.

@@ -38,6 +38,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/pdp_data_refresh
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/audit_log_of_a_check
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_roles_and_nesting
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_invite_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

@@ -1374,6 +1374,23 @@ github.com/permitio/permit-golang/v2 TestMalformedAuditLogReplies
 github.com/permitio/permit-golang/v2 TestAuditLogsAfterClose
 github.com/permitio/permit-golang/v2 ExampleAuditLogsService
 
+github.com/permitio/permit-golang/v2 TestUserInvitesAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestUserInvitesAllReadsTheOptionsOnce
+github.com/permitio/permit-golang/v2 TestUserInvitesAllYieldsAnErrorOnce
+github.com/permitio/permit-golang/v2 TestUserInvitesAllGetsTheScopeInEachLoop
+github.com/permitio/permit-golang/v2 TestUserInvitesListReturnsAPage
+github.com/permitio/permit-golang/v2 TestInvalidUserInviteListOptions
+github.com/permitio/permit-golang/v2 TestUserInvitesUseTheScope
+github.com/permitio/permit-golang/v2 TestUserInvitesStayOnTheAPI
+github.com/permitio/permit-golang/v2 TestUserInviteIDsInThePath
+github.com/permitio/permit-golang/v2 TestDeleteUserInviteThatIsGone
+github.com/permitio/permit-golang/v2 TestNotFoundOfOtherUserInviteCalls
+github.com/permitio/permit-golang/v2 TestUserInviteBodies
+github.com/permitio/permit-golang/v2 TestUserInviteRetries
+github.com/permitio/permit-golang/v2 TestMalformedUserInviteReplies
+github.com/permitio/permit-golang/v2 TestUserInvitesAfterClose
+github.com/permitio/permit-golang/v2 ExampleUserInvitesService
+
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRun
 github.com/permitio/permit-golang/v2/tools/cmd/benchreport TestRunDidNotRun
 
@@ -1445,6 +1462,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRelationshipTuples
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestGroups
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPRefresh
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestGroupRolesAndNesting
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestUserInvites
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1486,6 +1504,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/pdp_data_refresh
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/audit_log_of_a_check
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_roles_and_nesting
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/user_invite_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

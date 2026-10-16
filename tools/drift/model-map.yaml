@@ -491,6 +491,34 @@ models:
     fields:
       id: {required: true, null_policy: n/a}
       key: {required: true, null_policy: n/a}
+  # A role on a resource instance, as the assignment of a role to a group and its removal send
+  # it; a group, as the assignment of a group to a group and its removal send it; and a role of a
+  # group with its resource and its resource instance, as the list of the roles of a group
+  # returns it. The assignments and the removals reject null for each field, which each requires.
+  # These null policies are not measured yet: the phase api.groups of the local harness confirms
+  # them.
+  GroupAddRole:
+    schema: GroupAddRole
+    fields:
+      role: {required: true, null_policy: rejects}
+      resource: {required: true, null_policy: rejects}
+      resource_instance: {required: true, null_policy: rejects}
+      tenant: {required: true, null_policy: rejects}
+  GroupAssignment:
+    schema: GroupAssignment
+    fields:
+      group_instance_key: {required: true, null_policy: rejects}
+  GroupRoleReadSchema:
+    schema: GroupRoleReadSchema
+    fields:
+      key: {required: true, null_policy: n/a}
+      resource: {required: true, null_policy: n/a}
+      resource_instance: {required: true, null_policy: n/a}
+  GroupRoleResourceReadOnly:
+    schema: GroupRoleResourceReadOnly
+    fields:
+      id: {required: true, null_policy: n/a}
+      key: {required: true, null_policy: n/a}
   JwksConfig:
     schema: JwksConfig
     fields:

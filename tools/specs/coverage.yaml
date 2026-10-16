@@ -142,31 +142,31 @@ control-plane:
   - {op: get_direct_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/direct/{group_instance_key}", stage: GA, status: covered}
   - {op: get_group, route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", stage: deprecated, status: excluded, reason: deprecated}
   - {op: delete_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}", stage: GA, status: covered}
-  - {op: assign_group_to_group, route: "PUT /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group", stage: GA, status: planned}
-  - {op: remove_group_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group", stage: GA, status: planned}
+  - {op: assign_group_to_group, route: "PUT /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group", stage: GA, status: covered}
+  - {op: remove_group_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group", stage: GA, status: covered}
   - op: list_group_children
     route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/children"
     stage: GA
-    status: planned
+    status: covered
     stage_override:
       stage: GA
       reason: "The spec's summary calls it EAP, which the snapshot does not keep, while its tag is GA; the SDK treats it as GA, as it does the other Groups routes."
   - op: list_group_parents
     route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/parents"
     stage: GA
-    status: planned
+    status: covered
     stage_override:
       stage: GA
       reason: "The spec's summary calls it EAP, which the snapshot does not keep, while its tag is GA; the SDK treats it as GA, as it does the other Groups routes."
   - op: list_group_roles
     route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles"
     stage: GA
-    status: planned
+    status: covered
     stage_override:
       stage: GA
       reason: "The spec's summary calls it EAP, which the snapshot does not keep, while its tag is GA; the SDK treats it as GA, as it does the other Groups routes."
-  - {op: assign_role_to_group, route: "POST /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", stage: GA, status: planned}
-  - {op: remove_role_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", stage: GA, status: planned}
+  - {op: assign_role_to_group, route: "POST /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", stage: GA, status: covered}
+  - {op: remove_role_from_group, route: "DELETE /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", stage: GA, status: covered}
   - op: list_group_users
     route: "GET /v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users"
     stage: GA

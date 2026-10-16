@@ -1332,6 +1332,7 @@ github.com/permitio/permit-golang/v2 ExampleUsersService_BulkCreate
 
 github.com/permitio/permit-golang/v2 TestGroupsAllReadsEveryPage
 github.com/permitio/permit-golang/v2 TestGroupUsersAllReadsEveryPage
+github.com/permitio/permit-golang/v2 TestGroupRelativesAllReadEveryPage
 github.com/permitio/permit-golang/v2 TestGroupUsersListReadsEachPage
 github.com/permitio/permit-golang/v2 TestGroupsAllReadsTheOptionsOnce
 github.com/permitio/permit-golang/v2 TestGroupsAllYieldsAnErrorOnce
@@ -1347,6 +1348,7 @@ github.com/permitio/permit-golang/v2 TestGroupRetries
 github.com/permitio/permit-golang/v2 TestMalformedGroupReplies
 github.com/permitio/permit-golang/v2 TestGroupsAfterClose
 github.com/permitio/permit-golang/v2 ExampleGroupsService
+github.com/permitio/permit-golang/v2 ExampleGroupsService_AssignRole
 
 github.com/permitio/permit-golang/v2 TestPDPRefreshBodies
 github.com/permitio/permit-golang/v2 TestPDPRefreshRoutes
@@ -1440,6 +1442,7 @@ github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkFacts
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestBulkRelationshipTuples
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestGroups
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPRefresh
+github.com/permitio/permit-golang/v2/tools/e2e/fake TestGroupRolesAndNesting
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestNewChecksConfig
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPDecisions
 github.com/permitio/permit-golang/v2/tools/e2e/fake TestPDPTenants
@@ -1480,6 +1483,7 @@ github.com/permitio/permit-golang/v2/tools/e2e TestCloud/proxy_config_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_lifecycle
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/pdp_data_refresh
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/audit_log_of_a_check
+github.com/permitio/permit-golang/v2/tools/e2e TestCloud/group_roles_and_nesting
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/role_on_one_instance
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/decision_context
 github.com/permitio/permit-golang/v2/tools/e2e TestCloud/two_tenants_bulk_check

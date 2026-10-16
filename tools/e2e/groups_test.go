@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"errors"
+	"iter"
 	"net/url"
 	"slices"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	permit "github.com/permitio/permit-golang/v2"
 	"github.com/permitio/permit-golang/v2/models"
 	"github.com/permitio/permit-golang/v2/tools/e2e/framework"
+	"github.com/permitio/permit-golang/v2/tools/e2e/framework/seed"
 )
 
 // groupMembers is the number of the users that groupLifecycle assigns to its group: more than one
@@ -153,5 +155,161 @@ func checkGroupMembers(ctx context.Context, t *testing.T, c *permit.Client, key 
 		page.TotalCount != nil && *page.TotalCount != len(want) {
 		t.Errorf("ListUsers of the group %s returned %+v, %v; want %d users of %d", key, page,
 			err, groupPerPage, len(want))
+	}
+}
+
+// groupRolesAndNesting checks the roles and the nesting of groups with the environment-level API
+// key of the scratch environment, and no WithScope, on groups of its own in a tenant of its seed,
+// whose keys start with the run's prefix. Its seed is a resource, two roles of the resource, the
+// tenant and an instance of the resource in it. It registers each group with the ledger before it
+// creates it. It assigns both roles on the instance to the parent group, reads them through
+// AllRoles, one role to a page, and a first page of ListRoles; assigns the two child groups to the
+// parent, each named as group:<key>, as the API's documentation names a group in the body, reads
+// them through AllChildren, one group to a page, and a first page of ListChildren, and the parent
+// through AllParents and ListParents of a child; then removes a child and a role, which the lists
+// then no longer hold. The ledger deletes the groups.
+//
+// The live run confirms what the spec does not say: that the body takes group:<key>, that the
+// assigned group is listed as a child of the group of the path, and how the reply names the
+// resource of a role. That a member of the group gets the role through the group is left to the
+// local harness, as the fake PDP of the dry run knows no role derivations.
+func groupRolesAndNesting(s *suite) func(t *testing.T) {
+	return func(t *testing.T) { //nolint:thelper // A subtest that runCloud runs.
+		key := s.cfg.prefix.Key
+		resource, tenant := key("sdk-group-doc"), key("sdk-nest-tenant")
+		roles := []string{key("sdk-group-editor"), key("sdk-group-viewer")}
+		s.seed(t, world{
+			resources: []seed.Resource{{Key: resource, Actions: []string{"read"}}},
+			resourceRoles: []seed.ResourceRole{
+				{Resource: resource, Key: roles[0], Permissions: []string{"read"}},
+				{Resource: resource, Key: roles[1], Permissions: []string{"read"}},
+			},
+			tenants:   []string{tenant},
+			instances: []seed.Instance{{Resource: resource, Key: "doc-1", Tenant: tenant}},
+		})
+		c := s.client(t, s.env.APIKey())
+		ctx := s.ctx(t)
+		parent, children := key("sdk-nest-parent"), []string{key("sdk-nest-a"), key("sdk-nest-b")}
+		for _, g := range append([]string{parent}, children...) {
+			groupCreate(ctx, t, s, c, models.GroupCreate{GroupInstanceKey: g, GroupTenant: tenant})
+		}
+		grants := make([]models.GroupAddRole, 0, len(roles))
+		for _, role := range roles {
+			grant := models.GroupAddRole{
+				Role: role, Resource: resource, ResourceInstance: "doc-1", Tenant: tenant,
+			}
+			got, err := c.Groups.AssignRole(ctx, parent, grant)
+			if err != nil {
+				t.Fatalf("AssignRole of the role %s to the group %s: %v", role, parent, err)
+			}
+			if got.GroupInstanceKey != parent {
+				t.Errorf("AssignRole returned the group %q, want %s", got.GroupInstanceKey, parent)
+			}
+			grants = append(grants, grant)
+		}
+		checkGroupRoles(ctx, t, c, parent, grants)
+		for _, child := range children {
+			assignment := models.GroupAssignment{GroupInstanceKey: "group:" + child}
+			if _, err := c.Groups.AssignGroup(ctx, parent, assignment); err != nil {
+				t.Fatalf("AssignGroup of the group %s to the group %s: %v", child, parent, err)
+			}
+		}
+		checkGroupList(t, "AllChildren of "+parent, c.Groups.AllChildren(ctx, parent,
+			&permit.ListOptions{PerPage: 1}), children)
+		page, err := c.Groups.ListChildren(ctx, parent, &permit.ListOptions{PerPage: 1})
+		if err != nil || len(page.Data) != 1 ||
+			page.TotalCount != nil && *page.TotalCount != len(children) {
+			t.Errorf("ListChildren of the group %s returned %+v, %v; want 1 group of %d", parent,
+				page, err, len(children))
+		}
+		checkGroupList(t, "AllParents of "+children[0],
+			c.Groups.AllParents(ctx, children[0], nil), []string{parent})
+		page, err = c.Groups.ListParents(ctx, children[0], nil)
+		if err != nil || len(page.Data) != 1 || page.Data[0].GroupInstanceKey != parent {
+			t.Errorf("ListParents of the group %s returned %+v, %v; want the group %s", children[0],
+				page, err, parent)
+		}
+		removed := models.GroupAssignment{GroupInstanceKey: "group:" + children[0]}
+		if err := c.Groups.RemoveGroup(ctx, parent, removed); err != nil {
+			t.Fatalf("RemoveGroup of the group %s from the group %s: %v", children[0], parent, err)
+		}
+		checkGroupList(t, "AllChildren of "+parent+" after RemoveGroup",
+			c.Groups.AllChildren(ctx, parent, nil), children[1:])
+		if err := c.Groups.RemoveRole(ctx, parent, grants[0]); err != nil {
+			t.Fatalf("RemoveRole of the role %s from the group %s: %v", roles[0], parent, err)
+		}
+		checkGroupRoles(ctx, t, c, parent, grants[1:])
+	}
+}
+
+// groupCreate registers the group g with the ledger of s, which deletes it by its instance key
+// and checks that a get of it answers 404, and then creates it with c.
+func groupCreate(ctx context.Context, t *testing.T, s *suite, c *permit.Client,
+	g models.GroupCreate,
+) {
+	t.Helper()
+	groups := "/v2/schema/" + url.PathEscape(s.env.ProjectID) + "/" + url.PathEscape(s.env.ID) +
+		"/groups/"
+	s.ledger.Register("group "+g.GroupInstanceKey,
+		s.api.Remover(groups+url.PathEscape(g.GroupInstanceKey)),
+		s.api.Absence(groups+"direct/"+url.PathEscape(g.GroupInstanceKey),
+			framework.AbsenceTimeout))
+	if _, err := c.Groups.Create(ctx, g); err != nil {
+		t.Fatalf("Create of the group %s: %v", g.GroupInstanceKey, err)
+	}
+}
+
+// checkGroupRoles checks that AllRoles of the group key yields the roles of the grants want, each
+// once, in any order, each of the resource that its grant names, reading pages of one role, and
+// that the first page of ListRoles holds one of them, of len(want) in all when the reply counts
+// them.
+func checkGroupRoles(ctx context.Context, t *testing.T, c *permit.Client, key string,
+	want []models.GroupAddRole,
+) {
+	t.Helper()
+	resources := make(map[string]string, len(want))
+	roles := make([]string, 0, len(want))
+	for _, grant := range want {
+		resources[grant.Role] = grant.Resource
+		roles = append(roles, grant.Role)
+	}
+	opts := &permit.ListOptions{PerPage: 1}
+	var got []string
+	for role, err := range c.Groups.AllRoles(ctx, key, opts) {
+		if err != nil {
+			t.Fatalf("AllRoles of the group %s: %v", key, err)
+		}
+		if role.Resource.Key != resources[role.Key] || role.ResourceInstance.ID == "" {
+			t.Errorf("AllRoles of the group %s yielded the role %+v, want one of the resource %q "+
+				"on an instance with an ID", key, role, resources[role.Key])
+		}
+		got = append(got, role.Key)
+	}
+	if !slices.Equal(slices.Sorted(slices.Values(got)), slices.Sorted(slices.Values(roles))) {
+		t.Errorf("AllRoles of the group %s yielded the roles %q, want %q", key, got, roles)
+	}
+	page, err := c.Groups.ListRoles(ctx, key, opts)
+	if err != nil || len(page.Data) != 1 ||
+		page.TotalCount != nil && *page.TotalCount != len(want) {
+		t.Errorf("ListRoles of the group %s returned %+v, %v; want 1 role of %d", key, page, err,
+			len(want))
+	}
+}
+
+// checkGroupList checks that seq, the iterator that what names, yields the groups whose instance
+// keys are want, each once, in any order.
+func checkGroupList(t *testing.T, what string, seq iter.Seq2[models.GroupReadSchema, error],
+	want []string,
+) {
+	t.Helper()
+	var got []string
+	for g, err := range seq {
+		if err != nil {
+			t.Fatalf("%s: %v", what, err)
+		}
+		got = append(got, g.GroupInstanceKey)
+	}
+	if !slices.Equal(slices.Sorted(slices.Values(got)), slices.Sorted(slices.Values(want))) {
+		t.Errorf("%s yielded the groups %q, want %q", what, got, want)
 	}
 }

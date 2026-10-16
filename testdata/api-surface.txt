@@ -387,8 +387,15 @@ models: type ErrorDetails struct, ID string
 models: type ErrorDetails struct, Message string
 models: type ErrorDetails struct, SupportLink string
 models: type ErrorDetails struct, Title string
+models: type GroupAddRole struct
+models: type GroupAddRole struct, Resource string
+models: type GroupAddRole struct, ResourceInstance string
+models: type GroupAddRole struct, Role string
+models: type GroupAddRole struct, Tenant string
 models: type GroupAssignUser struct
 models: type GroupAssignUser struct, Tenant string
+models: type GroupAssignment struct
+models: type GroupAssignment struct, GroupInstanceKey string
 models: type GroupCreate struct
 models: type GroupCreate struct, GroupInstanceKey string
 models: type GroupCreate struct, GroupResourceTypeKey string
@@ -404,6 +411,13 @@ models: type GroupReadSchema struct, GroupInstanceKey string
 models: type GroupReadSchema struct, GroupResourceTypeKey string
 models: type GroupReadSchema struct, GroupTenant string
 models: type GroupReadSchema struct, ID string
+models: type GroupRoleReadSchema struct
+models: type GroupRoleReadSchema struct, Key string
+models: type GroupRoleReadSchema struct, Resource GroupRoleResourceReadOnly
+models: type GroupRoleReadSchema struct, ResourceInstance GroupRoleResourceReadOnly
+models: type GroupRoleResourceReadOnly struct
+models: type GroupRoleResourceReadOnly struct, ID string
+models: type GroupRoleResourceReadOnly struct, Key string
 models: type GroupUserReadSchema struct
 models: type GroupUserReadSchema struct, ID string
 models: type GroupUserReadSchema struct, Key string
@@ -1066,13 +1080,23 @@ permit: method (*Error) Error() string
 permit: method (*Error) Is(target error) bool
 permit: method (*Error) Unwrap() error
 permit: method (*GroupsService) All(ctx context.Context, opts *GroupsListOptions) iter.Seq2[models.GroupReadSchema, error]
+permit: method (*GroupsService) AllChildren(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupReadSchema, error]
+permit: method (*GroupsService) AllParents(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupReadSchema, error]
+permit: method (*GroupsService) AllRoles(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupRoleReadSchema, error]
 permit: method (*GroupsService) AllUsers(ctx context.Context, groupInstanceKey string, opts *ListOptions) iter.Seq2[models.GroupUserReadSchema, error]
+permit: method (*GroupsService) AssignGroup(ctx context.Context, groupInstanceKey string, assignment models.GroupAssignment) (*models.GroupRead, error)
+permit: method (*GroupsService) AssignRole(ctx context.Context, groupInstanceKey string, role models.GroupAddRole) (*models.GroupRead, error)
 permit: method (*GroupsService) AssignUser(ctx context.Context, groupInstanceKey string, userKey string, membership models.GroupAssignUser) (*models.GroupRead, error)
 permit: method (*GroupsService) Create(ctx context.Context, group models.GroupCreate) (*models.GroupRead, error)
 permit: method (*GroupsService) Delete(ctx context.Context, groupInstanceKey string) error
 permit: method (*GroupsService) Get(ctx context.Context, groupInstanceKey string) (*models.GroupReadSchema, error)
 permit: method (*GroupsService) List(ctx context.Context, opts *GroupsListOptions) (*Page[models.GroupReadSchema], error)
+permit: method (*GroupsService) ListChildren(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupReadSchema], error)
+permit: method (*GroupsService) ListParents(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupReadSchema], error)
+permit: method (*GroupsService) ListRoles(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupRoleReadSchema], error)
 permit: method (*GroupsService) ListUsers(ctx context.Context, groupInstanceKey string, opts *ListOptions) (*Page[models.GroupUserReadSchema], error)
+permit: method (*GroupsService) RemoveGroup(ctx context.Context, groupInstanceKey string, assignment models.GroupAssignment) error
+permit: method (*GroupsService) RemoveRole(ctx context.Context, groupInstanceKey string, role models.GroupAddRole) error
 permit: method (*GroupsService) RemoveUser(ctx context.Context, groupInstanceKey string, userKey string, membership models.GroupAssignUser) error
 permit: method (*ImplicitGrantsService) Create(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleCreate) (*models.DerivedRoleRuleRead, error)
 permit: method (*ImplicitGrantsService) Delete(ctx context.Context, resourceKey string, roleKey string, rule models.DerivedRoleRuleDelete) error

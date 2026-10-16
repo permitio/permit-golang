@@ -238,6 +238,15 @@ var cloudScenarios = []scenario{
 		run: auditLogOfACheck,
 	},
 	{
+		name: "group_roles_and_nesting", methods: []string{
+			"GroupsService.AssignRole", "GroupsService.AllRoles", "GroupsService.ListRoles",
+			"GroupsService.RemoveRole", "GroupsService.AssignGroup", "GroupsService.AllChildren",
+			"GroupsService.ListChildren", "GroupsService.AllParents", "GroupsService.ListParents",
+			"GroupsService.RemoveGroup",
+		},
+		run: groupRolesAndNesting,
+	},
+	{
 		name: "role_on_one_instance", methods: []string{"Client.Check", "Client.FilterObjects"},
 		run: roleOnOneInstance,
 	},

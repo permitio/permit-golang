@@ -73,3 +73,53 @@ type GroupUserReadSchema struct {
 	// Key is the user's key, such as a user ID of the application's identity provider.
 	Key string `json:"key"`
 }
+
+// GroupAddRole is a role on a resource instance to assign to a group or to remove from it: the
+// key or the ID of the role, of its resource, of the resource instance and of the tenant. Each
+// field is required, and the request always holds it.
+type GroupAddRole struct {
+	// Role is the key or the ID of the role, such as editor.
+	Role string `json:"role"`
+
+	// Resource is the key or the ID of the resource that the role belongs to, such as document.
+	Resource string `json:"resource"`
+
+	// ResourceInstance is the key or the ID of the resource instance that the role belongs to,
+	// such as doc-1.
+	ResourceInstance string `json:"resource_instance"`
+
+	// Tenant is the key or the ID of the tenant that the role belongs to, such as tenant-a.
+	Tenant string `json:"tenant"`
+}
+
+// GroupAssignment names a group to assign to another group or to remove from it.
+// GroupInstanceKey is required, and the request always holds it.
+type GroupAssignment struct {
+	// GroupInstanceKey names the group: the API's documentation says that it takes the ID of the
+	// group's resource instance, or its resource and its instance key as
+	// <resource_key>:<resource_instance_key>, such as group:engineering.
+	GroupInstanceKey string `json:"group_instance_key"`
+}
+
+// GroupRoleReadSchema is a role of a group, as the list of the roles of a group returns it: the
+// key of the role, and the resource and the resource instance that it belongs to.
+type GroupRoleReadSchema struct {
+	// Key is the role's key, such as editor.
+	Key string `json:"key"`
+
+	// Resource is the resource that the role belongs to.
+	Resource GroupRoleResourceReadOnly `json:"resource"`
+
+	// ResourceInstance is the resource instance that the role belongs to.
+	ResourceInstance GroupRoleResourceReadOnly `json:"resource_instance"`
+}
+
+// GroupRoleResourceReadOnly is the resource or the resource instance of a [GroupRoleReadSchema]:
+// its ID and its key.
+type GroupRoleResourceReadOnly struct {
+	// ID is the ID of the resource or of the resource instance, a UUID.
+	ID string `json:"id"`
+
+	// Key is the key of the resource or of the resource instance, as the reply gives it.
+	Key string `json:"key"`
+}

@@ -138,8 +138,23 @@
     "GroupsService.All": [
       "list_direct_group"
     ],
+    "GroupsService.AllChildren": [
+      "list_group_children"
+    ],
+    "GroupsService.AllParents": [
+      "list_group_parents"
+    ],
+    "GroupsService.AllRoles": [
+      "list_group_roles"
+    ],
     "GroupsService.AllUsers": [
       "list_group_users"
+    ],
+    "GroupsService.AssignGroup": [
+      "assign_group_to_group"
+    ],
+    "GroupsService.AssignRole": [
+      "assign_role_to_group"
     ],
     "GroupsService.AssignUser": [
       "assign_user_to_group"
@@ -156,8 +171,23 @@
     "GroupsService.List": [
       "list_direct_group"
     ],
+    "GroupsService.ListChildren": [
+      "list_group_children"
+    ],
+    "GroupsService.ListParents": [
+      "list_group_parents"
+    ],
+    "GroupsService.ListRoles": [
+      "list_group_roles"
+    ],
     "GroupsService.ListUsers": [
       "list_group_users"
+    ],
+    "GroupsService.RemoveGroup": [
+      "remove_group_from_group"
+    ],
+    "GroupsService.RemoveRole": [
+      "remove_role_from_group"
     ],
     "GroupsService.RemoveUser": [
       "remove_user_from_group"

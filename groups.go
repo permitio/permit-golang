@@ -19,20 +19,23 @@ const (
 	opRemoveUserFromGroup = "remove_user_from_group"
 )
 
-// GroupsService lists, reads, creates and deletes the groups of an environment, and assigns
-// users to a group, lists them and removes them; [Client.Groups] holds it. A group is in a
+// GroupsService lists, reads, creates and deletes the groups of an environment, assigns users to
+// a group, lists them and removes them, assigns roles and other groups to a group, lists them and
+// removes them, and lists the parent groups of a group; [Client.Groups] holds it. A group is in a
 // tenant, and the spec names it by the key of its instance, such as engineering, and the key of
 // the resource of that instance, group by default, as [models.GroupCreate] says.
 //
 // A method that acts on one group takes it as groupInstanceKey and sends it as it is given, as
 // one segment of the path, escaped: a key that holds a / or a % names that group, not another
 // route. The SDK does not tell an instance key from an ID, so a key in the shape of a UUID is
-// sent as it is, as any other key is. The spec does not describe what the path takes besides
-// the group's instance key, such as its ID, and that is not confirmed yet. A method that acts on
+// sent as it is, as any other key is. The API's documentation says that the path takes "Either
+// the unique id of the resource instance, or the URL-friendly key of the resource instance" of
+// the group; that the path takes the ID of the group is not confirmed yet. A method that acts on
 // one user of a group takes the key or the ID of the user next, as userKey, and sends it in the
-// same way. One path fits two routes: /groups/direct/users is the list of the users of the group
+// same way. A path can fit two routes: /groups/direct/users is the list of the users of the group
 // direct, as [GroupsService.ListUsers] sends it, and the group users, as [GroupsService.Get]
-// sends it; which of the two the API answers is not confirmed yet.
+// sends it, and /groups/direct/roles, /groups/direct/children and /groups/direct/parents fit two
+// routes in the same way; which of the two the API answers is not confirmed yet.
 //
 // The SDK lists the groups and reads a group under /groups/direct, and never sends the GET of
 // /groups or of /groups/{group_instance_key}, which the API's spec marks deprecated.

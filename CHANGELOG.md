@@ -868,9 +868,21 @@ change from v1 and what to use instead.
   of the path, escaped, a key in the shape of a UUID too; an empty key, `.` or `..` is an error that
   matches `ErrInvalidConfig`, and no request for the call is sent. `Delete` returns nil when the API
   answers 404, as the group is gone already; a 404 to `RemoveUser`, whose body names the tenant of
-  the membership, is an error that matches `ErrNotFound`. `Create` and `AssignUser` are sent again
-  after a 429 only; the other calls are sent again after a 500, 502, 503 or 504 reply or a failed
-  connection too.
+  the membership, is an error that matches `ErrNotFound`. `Create`, `AssignUser`, `AssignRole` and
+  `AssignGroup` are sent again after a 429 only; the other calls are sent again after a 500, 502,
+  503 or 504 reply or a failed connection too.
+- `AssignRole` and `RemoveRole` of `GroupsService` assign a role on a resource instance to a group
+  and remove it, with a `models.GroupAddRole`, which names the role, its resource, the resource
+  instance and the tenant. The API's documentation says that the assignment creates a "derivation
+  from the member role to this role", so the role applies to the members of the group through the
+  environment's ReBAC model; what a decision of the PDP then allows a member is not confirmed yet.
+  `ListRoles` returns a page of the roles of a group, a `*permit.Page[models.GroupRoleReadSchema]`,
+  and `AllRoles` reads every page.
+- `AssignGroup` and `RemoveGroup` assign a group to a group and remove it, with a
+  `models.GroupAssignment`, which names the other group; `ListChildren` and `ListParents` return a
+  page of the child or the parent groups of a group as a `*permit.Page[models.GroupReadSchema]`,
+  and `AllChildren` and `AllParents` read every page. A 404 to `RemoveRole` or `RemoveGroup`, whose
+  bodies name what they remove, is an error that matches `ErrNotFound`.
 
 ### PDPs
 

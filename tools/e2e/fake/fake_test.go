@@ -175,7 +175,7 @@ var routes = []Route{
 	{"POST", "/v2/pdps/{proj_id}/{env_id}/configs/refresh", opRefreshPDPs},
 	{"POST", "/v2/pdps/{proj_id}/{env_id}/configs/{pdp_id}/refresh", opRefreshPDP},
 	{"POST", "/v2/schema/{proj_id}/{env_id}/groups", "create_group"},
-	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", "list_group_roles"},
+	{"GET", "/v2/policy_guards/scopes/{policy_guard_scope_id}/rules", "list_policy_guard_rules"},
 	{"DELETE", "/v2/facts/{proj_id}/{env_id}/users/{user_id}", "delete_user"},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/direct", opListGroups},
 	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/direct/{group_instance_key}", opGetGroup},
@@ -188,6 +188,28 @@ var routes = []Route{
 	{
 		"DELETE", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/users/{user_id}",
 		opRemoveGroupUser,
+	},
+	{"POST", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", opAssignGroupRole},
+	{
+		"DELETE", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles",
+		opRemoveGroupRole,
+	},
+	{"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles", opListGroupRoles},
+	{
+		"PUT", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group",
+		opAssignGroupGroup,
+	},
+	{
+		"DELETE", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group",
+		opRemoveGroupGroup,
+	},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/children",
+		opListGroupChildren,
+	},
+	{
+		"GET", "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/parents",
+		opListGroupParents,
 	},
 	{"POST", "/v2/same/{first}", "same_first"},
 	{"POST", "/v2/same/{second}", "same_second"},
@@ -697,10 +719,8 @@ func TestParents(t *testing.T) {
 				body)
 		}
 	}
-	h.expect(200, "POST", "/v2/schema/proj/dev/groups",
-		`{"group_instance_key": "g1", "group_tenant": "t1"}`, projectKey)
-	if list := h.list("/v2/schema/proj/dev/groups/g1/roles", projectKey); len(list) != 0 {
-		t.Errorf("the roles of a group, which the fake does not name by key, are %v", list)
+	if list := h.list("/v2/policy_guards/scopes/s1/rules", projectKey); len(list) != 0 {
+		t.Errorf("the rules of a scope that no keyed collection holds are %v", list)
 	}
 }
 

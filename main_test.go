@@ -237,6 +237,18 @@ func TestMain(m *testing.M) {
 		mockpermit.Reply{Body: replyFixture("list_group_users.200.json")})
 	servers.API.Handle("DELETE "+groups+"/{group_instance_key}/users/{user_id}",
 		mockpermit.Reply{Status: http.StatusNoContent})
+	for _, g := range []struct{ route, fixture string }{
+		{"POST " + groups + "/{group_instance_key}/roles", "assign_role_to_group.200.json"},
+		{"GET " + groups + "/{group_instance_key}/roles", "list_group_roles.200.json"},
+		{"PUT " + groups + "/{group_instance_key}/assign_group", "assign_group_to_group.200.json"},
+		{"GET " + groups + "/{group_instance_key}/children", "list_group_children.200.json"},
+	} {
+		servers.API.Handle(g.route, mockpermit.Reply{Body: replyFixture(g.fixture)})
+	}
+	for _, path := range []string{"/roles", "/assign_group"} {
+		servers.API.Handle("DELETE "+groups+"/{group_instance_key}"+path,
+			mockpermit.Reply{Status: http.StatusNoContent})
+	}
 	servers.API.Handle("POST /v2/pdps/{proj_id}/{env_id}/configs/refresh",
 		mockpermit.Reply{Body: replyFixture("refresh_environment_pdp_data.200.json")})
 	servers.API.Handle("GET /v2/pdps/{proj_id}/{env_id}/audit_logs",

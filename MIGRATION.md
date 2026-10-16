@@ -3650,6 +3650,25 @@ returns an error that matches `permit.ErrNotFound` for a 404. The SDK lists and 
 under `/groups/direct`, and never sends the GET of `/groups` or of `/groups/{group_instance_key}`,
 which the API's spec marks deprecated.
 
+<a id="M-groups-2"></a>
+### M-groups-2: The roles and the nesting of groups are new: v1 had no call of them
+
+- v1: no call of the roles or of the nesting of groups, neither in `pkg/api` nor in the generated
+  client of `pkg/openapi`
+- v2: `permit.GroupsService`
+
+v1.3.0 could neither assign a role to a group nor assign a group to another group. v2's
+`client.Groups` does both. `AssignRole` and `RemoveRole` take the instance key of the group and a
+`models.GroupAddRole`, which names the role, its resource, the resource instance and the tenant,
+each required. The API's documentation says that the assignment creates a "derivation from the
+member role to this role", so the role applies to the members of the group through the environment's
+ReBAC model; what a decision of the PDP then allows a member is not confirmed yet. `ListRoles`
+returns a `*permit.Page[models.GroupRoleReadSchema]`, and `AllRoles` reads every page. `AssignGroup`
+and `RemoveGroup` take the instance key of the group and a `models.GroupAssignment`, which names the
+other group; `ListChildren` and `ListParents` each return a `*permit.Page[models.GroupReadSchema]`,
+and `AllChildren` and `AllParents` read every page. `RemoveRole` and `RemoveGroup`, whose bodies
+name what they remove, return an error that matches `permit.ErrNotFound` for a 404.
+
 <a id="M-pdps-1"></a>
 ### M-pdps-1: ListPdpConfigs of the generated client is not in v2
 

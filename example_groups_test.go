@@ -78,3 +78,68 @@ func ExampleGroupsService() {
 	// member: bob
 	// removed alice
 }
+
+// Assign the role editor on the instance doc-1 of the resource document to the group
+// engineering, list the roles of the group, reading every page, assign the group backend to
+// engineering, list the children of engineering, and remove the group backend and the role from
+// engineering again.
+func ExampleGroupsService_AssignRole() {
+	client, err := permit.New(
+		permit.WithAPIKey(exampleAPIKey),
+		permit.WithAPIURL(exampleAPIURL),
+		permit.WithPDPURL(examplePDPURL),
+		permit.WithScope("my-project", "production"),
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+	role := models.GroupAddRole{
+		Role: "editor", Resource: "document", ResourceInstance: "doc-1", Tenant: "tenant-a",
+	}
+	group, err := client.Groups.AssignRole(ctx, "engineering", role)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(group.GroupInstanceKey, "has the roles", group.AssignedRoles)
+	for r, err := range client.Groups.AllRoles(ctx, "engineering", nil) {
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("role:", r.Key, "on", r.Resource.Key, r.ResourceInstance.Key)
+	}
+
+	backend := models.GroupAssignment{GroupInstanceKey: "group:backend"}
+	if _, err := client.Groups.AssignGroup(ctx, "engineering", backend); err != nil {
+		fmt.Println(err)
+		return
+	}
+	for child, err := range client.Groups.AllChildren(ctx, "engineering", nil) {
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("child:", child.GroupInstanceKey)
+	}
+	if err := client.Groups.RemoveGroup(ctx, "engineering", backend); err != nil {
+		fmt.Println(err)
+		return
+	}
+	if err := client.Groups.RemoveRole(ctx, "engineering", role); err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("removed backend and editor from engineering")
+	// Output:
+	// engineering has the roles [editor]
+	// role: editor on document doc-1
+	// role: viewer on document doc-2
+	// child: backend
+	// child: frontend
+	// removed backend and editor from engineering
+}

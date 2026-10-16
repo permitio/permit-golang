@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -37,6 +38,21 @@ const (
 	engineeringUsersRaw  = groupsRaw + "/engineering/users"
 )
 
+// The routes of the roles of a group and of the groups assigned to a group, as
+// mockpermit.Server.Handle takes them.
+const (
+	groupRolesPath         = groupPath + "/roles"
+	groupAssignPath        = groupPath + "/assign_group"
+	assignGroupRoleRoute   = "POST " + groupRolesPath
+	removeGroupRoleRoute   = "DELETE " + groupRolesPath
+	listGroupRolesRoute    = "GET " + groupRolesPath
+	assignGroupGroupRoute  = "PUT " + groupAssignPath
+	removeGroupGroupRoute  = "DELETE " + groupAssignPath
+	listGroupChildrenRoute = "GET " + groupPath + "/children"
+	listGroupParentsRoute  = "GET " + groupPath + "/parents"
+	groupEmptyPageBody     = `{"data":[],"total_count":0,"page_count":0}`
+)
+
 // The bodies of replies of the API: a group as a get and a list return it, and as a create and an
 // assignment of a user return it.
 const (
@@ -46,8 +62,26 @@ const (
 		`"users":["00000000-0000-4000-8000-000000000031"]}`
 )
 
-// groupMembership is the membership of the tests, in the tenant tenant-a.
-var groupMembership = models.GroupAssignUser{Tenant: "tenant-a"}
+// groupMembership is the membership of the tests, in the tenant tenant-a; groupRole is the role
+// editor on the instance doc-1 of the resource document in that tenant, and groupChild names the
+// group backend, as the tests assign them to a group.
+var (
+	groupMembership = models.GroupAssignUser{Tenant: "tenant-a"}
+	groupRole       = models.GroupAddRole{
+		Role: "editor", Resource: "document", ResourceInstance: "doc-1", Tenant: "tenant-a",
+	}
+	groupChild = models.GroupAssignment{GroupInstanceKey: "group:backend"}
+)
+
+// groupRolesOf returns the roles r<from> to r<to-1> of a group, with only a key: an empty list
+// when to is from.
+func groupRolesOf(from, to int) []models.GroupRoleReadSchema {
+	items := make([]models.GroupRoleReadSchema, 0, to-from)
+	for i := from; i < to; i++ {
+		items = append(items, models.GroupRoleReadSchema{Key: "r" + strconv.Itoa(i)})
+	}
+	return items
+}
 
 // groupsOf returns the groups g<from> to g<to-1>, with only an instance key: an empty list when
 // to is from.
@@ -127,6 +161,60 @@ var (
 				return err
 			},
 		},
+		{
+			name: "AssignRole", op: opAssignRoleToGroup, route: assignGroupRoleRoute,
+			reply: mockpermit.Reply{Body: groupReadBody},
+			call: func(ctx context.Context, c *Client, groupKey, _ string) error {
+				_, err := c.Groups.AssignRole(ctx, groupKey, groupRole)
+				return err
+			},
+		},
+		{
+			name: "RemoveRole", op: opRemoveRoleFromGroup, route: removeGroupRoleRoute,
+			reply: mockpermit.Reply{Status: http.StatusNoContent},
+			call: func(ctx context.Context, c *Client, groupKey, _ string) error {
+				return c.Groups.RemoveRole(ctx, groupKey, groupRole)
+			},
+		},
+		{
+			name: "ListRoles", op: opListGroupRoles, route: listGroupRolesRoute,
+			reply: mockpermit.Reply{Body: groupEmptyPageBody},
+			call: func(ctx context.Context, c *Client, groupKey, _ string) error {
+				_, err := c.Groups.ListRoles(ctx, groupKey, nil)
+				return err
+			},
+		},
+		{
+			name: "AssignGroup", op: opAssignGroupToGroup, route: assignGroupGroupRoute,
+			reply: mockpermit.Reply{Body: groupReadBody},
+			call: func(ctx context.Context, c *Client, groupKey, _ string) error {
+				_, err := c.Groups.AssignGroup(ctx, groupKey, groupChild)
+				return err
+			},
+		},
+		{
+			name: "RemoveGroup", op: opRemoveGroupFromGroup, route: removeGroupGroupRoute,
+			reply: mockpermit.Reply{Status: http.StatusNoContent},
+			call: func(ctx context.Context, c *Client, groupKey, _ string) error {
+				return c.Groups.RemoveGroup(ctx, groupKey, groupChild)
+			},
+		},
+		{
+			name: "ListChildren", op: opListGroupChildren, route: listGroupChildrenRoute,
+			reply: mockpermit.Reply{Body: groupEmptyPageBody},
+			call: func(ctx context.Context, c *Client, groupKey, _ string) error {
+				_, err := c.Groups.ListChildren(ctx, groupKey, nil)
+				return err
+			},
+		},
+		{
+			name: "ListParents", op: opListGroupParents, route: listGroupParentsRoute,
+			reply: mockpermit.Reply{Body: groupEmptyPageBody},
+			call: func(ctx context.Context, c *Client, groupKey, _ string) error {
+				_, err := c.Groups.ListParents(ctx, groupKey, nil)
+				return err
+			},
+		},
 	}
 	groupUserCalls = []groupCall{
 		{
@@ -188,6 +276,57 @@ var (
 		},
 	}
 )
+
+// groupRolesPages, groupChildrenPages and groupParentsPages are the lists of the roles, of the
+// children and of the parents of the group engineering.
+var (
+	groupRolesPages = groupPages[models.GroupRoleReadSchema]{
+		route: listGroupRolesRoute, rawPath: groupsRaw + "/engineering/roles",
+		items: groupRolesOf,
+		all: func(ctx context.Context, c *Client, opts *ListOptions,
+		) iter.Seq2[models.GroupRoleReadSchema, error] {
+			return c.Groups.AllRoles(ctx, "engineering", opts)
+		},
+	}
+	groupChildrenPages = groupPages[models.GroupReadSchema]{
+		route: listGroupChildrenRoute, rawPath: groupsRaw + "/engineering/children",
+		items: groupsOf,
+		all: func(ctx context.Context, c *Client, opts *ListOptions,
+		) iter.Seq2[models.GroupReadSchema, error] {
+			return c.Groups.AllChildren(ctx, "engineering", opts)
+		},
+	}
+	groupParentsPages = groupPages[models.GroupReadSchema]{
+		route: listGroupParentsRoute, rawPath: groupsRaw + "/engineering/parents",
+		items: groupsOf,
+		all: func(ctx context.Context, c *Client, opts *ListOptions,
+		) iter.Seq2[models.GroupReadSchema, error] {
+			return c.Groups.AllParents(ctx, "engineering", opts)
+		},
+	}
+)
+
+// groupPagesErrors returns the errors that the iterator of p yields with the client c and opts.
+func groupPagesErrors[T any](t *testing.T, p groupPages[T], c *Client, opts *ListOptions,
+) []error {
+	t.Helper()
+	_, errs := collect(t, p.all(t.Context(), c, opts))
+	return errs
+}
+
+// groupIteratorErrors returns the errors that each iterator of the groups yields with the client
+// c and opts, by the name of its method: All, and AllUsers, AllRoles, AllChildren and AllParents
+// of the group engineering.
+func groupIteratorErrors(t *testing.T, c *Client, opts *ListOptions) map[string][]error {
+	t.Helper()
+	return map[string][]error{
+		"All":         groupPagesErrors(t, groupsPages, c, opts),
+		"AllUsers":    groupPagesErrors(t, groupUsersPages, c, opts),
+		"AllRoles":    groupPagesErrors(t, groupRolesPages, c, opts),
+		"AllChildren": groupPagesErrors(t, groupChildrenPages, c, opts),
+		"AllParents":  groupPagesErrors(t, groupParentsPages, c, opts),
+	}
+}
 
 // checkGroupPagesReadToTheEnd checks that the iterator of p reads 31 items, in order, asking for
 // each page in turn: up to the last page that the replies count, at a per_page of 30 and at the
@@ -272,6 +411,15 @@ func TestGroupUsersAllReadsEveryPage(t *testing.T) {
 	checkGroupPagesReadToTheEnd(t, groupUsersPages)
 }
 
+// TestGroupRelativesAllReadEveryPage checks that AllRoles, AllChildren and AllParents read every
+// page of the roles, of the children and of the parents of a group, as
+// checkGroupPagesReadToTheEnd says.
+func TestGroupRelativesAllReadEveryPage(t *testing.T) {
+	t.Run("AllRoles", func(t *testing.T) { checkGroupPagesReadToTheEnd(t, groupRolesPages) })
+	t.Run("AllChildren", func(t *testing.T) { checkGroupPagesReadToTheEnd(t, groupChildrenPages) })
+	t.Run("AllParents", func(t *testing.T) { checkGroupPagesReadToTheEnd(t, groupParentsPages) })
+}
+
 // TestGroupUsersListReadsEachPage checks that ListUsers reads the page that it asks for, page 1
 // and then page 2 of a group of 31 users at a per_page of 30, each with the users of the reply in
 // its order and the counts of the reply.
@@ -329,11 +477,18 @@ func checkGroupPagesReadTheOptionsOnce[T any](t *testing.T, p groupPages[T]) {
 	}
 }
 
-// TestGroupsAllReadsTheOptionsOnce checks All and AllUsers as checkGroupPagesReadTheOptionsOnce
-// says, and that All also keeps the filters of its call.
+// TestGroupsAllReadsTheOptionsOnce checks All, AllUsers, AllRoles, AllChildren and AllParents as
+// checkGroupPagesReadTheOptionsOnce says, and that All also keeps the filters of its call.
 func TestGroupsAllReadsTheOptionsOnce(t *testing.T) {
 	t.Run("All", func(t *testing.T) { checkGroupPagesReadTheOptionsOnce(t, groupsPages) })
 	t.Run("AllUsers", func(t *testing.T) { checkGroupPagesReadTheOptionsOnce(t, groupUsersPages) })
+	t.Run("AllRoles", func(t *testing.T) { checkGroupPagesReadTheOptionsOnce(t, groupRolesPages) })
+	t.Run("AllChildren", func(t *testing.T) {
+		checkGroupPagesReadTheOptionsOnce(t, groupChildrenPages)
+	})
+	t.Run("AllParents", func(t *testing.T) {
+		checkGroupPagesReadTheOptionsOnce(t, groupParentsPages)
+	})
 	t.Run("the filters of All", func(t *testing.T) {
 		api := mockpermit.NewAPI(t)
 		api.Handle(listGroupsRoute, pageOf(t, groupsOf(0, 1), `,"total_count":1,"page_count":1`))
@@ -350,96 +505,88 @@ func TestGroupsAllReadsTheOptionsOnce(t *testing.T) {
 	})
 }
 
-// TestGroupsAllYieldsAnErrorOnce checks that a page that fails ends All and AllUsers with its
+// checkGroupPagesYieldAnErrorOnce checks that a page that fails ends the iterator of p with its
 // error, once, after the items of the pages before it.
-func TestGroupsAllYieldsAnErrorOnce(t *testing.T) {
+func checkGroupPagesYieldAnErrorOnce[T any](t *testing.T, p groupPages[T]) {
+	t.Helper()
 	const body = `{"error_code":"FORBIDDEN","title":"Forbidden","message":"no"}`
-	forbidden := mockpermit.Reply{Status: http.StatusForbidden, Body: body}
-	for name, check := range map[string]func(c *Client) (int, []error){
-		"All": func(c *Client) (int, []error) {
-			seq := groupsPages.all(t.Context(), c, &ListOptions{PerPage: 30})
-			items, errs := collect(t, seq)
-			return len(items), errs
-		},
-		"AllUsers": func(c *Client) (int, []error) {
-			seq := groupUsersPages.all(t.Context(), c, &ListOptions{PerPage: 30})
-			items, errs := collect(t, seq)
-			return len(items), errs
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			api := mockpermit.NewAPI(t)
-			route := groupsPages.route
-			first := pageOf(t, groupsOf(0, 30), `,"total_count":60`)
-			if name == "AllUsers" {
-				route = groupUsersPages.route
-				first = pageOf(t, groupUsersOf(0, 30), `,"total_count":60`)
-			}
-			api.Handle(route, first, forbidden)
-			n, errs := check(resourceClient(t, api))
-			if n != 30 || len(errs) != 1 || !errors.Is(errs[0], ErrForbidden) {
-				t.Errorf("%s yielded %d items and the errors %v, want 30 and one error that "+
-					"matches ErrForbidden", name, n, errs)
-			}
-			if n := len(api.Requests()); n != 2 {
-				t.Errorf("%s sent %d requests, want 2", name, n)
-			}
-		})
+	api := mockpermit.NewAPI(t)
+	api.Handle(p.route, pageOf(t, p.items(0, 30), `,"total_count":60`),
+		mockpermit.Reply{Status: http.StatusForbidden, Body: body})
+	seq := p.all(t.Context(), resourceClient(t, api), &ListOptions{PerPage: 30})
+	items, errs := collect(t, seq)
+	if len(items) != 30 || len(errs) != 1 || !errors.Is(errs[0], ErrForbidden) {
+		t.Errorf("the iterator yielded %d items and the errors %v, want 30 and one error that "+
+			"matches ErrForbidden", len(items), errs)
+	}
+	if n := len(api.Requests()); n != 2 {
+		t.Errorf("the iterator sent %d requests, want 2", n)
 	}
 }
 
-// TestGroupsAllGetsTheScopeInEachLoop checks that All and AllUsers, without WithScope, look up the
-// scope in each loop over the iterator, before its first page, and not when they are called: a
-// lookup that fails ends that loop with its error, and the next loop looks the scope up again.
-func TestGroupsAllGetsTheScopeInEachLoop(t *testing.T) {
+// TestGroupsAllYieldsAnErrorOnce checks All, AllUsers, AllRoles, AllChildren and AllParents as
+// checkGroupPagesYieldAnErrorOnce says.
+func TestGroupsAllYieldsAnErrorOnce(t *testing.T) {
+	t.Run("All", func(t *testing.T) { checkGroupPagesYieldAnErrorOnce(t, groupsPages) })
+	t.Run("AllUsers", func(t *testing.T) { checkGroupPagesYieldAnErrorOnce(t, groupUsersPages) })
+	t.Run("AllRoles", func(t *testing.T) { checkGroupPagesYieldAnErrorOnce(t, groupRolesPages) })
+	t.Run("AllChildren", func(t *testing.T) {
+		checkGroupPagesYieldAnErrorOnce(t, groupChildrenPages)
+	})
+	t.Run("AllParents", func(t *testing.T) {
+		checkGroupPagesYieldAnErrorOnce(t, groupParentsPages)
+	})
+}
+
+// checkGroupPagesGetTheScopeInEachLoop checks that the iterator of p, without WithScope, looks up
+// the scope in each loop over it, before its first page, and not when it is made: a lookup that
+// fails ends that loop with its error, and the next loop looks the scope up again, and then sends
+// its page to the path of p under the project and the environment of the scope.
+func checkGroupPagesGetTheScopeInEachLoop[T any](t *testing.T, p groupPages[T]) {
+	t.Helper()
 	const body = `{"error_code":"FORBIDDEN","title":"Forbidden","message":"no"}`
-	prefix := "/v2/schema/" + scopeProjectID + "/" + scopeEnvironmentID + "/groups"
-	for name, tc := range map[string]struct {
-		route, rawPath string
-		page           mockpermit.Reply
-		loop           func(c *Client) (int, []error)
-	}{
-		"All": {
-			route: listGroupsRoute, rawPath: prefix + "/direct",
-			page: pageOf(t, groupsOf(0, 1), `,"total_count":1,"page_count":1`),
-			loop: func(c *Client) (int, []error) {
-				items, errs := collect(t, c.Groups.All(t.Context(), nil))
-				return len(items), errs
-			},
-		},
-		"AllUsers": {
-			route: listGroupUsersRoute, rawPath: prefix + "/engineering/users",
-			page: pageOf(t, groupUsersOf(0, 1), `,"total_count":1,"page_count":1`),
-			loop: func(c *Client) (int, []error) {
-				items, errs := collect(t, c.Groups.AllUsers(t.Context(), "engineering", nil))
-				return len(items), errs
-			},
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			api := mockpermit.NewAPI(t)
-			api.Handle(scopeRoute, mockpermit.Reply{Status: http.StatusForbidden, Body: body},
-				scopeReply(t, ""))
-			api.Handle(tc.route, tc.page)
-			c := projectClient(t, api)
-			if n, errs := tc.loop(c); n != 0 || len(errs) != 1 ||
-				!errors.Is(errs[0], ErrForbidden) {
-				t.Errorf("the first loop yielded %d items and the errors %v, want one error "+
-					"that matches ErrForbidden", n, errs)
-			}
-			if n, errs := tc.loop(c); n != 1 || errs != nil {
-				t.Errorf("the second loop yielded %d items and the errors %v, want 1", n, errs)
-			}
-			var paths []string
-			for _, r := range api.Requests() {
-				paths = append(paths, r.RawPath)
-			}
-			want := []string{"/v2/api-key/scope", "/v2/api-key/scope", tc.rawPath}
-			if diff := cmp.Diff(want, paths); diff != "" {
-				t.Errorf("the requests differ (-want +got):\n%s", diff)
-			}
-		})
+	api := mockpermit.NewAPI(t)
+	api.Handle(scopeRoute, mockpermit.Reply{Status: http.StatusForbidden, Body: body},
+		scopeReply(t, ""))
+	api.Handle(p.route, pageOf(t, p.items(0, 1), `,"total_count":1,"page_count":1`))
+	seq := p.all(t.Context(), projectClient(t, api), nil)
+	if items, errs := collect(t, seq); len(items) != 0 || len(errs) != 1 ||
+		!errors.Is(errs[0], ErrForbidden) {
+		t.Errorf("the first loop yielded %d items and the errors %v, want one error that "+
+			"matches ErrForbidden", len(items), errs)
 	}
+	if items, errs := collect(t, seq); len(items) != 1 || errs != nil {
+		t.Errorf("the second loop yielded %d items and the errors %v, want 1", len(items), errs)
+	}
+	var paths []string
+	for _, r := range api.Requests() {
+		paths = append(paths, r.RawPath)
+	}
+	prefix := "/v2/schema/" + scopeProjectID + "/" + scopeEnvironmentID + "/groups"
+	want := []string{
+		"/v2/api-key/scope", "/v2/api-key/scope", strings.Replace(p.rawPath, groupsRaw, prefix, 1),
+	}
+	if diff := cmp.Diff(want, paths); diff != "" {
+		t.Errorf("the requests differ (-want +got):\n%s", diff)
+	}
+}
+
+// TestGroupsAllGetsTheScopeInEachLoop checks All, AllUsers, AllRoles, AllChildren and AllParents
+// as checkGroupPagesGetTheScopeInEachLoop says.
+func TestGroupsAllGetsTheScopeInEachLoop(t *testing.T) {
+	t.Run("All", func(t *testing.T) { checkGroupPagesGetTheScopeInEachLoop(t, groupsPages) })
+	t.Run("AllUsers", func(t *testing.T) {
+		checkGroupPagesGetTheScopeInEachLoop(t, groupUsersPages)
+	})
+	t.Run("AllRoles", func(t *testing.T) {
+		checkGroupPagesGetTheScopeInEachLoop(t, groupRolesPages)
+	})
+	t.Run("AllChildren", func(t *testing.T) {
+		checkGroupPagesGetTheScopeInEachLoop(t, groupChildrenPages)
+	})
+	t.Run("AllParents", func(t *testing.T) {
+		checkGroupPagesGetTheScopeInEachLoop(t, groupParentsPages)
+	})
 }
 
 // TestGroupsListReturnsAPage checks the page that List returns: the groups of the reply in its
@@ -537,25 +684,28 @@ func TestGroupsListReturnsAPage(t *testing.T) {
 }
 
 // TestInvalidGroupListOptions checks that a Page or a PerPage less than zero is an error that
-// matches ErrInvalidConfig from List, All, ListUsers and AllUsers, and that none sends a request.
+// matches ErrInvalidConfig from each list of the groups and from each of their iterators, once,
+// and that none sends a request.
 func TestInvalidGroupListOptions(t *testing.T) {
 	for _, opts := range []ListOptions{{Page: -1}, {PerPage: -1}} {
 		api := mockpermit.NewAPI(t)
 		c := resourceClient(t, api)
 		_, listErr := c.Groups.List(t.Context(), &GroupsListOptions{ListOptions: opts})
 		_, usersErr := c.Groups.ListUsers(t.Context(), "engineering", &opts)
-		_, allErrs := collect(t, groupsPages.all(t.Context(), c, &opts))
-		_, allUsersErrs := collect(t, groupUsersPages.all(t.Context(), c, &opts))
-		errs := append([]error{listErr, usersErr}, allErrs...)
-		for _, err := range append(errs, allUsersErrs...) {
+		_, rolesErr := c.Groups.ListRoles(t.Context(), "engineering", &opts)
+		_, childrenErr := c.Groups.ListChildren(t.Context(), "engineering", &opts)
+		_, parentsErr := c.Groups.ListParents(t.Context(), "engineering", &opts)
+		for _, err := range []error{listErr, usersErr, rolesErr, childrenErr, parentsErr} {
 			if !errors.Is(err, ErrInvalidConfig) {
 				t.Errorf("%+v: the call returned %v, want an error that matches ErrInvalidConfig",
 					opts, err)
 			}
 		}
-		if len(allErrs) != 1 || len(allUsersErrs) != 1 {
-			t.Errorf("%+v: All yielded the errors %v and AllUsers %v, want one each", opts,
-				allErrs, allUsersErrs)
+		for name, errs := range groupIteratorErrors(t, c, &opts) {
+			if len(errs) != 1 || !errors.Is(errs[0], ErrInvalidConfig) {
+				t.Errorf("%+v: %s yielded the errors %v, want one that matches "+
+					"ErrInvalidConfig", opts, name, errs)
+			}
 		}
 		api.AssertUntouched()
 	}
@@ -564,11 +714,11 @@ func TestInvalidGroupListOptions(t *testing.T) {
 // TestGroupsUseTheScope checks that the calls of the groups act on the environment of the
 // client's scope. Without WithScope, the client looks up the scope of its API key once, and each
 // call fills the route with the project and the environment of an environment-level key: Get
-// runs against a server of its own, as a path of its route, /groups/direct/users, fits the route
-// of ListUsers too, which mockpermit refuses to serve beside it. A scope without an environment,
-// that of a project-level or an organization-level key, is an error that matches
-// ErrInvalidConfig and names the operation, and no call sends a request but the lookup, which the
-// API fails for any route that the test did not register.
+// runs against a server of its own, as a path of its route, such as /groups/direct/users, fits
+// the route of ListUsers too, or of another list of a group, which mockpermit refuses to serve
+// beside it. A scope without an environment, that of a project-level or an organization-level key,
+// is an error that matches ErrInvalidConfig and names the operation, and no call sends a request
+// but the lookup, which the API fails for any route that the test did not register.
 func TestGroupsUseTheScope(t *testing.T) {
 	const prefix = "/v2/schema/" + scopeProjectID + "/" + scopeEnvironmentID + "/groups"
 	var get, others []groupCall
@@ -617,12 +767,10 @@ func TestGroupsUseTheScope(t *testing.T) {
 						"ErrInvalidConfig and names %s", m.op, err, m.op)
 				}
 			}
-			_, errs := collect(t, c.Groups.All(t.Context(), nil))
-			_, userErrs := collect(t, c.Groups.AllUsers(t.Context(), "engineering", nil))
-			for _, errs := range [][]error{errs, userErrs} {
+			for name, errs := range groupIteratorErrors(t, c, nil) {
 				if len(errs) != 1 || !errors.Is(errs[0], ErrInvalidConfig) {
-					t.Errorf("an iterator yielded %v, want one error that matches "+
-						"ErrInvalidConfig", errs)
+					t.Errorf("%s yielded %v, want one error that matches ErrInvalidConfig",
+						name, errs)
 				}
 			}
 			if n := len(api.Requests()); n != 1 {
@@ -643,7 +791,10 @@ func TestGroupKeysInThePath(t *testing.T) {
 	paths := map[string]string{
 		"Get": groupsRaw + "/direct/%s", "Delete": groupsRaw + "/%s",
 		"ListUsers": groupsRaw + "/%s/users", "AssignUser": groupsRaw + "/%s/users/%s",
-		"RemoveUser": groupsRaw + "/%s/users/%s",
+		"RemoveUser": groupsRaw + "/%s/users/%s", "AssignRole": groupsRaw + "/%s/roles",
+		"RemoveRole": groupsRaw + "/%s/roles", "ListRoles": groupsRaw + "/%s/roles",
+		"AssignGroup": groupsRaw + "/%s/assign_group", "ListChildren": groupsRaw + "/%s/children",
+		"RemoveGroup": groupsRaw + "/%s/assign_group", "ListParents": groupsRaw + "/%s/parents",
 	}
 	for key, segment := range map[string]string{
 		"a/b":            "a%2Fb",
@@ -697,11 +848,31 @@ func TestGroupKeysInThePath(t *testing.T) {
 			api.AssertUntouched()
 		}
 		api := mockpermit.NewAPI(t)
-		_, errs := collect(t, resourceClient(t, api).Groups.AllUsers(t.Context(), key, nil))
-		if len(errs) != 1 {
-			t.Fatalf("AllUsers with %q yielded %v, want one error", key, errs)
+		c := resourceClient(t, api)
+		for name, seq := range map[string]func() []error{
+			"AllUsers": func() []error {
+				_, errs := collect(t, c.Groups.AllUsers(t.Context(), key, nil))
+				return errs
+			},
+			"AllRoles": func() []error {
+				_, errs := collect(t, c.Groups.AllRoles(t.Context(), key, nil))
+				return errs
+			},
+			"AllChildren": func() []error {
+				_, errs := collect(t, c.Groups.AllChildren(t.Context(), key, nil))
+				return errs
+			},
+			"AllParents": func() []error {
+				_, errs := collect(t, c.Groups.AllParents(t.Context(), key, nil))
+				return errs
+			},
+		} {
+			errs := seq()
+			if len(errs) != 1 {
+				t.Fatalf("%s with %q yielded %v, want one error", name, key, errs)
+			}
+			checkGroupKeyError(t, name, key, "{group_instance_key}", errs[0])
 		}
-		checkGroupKeyError(t, "AllUsers", key, "{group_instance_key}", errs[0])
 		api.AssertUntouched()
 	}
 }
@@ -751,17 +922,19 @@ func TestDeleteGroupThatIsGone(t *testing.T) {
 }
 
 // TestNotFoundOfOtherGroupCalls checks that a 404 to every call but Delete is an *Error that
-// matches ErrNotFound: List, Create, Get, ListUsers and AssignUser delete nothing, and RemoveUser,
-// whose body names the tenant of the membership, may have been sent with a mistyped tenant, so
-// its 404 is an error too, with or without a body.
+// matches ErrNotFound: the lists, Create, Get and the assignments delete nothing, and RemoveUser,
+// RemoveRole and RemoveGroup, whose bodies name what they remove, the tenant of the membership,
+// the role or the group, may have been sent with a mistyped key, so their 404 is an error too,
+// with or without a body.
 func TestNotFoundOfOtherGroupCalls(t *testing.T) {
 	const body = `{"error_code":"NOT_FOUND","title":"Not Found","message":"no group"}`
+	removals := []string{opRemoveUserFromGroup, opRemoveRoleFromGroup, opRemoveGroupFromGroup}
 	for _, m := range groupCalls() {
 		if m.op == opDeleteGroup {
 			continue
 		}
 		bodies := []string{body}
-		if m.op == opRemoveUserFromGroup {
+		if slices.Contains(removals, m.op) {
 			bodies = append(bodies, "")
 		}
 		for _, b := range bodies {
@@ -777,12 +950,32 @@ func TestNotFoundOfOtherGroupCalls(t *testing.T) {
 	}
 }
 
-// TestGroupBodies checks the bodies of Create, AssignUser and RemoveUser byte for byte against
-// the golden files in testdata/golden: a create with the required fields only, the zero create,
-// which still sends the instance key and the tenant, empty, and a create with every field, whose
-// instance key keeps <, > and & as they are; and the membership of an assignment and of a removal
-// of a user, with a tenant and the zero membership, which still sends the tenant, empty.
+// TestGroupBodies checks the bodies of Create, AssignUser, RemoveUser, AssignRole, RemoveRole,
+// AssignGroup and RemoveGroup byte for byte against the golden files in testdata/golden: a create
+// with the required fields only, the zero create, which still sends the instance key and the
+// tenant, empty, and a create with every field, whose instance key keeps <, > and & as they are;
+// the membership of an assignment and of a removal of a user, with a tenant and the zero
+// membership, which still sends the tenant, empty; a role of an assignment and of a removal with
+// every field, whose role keeps <, > and & as they are, and the zero role, which still sends each
+// field, empty; and the group of an assignment and of a removal of a group, and the zero group,
+// which still sends its key, empty.
 func TestGroupBodies(t *testing.T) {
+	assignRole := func(role models.GroupAddRole) func(ctx context.Context, c *Client) error {
+		return func(ctx context.Context, c *Client) error {
+			_, err := c.Groups.AssignRole(ctx, "engineering", role)
+			return err
+		}
+	}
+	assignGroup := func(a models.GroupAssignment) func(ctx context.Context, c *Client) error {
+		return func(ctx context.Context, c *Client) error {
+			_, err := c.Groups.AssignGroup(ctx, "engineering", a)
+			return err
+		}
+	}
+	everyField := models.GroupAddRole{
+		Role: "a" + fixtures.LineSeparator + "b <c> & d", Resource: "document",
+		ResourceInstance: "doc-1", Tenant: fixtures.UUIDKey,
+	}
 	create := func(group models.GroupCreate) func(ctx context.Context, c *Client) error {
 		return func(ctx context.Context, c *Client) error {
 			_, err := c.Groups.Create(ctx, group)
@@ -844,6 +1037,42 @@ func TestGroupBodies(t *testing.T) {
 			mockpermit.Reply{Status: http.StatusNoContent},
 			remove(models.GroupAssignUser{}),
 		},
+		{
+			"assign_role_to_group.every-field.golden", assignGroupRoleRoute,
+			mockpermit.Reply{Body: groupReadBody},
+			assignRole(everyField),
+		},
+		{
+			"assign_role_to_group.zero.golden", assignGroupRoleRoute,
+			mockpermit.Reply{Body: groupReadBody},
+			assignRole(models.GroupAddRole{}),
+		},
+		{
+			"remove_role_from_group.every-field.golden", removeGroupRoleRoute,
+			mockpermit.Reply{Status: http.StatusNoContent},
+			func(ctx context.Context, c *Client) error {
+				return c.Groups.RemoveRole(ctx, "engineering", everyField)
+			},
+		},
+		{
+			"assign_group_to_group.key.golden", assignGroupGroupRoute,
+			mockpermit.Reply{Body: groupReadBody},
+			assignGroup(models.GroupAssignment{
+				GroupInstanceKey: "group:a" + fixtures.LineSeparator + "b <c> & d",
+			}),
+		},
+		{
+			"assign_group_to_group.zero.golden", assignGroupGroupRoute,
+			mockpermit.Reply{Body: groupReadBody},
+			assignGroup(models.GroupAssignment{}),
+		},
+		{
+			"remove_group_from_group.key.golden", removeGroupGroupRoute,
+			mockpermit.Reply{Status: http.StatusNoContent},
+			func(ctx context.Context, c *Client) error {
+				return c.Groups.RemoveGroup(ctx, "engineering", groupChild)
+			},
+		},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
 			api := mockpermit.NewAPI(t)
@@ -860,10 +1089,13 @@ func TestGroupBodies(t *testing.T) {
 	}
 }
 
-// TestGroupRetries checks when a call of the groups sends its request again: Create and
-// AssignUser, which the API may have acted on, after a 429 only, so a 503 ends each after one
-// request; the other calls, which do the same when sent twice, after a 503 too.
+// TestGroupRetries checks when a call of the groups sends its request again: Create, AssignUser,
+// AssignRole and AssignGroup, which the API may have acted on, after a 429 only, so a 503 ends
+// each after one request; the other calls, which do the same when sent twice, after a 503 too.
 func TestGroupRetries(t *testing.T) {
+	onlyAfter429 := []string{
+		opCreateGroup, opAssignUserToGroup, opAssignRoleToGroup, opAssignGroupToGroup,
+	}
 	again := http.Header{"Retry-After": {"0"}}
 	limited := mockpermit.Reply{Status: http.StatusTooManyRequests, Header: again, Body: `{}`}
 	unavailable := mockpermit.Reply{
@@ -879,7 +1111,7 @@ func TestGroupRetries(t *testing.T) {
 	var tests []retryCase
 	for _, m := range groupCalls() {
 		call := func(c *Client) error { return m.call(t.Context(), c, "engineering", "alice") }
-		if m.op == opCreateGroup || m.op == opAssignUserToGroup {
+		if slices.Contains(onlyAfter429, m.op) {
 			tests = append(tests,
 				retryCase{
 					name: m.name + " after a 429", route: m.route,
@@ -943,6 +1175,20 @@ func TestMalformedGroupReplies(t *testing.T) {
 				return c.Groups.AssignUser(t.Context(), "engineering", "alice", groupMembership)
 			},
 		},
+		{
+			assignGroupRoleRoute, "assign_role_to_group: POST " + groupRolesPath +
+				": status 200: the reply is not a valid models.GroupRead",
+			func(c *Client) (any, error) {
+				return c.Groups.AssignRole(t.Context(), "engineering", groupRole)
+			},
+		},
+		{
+			assignGroupGroupRoute, "assign_group_to_group: PUT " + groupAssignPath +
+				": status 200: the reply is not a valid models.GroupRead",
+			func(c *Client) (any, error) {
+				return c.Groups.AssignGroup(t.Context(), "engineering", groupChild)
+			},
+		},
 	}
 	for _, o := range objects {
 		for _, body := range []string{``, `null`, `[]`, `"g"`, `{"group_tenant":1}`, `{} {}`} {
@@ -979,6 +1225,42 @@ func TestMalformedGroupReplies(t *testing.T) {
 			},
 			func(c *Client) (int, []error) {
 				items, errs := collect(t, c.Groups.AllUsers(t.Context(), "engineering", nil))
+				return len(items), errs
+			},
+		},
+		{
+			listGroupRolesRoute, "list_group_roles: GET " + groupRolesPath +
+				": status 200: the reply is not a valid list of models.GroupRoleReadSchema",
+			`{"key":"editor","resource":[]}`,
+			func(c *Client) (any, error) {
+				return c.Groups.ListRoles(t.Context(), "engineering", nil)
+			},
+			func(c *Client) (int, []error) {
+				items, errs := collect(t, c.Groups.AllRoles(t.Context(), "engineering", nil))
+				return len(items), errs
+			},
+		},
+		{
+			listGroupChildrenRoute, "list_group_children: GET " + groupPath + "/children" +
+				": status 200: the reply is not a valid list of models.GroupReadSchema",
+			`{"group_instance_key":1}`,
+			func(c *Client) (any, error) {
+				return c.Groups.ListChildren(t.Context(), "engineering", nil)
+			},
+			func(c *Client) (int, []error) {
+				items, errs := collect(t, c.Groups.AllChildren(t.Context(), "engineering", nil))
+				return len(items), errs
+			},
+		},
+		{
+			listGroupParentsRoute, "list_group_parents: GET " + groupPath + "/parents" +
+				": status 200: the reply is not a valid list of models.GroupReadSchema",
+			`{"id":1}`,
+			func(c *Client) (any, error) {
+				return c.Groups.ListParents(t.Context(), "engineering", nil)
+			},
+			func(c *Client) (int, []error) {
+				items, errs := collect(t, c.Groups.AllParents(t.Context(), "engineering", nil))
 				return len(items), errs
 			},
 		},
@@ -1024,20 +1306,15 @@ func TestGroupsAfterClose(t *testing.T) {
 	if err := c.Close(); err != nil {
 		t.Fatal(err)
 	}
-	var errs []error
 	for _, m := range groupCalls() {
-		errs = append(errs, m.call(t.Context(), c, "engineering", "alice"))
-	}
-	_, allErrs := collect(t, c.Groups.All(t.Context(), nil))
-	_, allUsersErrs := collect(t, c.Groups.AllUsers(t.Context(), "engineering", nil))
-	for i, err := range append(append(errs, allErrs...), allUsersErrs...) {
-		if !errors.Is(err, ErrClosed) {
-			t.Errorf("call %d after Close returned %v, want ErrClosed", i, err)
+		if err := m.call(t.Context(), c, "engineering", "alice"); !errors.Is(err, ErrClosed) {
+			t.Errorf("%s after Close returned %v, want ErrClosed", m.name, err)
 		}
 	}
-	if len(allErrs) != 1 || len(allUsersErrs) != 1 {
-		t.Errorf("All and AllUsers after Close yielded %v and %v, want ErrClosed once each",
-			allErrs, allUsersErrs)
+	for name, errs := range groupIteratorErrors(t, c, nil) {
+		if len(errs) != 1 || !errors.Is(errs[0], ErrClosed) {
+			t.Errorf("%s after Close yielded %v, want ErrClosed once", name, errs)
+		}
 	}
 	api.AssertUntouched()
 }

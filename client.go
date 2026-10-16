@@ -119,7 +119,8 @@ type Client struct {
 	ProxyConfigs *ProxyConfigsService `json:"-"`
 
 	// Groups lists, reads, creates and deletes the groups of the environment of the client's
-	// scope, and assigns, lists and removes the users of a group.
+	// scope, assigns, lists and removes the users, the roles and the child groups of a group, and
+	// lists the parent groups of a group.
 	Groups *GroupsService `json:"-"`
 
 	// PDPs asks the PDPs of the environment of the client's scope to read their data again.

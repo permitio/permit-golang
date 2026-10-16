@@ -961,6 +961,53 @@ var defaultOps = []Op{
 		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "GroupAssignUser",
 	},
 
+	// The roles of a group, and the groups assigned to a group, at the environment level, as the
+	// other routes of the groups are: v1 sent none of them either, and these key levels are not
+	// measured yet either: the phase api.groups of the local harness confirms them. The lists of
+	// the roles, of the children and of the parents of a group are each the paginated object of at
+	// most 100 items. A removal of a role or of a group leaves it removed, so it does the same when
+	// sent twice; its body names what it removes, so it is not DeleteSelf: a 404 can mean a
+	// mistyped key. What the API answers to the assignment of a role or of a group that the group
+	// has already is not confirmed, so neither assignment is Idempotent.
+	{
+		ID: "assign_role_to_group", Method: http.MethodPost,
+		Route:    "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles",
+		KeyLevel: EnvironmentLevel, RequestModel: "GroupAddRole", ResponseModel: "GroupRead",
+	},
+	{
+		ID: "remove_role_from_group", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "GroupAddRole",
+	},
+	{
+		ID: "list_group_roles", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/roles",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "GroupRoleReadSchema",
+	},
+	{
+		ID: "assign_group_to_group", Method: http.MethodPut,
+		Route:    "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group",
+		KeyLevel: EnvironmentLevel, RequestModel: "GroupAssignment", ResponseModel: "GroupRead",
+	},
+	{
+		ID: "remove_group_from_group", Method: http.MethodDelete,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/assign_group",
+		Idempotent: true, KeyLevel: EnvironmentLevel, RequestModel: "GroupAssignment",
+	},
+	{
+		ID: "list_group_children", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/children",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "GroupReadSchema",
+	},
+	{
+		ID: "list_group_parents", Method: http.MethodGet,
+		Route:      "/v2/schema/{proj_id}/{env_id}/groups/{group_instance_key}/parents",
+		Idempotent: true, KeyLevel: EnvironmentLevel, MaxPerPage: 100,
+		ResponseModel: "GroupReadSchema",
+	},
+
 	// The refreshes of the data of the PDPs of an environment: of every PDP of the environment,
 	// or of one by its ID. Each is sent with an environment-level key, as the routes act on the
 	// PDPs of one environment. These key levels are not measured yet: the phase api.pdps of the

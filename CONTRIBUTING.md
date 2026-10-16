@@ -221,7 +221,22 @@ main package of a temporary module that requires the SDK and replaces it with th
 root, offline. A marked block is a complete program, `package main` with its imports, and a
 compile error names its line in the Markdown file. A marker that no go block follows fails, and
 so does a run that built fewer or more blocks than there are markers; a built block is one that
-go build ran on, whether it compiles or not. Mark every block that shows a whole program:
+go build ran on, whether it compiles or not. A block that compiles fails when it drops a value of
+type `error` in one of these forms:
+
+- a blank identifier that an assignment or a `var` declaration gives it to, as in
+  `user, _ := client.Users.Get(ctx, "alice")`;
+- a call statement whose call returns it, alone or with other results, as in
+  `client.Users.Delete(ctx, "bob")` on a line of its own. A `defer` or `go` statement, such as
+  `defer client.Close()`, is not a call statement, and a call of `fmt.Print`, `fmt.Printf` or
+  `fmt.Println`, which print to standard output, passes, as errcheck lets it pass;
+- a range over a function iterator that gives it to the blank identifier or leaves out the
+  variable that would hold it, as in `for user := range client.Users.All(ctx, nil)`.
+
+A value of another type is not checked, such as the `*permit.Error` that
+`if _, ok := errors.AsType[*permit.Error](err); ok` drops. The test type-checks the block with
+the export data that `go list -export` gives for its imports, and names the line and column of
+each dropped error. Mark every block that shows a whole program:
 
 ````markdown
 <!-- compile -->
@@ -242,6 +257,44 @@ func main() {
 
 `compileFiles` lists the Markdown files that the test reads; the fixtures in `testdata/readme`
 prove its rules.
+
+Three tables of `README.md` are generated from the wire cases and the
+[operation registry](#operation-registry): `servers`, the URL that each call uses, by the modes
+of its wire cases; `container-only`, the calls of an operation that is `ContainerOnly`; and
+`waits-for-sync`, the calls of an operation that is `WaitsForSync`, with its route as `Op.ViaPDP`
+gives it. Each table is the lines between `<!-- table <name> -->` and the next
+`<!-- end table -->`. `TestReadmeTables` fails when a table lacks a row, has a row that the wire
+cases and the registry do not give, has a stale row, or differs in any other way from what the
+generator writes, such as in the order of its rows; when `README.md` has no table of a name, or
+a table that no test writes; and when a table has no rows. After you change an operation or a
+wire case, rewrite the tables and review their diff:
+
+```sh
+go test -run TestReadmeTables -update .
+```
+
+Two more tests tie what `README.md` quotes to its source. `TestReadmeQuotesTheScopeError` fails
+unless a line of it is the error that `client.Users.List` returns with a project-level key and no
+`WithScope`. `TestReadmeGoVersions` fails unless the Go versions that it names are the `go`
+line of `go.mod` and its release, and `GO_FLOOR` and the releases of the `GO_1NN` pins in the
+`env` of `.github/workflows/ci.yml`, in the sentences of the quick start and the support policy
+that name them. Change those sentences together with the `go` line or the pins.
+
+`llms.txt` is the index of the SDK's documents for language models, as
+[llmstxt.org](https://llmstxt.org) describes it. It links the documents and the API reference on
+pkg.go.dev rather than holding them, so that the module zip stays small. `TestDocLLMsTxt`, in
+`doc_test.go`, fails when:
+
+- `llms.txt` does not start with its title;
+- a link names neither a file of the module zip, by its path from the root, nor the API reference
+  of a package of the SDK on pkg.go.dev. A file under `tools/`, `consumer/`, `skills/` or another
+  directory with a `go.mod` of its own is not in the zip, so a reader of the module's copy of
+  `llms.txt` cannot open it;
+- it holds a link that the test cannot read. The test reads inline links, `[text](target)`, with
+  an optional title after the target, whose text may span lines; a reference definition,
+  `[label]: target`, and a `](` outside an inline link fail;
+- it does not link `README.md`, `MIGRATION.md`, `CHANGELOG.md`, `SECURITY.md` and the API
+  reference of each package of the SDK. Add a package's link when you add a package.
 
 The `docs` job in [CI](#ci) runs these tests, `go vet` on each package outside `internal/`,
 whose `tests` analyzer reports an Example whose name names no identifier, and `go doc -all` on
@@ -587,7 +640,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `test` | Runs the tests of both modules, the [end-to-end dry run](#end-to-end-tests) and the dry run of the [upgrade test](#the-upgrade-test) with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. Then the benchmarks of the root package run 100 times each, so that each compiles and runs. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
-| `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, whose output checkgotest checks; see [API reference](#api-reference). Then builds and runs the zapslog example of `WithLogger`, which needs the module proxy; see [Logging](#logging). |
+| `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, which compile the programs of `README.md`, check its tables and the error and the Go versions that it quotes, and check the links of `llms.txt`, and whose output checkgotest checks; see [API reference](#api-reference). Then builds and runs the zapslog example of `WithLogger`, which needs the module proxy; see [Logging](#logging). |
 | `zipcheck` | Builds the module zip of the commit and checks what it holds with zipcheck, offline; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `api-coverage` | Runs the root package's tests offline with the request record on, and checks the record and `tools/specs/coverage.yaml` with apicoverage, which writes its report to the job summary; see [API coverage](#api-coverage). |
 | `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
@@ -947,7 +1000,10 @@ scan](#vulnerability-scan) checks the dependencies of both modules.
 
 ## Scheduled scans and alerts
 
-These jobs of `ci.yml` post to Slack:
+These jobs of `ci.yml` post to Slack. `@permitio/r-d`, the owner of every file in
+`.github/CODEOWNERS`, owns them and acts on what they post. When `spec-drift` finds drift, its
+post names the owner and the day, 7 days on, by which a pull request must fix it, as
+[Spec snapshots](#spec-snapshots) says.
 
 | Job | When | Channel |
 | --- | --- | --- |
@@ -2096,9 +2152,10 @@ on the environment of the client's scope, and a list whose options filter it: `r
    files in `testdata/golden`, with each state of an `Optional` field; the retries of each kind of
    operation; replies in 200-299 that are not the model; and `ErrClosed` after `Close`. Add each
    new test to `.github/required-tests.txt`.
-6. Rewrite `testdata/operation-map.json`, mark the operation's row of
+6. Rewrite `testdata/operation-map.json` and the tables of `README.md`, with
+   `go test -run '^Test(OperationMap|ReadmeTables)$' -update .`, mark the operation's row of
    `tools/specs/coverage.yaml` covered, and run the API coverage report; see
-   [API coverage](#api-coverage).
+   [API coverage](#api-coverage) and [API reference](#api-reference).
 7. Cover the method in a cloud scenario, or list it in `tools/e2e/pending.txt`, or in
    `tools/e2e/local-only.txt` with a reason and the phase of the local harness that proves it,
    such as `ProjectsService.List org-key api.projects` for a method that needs an
@@ -2119,6 +2176,44 @@ and the waits between them, call it in a `testing/synctest` bubble with an in-me
 `http.RoundTripper` that `WithHTTPClient` passes, as `retry_test.go` does: the bubble's clock
 moves only while every goroutine in it waits, which a request over a network connection never
 lets it do, so a wait of seconds takes no real time and is exact.
+
+## Releases
+
+v2 is not released yet. A release of v2 is a version `v2.<minor>.<patch>` that follows the
+support policy of [README.md](README.md#support-policy). Before a release:
+
+- `Version`, in `version.go`, is the version without its `v`, such as `2.1.0`. `TestVersion`
+  checks that it is a semantic version, and `TestVersionMatchesModulePath` that its major version
+  is that of the module path.
+- The version's heading in `CHANGELOG.md` no longer says `(unreleased)`. A release that raises
+  the `go` line of `go.mod` is a minor release, and its entry says so in a compatibility note.
+- `tools/migration/pending.txt` has no line other than blank lines and comments, and
+  `apisurface -mode release` passes: gorelease checks that the version follows from the changes
+  since the newest earlier tag of v2; see [Breaking changes](#breaking-changes).
+- The local full-stack suite passed, as [Test tiers](#test-tiers) says.
+
+The release workflow *(added in a later commit on this branch)* runs `apisurface -mode release`
+and calls CI with the mode `release`, which runs the pull request checks and the end-to-end jobs,
+the [upgrade test](#the-upgrade-test) of the `e2e` job included, and scans the commits since the
+last release for secrets; see [CI](#ci). How a release is published, and how to verify one, are
+added with the workflow.
+
+A version, once published, stays as it is: the Go module proxy and the checksum database keep
+the first content they saw for it, so a tag is never moved or deleted. To withdraw a version that
+must not be used, such as one with a defect that loses data, add a `retract` directive with the
+version and the reason to `go.mod`, and publish it in a new patch version, which must be the
+newest version of v2:
+
+```text
+retract v2.1.0 // A defect that loses data; use v2.1.1.
+```
+
+The go command reads the retractions from the `go.mod` of the newest version: `go get` and
+`go mod tidy` no longer pick a retracted version. For an application that requires one,
+`go list -m -u` marks the version `(retracted)`, and `go list -m -u -json` (or
+`go list -m -retracted -json`) and `go get` give the reason, from the comment on the `retract`
+directive. A build that requires a retracted version keeps working. Say in `CHANGELOG.md` which
+version the release retracts, and why.
 
 ## Commits and pull requests
 

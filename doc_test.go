@@ -12,6 +12,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -27,8 +28,9 @@ import (
 // testableexamples cover part of it: the doc comments of packages and top-level declarations,
 // and Examples without an output comment. The tests add doc links that resolve, the doc comments
 // of struct fields and of interface and promoted methods, Examples for the service types and the
-// decision methods, docRules, and a count sentinel. Of the repository, they read only files of
-// the module zip: the sources of the packages in surfaceDirs, their tests, and testdata; a doc
+// decision methods, docRules, and a count sentinel; and TestDocLLMsTxt checks the links of
+// llms.txt. Of the repository, they read only files of the module zip: the sources of the
+// packages in surfaceDirs, their tests, testdata, llms.txt and the files that it links; a doc
 // link to the standard library makes them read its package in GOROOT. CONTRIBUTING.md ("API
 // reference") says how to run them.
 
@@ -1414,5 +1416,320 @@ func TestDocReadPackageFailsWithoutAPackage(t *testing.T) {
 		!strings.Contains(err.Error(), "reading the package in "+dir) {
 		t.Errorf("readDocPackage of an empty directory returned %v, want an error that names "+
 			"the directory", err)
+	}
+}
+
+// llmsFile is the index of the SDK's documents for language models at the root of the module, as
+// https://llmstxt.org describes it: a title, a summary and lists of links. It links the documents
+// and the API reference on pkg.go.dev rather than holding them, so that the module zip stays
+// small.
+const llmsFile = "llms.txt"
+
+// llmsDocs are the files of the repository that llms.txt links, besides the API reference of each
+// package of the SDK.
+var llmsDocs = []string{"README.md", "MIGRATION.md", "CHANGELOG.md", "SECURITY.md"}
+
+// pkgSite starts the URL of the API reference of a package on pkg.go.dev.
+const pkgSite = "https://pkg.go.dev/"
+
+// markdownLink matches an inline Markdown link, [text](target) or [text](target "title"), whose
+// text may span lines, and captures its target: what follows the opening parenthesis up to the
+// first space or the closing parenthesis.
+var markdownLink = regexp.MustCompile(`\[[^\]]*\]\(([^)\s]*)(?:\s[^)]*)?\)`)
+
+// referenceDefinition matches a reference definition, [label]: target, at the start of a line,
+// and captures its label. A reference link, [text][label], takes its target from one.
+var referenceDefinition = regexp.MustCompile(`(?m)^\s*(\[[^\]]+\]):`)
+
+// zipExcludedDirs are the directories at the root of the repository that the module zip leaves
+// out besides those with a go.mod of their own, as zipcheck lists them.
+var zipExcludedDirs = []string{"tools", "consumer", "skills"}
+
+// llmsProblems returns a problem for each link of text, the content of llms.txt, that is stale or
+// that the check cannot follow, and for each document that text does not link; and the number of
+// links that it checked. A link is an inline link, [text](target), with an optional title after
+// the target, whose text may span lines. Its target is the API reference of a package of m on
+// pkg.go.dev, or a file of the module zip by its path from the root of m, with or without a
+// fragment, for which exists reports true. Anything else is a problem too, as the check cannot
+// tell whether it is stale: a target that is neither, such as a URL of another site or a path
+// out of the repository; a file under a directory that the module zip leaves out, which a reader
+// of the module's copy of llms.txt cannot open; a reference definition; and a ]( that no inline
+// link holds. text links each of llmsDocs and the API reference of each package of m, and starts
+// with its title, a line that starts with "# ".
+func llmsProblems(text string, m docModule, exists func(file string) bool,
+) (problems []string, checked int) {
+	if !strings.HasPrefix(text, "# ") {
+		problems = append(problems, llmsFile+": the first line is not the title, a line that "+
+			`starts with "# "`)
+	}
+	references := map[string]bool{}
+	for _, dir := range m.dirs {
+		references[pkgSite+m.importPath(dir)] = true
+	}
+	lineAt := func(offset int) int { return 1 + strings.Count(text[:offset], "\n") }
+	// unread is text with the links that the check reads blanked out, but for their newlines.
+	unread := []byte(text)
+	linked := map[string]bool{}
+	for _, loc := range markdownLink.FindAllStringSubmatchIndex(text, -1) {
+		checked++
+		for i := loc[0]; i < loc[1]; i++ {
+			if unread[i] != '\n' {
+				unread[i] = ' '
+			}
+		}
+		target, line := text[loc[2]:loc[3]], lineAt(loc[2])
+		file, _, _ := strings.Cut(target, "#")
+		if strings.HasPrefix(file, pkgSite) {
+			if !references[file] {
+				problems = append(problems, fmt.Sprintf("%s:%d: %s is not the API reference "+
+					"of a package of %s", llmsFile, line, file, m.path))
+			}
+			linked[file] = true
+			continue
+		}
+		clean := filepath.ToSlash(filepath.Clean(filepath.FromSlash(file)))
+		if file == "" || strings.Contains(file, ":") || strings.HasPrefix(file, "/") ||
+			clean == ".." || strings.HasPrefix(clean, "../") {
+			problems = append(problems, fmt.Sprintf("%s:%d: the link %q is neither the API "+
+				"reference of a package on pkg.go.dev nor a file of the repository by its "+
+				"path from the root, so the check cannot tell whether it is stale", llmsFile,
+				line, target))
+			continue
+		}
+		if dir, ok := zipExcludedDir(clean, exists); ok {
+			problems = append(problems, fmt.Sprintf("%s:%d: the link %q names %s, under %s/, "+
+				"which the module zip leaves out, so a reader of the module's copy of %s "+
+				"cannot open it", llmsFile, line, target, clean, dir, llmsFile))
+		} else if !exists(clean) {
+			problems = append(problems, fmt.Sprintf("%s:%d: the link %q names %s, which the "+
+				"repository does not have", llmsFile, line, target, clean))
+		}
+		linked[clean] = true
+	}
+	for _, loc := range referenceDefinition.FindAllStringSubmatchIndex(text, -1) {
+		problems = append(problems, fmt.Sprintf("%s:%d: the reference definition %s is not an "+
+			"inline link, [text](target), so the check cannot tell whether its link is stale",
+			llmsFile, lineAt(loc[2]), text[loc[2]:loc[3]]))
+	}
+	rest := string(unread)
+	for offset := 0; ; offset += len("](") {
+		i := strings.Index(rest[offset:], "](")
+		if i < 0 {
+			break
+		}
+		offset += i
+		problems = append(problems, fmt.Sprintf("%s:%d: a ]( that is not part of an inline "+
+			"link, [text](target) with an optional title after the target, so the check cannot "+
+			"tell whether its link is stale", llmsFile, lineAt(offset)))
+	}
+	for _, want := range slices.Concat(llmsDocs, slices.Sorted(maps.Keys(references))) {
+		if !linked[want] {
+			problems = append(problems, fmt.Sprintf("%s does not link %s", llmsFile, want))
+		}
+	}
+	return problems, checked
+}
+
+// zipExcludedDir returns the directory that keeps file, a file of the repository by its clean
+// path from the root, out of the module zip: its first directory, when that is one of
+// zipExcludedDirs, or else the first of its directories that has a go.mod of its own, for which
+// exists reports true. It returns false when the module zip holds file.
+func zipExcludedDir(file string, exists func(file string) bool) (string, bool) {
+	dirs := strings.Split(file, "/")
+	dirs = dirs[:len(dirs)-1]
+	if len(dirs) > 0 && slices.Contains(zipExcludedDirs, dirs[0]) {
+		return dirs[0], true
+	}
+	for i := range dirs {
+		if dir := strings.Join(dirs[:i+1], "/"); exists(dir + "/go.mod") {
+			return dir, true
+		}
+	}
+	return "", false
+}
+
+// isFile reports whether path, relative to the module root, names a regular file.
+func isFile(path string) bool {
+	info, err := os.Stat(filepath.FromSlash(path))
+	return err == nil && info.Mode().IsRegular()
+}
+
+// TestDocLLMsTxt checks llms.txt, as llmsProblems describes: every link names a file of the
+// module zip or the API reference of a package of the SDK, and it links every document of
+// llmsDocs and the API reference of every package of the SDK.
+func TestDocLLMsTxt(t *testing.T) {
+	text, err := os.ReadFile(llmsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	problems, checked := llmsProblems(string(text), sdkModule, isFile)
+	for _, problem := range problems {
+		t.Error(problem)
+	}
+	if want := len(llmsDocs) + len(sdkModule.dirs); checked < want {
+		t.Errorf("count sentinel: the check checked %d links of %s, want at least %d", checked,
+			llmsFile, want)
+	}
+	t.Logf("checked %d links of %s", checked, llmsFile)
+}
+
+func TestDocIsFile(t *testing.T) {
+	for name, want := range map[string]bool{
+		"README.md":    true,
+		"testdata":     false,
+		"no-such-file": false,
+	} {
+		if got := isFile(name); got != want {
+			t.Errorf("isFile(%q) = %v, want %v", name, got, want)
+		}
+	}
+}
+
+func TestDocLLMsTxtThatIsStale(t *testing.T) {
+	m := docModule{path: "example.com/sdk", dirs: []string{".", "models"}}
+	files := map[string]bool{
+		"README.md": true, "MIGRATION.md": true, "CHANGELOG.md": true, "SECURITY.md": true,
+		"tools/README.md": true, "nested/go.mod": true, "nested/doc/a.md": true,
+		"docs/nested/go.mod": true, "docs/nested/b.md": true,
+	}
+	exists := func(file string) bool { return files[file] }
+	const fresh = "# SDK\n\n- [README](README.md): start here\n" +
+		"- [permit](https://pkg.go.dev/example.com/sdk) and " +
+		"[models](https://pkg.go.dev/example.com/sdk/models)\n" +
+		"- [Migration](MIGRATION.md#M-module-1), [Changelog](CHANGELOG.md) and " +
+		`[Security](SECURITY.md "Security policy")` + "\n"
+	if problems, checked := llmsProblems(fresh, m, exists); problems != nil || checked != 6 {
+		t.Errorf("llmsProblems of a fresh llms.txt = %q, %d; want none and 6 links", problems,
+			checked)
+	}
+	// cannotFollow and outOfZip are the problems of a link to a target that the check cannot
+	// follow, and to a file under dir, which the module zip leaves out, on line 6.
+	cannotFollow := func(target string) string {
+		return fmt.Sprintf("llms.txt:6: the link %q is neither the API reference of a package "+
+			"on pkg.go.dev nor a file of the repository by its path from the root, so the check "+
+			"cannot tell whether it is stale", target)
+	}
+	outOfZip := func(target, file, dir string) string {
+		return fmt.Sprintf("llms.txt:6: the link %q names %s, under %s/, which the module zip "+
+			"leaves out, so a reader of the module's copy of llms.txt cannot open it", target,
+			file, dir)
+	}
+	for _, tc := range []struct {
+		name, text string
+		want       []string
+		checked    int
+	}{
+		{
+			name: "a link to a file that does not exist",
+			text: strings.Replace(fresh, "(CHANGELOG.md)", "(CHANGES.md)", 1),
+			want: []string{
+				`llms.txt:5: the link "CHANGES.md" names CHANGES.md, which the repository does ` +
+					"not have",
+				"llms.txt does not link CHANGELOG.md",
+			},
+			checked: 6,
+		},
+		{
+			name: "a fragment of a file that does not exist",
+			text: strings.Replace(fresh, "MIGRATION.md#", "MIGRATING.md#", 1),
+			want: []string{
+				`llms.txt:5: the link "MIGRATING.md#M-module-1" names MIGRATING.md, which the ` +
+					"repository does not have",
+				"llms.txt does not link MIGRATION.md",
+			},
+			checked: 6,
+		},
+		{
+			name: "a stale link with a title",
+			text: strings.Replace(fresh, "(SECURITY.md ", "(SECURE.md ", 1),
+			want: []string{
+				`llms.txt:5: the link "SECURE.md" names SECURE.md, which the repository does ` +
+					"not have",
+				"llms.txt does not link SECURITY.md",
+			},
+			checked: 6,
+		},
+		{
+			name: "a stale link whose text wraps",
+			text: fresh + "- [Old\n  notes](NOTES.md): gone\n",
+			want: []string{
+				`llms.txt:7: the link "NOTES.md" names NOTES.md, which the repository does ` +
+					"not have",
+			},
+			checked: 7,
+		},
+		{
+			name: "a reference link",
+			text: fresh + "- [Notes][notes]\n\n  [notes]: NOTES.md\n",
+			want: []string{
+				"llms.txt:8: the reference definition [notes] is not an inline link, " +
+					"[text](target), so the check cannot tell whether its link is stale",
+			},
+			checked: 6,
+		},
+		{
+			name: "a link that the check cannot read",
+			text: fresh + "- [Old [notes]](NOTES.md)\n",
+			want: []string{
+				"llms.txt:6: a ]( that is not part of an inline link, [text](target) with an " +
+					"optional title after the target, so the check cannot tell whether its link " +
+					"is stale",
+			},
+			checked: 6,
+		},
+		{
+			name: "a package that the module does not have",
+			text: strings.Replace(fresh, "sdk/models)", "sdk/model)", 1),
+			want: []string{
+				"llms.txt:4: https://pkg.go.dev/example.com/sdk/model is not the API reference " +
+					"of a package of example.com/sdk",
+				"llms.txt does not link https://pkg.go.dev/example.com/sdk/models",
+			},
+			checked: 6,
+		},
+		{
+			name: "a link the check cannot follow",
+			text: fresh + "- [Permit](https://www.permit.io), [root](/README.md), " +
+				"[up](../README.md), [dot](./../x) and [none]()\n",
+			want: []string{
+				cannotFollow("https://www.permit.io"), cannotFollow("/README.md"),
+				cannotFollow("../README.md"), cannotFollow("./../x"), cannotFollow(""),
+			},
+			checked: 11,
+		},
+		{
+			name: "a link to a file that the module zip leaves out",
+			text: fresh + "- [Tools](tools/README.md), [Nested](./nested/doc/a.md) and " +
+				"[Deep](docs/nested/b.md)\n",
+			want: []string{
+				outOfZip("tools/README.md", "tools/README.md", "tools"),
+				outOfZip("./nested/doc/a.md", "nested/doc/a.md", "nested"),
+				outOfZip("docs/nested/b.md", "docs/nested/b.md", "docs/nested"),
+			},
+			checked: 9,
+		},
+		{
+			name: "no links and no title",
+			text: "SDK\n\nRead the README.\n",
+			want: []string{
+				`llms.txt: the first line is not the title, a line that starts with "# "`,
+				"llms.txt does not link README.md",
+				"llms.txt does not link MIGRATION.md",
+				"llms.txt does not link CHANGELOG.md",
+				"llms.txt does not link SECURITY.md",
+				"llms.txt does not link https://pkg.go.dev/example.com/sdk",
+				"llms.txt does not link https://pkg.go.dev/example.com/sdk/models",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			problems, checked := llmsProblems(tc.text, m, exists)
+			if diff := cmp.Diff(tc.want, problems); diff != "" {
+				t.Errorf("llmsProblems differs (-want +got):\n%s", diff)
+			}
+			if checked != tc.checked {
+				t.Errorf("llmsProblems checked %d links, want %d", checked, tc.checked)
+			}
+		})
 	}
 }

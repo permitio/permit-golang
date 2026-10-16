@@ -350,7 +350,11 @@ jobs:
             -require 'github.com/permitio/permit-golang/v2 TestDocComments' \
             -require 'github.com/permitio/permit-golang/v2 TestDocExamples' \
             -require 'github.com/permitio/permit-golang/v2 TestDocRules' \
+            -require 'github.com/permitio/permit-golang/v2 TestDocLLMsTxt' \
             -require 'github.com/permitio/permit-golang/v2 TestReadmeBlocksCompile' \
+            -require 'github.com/permitio/permit-golang/v2 TestReadmeTables' \
+            -require 'github.com/permitio/permit-golang/v2 TestReadmeQuotesTheScopeError' \
+            -require 'github.com/permitio/permit-golang/v2 TestReadmeGoVersions' \
             "$RUNNER_TEMP/docs.json"
           if [[ $code -ne 0 ]]; then
             echo "go test exited $code."

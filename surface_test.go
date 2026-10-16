@@ -14,8 +14,10 @@ import (
 	"github.com/permitio/permit-golang/v2/internal/surface"
 )
 
-// update makes the tests that compare with a file in testdata rewrite the file instead.
-var update = flag.Bool("update", false, "rewrite the testdata files that the tests compare with")
+// update makes the tests that compare with a file in testdata, or with the tables of README.md,
+// rewrite them instead.
+var update = flag.Bool("update", false,
+	"rewrite the testdata files and README tables that the tests compare with")
 
 // surfaceDirs are the directories of the packages whose exported API is the SDK's public surface,
 // the root package first.

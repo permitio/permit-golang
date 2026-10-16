@@ -61,7 +61,8 @@ The prek job in [CI](#ci) runs the same hooks. The first run downloads the hooks
 ones written in Go, so it needs the network; later runs work offline. The hooks check:
 
 - formatting and lint with golangci-lint, through `.github/scripts/golangci-all.sh` (below);
-- that `go mod tidy -diff` prints nothing, in the root, in `tools/` and in `consumer/`;
+- that `go mod tidy -diff` prints nothing, in the root, in `tools/`, in `consumer/` and in
+  `tools/upgrade/`;
 - `.editorconfig`, with editorconfig-checker;
 - spelling with typos (`_typos.toml`), shell scripts with shellcheck and shfmt, GitHub Actions
   workflows with actionlint and zizmor (`.github/zizmor.yml`);
@@ -583,7 +584,7 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | Job | What it does |
 | --- | --- |
 | `prek` | Checks the workflows with cicheck, runs every git hook on every file through `.github/scripts/prek-count.sh`, and on a pull request checks the message of each of its commits through `.github/scripts/commits-check.sh`. |
-| `test` | Runs the tests of both modules and the [end-to-end dry run](#end-to-end-tests) with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. Then the benchmarks of the root package run 100 times each, so that each compiles and runs. |
+| `test` | Runs the tests of both modules, the [end-to-end dry run](#end-to-end-tests) and the dry run of the [upgrade test](#the-upgrade-test) with the race detector, offline, and checks their output with checkgotest. Five legs: Go 1.26.0, the minimum, on the dependency versions that `go.mod` and `go.sum` pin; and the newest patch of Go 1.26 and of Go 1.27 that is at least 7 days old, on those versions and on the newest version of every dependency. Each leg checks that it runs the Go version it names. Then the benchmarks of the root package run 100 times each, so that each compiles and runs. |
 | `crossbuild` | Builds the SDK for linux, darwin and windows on amd64 and arm64. |
 | `consumer` | Vets and tests `consumer/`, offline, and checks the test output with checkgotest; see [Consumer checks and the module zip](#consumer-checks-and-the-module-zip). |
 | `docs` | Checks the API reference, offline: `go vet` and `go doc -all` on each package outside `internal/`, and the tests of `doc_test.go` and `readme_test.go`, whose output checkgotest checks; see [API reference](#api-reference). Then builds and runs the zapslog example of `WithLogger`, which needs the module proxy; see [Logging](#logging). |
@@ -591,16 +592,16 @@ requires: it fails unless every job it needs succeeded, or was not selected for 
 | `api-coverage` | Runs the root package's tests offline with the request record on, and checks the record and `tools/specs/coverage.yaml` with apicoverage, which writes its report to the job summary; see [API coverage](#api-coverage). |
 | `vuln` | Scans the SDK and `tools/` for known vulnerabilities through `.github/scripts/vuln.sh`; see [Vulnerability scan](#vulnerability-scan). |
 | `secrets` | Scans the commits that are new in the run for secrets with gitleaks, through `.github/scripts/gitleaks-range.sh`; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
-| `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
+| `mutation` | Pull requests only: mutation tests of the Go lines the pull request changed, in both modules and in `tools/upgrade`, as [Mutation tests](#mutation-tests) describes. Fails when the tests detect fewer than 90% of the mutants that ran. |
 | `dependency-review` | Pull requests only: fails when the pull request adds a dependency with a known vulnerability of high or critical severity; see [Secret scan and dependency review](#secret-scan-and-dependency-review). |
 | `api-surface` | Pull requests only: checks that `MIGRATION.md` covers the v1 API while the base is v1, and otherwise fails on a breaking change to the API without the `breaking` label; see [Public surface and migration](#public-surface-and-migration). |
 | `prek-upstream` | Weekly: runs every hook with prek's built-in versions of the pre-commit-hooks hooks and with the upstream hooks (`PREK_NO_FAST_PATH=1`), and fails when they report a hook differently. |
-| `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
+| `mutation (weekly)` | Weekly: mutation tests of every Go file of both modules and of `tools/upgrade`, with no threshold; it reports the efficacy in the job summary, posts each module's efficacy and count of mutants that lived to Slack, and fails only when the run does not complete or its result cannot be posted. |
 | `security-scan` | Twice a week: the scheduled security scan, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `digest` | Weekly: the security digest, posted to Slack; see [Scheduled scans and alerts](#scheduled-scans-and-alerts). |
 | `spec-drift` | Weekly: compares the published specs and the container PDP's latest image with the snapshots in `tools/specs`, checks the models against the published specs, and posts the result to Slack; it also reports the API coverage against the published specs. See [Spec snapshots](#spec-snapshots) and [Model drift](#model-drift). |
 | `bench` | On a push to `master` and weekly: runs the benchmarks of the decision calls, compares them with the previous result on `master`, writes the report to the job summary and posts a regression, or a run that did not complete, to Slack. Advisory: it never fails CI. See [Benchmarks](#benchmarks). |
-| `e2e` | On a push to `master`, in the mode `e2e` and in a release: the end-to-end scenarios against Permit in a scratch environment, with the container PDP pinned by digest. See [Against Permit](#against-permit). |
+| `e2e` | On a push to `master`, in the mode `e2e` and in a release: the end-to-end scenarios against Permit in a scratch environment, with the container PDP pinned by digest, then the [upgrade test](#the-upgrade-test) in the same environment. See [Against Permit](#against-permit). |
 | `e2e-latest` | When `e2e` runs: the same scenarios with the newest release of the container PDP, by tag, and its spec compared with the snapshot of the pinned image. Advisory: it never fails CI. See [Against Permit](#against-permit). |
 | `e2e-cloudpdp` | When `e2e` runs: the scenarios of the cloud PDP's leg, against the cloud PDP. Advisory: it never fails CI. See [Against Permit](#against-permit). |
 | `CI` | Decides the result with `.github/scripts/ci-aggregate.sh`. |
@@ -700,7 +701,7 @@ mean, and the tests in `tools/scripts` run them; those tests need bash, git, jq,
 the gitleaks that `.github/scripts/fetch-tool.sh gitleaks` installs as `bin/gitleaks`.
 
 ```sh
-EXPECTED_HOOKS=26 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
+EXPECTED_HOOKS=27 .github/scripts/prek-count.sh  # the EXPECTED_HOOKS of ci.yml's env
 .github/scripts/commits-check.sh "$(git merge-base origin/master HEAD)" "$(git rev-parse HEAD)"
 ```
 
@@ -763,7 +764,8 @@ its tests:
 ```sh
 export HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9
 bin/mutationgate -gremlins bin/gremlins -workers 2 -memory-mib 4096 -cap 3m \
-  -timeout-coefficient 5 -skip '^(TestLive|TestRepository)' -base origin/master . tools
+  -timeout-coefficient 5 -skip '^(TestLive|TestRepository)' -base origin/master \
+  . tools tools/upgrade
 bin/mutationgate -gremlins bin/gremlins -workers 2 -memory-mib 4096 -cap 3m \
   -timeout-coefficient 5 -skip '^(TestLive|TestRepository)' -all tools/cmd/cicheck  # a package
 ```
@@ -777,11 +779,13 @@ range starts at the newest commit of the pull request whose `mutation` check suc
 the head still contains, or at the merge base when there is none, as
 `.github/scripts/mutation-range.sh` works it out; so the lines of a run that a newer push
 cancelled are tested in the next one. Changed lines in `tools/`, the programs that check the
-SDK, are tested like SDK code. The gate builds without the tag `e2e`, so it mutates the
+SDK, are tested like SDK code, and so are those of `tools/upgrade`, a module of its own that the
+gate reaches only when it is named. The gate builds without the tag `e2e`, so it mutates the
 packages under `tools/e2e/framework` and `tools/e2e/fake` but not the scenarios of `tools/e2e`,
 which the end-to-end dry run and the `e2e` job exercise instead. Maintainers push a pull
 request's next commit only after CI passed on the previous one, so that each commit's lines get
-a run. The weekly job tests every Go file of both modules and only reports.
+a run. The weekly job tests every Go file of both modules and of `tools/upgrade`, and only
+reports.
 
 ## Benchmarks
 
@@ -880,10 +884,10 @@ after its last day, and an entry whose vulnerability is gone fails until you rem
 no accept list: fix a HIGH or CRITICAL finding by raising the version `go.mod` requires.
 
 Every Go module in the repository outside testdata directories is scanned unless
-`.github/vulnscan-trees.txt` lists it with the reason it never ships, as it lists `consumer/`; a
-module that is neither makes the scan exit 2. Trivy gets every setting on its command line, and
-cicheck fails on a committed `trivy.yaml`, `.trivyignore` or `.trivyignore.yaml` anywhere in the
-repository.
+`.github/vulnscan-trees.txt` lists it with the reason it never ships, as it lists `consumer/` and
+`tools/upgrade/`; a module that is neither makes the scan exit 2. Trivy gets every setting on its
+command line, and cicheck fails on a committed `trivy.yaml`, `.trivyignore` or
+`.trivyignore.yaml` anywhere in the repository.
 
 ## Secret scan and dependency review
 
@@ -1615,6 +1619,8 @@ API and a stub `docker`, for its leg, `pinned`:
 - The tests run in the environment, and checkgotest checks their output with
   `-require-file tools/e2e/required.txt -allow-skips tools/e2e/allowed-skips.txt`. Their request
   record is uploaded as the artifact `e2e-record-pinned`.
+- The [upgrade test](#the-upgrade-test), after the tests, in the same environment, and checkgotest
+  checks its output with `-require-file tools/upgrade/required.txt`.
 - `specsnap -check-pdp http://127.0.0.1:7766 -image <image>`, whatever the tests did: fetches the
   PDP's `/openapi.json`, makes its snapshot as `-refresh` does, and fails on any difference from
   `tools/specs/pdp-container.json`, which the models and the fake PDP are checked against, and on
@@ -1698,11 +1704,59 @@ container that it starts. The legs `latest` and `cloudpdp` are in `ADVISORY_JOBS
 leg sets `deployment: false`; the leg `latest` starts an image with a tag and no digest; and the
 leg `cloudpdp` starts no container and uploads no artifact.
 
+### The upgrade test
+
+[tools/upgrade](tools/upgrade) is a Go module of its own that requires
+`github.com/permitio/permit-golang` v1.3.0, the v1 release that this test pins, and v2 and the
+tools module through `replace` directives. Its test, `TestUpgrade`, checks that v2 reads what v1
+wrote. In a scratch environment, v1 writes 31 objects, of every kind that it writes in an
+environment: resources with their actions, action groups, attributes, relations and roles, an
+implicit grant of a resource's role, roles, tenants, users, resource instances, relationship
+tuples, role assignments, condition sets and their rules, and proxy configs. v1 also writes
+projects and environments, which take an organization's API key; the test runs with the
+environment's. The values are hostile but legal: unicode, quotes and control characters, `:` and
+`/` where the API takes them, empty and nested attributes, an integer beyond 2^53, and the
+values of the open enums that v1 can send. v2 then reads each object, and `upgrade.Diff`
+compares what v1 sent, the body of its request, with what v2 read, as its model encodes to
+JSON: each field that v1 wrote must be there, with an equal value. Both are decoded with each
+number as a `json.Number` and compared as decimal values, so no rounding to a `float64` hides a
+difference. A read names the arrays whose order the API does not keep, such as the permissions
+of a role, and, with the reason, each field that v1 sends as an instruction that the API does
+not store, such as `is_role` of a condition set rule, which `upgrade.Without` leaves out; the
+test fails when v1 does not send one. Each object is registered in a ledger of the end-to-end
+framework before v1 writes it, and the ledger tears the objects down at the end and must
+reconcile.
+
+With `-upgrade.dryrun`, it runs offline against the fake of `tools/e2e/fake`, which checks each
+body against the spec, in a scratch environment that it creates. The `test` job runs it so, and
+checks its output against `tools/upgrade/required.txt` too, the list of the `e2e` job:
+
+```sh
+HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
+  go -C tools/upgrade test -race -count=1 -p 2 -timeout 5m ./... -args -upgrade.dryrun
+```
+
+Without it, `TestUpgrade` runs against the Permit API, or the one at `PERMIT_E2E_API_URL`, in the
+scratch environment whose API key, ID and project ID `.github/scripts/e2e-env.sh create` exports
+as `PERMIT_E2E_ENV_API_KEY`, `PERMIT_E2E_ENV_ID` and `PERMIT_E2E_PROJECT_ID`, and skips without
+the key. The `e2e` job runs it so after the end-to-end tests, in the same environment, and checks
+its output against `tools/upgrade/required.txt`.
+
+The module pins v1.3.0 on purpose, so it has no Dependabot entry and cicheck's
+`moduleExceptions` lists it; it took v1.3.0, this repository's own release, without the 7-day
+cooldown. The requirement moves by hand to each new v1 release, v1.4.0 included.
+`.github/vulnscan-trees.txt` leaves it out of the vulnerability scan, as a module that never
+ships. Like the consumer module's, its `go.mod` and `go.sum` record what the modules that it
+replaces require, and Dependabot does not update them: a pull request that moves a requirement
+of the root or the tools module, such as a Dependabot pull request for `/` or `/tools`, fails
+its tidy hook and the floor legs of the `test` job, which use `go.mod` and `go.sum` as
+committed, until `go -C tools/upgrade mod tidy` is run and its change pushed.
+
 ### Test tiers
 
 | Tier | When | What | Required | Alert |
 | --- | --- | --- | --- | --- |
-| Offline | Every pull request and push to `master` | The tests of both modules and the end-to-end dry run, with no network | Yes: `CI` | The pull request's `CI` check |
+| Offline | Every pull request and push to `master` | The tests of both modules, the end-to-end dry run and the dry run of the upgrade test, with no network | Yes: `CI` | The pull request's `CI` check |
 | Local full stack | Before a release | A maintainer-run local full-stack suite | For a release *(the release workflow is added in a later commit on this branch)* | The release's harness evidence *(added in a later commit on this branch)* |
 | Production scratch | A push to `master`, a manual run with the mode `e2e`, a release, and a pull request from a branch of this repository | The `e2e` job above, in a scratch environment of Permit's production API | Yes on `master`, in a release and in a manual run; on a pull request into `master`, through the deployment rule | `notify-gate-failure` on `master` and in a release; on a pull request, the lane's `CI` check and its `integration` deployment |
 | Production scratch, advisory | Whenever the `e2e` job runs | The [advisory legs](#the-advisory-legs): the scenarios with the newest release of the container PDP, `e2e-latest`, and against the cloud PDP, `e2e-cloudpdp`, each in a scratch environment of its own | No: they never fail `CI`, and make no deployment | A warning of `CI`, and the failed job in the run |
@@ -1739,16 +1793,24 @@ into `master`:
 - `consumer/go.sum` records the sums of the SDK's requirements too, and Dependabot does not update
   it with the root module's. On a pull request that changes the root's requirements, run
   `go -C consumer mod tidy` and push its change; until then the consumer's tidy hook fails.
+- `tools/upgrade/go.mod` and `go.sum` record what the root and tools modules require too, and
+  Dependabot does not update them with either. On a pull request that changes the root's or the
+  tools module's requirements, such as one of Dependabot's for `/` or `/tools`, run
+  `go -C tools/upgrade mod tidy` and push its change; until then its tidy hook and the floor legs
+  of the `test` job fail.
 - v1 gets no dependency updates: it receives no fixes after v1.4.0.
+- `tools/upgrade` has no entry: it pins v1.3.0 on purpose, the v1 release that its test pins,
+  and moves to each new v1 release by hand (see [The upgrade test](#the-upgrade-test)).
 
 Every Go module that git tracks, outside testdata directories, needs a `gomod` entry for its
 directory and a hook in `.pre-commit-config.yaml` whose entry is `go mod tidy -diff` (the root)
 or `go -C <dir> mod tidy -diff`. When you add a module, add both, or list it in
-`moduleExceptions` in `tools/cmd/cicheck/modules.go` with the reason it gets neither. Only an
-entry without a `target-branch` counts. cicheck fails when a module lacks one, when an exception
-has no reason, names no module or still has an entry, when an entry names no module, when any
-of an entry's cooldown days is shorter than the times above, and when a cooldown has an
-`include` or `exclude` list. Run it as the [CI](#ci) section shows.
+`moduleExceptions` in `tools/cmd/cicheck/modules.go` with the reason it needs no entry. cicheck
+then requires no hook for it either, but add one when the module can be tidied, as
+`tools/upgrade` has. Only an entry without a `target-branch` counts. cicheck fails when a module
+lacks one, when an exception has no reason, names no module or still has an entry, when an entry
+names no module, when any of an entry's cooldown days is shorter than the times above, and when
+a cooldown has an `include` or `exclude` list. Run it as the [CI](#ci) section shows.
 
 CI checks the message of every commit of a pull request, Dependabot's included. The test
 `TestCheckCommitMsgDependabot` in `tools/scripts` checks that the messages Dependabot writes for

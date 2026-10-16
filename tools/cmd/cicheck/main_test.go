@@ -61,6 +61,17 @@ const thirdParty = "on: push\njobs:\n" +
 	"      - uses: octo/b@" + setupGoSHA + "  # v1.1.0\n" +
 	"      - uses: octo/a@" + checkoutSHA + "\n"
 
+// repositoryExceptions are the moduleExceptions of this repository, with which TestRepository
+// checks it. TestMain clears moduleExceptions for the other tests, as the repositories that they
+// write hold none of the modules that it names; a test of the exceptions sets its own with
+// setExceptions.
+var repositoryExceptions = moduleExceptions
+
+func TestMain(m *testing.M) {
+	moduleExceptions = map[string]string{}
+	os.Exit(m.Run())
+}
+
 // validFiles returns the files of a repository that follows every rule.
 func validFiles() map[string]string {
 	return map[string]string{
@@ -1556,6 +1567,7 @@ func TestPrintAllowedActions(t *testing.T) {
 
 // TestRepository checks this repository's workflows and scripts, as the prek job in CI does.
 func TestRepository(t *testing.T) {
+	setExceptions(t, repositoryExceptions)
 	workflows := filepath.Join("..", "..", "..", ".github", "workflows")
 
 	exit, stdout, _ := runCicheck(t, "-workflows", workflows)

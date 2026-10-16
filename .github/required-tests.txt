@@ -1567,5 +1567,12 @@ github.com/permitio/permit-golang/v2/tools/e2e TestAcceptingNull
 github.com/permitio/permit-golang/v2/tools/e2e TestSkipsUserAttributeUpdate
 github.com/permitio/permit-golang/v2/tools/e2e TestListsAnyRule
 
+github.com/permitio/permit-golang/v2/tools/upgrade TestUpgrade
+github.com/permitio/permit-golang/v2/tools/upgrade TestDiff
+github.com/permitio/permit-golang/v2/tools/upgrade TestObjects
+github.com/permitio/permit-golang/v2/tools/upgrade TestWithout
+github.com/permitio/permit-golang/v2/tools/upgrade TestRecorder
+github.com/permitio/permit-golang/v2/tools/upgrade TestRecorderStopsWaitingWhenTheContextEnds
+
 github.com/permitio/permit-golang/v2/tools/cmd/cicheck TestCheckE2ELegs
 github.com/permitio/permit-golang/v2/tools/scripts TestCIAggregateAdvisoryE2ELegs

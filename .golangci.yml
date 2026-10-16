@@ -214,7 +214,8 @@ linters:
           - forbidigo
         text: os\.(Getenv|LookupEnv)
       # The tools module pins its tools with tool directives, and it and the consumer module
-      # build against the SDK in the parent directory; the SDK's own go.mod may do neither.
+      # build against the SDK in the parent directory, and the upgrade module against the SDK
+      # and the tools module in the directories above it; the SDK's own go.mod may do neither.
       - path: ^tools/go\.mod$
         linters:
           - gomoddirectives
@@ -223,6 +224,10 @@ linters:
         linters:
           - gomoddirectives
         text: '^local replacement are not allowed: github\.com/permitio/permit-golang/v2$'
+      - path: ^tools/upgrade/go\.mod$
+        linters:
+          - gomoddirectives
+        text: '^local replacement are not allowed: github\.com/permitio/permit-golang/v2(/tools)?$'
       # The programs in tools/cmd read the files named on their command line.
       - path: ^tools/cmd/
         linters:

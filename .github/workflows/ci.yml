@@ -57,7 +57,7 @@ env:
   WEEKLY_CRON: "41 6 * * 1"
   # The number of hooks in .pre-commit-config.yaml that run on every file; change it when a hook
   # is added or removed.
-  EXPECTED_HOOKS: "26"
+  EXPECTED_HOOKS: "27"
   # A proxy address that refuses connections. The tests run with it, so a request that tries to
   # leave the runner fails; requests to loopback addresses, such as httptest servers, go direct.
   OFFLINE_PROXY: http://127.0.0.1:9
@@ -122,10 +122,13 @@ jobs:
   # release. The floor legs use go.mod and go.sum as committed; the ceiling legs first move every
   # dependency to its newest version in the runner's copy, as an application that requires newer
   # versions would. GOTOOLCHAIN=local keeps the go command from switching to go.mod's toolchain.
-  # The end-to-end dry run of tools/e2e runs with them, and checkgotest checks all three outputs.
-  # The modules, and the gitleaks that the tests of gitleaks-range.sh run, are downloaded first,
-  # and the tests then run offline. Then the benchmarks of the root package run 100 times each,
-  # so that each compiles and runs; the bench job measures them.
+  # The end-to-end dry run of tools/e2e and the dry run of the upgrade test of tools/upgrade, in
+  # which v1.3.0 writes and v2 reads, run with them. checkgotest checks all four outputs, and the
+  # upgrade dry run's against tools/upgrade/required.txt as well, the list of the e2e job. The
+  # ceiling legs tidy tools/upgrade too, which builds the root and tools modules through its
+  # replace directives. The modules, and the gitleaks that the tests of gitleaks-range.sh run,
+  # are downloaded first, and the tests then run offline. Then the benchmarks of the root package
+  # run 100 times each, so that each compiles and runs; the bench job measures them.
   test:
     name: test (${{ matrix.go }}, ${{ matrix.deps }} tree)
     if: >-
@@ -175,25 +178,32 @@ jobs:
             go get -u -t ./...
             go mod tidy
             go -C tools mod tidy
+            go -C tools/upgrade mod tidy
             git diff --stat
           fi
           go mod download
           go -C tools mod download
+          go -C tools/upgrade mod download
           .github/scripts/fetch-tool.sh gitleaks
           go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
-          root=0 tools=0 e2e=0
+          root=0 tools=0 e2e=0 upgrade=0
           go test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/root.json" || root=$?
           go -C tools test -race -shuffle=on -count=1 -json ./... >"$RUNNER_TEMP/tools.json" ||
             tools=$?
           go -C tools test -race -shuffle=on -count=1 -json -tags e2e ./e2e -args -e2e.dryrun \
             >"$RUNNER_TEMP/e2e.json" || e2e=$?
+          go -C tools/upgrade test -race -shuffle=on -count=1 -json ./... -args -upgrade.dryrun \
+            >"$RUNNER_TEMP/upgrade.json" || upgrade=$?
           "$RUNNER_TEMP/checkgotest" -require-file .github/required-tests.txt \
             -allow-skips .github/allowed-skips.txt \
-            "$RUNNER_TEMP/root.json" "$RUNNER_TEMP/tools.json" "$RUNNER_TEMP/e2e.json"
-          if [[ $root -ne 0 || $tools -ne 0 || $e2e -ne 0 ]]; then
-            echo "go test exited $root in the root module, $tools in tools/ and $e2e in the" \
-              "end-to-end dry run."
+            "$RUNNER_TEMP/root.json" "$RUNNER_TEMP/tools.json" "$RUNNER_TEMP/e2e.json" \
+            "$RUNNER_TEMP/upgrade.json"
+          "$RUNNER_TEMP/checkgotest" -require-file tools/upgrade/required.txt \
+            "$RUNNER_TEMP/upgrade.json"
+          if [[ $root -ne 0 || $tools -ne 0 || $e2e -ne 0 || $upgrade -ne 0 ]]; then
+            echo "go test exited $root in the root module, $tools in tools/, $e2e in the" \
+              "end-to-end dry run and $upgrade in the dry run of the upgrade test."
             exit 1
           fi
           go test -count=1 -run '^$' -bench . -benchtime 100x .
@@ -528,18 +538,18 @@ jobs:
         if: inputs.mode == 'release'
         run: .github/scripts/gitleaks-range.sh --since-last-tag HEAD
 
-  # On a pull request only: mutation tests of the Go lines that changed in both modules, with
-  # tools/cmd/mutationgate and the gremlins that tools/binaries.lock pins. The range starts at the
-  # newest commit of the pull request whose mutation check succeeded, or at the merge base when
-  # none did (.github/scripts/mutation-range.sh, which reads the check runs with GH_TOKEN in a
-  # step of its own), so the lines of a run that a newer push cancelled are in the next one. The
-  # job has no name:, so its check run is named by its id, which the range step passes the script
-  # as ${{ github.job }}. The job fails when the tests detect fewer than 90% of the mutants that
-  # ran, and tests a sample of the changed lines, fixed by the head commit, with a budget of 400
-  # mutants. Every test process is bounded to 3 minutes, 4096 MiB and 64 MiB of output, two at a
-  # time. The tests run offline, without GH_TOKEN, skipping the live tests and the tests that
-  # read files outside their module, which fail in the module copies gremlins tests mutants in.
-  # The report is in the job summary.
+  # On a pull request only: mutation tests of the Go lines that changed in both modules and in
+  # tools/upgrade, with tools/cmd/mutationgate and the gremlins that tools/binaries.lock pins. The
+  # range starts at the newest commit of the pull request whose mutation check succeeded, or at
+  # the merge base when none did (.github/scripts/mutation-range.sh, which reads the check runs
+  # with GH_TOKEN in a step of its own), so the lines of a run that a newer push cancelled are in
+  # the next one. The job has no name:, so its check run is named by its id, which the range step
+  # passes the script as ${{ github.job }}. The job fails when the tests detect fewer than 90% of
+  # the mutants that ran, and tests a sample of the changed lines, fixed by the head commit, with
+  # a budget of 400 mutants. Every test process is bounded to 3 minutes, 4096 MiB and 64 MiB of
+  # output, two at a time. The tests run offline, without GH_TOKEN, skipping the live tests and
+  # the tests that read files outside their module, which fail in the module copies gremlins
+  # tests mutants in. The report is in the job summary.
   mutation:
     if: >-
       !inputs.mode && github.event_name == 'pull_request'
@@ -587,12 +597,13 @@ jobs:
           trap 'echo "::$token::"' EXIT
           go mod download
           go -C tools mod download
+          go -C tools/upgrade mod download
           go -C tools build -o "$RUNNER_TEMP/mutationgate" ./cmd/mutationgate
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
           "$RUNNER_TEMP/mutationgate" -base "$START_SHA" -threshold 90 -max-mutants 400 \
             -skip '^(TestLive|TestRepository)' -gremlins bin/gremlins -workers 2 \
             -timeout-coefficient 5 -cap 3m -memory-mib 4096 -summary "$GITHUB_STEP_SUMMARY" \
-            . tools
+            . tools tools/upgrade
 
   # On a pull request only: fails when the pull request adds a dependency with a known
   # vulnerability of high or critical severity, from GitHub's dependency graph, and on a failure
@@ -711,10 +722,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: .github/scripts/prek-count.sh --upstream
 
-  # Weekly, mutation tests of every Go file of both modules, with the limits of the mutation job
-  # and no threshold or budget: it reports the efficacy in the job summary, posts each module's
-  # efficacy and count of mutants that lived to the ops channel, and fails only when the run does
-  # not complete or its result cannot be posted.
+  # Weekly, mutation tests of every Go file of both modules and of tools/upgrade, with the limits
+  # of the mutation job and no threshold or budget: it reports the efficacy in the job summary,
+  # posts each module's efficacy and count of mutants that lived to the ops channel, and fails
+  # only when the run does not complete or its result cannot be posted.
   mutation-weekly:
     name: mutation (weekly)
     if: (!inputs.mode && github.event.schedule == '41 6 * * 1') || inputs.mode == 'weekly'
@@ -746,11 +757,12 @@ jobs:
           trap 'echo "::$token::"' EXIT
           go mod download
           go -C tools mod download
+          go -C tools/upgrade mod download
           go -C tools build -o "$RUNNER_TEMP/mutationgate" ./cmd/mutationgate
           export HTTP_PROXY=$OFFLINE_PROXY HTTPS_PROXY=$OFFLINE_PROXY
           "$RUNNER_TEMP/mutationgate" -all -threshold 0 -skip '^(TestLive|TestRepository)' \
             -gremlins bin/gremlins -workers 2 -timeout-coefficient 5 -cap 3m -memory-mib 4096 \
-            -summary "$GITHUB_STEP_SUMMARY" . tools | tee "$RUNNER_TEMP/mutation.txt"
+            -summary "$GITHUB_STEP_SUMMARY" . tools tools/upgrade | tee "$RUNNER_TEMP/mutation.txt"
       # notify posts one line to the ops channel, SLACK_WEBHOOK_URL: each module's efficacy and
       # count of mutants that lived, or that the run did not complete; without the webhook it
       # warns and posts nothing. mutationgate prints "### Mutation tests: `<dir>` (<module>)" for
@@ -1169,21 +1181,22 @@ jobs:
   # 127.0.0.1:7766, and waits up to 300 seconds for /healthy. The tests run in that environment,
   # and checkgotest checks their output against tools/e2e/required.txt and
   # tools/e2e/allowed-skips.txt; their request record is uploaded as the artifact
-  # e2e-record-pinned. specsnap -check-pdp checks that the PDP serves the spec of its snapshot,
-  # tools/specs/pdp-container.json. On a failure the PDP's log is printed without the health
-  # checks, and at the end the container is removed and the environment deleted, with a warning
-  # when it leaked. Runs of the job do not wait for each other: each works in an environment of
-  # its own, and the sweep deletes only environments older than 24 hours. A failure on a push to
-  # master or in a release fails CI, which notify-gate-failure posts. The environment deploys
-  # from master, pull requests and release/* branches only: a manual run from another branch
-  # fails before its first step.
+  # e2e-record-pinned. Then the upgrade test of tools/upgrade runs in the same environment, and
+  # checkgotest checks it against tools/upgrade/required.txt. specsnap -check-pdp checks that
+  # the PDP serves the spec of its snapshot, tools/specs/pdp-container.json. On a failure the
+  # PDP's log is printed without the health checks, and at the end the container is removed and
+  # the environment deleted, with a warning when it leaked. Runs of the job do not wait for each
+  # other: each works in an environment of its own, and the sweep deletes only environments older
+  # than 24 hours. A failure on a push to master or in a release fails CI, which
+  # notify-gate-failure posts. The environment deploys from master, pull requests and release/*
+  # branches only: a manual run from another branch fails before its first step.
   e2e:
     name: e2e (pinned PDP)
     if: >-
       (!inputs.mode && github.event_name == 'push') || inputs.mode == 'e2e'
       || inputs.mode == 'release'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     environment: integration
     permissions:
       contents: read
@@ -1232,6 +1245,29 @@ jobs:
             -e2e.record "$RUNNER_TEMP/e2e-record.jsonl" >"$RUNNER_TEMP/e2e.json" || code=$?
           "$RUNNER_TEMP/checkgotest" -require-file tools/e2e/required.txt \
             -allow-skips tools/e2e/allowed-skips.txt "$RUNNER_TEMP/e2e.json"
+          if [[ $code -ne 0 ]]; then
+            echo "go test exited $code."
+            exit 1
+          fi
+      # After the end-to-end tests, in the same scratch environment: the upgrade test of
+      # tools/upgrade, in which v1.3.0, the v1 release that the test pins, writes objects of
+      # every kind that v1 writes in an environment, and v2 reads each of them, field by field.
+      # It reads the environment's API key and IDs that e2e-env.sh exported, and no secret;
+      # checkgotest checks its output against tools/upgrade/required.txt. The job's timeout
+      # covers the sweep, the create, the PDP's start, and the 20 and 5 minutes of the two test
+      # steps.
+      - name: Run the upgrade test
+        if: steps.env.outputs.created == 'true'
+        run: |
+          token=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+          echo "::stop-commands::$token"
+          trap 'echo "::$token::"' EXIT
+          go -C tools build -o "$RUNNER_TEMP/checkgotest" ./cmd/checkgotest
+          code=0
+          go -C tools/upgrade test -count=1 -timeout 5m -json ./... \
+            >"$RUNNER_TEMP/upgrade.json" || code=$?
+          "$RUNNER_TEMP/checkgotest" -require-file tools/upgrade/required.txt \
+            "$RUNNER_TEMP/upgrade.json"
           if [[ $code -ne 0 ]]; then
             echo "go test exited $code."
             exit 1

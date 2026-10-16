@@ -29,7 +29,11 @@ const (
 // moduleExceptions maps the directory of a Go module, relative to the repository root with
 // slashes, to the reason it has no gomod entry in dependabotFile and needs no go mod tidy -diff
 // hook in hooksFile.
-var moduleExceptions = map[string]string{}
+var moduleExceptions = map[string]string{
+	"tools/upgrade": "its test checks that v2 reads what a v1 release wrote, so it pins " +
+		"github.com/permitio/permit-golang v1.3.0 on purpose and moves by hand to each new v1 " +
+		"release",
+}
 
 // moduleSetup is what the module rules check: the Go modules, and the configurations that update
 // and tidy them.

@@ -795,6 +795,10 @@ pins, and:
 - bounds every test process to `-cap` (3 minutes), `-memory-mib` (4096 MiB; the kernel enforces
   it on Linux, and mutationgate polls on macOS) and 64 MiB of output, and runs `-workers` (2) at a
   time; before it starts, a probe that allocates without end must be stopped by the memory limit;
+- on Unix, kills the process group of each test process when it stops the test process, when the
+  test process exits and when it gets a signal that would end it or its output pipe closes, so
+  that no process the test starts in that group is left running; a process that leaves the group
+  is not covered;
 - runs gremlins once per package, so a mutant is tested with its own package's tests, and leaves
   mutants that do not compile out of the count;
 - with `-base <ref>`, mutates the lines changed since the merge base with `<ref>`, and with

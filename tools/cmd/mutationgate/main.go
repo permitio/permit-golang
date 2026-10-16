@@ -23,6 +23,12 @@
 //     which tests the packages without a mutant, runs at most that many test
 //     processes at a time too. A test process of that run may take half of -cap,
 //     so that a mutant of its package has room before the cap counts it as killed.
+//     On Unix, exec runs each test process in a process group of its own and
+//     kills that group when it stops the test process, when the test process
+//     exits, and when exec gets an interrupt, a hangup, SIGTERM or SIGQUIT that
+//     would end it or finds its own output closed, so no process the test starts
+//     in that group is left running. A process that leaves the group is not
+//     covered.
 //   - gremlins counts a mutant as not viable only when go test exits 2, but go test
 //     exits 1 when the build fails, so a mutant that does not compile would count
 //     as killed. mutationgate puts its go subcommand first on gremlins' PATH, which

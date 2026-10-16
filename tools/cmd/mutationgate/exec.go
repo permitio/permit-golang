@@ -36,9 +36,10 @@ const (
 // command that started it is still running.
 const pollInterval = 100 * time.Millisecond
 
-// exitGrace is how long exec waits, after it fails to read a test process's
-// memory use, for the process to be reaped: one that has exited but is not yet
-// reaped cannot be measured.
+// exitGrace is how much longer than waitDelay exec waits for Wait to return after
+// it fails to read a test process's memory use: a process that has exited cannot
+// be measured, whether Wait has not reaped it yet or still waits for processes that
+// hold its output open.
 const exitGrace = time.Second
 
 // outputBudget is the most a test process may write to stdout and stderr together.
@@ -46,9 +47,17 @@ const exitGrace = time.Second
 // memory limit nor the cap would stop a mutant that prints without end in time.
 const outputBudget = 64 << 20
 
-// waitDelay is how long exec waits, once a test process has exited, for processes
-// it started that hold its output open.
+// waitDelay is how long Wait waits, once a test process has exited, for processes
+// it started that hold its output open. Then Wait closes the output, the test
+// process's exit code stands, and exec kills those processes with the rest of the
+// test process's group. Where exec polls memory use, which it cannot read once the
+// test process has exited, it waits for Wait that long, and exitGrace more.
 const waitDelay = 5 * time.Second
+
+// orphanedOutput is the detail of the orphan event exec reports when it finds its
+// own stdout or stderr closed: the go command that reads them has exited.
+const orphanedOutput = "outlived the go command that started it, which closed exec's output " +
+	"(gremlins' timeout)"
 
 // oomMarkers are how the Go runtime reports, when it exits, that an allocation
 // failed: under RLIMIT_AS on Linux, a test process that passes the limit.
@@ -77,6 +86,9 @@ type monitor struct {
 	memoryKiB func(pid int) (int64, error)
 	// orphaned reports whether the go command that started exec has exited.
 	orphaned func() bool
+	// signals delivers the signals that would end exec. It is nil where exec leaves
+	// them as they are.
+	signals <-chan os.Signal
 }
 
 // runExecCommand is the exec subcommand: go test runs each test binary as
@@ -98,6 +110,7 @@ func runExecCommand(args []string, stderr io.Writer) int {
 		interval:  pollInterval,
 		memoryKiB: memoryKiB,
 		orphaned:  func() bool { return os.Getppid() != parent },
+		signals:   notifyStop(),
 	}, os.Stdout, stderr)
 }
 
@@ -132,22 +145,30 @@ func isBaselineRun(command []string) bool {
 }
 
 // superviseTest runs the test process and returns its exit code. It stops the
-// process and returns 1 when the process runs past the cap, uses more memory than
-// the limit, writes more than outputBudget, or outlives the go command, and returns
-// 1 when a signal kills it, so go test reports the package as failed and gremlins
-// counts the mutant as killed. A run without a mutant (gremlins' coverage run) may
-// take half the cap, so that a mutant of the package has room before the cap
-// counts it as killed.
+// process when the process runs past the cap, uses more memory than the limit,
+// writes more than outputBudget or outlives the go command, which exec finds by
+// polling and when its own output closes, or when exec gets a signal that would
+// end it. Then, and when a signal kills the process, it returns 1, so go test
+// reports the package as failed and gremlins counts the mutant as killed. A run
+// without a mutant (gremlins' coverage run) may take half the cap, so that a mutant
+// of the package has room before the cap counts it as killed.
+//
+// On Unix the test process runs in a process group of its own. superviseTest kills
+// the whole group when it stops the process, and again once the process has exited
+// either way, so no process that the test process started outlives exec, unless it
+// left the group. Elsewhere it kills only the test process.
 func superviseTest(opts execOptions, m monitor, stdout, stderr io.Writer) int {
-	watch := &outputWatch{exceeded: make(chan struct{})}
+	watch := &outputWatch{exceeded: make(chan struct{}), orphaned: make(chan struct{})}
 	watch.left.Store(outputBudget)
-	// exec stops the process itself, so the context is never cancelled.
+	// exec stops the process itself, so the context is never cancelled, and Cancel
+	// never runs.
 	//nolint:gosec // G204: exec runs the test binary go test hands it.
 	cmd := exec.CommandContext(context.Background(), opts.command[0], opts.command[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = &watchedWriter{w: stdout, watch: watch}
 	cmd.Stderr = &watchedWriter{w: stderr, watch: watch, scan: true}
 	cmd.WaitDelay = waitDelay
+	startInGroup(cmd)
 	baseline := isBaselineRun(opts.command)
 	limit := opts.cap
 	if baseline {
@@ -160,6 +181,9 @@ func superviseTest(opts execOptions, m monitor, stdout, stderr io.Writer) int {
 	}
 	t := &testProcess{opts: opts, stderr: stderr, cmd: cmd, watch: watch, done: make(chan error, 1)}
 	go func() { t.done <- cmd.Wait() }()
+	// Every return below follows the end of Wait, so this kills what the test
+	// process left in its group after it exited.
+	defer t.kill()
 	deadline := time.NewTimer(limit)
 	defer deadline.Stop()
 	ticker := time.NewTicker(m.interval)
@@ -189,6 +213,10 @@ func superviseTest(opts execOptions, m monitor, stdout, stderr io.Writer) int {
 				eventOutput,
 				fmt.Sprintf("wrote more than %d MiB of output", outputBudget>>20),
 			)
+		case sig := <-m.signals:
+			return t.stop(eventSignal, "stopped when exec got a signal: "+sig.String())
+		case <-watch.orphaned:
+			return t.stop(eventOrphan, orphanedOutput)
 		case <-ticker.C:
 			if m.orphaned() {
 				return t.stop(eventOrphan,
@@ -202,7 +230,7 @@ func superviseTest(opts execOptions, m monitor, stdout, stderr io.Writer) int {
 				select {
 				case waitErr := <-t.done:
 					return t.exitCode(waitErr)
-				case <-time.After(exitGrace):
+				case <-time.After(waitDelay + exitGrace):
 				}
 				return t.stop(eventError, fmt.Sprintf("cannot read its memory use: %v", err))
 			}
@@ -214,18 +242,34 @@ func superviseTest(opts execOptions, m monitor, stdout, stderr io.Writer) int {
 	}
 }
 
-// outputWatch counts what a test process writes to stdout and stderr together, and
-// notes when its stderr reports that the Go runtime ran out of memory.
+// outputWatch counts what a test process writes to stdout and stderr together,
+// notes when its stderr reports that the Go runtime ran out of memory, and notes
+// when exec finds its own stdout or stderr closed.
 type outputWatch struct {
 	left     atomic.Int64
 	exceeded chan struct{}
 	once     sync.Once
 	oom      atomic.Bool
+	// orphaned is closed when a write to exec's stdout or stderr finds the pipe
+	// closed: the go command that reads them has exited.
+	orphaned     chan struct{}
+	orphanedOnce sync.Once
+}
+
+// isOrphaned reports whether exec has found its own stdout or stderr closed.
+func (w *outputWatch) isOrphaned() bool {
+	select {
+	case <-w.orphaned:
+		return true
+	default:
+		return false
+	}
 }
 
 // watchedWriter passes a test process's output on until the output budget runs
-// out, then drops it, so the process is not blocked on a full pipe before exec
-// stops it. os/exec copies each stream from one goroutine, so carry needs no lock.
+// out or exec finds its own output closed, then drops it, so the process is not
+// blocked on a full pipe, or stopped by a closed one, before exec stops it. os/exec
+// copies each stream from one goroutine, so carry needs no lock.
 type watchedWriter struct {
 	w     io.Writer
 	watch *outputWatch
@@ -241,7 +285,15 @@ func (ww *watchedWriter) Write(p []byte) (int, error) {
 	if ww.scan && !ww.watch.oom.Load() {
 		ww.scanForOOM(p)
 	}
-	return ww.w.Write(p)
+	if ww.watch.isOrphaned() {
+		return len(p), nil
+	}
+	n, err := ww.w.Write(p)
+	if isClosedPipe(err) {
+		ww.watch.orphanedOnce.Do(func() { close(ww.watch.orphaned) })
+		return len(p), nil
+	}
+	return n, err
 }
 
 // scanForOOM looks for the Go runtime's out of memory report in p and the end of
@@ -266,16 +318,30 @@ type testProcess struct {
 	done   chan error
 }
 
+// stop kills the test process with its group, waits for it, and reports why.
 func (t *testProcess) stop(kind, detail string) int {
-	if err := t.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
-		_, _ = fmt.Fprintf(t.stderr, "mutationgate exec: kill %s: %v\n", t.opts.command[0], err)
-	}
+	t.kill()
 	<-t.done
 	reportEvent(t.opts, t.stderr, kind, detail)
 	return exitFailed
 }
 
+// kill kills the test process and, on Unix, the rest of its group, and prints the
+// error when the kill fails.
+func (t *testProcess) kill() {
+	if err := killGroup(t.cmd); err != nil {
+		_, _ = fmt.Fprintf(t.stderr, "mutationgate exec: kill %s: %v\n", t.opts.command[0], err)
+	}
+}
+
+// exitCode returns exec's exit code for a test process that exited by itself, from
+// err, what Wait returned. When exec found its own output closed before, it reports
+// the orphan instead: the go command that would read the exit code has exited.
 func (t *testProcess) exitCode(err error) int {
+	if t.watch.isOrphaned() {
+		reportEvent(t.opts, t.stderr, eventOrphan, orphanedOutput)
+		return exitFailed
+	}
 	if err == nil || errors.Is(err, exec.ErrWaitDelay) {
 		return exitPassed
 	}

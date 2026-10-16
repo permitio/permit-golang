@@ -97,6 +97,13 @@ github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestExcludedFiles
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestWithoutLines
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestIsChanged
 github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestLineCount
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestSuperviseTestStopsTheWholeGroup
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestSuperviseTestKillsWhatATestProcessLeft
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestExecStopsTheGroupOnASignal
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestKillGroupOfAnExitedProcess
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestSuperviseTestStopsATestProcessThatLeftItsGroup
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestExecKeepsAnIgnoredSignalIgnored
+github.com/permitio/permit-golang/v2/tools/cmd/mutationgate TestExecStopsTheGroupWhenItsOutputCloses
 
 github.com/permitio/permit-golang/v2/tools/scripts TestFetchTool
 github.com/permitio/permit-golang/v2/tools/scripts TestCheckCommitMsg

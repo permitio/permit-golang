@@ -8,7 +8,7 @@ var zipLimits = limits{
 	// does yet.
 	exceptions: nil,
 	budget: budget{
-		baseline: 1096575,
+		baseline: 1231982,
 		measured: "2026-10-16",
 		headroom: 256 << 10,
 		reason: "The first baseline, 173560 bytes, was the zip of the commit that added " +
@@ -22,9 +22,11 @@ var zipLimits = limits{
 			"relations, roles) used most of the next headroom, and the fourth, 914366 bytes, " +
 			"was the zip of the commit that added role bulk replace. The condition sets, " +
 			"resource roles, implicit grants, users and proxy configs services used most of " +
-			"that headroom. The baseline is now the zip of the commit that added user role " +
-			"assignment, and the headroom leaves room for the next API services, while growth " +
-			"of more than 256 KiB fails, such as v1's 910 KB image split into files under the " +
-			"per-file cap.",
+			"that headroom, and the fifth, 1096575 bytes, was the zip of the commit that added " +
+			"user role assignment. Tenant membership, role assignments, resource instances, " +
+			"relationship tuples and the bulk operations used half of the next headroom. The " +
+			"baseline is now the zip of the commit that added bulk relationship tuples, and the " +
+			"headroom leaves room for the next API services, while growth of more than 256 KiB " +
+			"fails, such as v1's 910 KB image split into files under the per-file cap.",
 	},
 }
